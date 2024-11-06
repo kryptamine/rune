@@ -31,6 +31,8 @@ const (
 	SEMICOLON
 	LEFT_PAREN
 	RIGHT_PAREN
+	LEFT_BRACE
+	RIGHT_BRACE
 	EOF
 
 	// Operators
@@ -61,6 +63,10 @@ func (tokenType TokenType) String() string {
 		return "LEFT_PAREN"
 	case RIGHT_PAREN:
 		return "RIGHT_PAREN"
+	case LEFT_BRACE:
+		return "LEFT_BRACE"
+	case RIGHT_BRACE:
+		return "RIGHT_BRACE"
 	case IDENTIFIER:
 		return "IDENTIFIER"
 	default:
@@ -139,6 +145,12 @@ func (s *Scanner) scanToken() error {
 		break
 	case ')':
 		s.addToken(RIGHT_PAREN, nil)
+		break
+	case '{':
+		s.addToken(LEFT_BRACE, nil)
+		break
+	case '}':
+		s.addToken(RIGHT_BRACE, nil)
 		break
 
 		// Operators
