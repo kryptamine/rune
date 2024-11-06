@@ -216,7 +216,10 @@ func (s *Scanner) scanToken() {
 			s.addToken(SLASH, nil)
 		}
 	case '"':
-		s.string()
+		if err := s.string(); err != nil {
+			s.errors = append(s.errors, fmt.Errorf("[line %d] Error: %w", s.line, err))
+		}
+
 		break
 		// Ignore whitespace.
 	case ' ':
