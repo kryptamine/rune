@@ -314,7 +314,7 @@ func (s *Scanner) number() {
 }
 
 func (s *Scanner) identifier() {
-	for s.isAlpha(s.peek()) {
+	for s.isAlphaNumeric(s.peek()) {
 		s.advance()
 	}
 
@@ -325,6 +325,10 @@ func (s *Scanner) identifier() {
 	} else {
 		s.addToken(IDENTIFIER, nil)
 	}
+}
+
+func (s *Scanner) isAlphaNumeric(c rune) bool {
+	return s.isAlpha(c) || s.isDigit(c)
 }
 
 func (s *Scanner) isAlpha(c rune) bool {
