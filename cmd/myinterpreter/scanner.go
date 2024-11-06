@@ -33,6 +33,12 @@ const (
 	RIGHT_PAREN
 	LEFT_BRACE
 	RIGHT_BRACE
+	COMMA
+	DOT
+	MINUS
+	PLUS
+	SLASH
+	STAR
 	EOF
 
 	// Operators
@@ -49,6 +55,19 @@ func (tokenType TokenType) String() string {
 	switch tokenType {
 	case SEMICOLON:
 		return "SEMICOLON"
+	case COMMA:
+		return "COMMA"
+
+	case DOT:
+		return "DOT"
+	case MINUS:
+		return "MINUS"
+	case PLUS:
+		return "PLUS"
+	case SLASH:
+		return "SLASH"
+	case STAR:
+		return "STAR"
 	case EOF:
 		return "EOF"
 	case EQUAL:
@@ -152,7 +171,21 @@ func (s *Scanner) scanToken() error {
 	case '}':
 		s.addToken(RIGHT_BRACE, nil)
 		break
-
+	case ',':
+		s.addToken(COMMA, nil)
+		break
+	case '.':
+		s.addToken(DOT, nil)
+		break
+	case '-':
+		s.addToken(MINUS, nil)
+		break
+	case '+':
+		s.addToken(PLUS, nil)
+		break
+	case '*':
+		s.addToken(STAR, nil)
+		break
 		// Operators
 	case '=':
 		s.addToken(If(s.match('='), EQUAL_EQUAL, EQUAL), nil)
