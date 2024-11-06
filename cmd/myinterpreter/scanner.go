@@ -206,6 +206,15 @@ func (s *Scanner) scanToken() {
 	case '>':
 		s.addToken(If(s.match('='), GREATER_EQUAL, GREATER), nil)
 		break
+	case '/':
+		if s.match('/') {
+			// A comment goes until the end of the line.
+			for s.peek() != '\n' && !s.isAtEnd() {
+				s.advance()
+			}
+		} else {
+			s.addToken(SLASH, nil)
+		}
 	case '"':
 		s.string()
 		break
