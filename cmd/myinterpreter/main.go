@@ -22,7 +22,6 @@ func main() {
 	}
 
 	// Uncomment this block to pass the first stage
-
 	filename := os.Args[2]
 	fileContents, err := os.ReadFile(filename)
 	if err != nil {
@@ -31,7 +30,21 @@ func main() {
 	}
 
 	if len(fileContents) > 0 {
-		panic("Scanner not implemented")
+		scanner := Scanner{
+			source: string(fileContents),
+			tokens: []Token{},
+			keywords: map[string]TokenType{
+				"var": VAR,
+			},
+			current: 0,
+			line:    1,
+			start:   0,
+		}
+
+		if err := scanner.run(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error scanning file: %v\n", err)
+			os.Exit(1)
+		}
 	} else {
 		fmt.Println("EOF  null") // Placeholder, remove this line when implementing the scanner
 	}
