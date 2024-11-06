@@ -42,7 +42,7 @@ func main() {
 		}
 
 		if err := scanner.run(); err != nil {
-			fmt.Fprintf(os.Stderr, "Error scanning file: %v\n", err)
+			fmt.Fprintf(os.Stderr, "%v", err)
 			os.Exit(1)
 		}
 	} else {

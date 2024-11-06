@@ -117,7 +117,7 @@ func (s *Scanner) scanTokens() ([]Token, error) {
 			for _, token := range s.tokens {
 				fmt.Println(token)
 			}
-			return nil, fmt.Errorf("failed to scan token: %w", err)
+			return nil, err
 		}
 	}
 
@@ -206,7 +206,7 @@ func (s *Scanner) scanToken() error {
 		if s.isAlpha(char) {
 			s.identifier()
 		} else {
-			return errors.New(fmt.Sprintf("Unexpected character %c, line %d", char, s.line))
+			return errors.New(fmt.Sprintf("[line %d] Error: unexpected character: %c", s.line, char))
 		}
 	}
 
