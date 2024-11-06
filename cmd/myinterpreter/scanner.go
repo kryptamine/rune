@@ -29,6 +29,21 @@ type Scanner struct {
 
 const (
 	VAR TokenType = iota
+	AND
+	OR
+	CLASS
+	ELSE
+	FALSE
+	FUN
+	FOR
+	IF
+	NIL
+	PRINT
+	RETURN
+	SUPER
+	THIS
+	TRUE
+	WHILE
 
 	// Single tokens
 	SEMICOLON
@@ -79,12 +94,47 @@ func (tokenType TokenType) String() string {
 		return "STAR"
 	case EOF:
 		return "EOF"
+
+		// types
 	case STRING:
 		return "STRING"
 	case NUMBER:
 		return "NUMBER"
+
+		// keywords
 	case VAR:
 		return "VAR"
+	case AND:
+		return "AND"
+
+	case CLASS:
+		return "CLASS"
+	case ELSE:
+		return "ELSE"
+	case FALSE:
+		return "FALSE"
+	case FUN:
+		return "FUN"
+	case FOR:
+		return "FOR"
+	case IF:
+		return "IF"
+	case NIL:
+		return "NIL"
+	case PRINT:
+		return "PRINT"
+	case RETURN:
+		return "RETURN"
+	case SUPER:
+		return "SUPER"
+	case THIS:
+		return "THIS"
+	case TRUE:
+		return "TRUE"
+	case WHILE:
+		return "WHILE"
+	case OR:
+		return "OR"
 	case LEFT_PAREN:
 		return "LEFT_PAREN"
 	case RIGHT_PAREN:
