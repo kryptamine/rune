@@ -3,6 +3,8 @@ package main
 import (
 	"errors"
 	"fmt"
+	"math"
+	"strconv"
 )
 
 type TokenType int
@@ -56,6 +58,7 @@ const (
 
 	// Types
 	STRING
+	NUMBER
 )
 
 func (tokenType TokenType) String() string {
@@ -78,6 +81,8 @@ func (tokenType TokenType) String() string {
 		return "EOF"
 	case STRING:
 		return "STRING"
+	case NUMBER:
+		return "NUMBER"
 	case VAR:
 		return "VAR"
 	case LEFT_PAREN:
@@ -116,7 +121,16 @@ func (token Token) String() string {
 		return fmt.Sprintf("%s %s null", token.tokenType, token.lexeme)
 	}
 
-	return fmt.Sprintf("%s %s %v", token.tokenType, token.lexeme, token.literal)
+	switch v := token.literal.(type) {
+	case float64:
+		// Check if v has a fractional part
+		if v == math.Floor(v) {
+			return fmt.Sprintf("%s %s %.1f", token.tokenType, token.lexeme, v)
+		}
+		return fmt.Sprintf("%s %s %g", token.tokenType, token.lexeme, v)
+	default:
+		return fmt.Sprintf("%s %s %v", token.tokenType, token.lexeme, v)
+	}
 }
 
 func If[T any](cond bool, vtrue, vfalse T) T {
@@ -232,6 +246,8 @@ func (s *Scanner) scanToken() {
 	default:
 		if s.isAlpha(char) {
 			s.identifier()
+		} else if s.isDigit(char) {
+			s.number()
 		} else {
 			s.errors = append(s.errors, fmt.Errorf("[line %d] Error: Unexpected character: %c", s.line, char))
 		}
@@ -278,6 +294,25 @@ func (s *Scanner) string() error {
 	return nil
 }
 
+func (s *Scanner) number() {
+	for s.isDigit(s.peek()) {
+		s.advance()
+	}
+	// Look for a fractional part.
+	if s.peek() == '.' && s.isDigit(s.peekNext()) {
+		// Consume the "."
+		s.advance()
+
+		for s.isDigit(s.peek()) {
+			s.advance()
+		}
+	}
+
+	val, _ := strconv.ParseFloat(s.source[s.start:s.current], 64)
+
+	s.addToken(NUMBER, val)
+}
+
 func (s *Scanner) identifier() {
 	for s.isAlpha(s.peek()) {
 		s.advance()
@@ -298,12 +333,24 @@ func (s *Scanner) isAlpha(c rune) bool {
 		c == '_'
 }
 
+func (s *Scanner) isDigit(c rune) bool {
+	return c >= '0' && c <= '9'
+}
+
 func (s *Scanner) peek() rune {
 	if s.isAtEnd() {
 		return rune(0)
 	}
 
 	return s.currentChar()
+}
+
+func (s *Scanner) peekNext() rune {
+	if s.current+1 >= len(s.source) {
+		return rune(0)
+	}
+
+	return rune(s.source[s.current+1])
 }
 
 func (s *Scanner) advance() rune {
