@@ -43,8 +43,14 @@ const (
 	EOF
 
 	// Operators
+	BANG
+	BANG_EQUAL
 	EQUAL
 	EQUAL_EQUAL
+	LESS
+	LESS_EQUAL
+	GREATER
+	GREATER_EQUAL
 
 	IDENTIFIER
 
@@ -58,7 +64,6 @@ func (tokenType TokenType) String() string {
 		return "SEMICOLON"
 	case COMMA:
 		return "COMMA"
-
 	case DOT:
 		return "DOT"
 	case MINUS:
@@ -71,10 +76,6 @@ func (tokenType TokenType) String() string {
 		return "STAR"
 	case EOF:
 		return "EOF"
-	case EQUAL:
-		return "EQUAL"
-	case EQUAL_EQUAL:
-		return "EQUAL_EQUAL"
 	case STRING:
 		return "STRING"
 	case VAR:
@@ -89,6 +90,22 @@ func (tokenType TokenType) String() string {
 		return "RIGHT_BRACE"
 	case IDENTIFIER:
 		return "IDENTIFIER"
+	case EQUAL:
+		return "EQUAL"
+	case EQUAL_EQUAL:
+		return "EQUAL_EQUAL"
+	case BANG:
+		return "BANG"
+	case BANG_EQUAL:
+		return "BANG_EQUAL"
+	case LESS:
+		return "LESS"
+	case LESS_EQUAL:
+		return "LESS_EQUAL"
+	case GREATER:
+		return "GREATER"
+	case GREATER_EQUAL:
+		return "GREATER_EQUAL"
 	default:
 		return "Undefined token."
 	}
@@ -180,7 +197,15 @@ func (s *Scanner) scanToken() {
 	case '=':
 		s.addToken(If(s.match('='), EQUAL_EQUAL, EQUAL), nil)
 		break
-
+	case '!':
+		s.addToken(If(s.match('='), BANG_EQUAL, BANG), nil)
+		break
+	case '<':
+		s.addToken(If(s.match('='), LESS_EQUAL, LESS), nil)
+		break
+	case '>':
+		s.addToken(If(s.match('='), GREATER_EQUAL, GREATER), nil)
+		break
 	case '"':
 		s.string()
 		break
