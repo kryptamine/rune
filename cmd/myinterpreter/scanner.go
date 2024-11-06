@@ -18,6 +18,7 @@ type Scanner struct {
 	source   string
 	tokens   []Token
 	keywords map[string]TokenType
+	errors   []error
 
 	start   int
 	current int
@@ -108,17 +109,10 @@ func If[T any](cond bool, vtrue, vfalse T) T {
 	return vfalse
 }
 
-func (s *Scanner) scanTokens() ([]Token, error) {
+func (s *Scanner) scanTokens() []Token {
 	for !s.isAtEnd() {
 		s.start = s.current
-
-		if err := s.scanToken(); err != nil {
-
-			for _, token := range s.tokens {
-				fmt.Println(token)
-			}
-			return nil, err
-		}
+		s.scanToken()
 	}
 
 	s.tokens = append(
@@ -131,28 +125,24 @@ func (s *Scanner) scanTokens() ([]Token, error) {
 		},
 	)
 
-	return s.tokens, nil
+	return s.tokens
 }
 
-func (s *Scanner) run() error {
-	tokens, err := s.scanTokens()
-
-	if err != nil {
-		return err
-	}
+func (s *Scanner) run() []error {
+	tokens := s.scanTokens()
 
 	for _, token := range tokens {
 		fmt.Println(token)
 	}
 
-	return nil
+	return s.errors
 }
 
 func (s *Scanner) isAtEnd() bool {
 	return s.current >= len(s.source)
 }
 
-func (s *Scanner) scanToken() error {
+func (s *Scanner) scanToken() {
 	char := s.advance()
 
 	switch char {
@@ -206,11 +196,9 @@ func (s *Scanner) scanToken() error {
 		if s.isAlpha(char) {
 			s.identifier()
 		} else {
-			return errors.New(fmt.Sprintf("[line %d] Error: unexpected character: %c", s.line, char))
+			s.errors = append(s.errors, fmt.Errorf("[line %d] Error: Unexpected character: %c", s.line, char))
 		}
 	}
-
-	return nil
 }
 
 func (s *Scanner) addToken(tokenType TokenType, literal any) {

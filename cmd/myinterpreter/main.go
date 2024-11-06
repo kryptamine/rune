@@ -33,6 +33,7 @@ func main() {
 		scanner := Scanner{
 			source: string(fileContents),
 			tokens: []Token{},
+			errors: []error{},
 			keywords: map[string]TokenType{
 				"var": VAR,
 			},
@@ -41,10 +42,16 @@ func main() {
 			start:   0,
 		}
 
-		if err := scanner.run(); err != nil {
-			fmt.Fprintf(os.Stderr, "%v", err)
-			os.Exit(1)
+		errors := scanner.run()
+
+		if len(errors) > 0 {
+			for _, err := range errors {
+				fmt.Fprintf(os.Stderr, "%v\n", err)
+			}
+
+			os.Exit(65)
 		}
+
 	} else {
 		fmt.Println("EOF  null") // Placeholder, remove this line when implementing the scanner
 	}
