@@ -66,7 +66,24 @@ func Parse(tokens []Token) Node {
 }
 
 func (s *Parser) expression() Node {
-	return s.comparison()
+	return s.equality()
+}
+
+func (s *Parser) equality() Node {
+	expr := s.comparison()
+
+	for s.match(BANG_EQUAL, EQUAL_EQUAL) {
+		operator := s.previous()
+		right := s.comparison()
+
+		expr = &BinaryExpr{
+			left:     expr,
+			right:    right,
+			operator: operator,
+		}
+	}
+
+	return expr
 }
 
 func (s *Parser) comparison() Node {
