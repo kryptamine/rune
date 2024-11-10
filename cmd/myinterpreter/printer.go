@@ -27,3 +27,9 @@ func (p *PrintVisitor) visitBinaryExpr(node *BinaryExpr) {
 func (p *PrintVisitor) visitLiteralExpr(node *LiteralExpr) {
 	fmt.Print(node.value)
 }
+
+func (p *PrintVisitor) visitGroupingExpr(node *GroupingExpr) {
+	fmt.Print("(group ")
+	node.expr.accept(p)
+	fmt.Print(")")
+}

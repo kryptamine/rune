@@ -1,13 +1,19 @@
 package main
 
+import (
+	"fmt"
+)
+
 type Parser struct {
 	tokens  []Token
+	errors  []error
 	current int
 }
 
 type Visitor interface {
 	visitBinaryExpr(binaryExpr *BinaryExpr)
 	visitLiteralExpr(literalExpr *LiteralExpr)
+	visitGroupingExpr(literalExpr *GroupingExpr)
 }
 
 type Node interface {
@@ -24,12 +30,20 @@ type LiteralExpr struct {
 	value string
 }
 
+type GroupingExpr struct {
+	expr Node
+}
+
 func (n *BinaryExpr) accept(v Visitor) {
 	v.visitBinaryExpr(n)
 }
 
 func (n *LiteralExpr) accept(v Visitor) {
 	v.visitLiteralExpr(n)
+}
+
+func (n *GroupingExpr) accept(v Visitor) {
+	v.visitGroupingExpr(n)
 }
 
 func Parse(tokens []Token) Node {
@@ -89,6 +103,16 @@ func (s *Parser) primary() Node {
 		}
 	}
 
+	if s.match(LEFT_PAREN) {
+		expr := s.expression()
+
+		s.consume(RIGHT_PAREN, fmt.Errorf("Expect ')' after expression."))
+
+		return &GroupingExpr{
+			expr: expr,
+		}
+	}
+
 	return &LiteralExpr{}
 }
 
@@ -123,6 +147,14 @@ func (s *Parser) advance() Token {
 	}
 
 	return s.previous()
+}
+
+func (s *Parser) consume(tokenType TokenType, err error) (Token, error) {
+	if s.check(tokenType) {
+		return s.advance(), nil
+	}
+
+	return Token{}, err
 }
 
 func (s *Parser) peek() Token {
