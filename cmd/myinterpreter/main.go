@@ -52,6 +52,22 @@ func main() {
 
 		expr.accept(&PrintVisitor{})
 		break
+	case "evaluate":
+		tokens, errors := Tokenize(fileContents)
+
+		if len(errors) > 0 {
+			os.Exit(65)
+		}
+
+		expr, err := Parse(tokens)
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+			os.Exit(65)
+		}
+
+		fmt.Print(expr.accept(&Interpreter{}))
+		break
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)
 		os.Exit(1)
