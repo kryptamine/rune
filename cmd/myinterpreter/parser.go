@@ -21,7 +21,7 @@ type BinaryExpr struct {
 }
 
 type LiteralExpr struct {
-	value any
+	value string
 }
 
 func (n *BinaryExpr) accept(v Visitor) {
@@ -81,7 +81,7 @@ func (s *Parser) primary() Node {
 		}
 	}
 
-	if s.match(NUMBER) {
+	if s.match(NUMBER, STRING) {
 		prev := s.previous()
 
 		return &LiteralExpr{

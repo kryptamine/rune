@@ -37,17 +37,15 @@ func main() {
 		}
 		break
 	case "parse":
-		if len(fileContents) > 0 {
-			tokens, errors := Tokenize(fileContents)
+		tokens, errors := Tokenize(fileContents)
 
-			if len(errors) > 0 {
-				os.Exit(65)
-			}
-
-			expr := Parse(tokens)
-
-			expr.accept(&PrintVisitor{})
+		if len(errors) > 0 {
+			os.Exit(65)
 		}
+
+		expr := Parse(tokens)
+
+		expr.accept(&PrintVisitor{})
 		break
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)
