@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"math"
 	"strconv"
 )
 
@@ -12,15 +11,14 @@ type TokenType int
 type Token struct {
 	tokenType TokenType
 	lexeme    string
-	literal   any
+	literal   string
 	line      int
 }
 
 type Scanner struct {
-	source   string
-	tokens   []Token
-	keywords map[string]TokenType
-	errors   []error
+	source string
+	tokens []Token
+	errors []error
 
 	start   int
 	current int
@@ -28,7 +26,10 @@ type Scanner struct {
 }
 
 const (
-	VAR TokenType = iota
+	IDENTIFIER TokenType = iota
+
+	// Keywords
+	VAR
 	AND
 	OR
 	CLASS
@@ -69,12 +70,44 @@ const (
 	GREATER
 	GREATER_EQUAL
 
-	IDENTIFIER
-
 	// Types
 	STRING
 	NUMBER
 )
+
+var keywords = map[string]TokenType{
+	"var":    VAR,
+	"and":    AND,
+	"or":     OR,
+	"class":  CLASS,
+	"else":   ELSE,
+	"false":  FALSE,
+	"fun":    FUN,
+	"for":    FOR,
+	"if":     IF,
+	"nil":    NIL,
+	"print":  PRINT,
+	"return": RETURN,
+	"super":  SUPER,
+	"this":   THIS,
+	"true":   TRUE,
+	"while":  WHILE,
+}
+
+func Tokenize(source []byte) ([]Token, []error) {
+	scanner := &Scanner{
+		source:  string(source),
+		tokens:  []Token{},
+		errors:  []error{},
+		current: 0,
+		line:    1,
+		start:   0,
+	}
+
+	tokens := scanner.scanTokens()
+
+	return tokens, scanner.errors
+}
 
 func (tokenType TokenType) String() string {
 	switch tokenType {
@@ -167,20 +200,20 @@ func (tokenType TokenType) String() string {
 }
 
 func (token Token) String() string {
-	if token.literal == nil {
-		return fmt.Sprintf("%s %s null", token.tokenType, token.lexeme)
+	if token.literal == "" {
+		return fmt.Sprintf(
+			"%s %s null",
+			token.tokenType,
+			token.lexeme,
+		)
 	}
 
-	switch v := token.literal.(type) {
-	case float64:
-		// Check if v has a fractional part
-		if v == math.Floor(v) {
-			return fmt.Sprintf("%s %s %.1f", token.tokenType, token.lexeme, v)
-		}
-		return fmt.Sprintf("%s %s %g", token.tokenType, token.lexeme, v)
-	default:
-		return fmt.Sprintf("%s %s %v", token.tokenType, token.lexeme, v)
-	}
+	return fmt.Sprintf(
+		"%s %s %s",
+		token.tokenType,
+		token.lexeme,
+		token.literal,
+	)
 }
 
 func If[T any](cond bool, vtrue, vfalse T) T {
@@ -201,22 +234,12 @@ func (s *Scanner) scanTokens() []Token {
 		Token{
 			tokenType: EOF,
 			lexeme:    "",
-			literal:   nil,
+			literal:   "",
 			line:      s.line,
 		},
 	)
 
 	return s.tokens
-}
-
-func (s *Scanner) run() []error {
-	tokens := s.scanTokens()
-
-	for _, token := range tokens {
-		fmt.Println(token)
-	}
-
-	return s.errors
 }
 
 func (s *Scanner) isAtEnd() bool {
@@ -228,47 +251,47 @@ func (s *Scanner) scanToken() {
 
 	switch char {
 	case ';':
-		s.addToken(SEMICOLON, nil)
+		s.addToken(SEMICOLON)
 		break
 	case '(':
-		s.addToken(LEFT_PAREN, nil)
+		s.addToken(LEFT_PAREN)
 		break
 	case ')':
-		s.addToken(RIGHT_PAREN, nil)
+		s.addToken(RIGHT_PAREN)
 		break
 	case '{':
-		s.addToken(LEFT_BRACE, nil)
+		s.addToken(LEFT_BRACE)
 		break
 	case '}':
-		s.addToken(RIGHT_BRACE, nil)
+		s.addToken(RIGHT_BRACE)
 		break
 	case ',':
-		s.addToken(COMMA, nil)
+		s.addToken(COMMA)
 		break
 	case '.':
-		s.addToken(DOT, nil)
+		s.addToken(DOT)
 		break
 	case '-':
-		s.addToken(MINUS, nil)
+		s.addToken(MINUS)
 		break
 	case '+':
-		s.addToken(PLUS, nil)
+		s.addToken(PLUS)
 		break
 	case '*':
-		s.addToken(STAR, nil)
+		s.addToken(STAR)
 		break
 		// Operators
 	case '=':
-		s.addToken(If(s.match('='), EQUAL_EQUAL, EQUAL), nil)
+		s.addToken(If(s.match('='), EQUAL_EQUAL, EQUAL))
 		break
 	case '!':
-		s.addToken(If(s.match('='), BANG_EQUAL, BANG), nil)
+		s.addToken(If(s.match('='), BANG_EQUAL, BANG))
 		break
 	case '<':
-		s.addToken(If(s.match('='), LESS_EQUAL, LESS), nil)
+		s.addToken(If(s.match('='), LESS_EQUAL, LESS))
 		break
 	case '>':
-		s.addToken(If(s.match('='), GREATER_EQUAL, GREATER), nil)
+		s.addToken(If(s.match('='), GREATER_EQUAL, GREATER))
 		break
 	case '/':
 		if s.match('/') {
@@ -277,7 +300,7 @@ func (s *Scanner) scanToken() {
 				s.advance()
 			}
 		} else {
-			s.addToken(SLASH, nil)
+			s.addToken(SLASH)
 		}
 	case '"':
 		if err := s.string(); err != nil {
@@ -304,7 +327,20 @@ func (s *Scanner) scanToken() {
 	}
 }
 
-func (s *Scanner) addToken(tokenType TokenType, literal any) {
+func (s *Scanner) addToken(tokenType TokenType) {
+	lexeme := s.source[s.start:s.current]
+
+	s.tokens = append(
+		s.tokens,
+		Token{
+			tokenType: tokenType,
+			lexeme:    lexeme,
+			line:      s.line,
+		},
+	)
+}
+
+func (s *Scanner) addTokenWithLiteral(tokenType TokenType, literal string) {
 	lexeme := s.source[s.start:s.current]
 
 	s.tokens = append(
@@ -339,7 +375,7 @@ func (s *Scanner) string() error {
 
 	value := s.source[s.start+1 : s.current-1]
 
-	s.addToken(STRING, value)
+	s.addTokenWithLiteral(STRING, value)
 
 	return nil
 }
@@ -360,7 +396,13 @@ func (s *Scanner) number() {
 
 	val, _ := strconv.ParseFloat(s.source[s.start:s.current], 64)
 
-	s.addToken(NUMBER, val)
+	if val == float64(int(val)) {
+		// No fractional part, format as a single decimal place
+		s.addTokenWithLiteral(NUMBER, fmt.Sprintf("%.1f", val))
+	} else {
+		// Fractional part exists, format to two decimal places
+		s.addTokenWithLiteral(NUMBER, fmt.Sprintf("%.2f", val))
+	}
 }
 
 func (s *Scanner) identifier() {
@@ -370,10 +412,10 @@ func (s *Scanner) identifier() {
 
 	text := s.source[s.start:s.current]
 
-	if val, ok := s.keywords[text]; ok {
-		s.addToken(val, nil)
+	if val, ok := keywords[text]; ok {
+		s.addToken(val)
 	} else {
-		s.addToken(IDENTIFIER, nil)
+		s.addToken(IDENTIFIER)
 	}
 }
 

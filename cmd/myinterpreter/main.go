@@ -6,9 +6,6 @@ import (
 )
 
 func main() {
-	// You can use print statements as follows for debugging, they'll be visible when running tests.
-	fmt.Fprintln(os.Stderr, "Logs from your program will appear here!")
-
 	if len(os.Args) < 3 {
 		fmt.Fprintln(os.Stderr, "Usage: ./your_program.sh tokenize <filename>")
 		os.Exit(1)
@@ -16,12 +13,6 @@ func main() {
 
 	command := os.Args[1]
 
-	if command != "tokenize" {
-		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)
-		os.Exit(1)
-	}
-
-	// Uncomment this block to pass the first stage
 	filename := os.Args[2]
 	fileContents, err := os.ReadFile(filename)
 	if err != nil {
@@ -29,35 +20,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	if len(fileContents) > 0 {
-		scanner := Scanner{
-			source: string(fileContents),
-			tokens: []Token{},
-			errors: []error{},
-			keywords: map[string]TokenType{
-				"var":    VAR,
-				"and":    AND,
-				"or":     OR,
-				"class":  CLASS,
-				"else":   ELSE,
-				"false":  FALSE,
-				"fun":    FUN,
-				"for":    FOR,
-				"if":     IF,
-				"nil":    NIL,
-				"print":  PRINT,
-				"return": RETURN,
-				"super":  SUPER,
-				"this":   THIS,
-				"true":   TRUE,
-				"while":  WHILE,
-			},
-			current: 0,
-			line:    1,
-			start:   0,
-		}
+	switch command {
+	case "tokenize":
+		tokens, errors := Tokenize(fileContents)
 
-		errors := scanner.run()
+		for _, token := range tokens {
+			fmt.Println(token)
+		}
 
 		if len(errors) > 0 {
 			for _, err := range errors {
@@ -66,8 +35,23 @@ func main() {
 
 			os.Exit(65)
 		}
+		break
+	case "parse":
+		if len(fileContents) > 0 {
+			tokens, errors := Tokenize(fileContents)
 
-	} else {
-		fmt.Println("EOF  null") // Placeholder, remove this line when implementing the scanner
+			if len(errors) > 0 {
+				os.Exit(65)
+			}
+
+			expr := Parse(tokens)
+
+			expr.accept(&PrintVisitor{})
+		}
+		break
+	default:
+		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)
+		os.Exit(1)
+		break
 	}
 }
