@@ -84,9 +84,26 @@ func (s *Parser) unary() Node {
 }
 
 func (s *Parser) term() Node {
-	expr := s.unary()
+	expr := s.factor()
 
 	for s.match(PLUS, MINUS) {
+		operator := s.previous()
+		right := s.factor()
+
+		expr = &BinaryExpr{
+			left:     expr,
+			right:    right,
+			operator: operator,
+		}
+	}
+
+	return expr
+}
+
+func (s *Parser) factor() Node {
+	expr := s.unary()
+
+	for s.match(SLASH, STAR) {
 		operator := s.previous()
 		right := s.unary()
 
