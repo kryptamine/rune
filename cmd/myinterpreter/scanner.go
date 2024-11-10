@@ -395,8 +395,14 @@ func (s *Scanner) number() {
 	}
 
 	val, _ := strconv.ParseFloat(s.source[s.start:s.current], 64)
-	formattedVal := strconv.FormatFloat(val, 'f', -1, 64) // Automatically trims trailing zeroes
-	s.addTokenWithLiteral(NUMBER, formattedVal)
+	// Check if the value is an integer
+	if val == float64(int(val)) {
+		// Format as "x.0" if there is no fractional part
+		s.addTokenWithLiteral(NUMBER, fmt.Sprintf("%.1f", val))
+	} else {
+		// Otherwise, format with minimal decimal places and remove unnecessary zeros
+		s.addTokenWithLiteral(NUMBER, strconv.FormatFloat(val, 'f', -1, 64))
+	}
 }
 
 func (s *Scanner) identifier() {
