@@ -14,6 +14,7 @@ type Visitor interface {
 	visitBinaryExpr(binaryExpr *BinaryExpr)
 	visitLiteralExpr(literalExpr *LiteralExpr)
 	visitGroupingExpr(literalExpr *GroupingExpr)
+	visitUnaryExpr(UnaryExpr *UnaryExpr)
 }
 
 type Node interface {
@@ -22,6 +23,11 @@ type Node interface {
 
 type BinaryExpr struct {
 	left     Node
+	right    Node
+	operator Token
+}
+
+type UnaryExpr struct {
 	right    Node
 	operator Token
 }
@@ -46,6 +52,10 @@ func (n *GroupingExpr) accept(v Visitor) {
 	v.visitGroupingExpr(n)
 }
 
+func (n *UnaryExpr) accept(v Visitor) {
+	v.visitUnaryExpr(n)
+}
+
 func Parse(tokens []Token) Node {
 	parser := Parser{
 		tokens:  tokens,
@@ -59,12 +69,26 @@ func (s *Parser) expression() Node {
 	return s.term()
 }
 
+func (s *Parser) unary() Node {
+	for s.match(BANG, MINUS) {
+		operator := s.previous()
+		right := s.unary()
+
+		return &UnaryExpr{
+			right:    right,
+			operator: operator,
+		}
+	}
+
+	return s.primary()
+}
+
 func (s *Parser) term() Node {
-	expr := s.primary()
+	expr := s.unary()
 
 	for s.match(PLUS, MINUS) {
 		operator := s.previous()
-		right := s.primary()
+		right := s.unary()
 
 		expr = &BinaryExpr{
 			left:     expr,

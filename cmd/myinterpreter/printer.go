@@ -33,3 +33,10 @@ func (p *PrintVisitor) visitGroupingExpr(node *GroupingExpr) {
 	node.expr.accept(p)
 	fmt.Print(")")
 }
+
+func (p *PrintVisitor) visitUnaryExpr(node *UnaryExpr) {
+	fmt.Print("(")
+	fmt.Print(node.operator.lexeme, " ")
+	node.right.accept(p)
+	fmt.Print(")")
+}
