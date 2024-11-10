@@ -43,7 +43,12 @@ func main() {
 			os.Exit(65)
 		}
 
-		expr := Parse(tokens)
+		expr, err := Parse(tokens)
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+			os.Exit(65)
+		}
 
 		expr.accept(&PrintVisitor{})
 		break
