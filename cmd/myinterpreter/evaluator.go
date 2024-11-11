@@ -31,11 +31,11 @@ func (p *Interpreter) visitLiteralExpr(node *LiteralExpr) any {
 }
 
 func (p *Interpreter) visitGroupingExpr(node *GroupingExpr) any {
-	return nil
+	return node.expr.accept(p)
 }
 
 func (p *Interpreter) visitUnaryExpr(node *UnaryExpr) any {
-	return nil
+	return node.right.accept(p)
 }
 
 func (p *Interpreter) isEqual(left any, right any) any {
