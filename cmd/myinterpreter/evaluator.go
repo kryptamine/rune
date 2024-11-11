@@ -50,8 +50,7 @@ func (p *Interpreter) visitUnaryExpr(node *UnaryExpr) any {
 	case BANG:
 		return !p.isTruthy(right)
 	case MINUS:
-		val, _ := strconv.ParseFloat(right.(string), 64)
-		return -1 * val
+		return -1 * p.toFloat(right)
 	}
 
 	return nil
