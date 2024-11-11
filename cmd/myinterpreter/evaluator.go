@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strconv"
 	"strings"
 )
 
@@ -35,7 +36,34 @@ func (p *Interpreter) visitGroupingExpr(node *GroupingExpr) any {
 }
 
 func (p *Interpreter) visitUnaryExpr(node *UnaryExpr) any {
-	return node.right.accept(p)
+	right := node.right.accept(p)
+
+	switch node.operator.tokenType {
+	case BANG:
+		return !p.isTruthy(right)
+	case MINUS:
+		val, _ := strconv.ParseFloat(right.(string), 64)
+		return -1 * val
+	}
+
+	return nil
+}
+
+func (p *Interpreter) isTruthy(val any) bool {
+	if val == nil {
+		return false
+	}
+
+	switch i2 := val.(type) {
+	case bool:
+		return i2
+	case string:
+		return i2 != "" && i2 != "nil" && i2 != "false"
+	case int:
+		return i2 != 0
+	default:
+		return false
+	}
 }
 
 func (p *Interpreter) isEqual(left any, right any) any {
