@@ -393,16 +393,16 @@ func (s *Scanner) number() {
 			s.advance()
 		}
 	}
-
 	val, _ := strconv.ParseFloat(s.source[s.start:s.current], 64)
-	// Check if the value is an integer
+	literal := ""
+
 	if val == float64(int(val)) {
-		// Format as "x.0" if there is no fractional part
-		s.addTokenWithLiteral(NUMBER, fmt.Sprintf("%.1f", val))
+		literal = fmt.Sprintf("%.1f", val) // Ensures 1234.0 for whole numbers
 	} else {
-		// Otherwise, format with minimal decimal places and remove unnecessary zeros
-		s.addTokenWithLiteral(NUMBER, strconv.FormatFloat(val, 'f', -1, 64))
+		literal = fmt.Sprintf("%g", val) // Keeps the precision for non-whole numbers
 	}
+
+	s.addTokenWithLiteral(NUMBER, literal)
 }
 
 func (s *Scanner) identifier() {

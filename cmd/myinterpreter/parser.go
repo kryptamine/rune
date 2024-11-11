@@ -33,7 +33,8 @@ type UnaryExpr struct {
 }
 
 type LiteralExpr struct {
-	value string
+	tokenType TokenType
+	value     string
 }
 
 type GroupingExpr struct {
@@ -189,27 +190,40 @@ func (s *Parser) factor() (Node, error) {
 func (s *Parser) primary() (Node, error) {
 	if s.match(TRUE) {
 		return &LiteralExpr{
-			value: "true",
+			value:     "true",
+			tokenType: TRUE,
 		}, nil
 	}
 
 	if s.match(FALSE) {
 		return &LiteralExpr{
-			value: "false",
+			value:     "false",
+			tokenType: FALSE,
 		}, nil
 	}
 
 	if s.match(NIL) {
 		return &LiteralExpr{
-			value: "nil",
+			value:     "nil",
+			tokenType: NIL,
 		}, nil
 	}
 
-	if s.match(NUMBER, STRING) {
+	if s.match(NUMBER) {
 		prev := s.previous()
 
 		return &LiteralExpr{
-			value: prev.literal,
+			value:     prev.literal,
+			tokenType: NUMBER,
+		}, nil
+	}
+
+	if s.match(STRING) {
+		prev := s.previous()
+
+		return &LiteralExpr{
+			value:     prev.literal,
+			tokenType: STRING,
 		}, nil
 	}
 
