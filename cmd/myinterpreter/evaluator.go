@@ -14,6 +14,14 @@ func (p *Interpreter) visitBinaryExpr(node *BinaryExpr) any {
 	switch node.operator.tokenType {
 	case EQUAL_EQUAL:
 		return p.isEqual(left, right)
+	case PLUS:
+		return p.toFloat(left) + p.toFloat(right)
+	case MINUS:
+		return p.toFloat(left) - p.toFloat(right)
+	case SLASH:
+		return p.toFloat(left) / p.toFloat(right)
+	case STAR:
+		return p.toFloat(left) * p.toFloat(right)
 	}
 
 	return nil
@@ -49,6 +57,19 @@ func (p *Interpreter) visitUnaryExpr(node *UnaryExpr) any {
 	return nil
 }
 
+func (p *Interpreter) toFloat(val any) float64 {
+	switch i2 := val.(type) {
+	case bool:
+		return 0.0
+	case float64:
+		return i2
+	case string:
+		val, _ := strconv.ParseFloat(i2, 64)
+		return val
+	default:
+		return 0.0
+	}
+}
 func (p *Interpreter) isTruthy(val any) bool {
 	if val == nil {
 		return false
