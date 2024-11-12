@@ -2,7 +2,6 @@ package main
 
 import (
 	"strconv"
-	"strings"
 )
 
 type Interpreter struct{}
@@ -15,6 +14,10 @@ func (p *Interpreter) visitBinaryExpr(node *BinaryExpr) any {
 	case EQUAL_EQUAL:
 		return p.isEqual(left, right)
 	case PLUS:
+		if l, ok := left.(string); node.operator.tokenType == PLUS && ok {
+			r := right.(string)
+			return l + r
+		}
 		return p.toFloat(left) + p.toFloat(right)
 	case MINUS:
 		return p.toFloat(left) - p.toFloat(right)
@@ -28,15 +31,7 @@ func (p *Interpreter) visitBinaryExpr(node *BinaryExpr) any {
 }
 
 func (p *Interpreter) visitLiteralExpr(node *LiteralExpr) any {
-	switch node.tokenType {
-	case NUMBER:
-		if strings.HasSuffix(node.value, ".0") {
-			return strings.TrimSuffix(node.value, ".0")
-		}
-		return node.value
-	default:
-		return node.value
-	}
+	return node.value
 }
 
 func (p *Interpreter) visitGroupingExpr(node *GroupingExpr) any {
@@ -78,9 +73,11 @@ func (p *Interpreter) isTruthy(val any) bool {
 	case bool:
 		return i2
 	case string:
-		return i2 != "" && i2 != "nil" && i2 != "false"
+		return i2 != ""
 	case int:
 		return i2 != 0
+	case float64:
+		return i2 != 0.0
 	default:
 		return false
 	}

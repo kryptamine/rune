@@ -27,6 +27,24 @@ func (p *PrintVisitor) visitBinaryExpr(node *BinaryExpr) any {
 }
 
 func (p *PrintVisitor) visitLiteralExpr(node *LiteralExpr) any {
+	if node.value == nil {
+		fmt.Print("nil")
+		return nil
+	}
+
+	if l, ok := node.value.(float64); ok {
+		// Check if the float is an integer value
+		if l == float64(int64(l)) {
+			// Print with one decimal place (e.g., 10.0 instead of 10)
+			fmt.Print(fmt.Sprintf("%.1f", l))
+		} else {
+			// Print with necessary decimal places
+			fmt.Print(fmt.Sprintf("%.2f", l))
+		}
+
+		return nil
+	}
+
 	fmt.Print(node.value)
 
 	return nil

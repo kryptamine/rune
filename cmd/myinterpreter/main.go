@@ -66,7 +66,13 @@ func main() {
 			os.Exit(65)
 		}
 
-		fmt.Print(expr.accept(&Interpreter{}))
+		result := expr.accept(&Interpreter{})
+
+		if result == nil {
+			result = "nil"
+		}
+
+		fmt.Print(result)
 		break
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)

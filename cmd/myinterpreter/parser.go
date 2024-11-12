@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 )
 
 type Parser struct {
@@ -34,7 +35,7 @@ type UnaryExpr struct {
 
 type LiteralExpr struct {
 	tokenType TokenType
-	value     string
+	value     any
 }
 
 type GroupingExpr struct {
@@ -190,30 +191,31 @@ func (s *Parser) factor() (Node, error) {
 func (s *Parser) primary() (Node, error) {
 	if s.match(TRUE) {
 		return &LiteralExpr{
-			value:     "true",
+			value:     true,
 			tokenType: TRUE,
 		}, nil
 	}
 
 	if s.match(FALSE) {
 		return &LiteralExpr{
-			value:     "false",
+			value:     false,
 			tokenType: FALSE,
 		}, nil
 	}
 
 	if s.match(NIL) {
 		return &LiteralExpr{
-			value:     "nil",
+			value:     nil,
 			tokenType: NIL,
 		}, nil
 	}
 
 	if s.match(NUMBER) {
 		prev := s.previous()
+		value, _ := strconv.ParseFloat(prev.literal, 64)
 
 		return &LiteralExpr{
-			value:     prev.literal,
+			value:     value,
 			tokenType: NUMBER,
 		}, nil
 	}
