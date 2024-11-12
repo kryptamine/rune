@@ -26,18 +26,39 @@ func (p *Interpreter) visitBinaryExpr(node *BinaryExpr) (any, error) {
 		}
 		return p.toFloat(left) + p.toFloat(right), nil
 	case MINUS:
+		if err := p.checkNumberOperands(left, right); err != nil {
+			return nil, err
+		}
 		return p.toFloat(left) - p.toFloat(right), nil
 	case SLASH:
+		if err := p.checkNumberOperands(left, right); err != nil {
+			return nil, err
+		}
 		return p.toFloat(left) / p.toFloat(right), nil
 	case STAR:
+		if err := p.checkNumberOperands(left, right); err != nil {
+			return nil, err
+		}
 		return p.toFloat(left) * p.toFloat(right), nil
 	case LESS:
+		if err := p.checkNumberOperands(left, right); err != nil {
+			return nil, err
+		}
 		return p.toFloat(left) < p.toFloat(right), nil
 	case LESS_EQUAL:
+		if err := p.checkNumberOperands(left, right); err != nil {
+			return nil, err
+		}
 		return p.toFloat(left) <= p.toFloat(right), nil
 	case GREATER:
+		if err := p.checkNumberOperands(left, right); err != nil {
+			return nil, err
+		}
 		return p.toFloat(left) > p.toFloat(right), nil
 	case GREATER_EQUAL:
+		if err := p.checkNumberOperands(left, right); err != nil {
+			return nil, err
+		}
 		return p.toFloat(left) >= p.toFloat(right), nil
 	}
 
@@ -63,9 +84,10 @@ func (p *Interpreter) visitUnaryExpr(node *UnaryExpr) (any, error) {
 	case BANG:
 		return !p.isTruthy(right), nil
 	case MINUS:
-		if _, ok := right.(float64); !ok {
-			return nil, fmt.Errorf("Operand must be a number.")
+		if err := p.checkNumberOperand(right); err != nil {
+			return nil, err
 		}
+
 		return -1 * p.toFloat(right), nil
 	}
 
@@ -82,6 +104,25 @@ func (p *Interpreter) toFloat(val any) float64 {
 	default:
 		return 0.0
 	}
+}
+
+func (p *Interpreter) checkNumberOperands(left any, right any) error {
+	_, okLeft := left.(float64)
+	_, okRight := right.(float64)
+
+	if okLeft && okRight {
+		return nil
+	}
+
+	return fmt.Errorf("Operands must be numbers.")
+}
+
+func (p *Interpreter) checkNumberOperand(val any) error {
+	if _, ok := val.(float64); !ok {
+		return fmt.Errorf("Operand must be a number.")
+	}
+
+	return nil
 }
 
 func (p *Interpreter) isTruthy(val any) bool {
