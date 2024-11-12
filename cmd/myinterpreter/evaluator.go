@@ -13,6 +13,8 @@ func (p *Interpreter) visitBinaryExpr(node *BinaryExpr) any {
 	switch node.operator.tokenType {
 	case EQUAL_EQUAL:
 		return p.isEqual(left, right)
+	case BANG_EQUAL:
+		return !p.isEqual(left, right)
 	case PLUS:
 		if _, ok := left.(string); ok {
 			return left.(string) + right.(string)
@@ -89,7 +91,7 @@ func (p *Interpreter) isTruthy(val any) bool {
 	}
 }
 
-func (p *Interpreter) isEqual(left any, right any) any {
+func (p *Interpreter) isEqual(left any, right any) bool {
 	if left == nil && right == nil {
 		return true
 	}
