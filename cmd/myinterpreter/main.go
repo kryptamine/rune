@@ -66,7 +66,11 @@ func main() {
 			os.Exit(65)
 		}
 
-		result := expr.accept(&Interpreter{})
+		result, err := expr.accept(&Interpreter{})
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+			os.Exit(70)
+		}
 
 		if result == nil {
 			result = "nil"

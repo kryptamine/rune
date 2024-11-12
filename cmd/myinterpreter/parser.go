@@ -12,14 +12,14 @@ type Parser struct {
 }
 
 type Visitor interface {
-	visitBinaryExpr(binaryExpr *BinaryExpr) any
-	visitLiteralExpr(literalExpr *LiteralExpr) any
-	visitGroupingExpr(literalExpr *GroupingExpr) any
-	visitUnaryExpr(UnaryExpr *UnaryExpr) any
+	visitBinaryExpr(binaryExpr *BinaryExpr) (any, error)
+	visitLiteralExpr(literalExpr *LiteralExpr) (any, error)
+	visitGroupingExpr(literalExpr *GroupingExpr) (any, error)
+	visitUnaryExpr(UnaryExpr *UnaryExpr) (any, error)
 }
 
 type Node interface {
-	accept(v Visitor) any
+	accept(v Visitor) (any, error)
 }
 
 type BinaryExpr struct {
@@ -42,19 +42,19 @@ type GroupingExpr struct {
 	expr Node
 }
 
-func (n *BinaryExpr) accept(v Visitor) any {
+func (n *BinaryExpr) accept(v Visitor) (any, error) {
 	return v.visitBinaryExpr(n)
 }
 
-func (n *LiteralExpr) accept(v Visitor) any {
+func (n *LiteralExpr) accept(v Visitor) (any, error) {
 	return v.visitLiteralExpr(n)
 }
 
-func (n *GroupingExpr) accept(v Visitor) any {
+func (n *GroupingExpr) accept(v Visitor) (any, error) {
 	return v.visitGroupingExpr(n)
 }
 
-func (n *UnaryExpr) accept(v Visitor) any {
+func (n *UnaryExpr) accept(v Visitor) (any, error) {
 	return v.visitUnaryExpr(n)
 }
 
