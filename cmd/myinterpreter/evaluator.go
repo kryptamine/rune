@@ -14,9 +14,8 @@ func (p *Interpreter) visitBinaryExpr(node *BinaryExpr) any {
 	case EQUAL_EQUAL:
 		return p.isEqual(left, right)
 	case PLUS:
-		if l, ok := left.(string); node.operator.tokenType == PLUS && ok {
-			r := right.(string)
-			return l + r
+		if _, ok := left.(string); ok {
+			return left.(string) + right.(string)
 		}
 		return p.toFloat(left) + p.toFloat(right)
 	case MINUS:
@@ -25,6 +24,14 @@ func (p *Interpreter) visitBinaryExpr(node *BinaryExpr) any {
 		return p.toFloat(left) / p.toFloat(right)
 	case STAR:
 		return p.toFloat(left) * p.toFloat(right)
+	case LESS:
+		return p.toFloat(left) < p.toFloat(right)
+	case LESS_EQUAL:
+		return p.toFloat(left) <= p.toFloat(right)
+	case GREATER:
+		return p.toFloat(left) > p.toFloat(right)
+	case GREATER_EQUAL:
+		return p.toFloat(left) >= p.toFloat(right)
 	}
 
 	return nil
@@ -64,6 +71,7 @@ func (p *Interpreter) toFloat(val any) float64 {
 		return 0.0
 	}
 }
+
 func (p *Interpreter) isTruthy(val any) bool {
 	if val == nil {
 		return false
@@ -74,8 +82,6 @@ func (p *Interpreter) isTruthy(val any) bool {
 		return i2
 	case string:
 		return i2 != ""
-	case int:
-		return i2 != 0
 	case float64:
 		return i2 != 0.0
 	default:
