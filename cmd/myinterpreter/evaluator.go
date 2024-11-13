@@ -21,10 +21,15 @@ func (p *Interpreter) visitBinaryExpr(node *BinaryExpr) (any, error) {
 	case BANG_EQUAL:
 		return !p.isEqual(left, right), nil
 	case PLUS:
-		if _, ok := left.(string); ok {
+		if p.isString(left) && p.isString(right) {
 			return left.(string) + right.(string), nil
 		}
-		return p.toFloat(left) + p.toFloat(right), nil
+
+		if p.isFloat(left) && p.isFloat(right) {
+			return left.(float64) + right.(float64), nil
+		}
+
+		return nil, fmt.Errorf("Operands must be two numbers or two strings.")
 	case MINUS:
 		if err := p.checkNumberOperands(left, right); err != nil {
 			return nil, err
@@ -63,6 +68,16 @@ func (p *Interpreter) visitBinaryExpr(node *BinaryExpr) (any, error) {
 	}
 
 	return nil, nil
+}
+
+func (p *Interpreter) isString(val any) bool {
+	_, ok := val.(string)
+	return ok
+}
+
+func (p *Interpreter) isFloat(val any) bool {
+	_, ok := val.(float64)
+	return ok
 }
 
 func (p *Interpreter) visitLiteralExpr(node *LiteralExpr) (any, error) {
