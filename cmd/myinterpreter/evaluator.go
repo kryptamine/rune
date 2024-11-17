@@ -41,7 +41,11 @@ func (p *Interpreter) visitPrintStmt(exprStmt *PrintStmt) error {
 		return err
 	}
 
-	fmt.Println(val)
+	if val == nil {
+		fmt.Println("nil")
+	} else {
+		fmt.Println(val)
+	}
 
 	return nil
 }
