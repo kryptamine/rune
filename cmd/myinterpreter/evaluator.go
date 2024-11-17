@@ -21,6 +21,12 @@ func Interpret(stmts []Stmt) error {
 }
 
 func (p *Interpreter) visitExprStmt(exprStmt *ExprStmt) error {
+	_, err := exprStmt.expr.accept(p)
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
