@@ -26,6 +26,10 @@ func (p *PrintVisitor) visitBinaryExpr(node *BinaryExpr) (any, error) {
 	return nil, nil
 }
 
+func (p *PrintVisitor) visitVarExpr(node *VarExpr) (any, error) {
+	return nil, nil
+}
+
 func (p *PrintVisitor) visitLiteralExpr(node *LiteralExpr) (any, error) {
 	if node.value == nil {
 		fmt.Print("nil")

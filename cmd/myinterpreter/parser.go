@@ -16,11 +16,18 @@ type ExprVisitor interface {
 	visitLiteralExpr(literalExpr *LiteralExpr) (any, error)
 	visitGroupingExpr(literalExpr *GroupingExpr) (any, error)
 	visitUnaryExpr(UnaryExpr *UnaryExpr) (any, error)
+	visitVarExpr(varExpr *VarExpr) (any, error)
 }
 
 type StmtVisitor interface {
 	visitPrintStmt(printStmt *PrintStmt) error
 	visitExprStmt(exprStmt *ExprStmt) error
+	visitVarStmt(VarStmt *VarStmt) error
+}
+
+type VarStmt struct {
+	initializer Node
+	name        Token
 }
 
 type PrintStmt struct {
@@ -55,6 +62,10 @@ type LiteralExpr struct {
 	value     any
 }
 
+type VarExpr struct {
+	name Token
+}
+
 type GroupingExpr struct {
 	expr Node
 }
@@ -67,12 +78,20 @@ func (n *ExprStmt) accept(v StmtVisitor) error {
 	return v.visitExprStmt(n)
 }
 
+func (n *VarStmt) accept(v StmtVisitor) error {
+	return v.visitVarStmt(n)
+}
+
 func (n *BinaryExpr) accept(v ExprVisitor) (any, error) {
 	return v.visitBinaryExpr(n)
 }
 
 func (n *LiteralExpr) accept(v ExprVisitor) (any, error) {
 	return v.visitLiteralExpr(n)
+}
+
+func (n *VarExpr) accept(v ExprVisitor) (any, error) {
+	return v.visitVarExpr(n)
 }
 
 func (n *GroupingExpr) accept(v ExprVisitor) (any, error) {
@@ -101,7 +120,7 @@ func Parse(tokens []Token) ([]Stmt, error) {
 	}
 
 	for !parser.isAtEnd() {
-		stmt, err := parser.statement()
+		stmt, err := parser.declaration()
 
 		if err != nil {
 			return nil, err
@@ -134,6 +153,41 @@ func (s *Parser) expressionStatement() (Stmt, error) {
 
 	return &ExprStmt{
 		expr: expr,
+	}, nil
+}
+
+func (s *Parser) declaration() (Stmt, error) {
+	if s.match(VAR) {
+		return s.varDeclaration()
+	}
+
+	return s.statement()
+}
+
+func (s *Parser) varDeclaration() (Stmt, error) {
+	name, err := s.consume(IDENTIFIER, fmt.Errorf("Expect variable name."))
+	if err != nil {
+		return nil, err
+	}
+
+	var initializer Node
+
+	if s.match(EQUAL) {
+		initializer, err = s.expression()
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	_, err = s.consume(SEMICOLON, fmt.Errorf("Expect ';' after variable declaration."))
+	if err != nil {
+		return nil, err
+	}
+
+	return &VarStmt{
+		initializer: initializer,
+		name:        name,
 	}, nil
 }
 
@@ -331,6 +385,14 @@ func (s *Parser) primary() (Node, error) {
 
 		return &GroupingExpr{
 			expr: expr,
+		}, nil
+	}
+
+	if s.match(IDENTIFIER) {
+		prev := s.previous()
+
+		return &VarExpr{
+			name: prev,
 		}, nil
 	}
 

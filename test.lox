@@ -1,2 +1,3 @@
-97 + "baz";
+var quz = 10;
+print quz;
 

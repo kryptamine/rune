@@ -5,10 +5,14 @@ import (
 	"strconv"
 )
 
-type Interpreter struct{}
+type Interpreter struct {
+	environment Environment
+}
 
 func Interpret(stmts []Stmt) error {
-	p := &Interpreter{}
+	p := &Interpreter{
+		environment: NewEnvironment(),
+	}
 
 	for _, stmt := range stmts {
 		err := stmt.accept(p)
@@ -40,6 +44,26 @@ func (p *Interpreter) visitPrintStmt(exprStmt *PrintStmt) error {
 	fmt.Println(val)
 
 	return nil
+}
+
+func (p *Interpreter) visitVarStmt(varStmt *VarStmt) error {
+	if varStmt.initializer != nil {
+		value, err := varStmt.initializer.accept(p)
+
+		if err != nil {
+			return err
+		}
+
+		p.environment.define(varStmt.name.lexeme, value)
+	} else {
+		p.environment.define(varStmt.name.lexeme, nil)
+	}
+
+	return nil
+}
+
+func (p *Interpreter) visitVarExpr(node *VarExpr) (any, error) {
+	return p.environment.get(node.name)
 }
 
 func (p *Interpreter) visitBinaryExpr(node *BinaryExpr) (any, error) {
