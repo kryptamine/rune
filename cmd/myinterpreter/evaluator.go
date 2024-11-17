@@ -31,7 +31,7 @@ func (p *Interpreter) visitPrintStmt(exprStmt *PrintStmt) error {
 		return err
 	}
 
-	fmt.Print(val)
+	fmt.Println(val)
 
 	return nil
 }

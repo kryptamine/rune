@@ -83,7 +83,7 @@ func (n *UnaryExpr) accept(v ExprVisitor) (any, error) {
 	return v.visitUnaryExpr(n)
 }
 
-func ParseExpr(tokens []Token) (Node, error) {
+func Evaluate(tokens []Token) (Node, error) {
 	parser := Parser{
 		tokens:  tokens,
 		current: 0,

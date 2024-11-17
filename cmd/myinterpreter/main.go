@@ -20,10 +20,10 @@ func main() {
 		os.Exit(1)
 	}
 
+	tokens, errors := Tokenize(fileContents)
+
 	switch command {
 	case "tokenize":
-		tokens, errors := Tokenize(fileContents)
-
 		for _, token := range tokens {
 			fmt.Println(token)
 		}
@@ -37,13 +37,11 @@ func main() {
 		}
 		break
 	case "parse":
-		tokens, errors := Tokenize(fileContents)
-
 		if len(errors) > 0 {
 			os.Exit(65)
 		}
 
-		expr, err := ParseExpr(tokens)
+		expr, err := Evaluate(tokens)
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
@@ -53,13 +51,11 @@ func main() {
 		expr.accept(&PrintVisitor{})
 		break
 	case "evaluate":
-		tokens, errors := Tokenize(fileContents)
-
 		if len(errors) > 0 {
 			os.Exit(65)
 		}
 
-		expr, err := ParseExpr(tokens)
+		expr, err := Evaluate(tokens)
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
@@ -80,12 +76,6 @@ func main() {
 		break
 
 	case "run":
-		tokens, errors := Tokenize(fileContents)
-
-		if len(errors) > 0 {
-			os.Exit(65)
-		}
-
 		stmts, err := Parse(tokens)
 
 		if err != nil {
