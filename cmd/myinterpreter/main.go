@@ -12,8 +12,8 @@ func main() {
 	}
 
 	command := os.Args[1]
-
 	filename := os.Args[2]
+
 	fileContents, err := os.ReadFile(filename)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error reading file: %v\n", err)
@@ -43,7 +43,7 @@ func main() {
 			os.Exit(65)
 		}
 
-		expr, err := Parse(tokens)
+		expr, err := ParseExpr(tokens)
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
@@ -59,7 +59,7 @@ func main() {
 			os.Exit(65)
 		}
 
-		expr, err := Parse(tokens)
+		expr, err := ParseExpr(tokens)
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
@@ -77,6 +77,27 @@ func main() {
 		}
 
 		fmt.Print(result)
+		break
+
+	case "run":
+		tokens, errors := Tokenize(fileContents)
+
+		if len(errors) > 0 {
+			os.Exit(65)
+		}
+
+		stmts, err := Parse(tokens)
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+			os.Exit(65)
+		}
+
+		err = Interpret(stmts)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+			os.Exit(70)
+		}
 		break
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)

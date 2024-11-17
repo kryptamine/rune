@@ -7,6 +7,35 @@ import (
 
 type Interpreter struct{}
 
+func Interpret(stmts []Stmt) error {
+	p := &Interpreter{}
+
+	for _, stmt := range stmts {
+		err := stmt.accept(p)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (p *Interpreter) visitExprStmt(exprStmt *ExprStmt) error {
+	return nil
+}
+
+func (p *Interpreter) visitPrintStmt(exprStmt *PrintStmt) error {
+	val, err := exprStmt.expr.accept(p)
+
+	if err != nil {
+		return err
+	}
+
+	fmt.Print(val)
+
+	return nil
+}
+
 func (p *Interpreter) visitBinaryExpr(node *BinaryExpr) (any, error) {
 	left, err := node.left.accept(p)
 	right, err := node.right.accept(p)

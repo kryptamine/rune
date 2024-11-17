@@ -11,15 +11,32 @@ type Parser struct {
 	current int
 }
 
-type Visitor interface {
+type ExprVisitor interface {
 	visitBinaryExpr(binaryExpr *BinaryExpr) (any, error)
 	visitLiteralExpr(literalExpr *LiteralExpr) (any, error)
 	visitGroupingExpr(literalExpr *GroupingExpr) (any, error)
 	visitUnaryExpr(UnaryExpr *UnaryExpr) (any, error)
 }
 
+type StmtVisitor interface {
+	visitPrintStmt(printStmt *PrintStmt) error
+	visitExprStmt(exprStmt *ExprStmt) error
+}
+
+type PrintStmt struct {
+	expr Node
+}
+
+type ExprStmt struct {
+	expr Node
+}
+
+type Stmt interface {
+	accept(v StmtVisitor) error
+}
+
 type Node interface {
-	accept(v Visitor) (any, error)
+	accept(v ExprVisitor) (any, error)
 }
 
 type BinaryExpr struct {
@@ -42,29 +59,100 @@ type GroupingExpr struct {
 	expr Node
 }
 
-func (n *BinaryExpr) accept(v Visitor) (any, error) {
+func (n *PrintStmt) accept(v StmtVisitor) error {
+	return v.visitPrintStmt(n)
+}
+
+func (n *ExprStmt) accept(v StmtVisitor) error {
+	return v.visitExprStmt(n)
+}
+
+func (n *BinaryExpr) accept(v ExprVisitor) (any, error) {
 	return v.visitBinaryExpr(n)
 }
 
-func (n *LiteralExpr) accept(v Visitor) (any, error) {
+func (n *LiteralExpr) accept(v ExprVisitor) (any, error) {
 	return v.visitLiteralExpr(n)
 }
 
-func (n *GroupingExpr) accept(v Visitor) (any, error) {
+func (n *GroupingExpr) accept(v ExprVisitor) (any, error) {
 	return v.visitGroupingExpr(n)
 }
 
-func (n *UnaryExpr) accept(v Visitor) (any, error) {
+func (n *UnaryExpr) accept(v ExprVisitor) (any, error) {
 	return v.visitUnaryExpr(n)
 }
 
-func Parse(tokens []Token) (Node, error) {
+func ParseExpr(tokens []Token) (Node, error) {
 	parser := Parser{
 		tokens:  tokens,
 		current: 0,
 	}
 
 	return parser.expression()
+}
+
+func Parse(tokens []Token) ([]Stmt, error) {
+	var stmts []Stmt
+
+	parser := Parser{
+		tokens:  tokens,
+		current: 0,
+	}
+
+	for !parser.isAtEnd() {
+		stmt, err := parser.statement()
+
+		if err != nil {
+			return nil, err
+		}
+
+		stmts = append(stmts, stmt)
+	}
+
+	return stmts, nil
+}
+
+func (s *Parser) statement() (Stmt, error) {
+	if s.match(PRINT) {
+		return s.printStmt()
+	}
+
+	return s.expressionStatement()
+}
+
+func (s *Parser) expressionStatement() (Stmt, error) {
+	expr, err := s.expression()
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = s.consume(SEMICOLON, fmt.Errorf("Expect ';' after expression."))
+	if err != nil {
+		return nil, err
+	}
+
+	return &ExprStmt{
+		expr: expr,
+	}, nil
+}
+
+func (s *Parser) printStmt() (Stmt, error) {
+	expr, err := s.expression()
+
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = s.consume(SEMICOLON, fmt.Errorf("Expect ';' after value."))
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &PrintStmt{
+		expr: expr,
+	}, nil
 }
 
 func (s *Parser) expression() (Node, error) {
