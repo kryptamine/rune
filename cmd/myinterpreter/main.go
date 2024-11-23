@@ -20,7 +20,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	tokens, errors := Tokenize(fileContents)
+	tokens, errors := Scan(fileContents)
 
 	switch command {
 	case "tokenize":
@@ -62,7 +62,7 @@ func main() {
 			os.Exit(65)
 		}
 
-		result, err := expr.accept(&Interpreter{})
+		result, err := PrintExpr(expr)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			os.Exit(70)

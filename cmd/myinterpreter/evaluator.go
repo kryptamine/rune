@@ -70,6 +70,17 @@ func (p *Interpreter) visitVarExpr(node *VarExpr) (any, error) {
 	return p.environment.get(node.name)
 }
 
+func (p *Interpreter) visitAssignExpr(node *AssignExpr) (any, error) {
+	value, err := node.value.accept(p)
+	if err != nil {
+		return nil, err
+	}
+
+	p.environment.assign(node.name, value)
+
+	return value, nil
+}
+
 func (p *Interpreter) visitBinaryExpr(node *BinaryExpr) (any, error) {
 	left, err := node.left.accept(p)
 	right, err := node.right.accept(p)

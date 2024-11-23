@@ -7,6 +7,10 @@ import (
 // PrintVisitor is a Visitor that prints each node.
 type PrintVisitor struct{}
 
+func PrintExpr(expr Expr) (any, error) {
+	return expr.accept(&Interpreter{})
+}
+
 func (p *PrintVisitor) visitBinaryExpr(node *BinaryExpr) (any, error) {
 	fmt.Print("(")
 
@@ -27,6 +31,10 @@ func (p *PrintVisitor) visitBinaryExpr(node *BinaryExpr) (any, error) {
 }
 
 func (p *PrintVisitor) visitVarExpr(node *VarExpr) (any, error) {
+	return nil, nil
+}
+
+func (p *PrintVisitor) visitAssignExpr(node *AssignExpr) (any, error) {
 	return nil, nil
 }
 

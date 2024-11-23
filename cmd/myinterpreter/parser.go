@@ -11,98 +11,7 @@ type Parser struct {
 	current int
 }
 
-type ExprVisitor interface {
-	visitBinaryExpr(binaryExpr *BinaryExpr) (any, error)
-	visitLiteralExpr(literalExpr *LiteralExpr) (any, error)
-	visitGroupingExpr(literalExpr *GroupingExpr) (any, error)
-	visitUnaryExpr(UnaryExpr *UnaryExpr) (any, error)
-	visitVarExpr(varExpr *VarExpr) (any, error)
-}
-
-type StmtVisitor interface {
-	visitPrintStmt(printStmt *PrintStmt) error
-	visitExprStmt(exprStmt *ExprStmt) error
-	visitVarStmt(VarStmt *VarStmt) error
-}
-
-type VarStmt struct {
-	initializer Node
-	name        Token
-}
-
-type PrintStmt struct {
-	expr Node
-}
-
-type ExprStmt struct {
-	expr Node
-}
-
-type Stmt interface {
-	accept(v StmtVisitor) error
-}
-
-type Node interface {
-	accept(v ExprVisitor) (any, error)
-}
-
-type BinaryExpr struct {
-	left     Node
-	right    Node
-	operator Token
-}
-
-type UnaryExpr struct {
-	right    Node
-	operator Token
-}
-
-type LiteralExpr struct {
-	tokenType TokenType
-	value     any
-}
-
-type VarExpr struct {
-	name Token
-}
-
-type GroupingExpr struct {
-	expr Node
-}
-
-func (n *PrintStmt) accept(v StmtVisitor) error {
-	return v.visitPrintStmt(n)
-}
-
-func (n *ExprStmt) accept(v StmtVisitor) error {
-	return v.visitExprStmt(n)
-}
-
-func (n *VarStmt) accept(v StmtVisitor) error {
-	return v.visitVarStmt(n)
-}
-
-func (n *BinaryExpr) accept(v ExprVisitor) (any, error) {
-	return v.visitBinaryExpr(n)
-}
-
-func (n *LiteralExpr) accept(v ExprVisitor) (any, error) {
-	return v.visitLiteralExpr(n)
-}
-
-func (n *VarExpr) accept(v ExprVisitor) (any, error) {
-	return v.visitVarExpr(n)
-}
-
-func (n *GroupingExpr) accept(v ExprVisitor) (any, error) {
-	return v.visitGroupingExpr(n)
-}
-
-func (n *UnaryExpr) accept(v ExprVisitor) (any, error) {
-	return v.visitUnaryExpr(n)
-}
-
-func Evaluate(tokens []Token) (Node, error) {
+func Evaluate(tokens []Token) (Expr, error) {
 	parser := Parser{
 		tokens:  tokens,
 		current: 0,
@@ -170,7 +79,7 @@ func (s *Parser) varDeclaration() (Stmt, error) {
 		return nil, err
 	}
 
-	var initializer Node
+	var initializer Expr
 
 	if s.match(EQUAL) {
 		initializer, err = s.expression()
@@ -209,11 +118,48 @@ func (s *Parser) printStmt() (Stmt, error) {
 	}, nil
 }
 
-func (s *Parser) expression() (Node, error) {
-	return s.equality()
+func (s *Parser) expression() (Expr, error) {
+	return s.assignment()
 }
 
-func (s *Parser) equality() (Node, error) {
+func (s *Parser) printTokens() {
+	fmt.Println(fmt.Sprintf("current: %d", s.current))
+
+	for i := s.current; i < len(s.tokens); i++ {
+		fmt.Println(s.tokens[i])
+	}
+}
+
+func (s *Parser) assignment() (Expr, error) {
+	expr, err := s.equality()
+
+	if err != nil {
+		return nil, err
+	}
+
+	if s.match(EQUAL) {
+		value, err := s.assignment()
+
+		if err != nil {
+			return nil, err
+		}
+
+		if s, ok := expr.(*VarExpr); ok {
+			token := s.name
+
+			return &AssignExpr{
+				name:  token,
+				value: value,
+			}, nil
+		}
+
+		return nil, fmt.Errorf("Invalid assignment target.")
+	}
+
+	return expr, nil
+}
+
+func (s *Parser) equality() (Expr, error) {
 	expr, err := s.comparison()
 
 	if err != nil {
@@ -238,7 +184,7 @@ func (s *Parser) equality() (Node, error) {
 	return expr, nil
 }
 
-func (s *Parser) comparison() (Node, error) {
+func (s *Parser) comparison() (Expr, error) {
 	expr, err := s.term()
 
 	if err != nil {
@@ -263,7 +209,7 @@ func (s *Parser) comparison() (Node, error) {
 	return expr, nil
 }
 
-func (s *Parser) unary() (Node, error) {
+func (s *Parser) unary() (Expr, error) {
 	for s.match(BANG, MINUS) {
 		operator := s.previous()
 		right, err := s.unary()
@@ -281,7 +227,7 @@ func (s *Parser) unary() (Node, error) {
 	return s.primary()
 }
 
-func (s *Parser) term() (Node, error) {
+func (s *Parser) term() (Expr, error) {
 	expr, err := s.factor()
 
 	if err != nil {
@@ -305,7 +251,7 @@ func (s *Parser) term() (Node, error) {
 	return expr, nil
 }
 
-func (s *Parser) factor() (Node, error) {
+func (s *Parser) factor() (Expr, error) {
 	expr, err := s.unary()
 
 	if err != nil {
@@ -330,7 +276,7 @@ func (s *Parser) factor() (Node, error) {
 	return expr, nil
 }
 
-func (s *Parser) primary() (Node, error) {
+func (s *Parser) primary() (Expr, error) {
 	if s.match(TRUE) {
 		return &LiteralExpr{
 			value:     true,
@@ -371,6 +317,14 @@ func (s *Parser) primary() (Node, error) {
 		}, nil
 	}
 
+	if s.match(IDENTIFIER) {
+		prev := s.previous()
+
+		return &VarExpr{
+			name: prev,
+		}, nil
+	}
+
 	if s.match(LEFT_PAREN) {
 		expr, err := s.expression()
 
@@ -385,14 +339,6 @@ func (s *Parser) primary() (Node, error) {
 
 		return &GroupingExpr{
 			expr: expr,
-		}, nil
-	}
-
-	if s.match(IDENTIFIER) {
-		prev := s.previous()
-
-		return &VarExpr{
-			name: prev,
 		}, nil
 	}
 
