@@ -57,6 +57,10 @@ func (s *Parser) statement() (Stmt, error) {
 		}, nil
 	}
 
+	if s.match(IF) {
+		return s.ifStatement()
+	}
+
 	return s.expressionStatement()
 }
 
@@ -79,6 +83,44 @@ func (s *Parser) block() ([]Stmt, error) {
 	}
 
 	return stmts, nil
+}
+
+func (s *Parser) ifStatement() (Stmt, error) {
+	_, err := s.consume(LEFT_PAREN, fmt.Errorf("Expect '(' after 'if'."))
+	if err != nil {
+		return nil, err
+	}
+
+	condition, err := s.expression()
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = s.consume(RIGHT_PAREN, fmt.Errorf("Expect ')' after condition."))
+	if err != nil {
+		return nil, err
+	}
+
+	then, err := s.statement()
+	if err != nil {
+		return nil, err
+	}
+
+	var el Stmt
+
+	if s.match(ELSE) {
+		el, err = s.statement()
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &IfStmt{
+		condition: condition,
+		then:      then,
+		el:        el,
+	}, nil
 }
 
 func (s *Parser) expressionStatement() (Stmt, error) {

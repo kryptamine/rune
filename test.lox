@@ -1,6 +1,4 @@
-{
-    var world = 77;
-    var quz = 77;
-    {
-        print world + quz;
-    }
+var foo = 77;
+var bar = 20;
+
+print foo + bar;

@@ -66,6 +66,21 @@ func (p *Interpreter) visitVarStmt(varStmt *VarStmt) error {
 	return nil
 }
 
+func (p *Interpreter) visitIfStmt(ifStmt *IfStmt) error {
+	condition, err := ifStmt.condition.accept(p)
+	if err != nil {
+		return err
+	}
+
+	if p.isTruthy(condition) {
+		return ifStmt.then.accept(p)
+	} else if ifStmt.el != nil {
+		return ifStmt.el.accept(p)
+	}
+
+	return nil
+}
+
 func (p *Interpreter) visitBlockStmt(blockStmt *BlockStmt) error {
 	prevEnv := p.environment
 	p.environment = NewEnvironment(p.environment)
