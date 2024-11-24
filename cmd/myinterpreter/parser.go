@@ -46,6 +46,10 @@ func (s *Parser) statement() (Stmt, error) {
 		return s.printStmt()
 	}
 
+	if s.match(WHILE) {
+		return s.whileStatement()
+	}
+
 	if s.match(LEFT_BRACE) {
 		block, err := s.block()
 		if err != nil {
@@ -62,6 +66,33 @@ func (s *Parser) statement() (Stmt, error) {
 	}
 
 	return s.expressionStatement()
+}
+
+func (s *Parser) whileStatement() (Stmt, error) {
+	_, err := s.consume(LEFT_PAREN, fmt.Errorf("Expect '(' after 'while'."))
+	if err != nil {
+		return nil, err
+	}
+
+	condition, err := s.expression()
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = s.consume(RIGHT_PAREN, fmt.Errorf("Expect ')' after condition."))
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := s.statement()
+	if err != nil {
+		return nil, err
+	}
+
+	return &WhileStmt{
+		condition: condition,
+		body:      body,
+	}, nil
 }
 
 func (s *Parser) or() (Expr, error) {

@@ -6,6 +6,7 @@ type StmtVisitor interface {
 	visitVarStmt(VarStmt *VarStmt) error
 	visitBlockStmt(blockStmt *BlockStmt) error
 	visitIfStmt(ifStmt *IfStmt) error
+	visitWhileStmt(whileStmt *WhileStmt) error
 }
 
 type VarStmt struct {
@@ -31,6 +32,11 @@ type IfStmt struct {
 	el        Stmt
 }
 
+type WhileStmt struct {
+	condition Expr
+	body      Stmt
+}
+
 type Stmt interface {
 	accept(v StmtVisitor) error
 }
@@ -53,4 +59,8 @@ func (n *BlockStmt) accept(v StmtVisitor) error {
 
 func (n *IfStmt) accept(v StmtVisitor) error {
 	return v.visitIfStmt(n)
+}
+
+func (n *WhileStmt) accept(v StmtVisitor) error {
+	return v.visitWhileStmt(n)
 }

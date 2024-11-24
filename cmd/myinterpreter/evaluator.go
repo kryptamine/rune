@@ -70,6 +70,21 @@ func (p *Interpreter) visitLogicalExpr(node *LogicalExpr) (any, error) {
 	return node.right.accept(p)
 }
 
+func (p *Interpreter) visitWhileStmt(whileStmt *WhileStmt) error {
+	val, err := whileStmt.condition.accept(p)
+	if err != nil {
+		return err
+	}
+	for p.isTruthy(val) {
+		err := whileStmt.body.accept(p)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (p *Interpreter) visitVarStmt(varStmt *VarStmt) error {
 	if varStmt.initializer != nil {
 		value, err := varStmt.initializer.accept(p)
