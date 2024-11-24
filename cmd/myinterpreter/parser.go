@@ -65,7 +65,7 @@ func (s *Parser) statement() (Stmt, error) {
 }
 
 func (s *Parser) or() (Expr, error) {
-	expr, err := s.equality()
+	expr, err := s.and()
 	if err != nil {
 		return nil, err
 	}

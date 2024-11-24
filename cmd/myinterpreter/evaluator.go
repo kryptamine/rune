@@ -274,7 +274,7 @@ func (p *Interpreter) isTruthy(val any) bool {
 	case bool:
 		return i2
 	case string:
-		return i2 != ""
+		return true
 	case float64:
 		return i2 != 0.0
 	default:

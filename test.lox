@@ -1,4 +1,1 @@
-var foo = 77;
-var bar = 20;
-
-print foo + bar;
+if ("" and "world") print "world";
