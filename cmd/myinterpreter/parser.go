@@ -73,7 +73,10 @@ func (s *Parser) block() ([]Stmt, error) {
 		stmts = append(stmts, stmt)
 	}
 
-	s.consume(RIGHT_BRACE, fmt.Errorf("Expect '}' after block."))
+	_, err := s.consume(RIGHT_BRACE, fmt.Errorf("Expect '}' after block."))
+	if err != nil {
+		return nil, err
+	}
 
 	return stmts, nil
 }

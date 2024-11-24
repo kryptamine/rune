@@ -1,6 +1,6 @@
 {
-    var bar = 23;
-    var baz = 23;
+    var world = 77;
+    var quz = 77;
     {
-        print bar + baz;
+        print world + quz;
     }
