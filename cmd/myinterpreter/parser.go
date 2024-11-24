@@ -63,7 +63,7 @@ func (s *Parser) statement() (Stmt, error) {
 func (s *Parser) block() ([]Stmt, error) {
 	var stmts []Stmt
 
-	for !s.match(RIGHT_BRACE) && !s.isAtEnd() {
+	for !s.check(RIGHT_BRACE) && !s.isAtEnd() {
 		stmt, err := s.declaration()
 
 		if err != nil {
