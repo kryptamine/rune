@@ -77,12 +77,12 @@ func (p *Interpreter) visitWhileStmt(whileStmt *WhileStmt) error {
 	}
 
 	for p.isTruthy(val) {
-		val, err = whileStmt.condition.accept(p)
+		err := whileStmt.body.accept(p)
 		if err != nil {
 			return err
 		}
 
-		err := whileStmt.body.accept(p)
+		val, err = whileStmt.condition.accept(p)
 		if err != nil {
 			return err
 		}
