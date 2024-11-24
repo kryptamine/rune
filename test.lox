@@ -1,3 +1,6 @@
-var a = "before";
-a = "after";
-
+{
+    var bar = 23;
+    var baz = 23;
+    {
+        print bar + baz;
+    }

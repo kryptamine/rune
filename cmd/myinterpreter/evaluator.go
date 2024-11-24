@@ -6,12 +6,12 @@ import (
 )
 
 type Interpreter struct {
-	environment Environment
+	environment *Environment
 }
 
 func Interpret(stmts []Stmt) error {
 	p := &Interpreter{
-		environment: NewEnvironment(),
+		environment: NewEnvironment(nil),
 	}
 
 	for _, stmt := range stmts {
@@ -62,6 +62,22 @@ func (p *Interpreter) visitVarStmt(varStmt *VarStmt) error {
 	} else {
 		p.environment.define(varStmt.name.lexeme, nil)
 	}
+
+	return nil
+}
+
+func (p *Interpreter) visitBlockStmt(blockStmt *BlockStmt) error {
+	prevEnv := p.environment
+	p.environment = NewEnvironment(p.environment)
+
+	for _, stmt := range blockStmt.stmts {
+		err := stmt.accept(p)
+		if err != nil {
+			return err
+		}
+	}
+
+	p.environment = prevEnv
 
 	return nil
 }

@@ -46,7 +46,36 @@ func (s *Parser) statement() (Stmt, error) {
 		return s.printStmt()
 	}
 
+	if s.match(LEFT_BRACE) {
+		block, err := s.block()
+		if err != nil {
+			return nil, err
+		}
+
+		return &BlockStmt{
+			stmts: block,
+		}, nil
+	}
+
 	return s.expressionStatement()
+}
+
+func (s *Parser) block() ([]Stmt, error) {
+	var stmts []Stmt
+
+	for !s.match(RIGHT_BRACE) && !s.isAtEnd() {
+		stmt, err := s.declaration()
+
+		if err != nil {
+			return nil, err
+		}
+
+		stmts = append(stmts, stmt)
+	}
+
+	s.consume(RIGHT_BRACE, fmt.Errorf("Expect '}' after block."))
+
+	return stmts, nil
 }
 
 func (s *Parser) expressionStatement() (Stmt, error) {

@@ -3,12 +3,14 @@ package main
 import "fmt"
 
 type Environment struct {
-	values map[string]any
+	values    map[string]any
+	enclosing *Environment
 }
 
-func NewEnvironment() Environment {
-	return Environment{
-		values: map[string]any{},
+func NewEnvironment(enclosing *Environment) *Environment {
+	return &Environment{
+		values:    map[string]any{},
+		enclosing: enclosing,
 	}
 }
 
@@ -21,6 +23,10 @@ func (e *Environment) get(token Token) (any, error) {
 		return val, nil
 	}
 
+	if e.enclosing != nil {
+		return e.enclosing.get(token)
+	}
+
 	return nil, fmt.Errorf("Undefined variable '%s'.", token.lexeme)
 }
 
@@ -28,6 +34,10 @@ func (e *Environment) assign(token Token, value any) error {
 	if _, ok := e.values[token.lexeme]; ok {
 		e.values[token.lexeme] = value
 		return nil
+	}
+
+	if e.enclosing != nil {
+		return e.enclosing.assign(token, value)
 	}
 
 	return fmt.Errorf("Undefined variable '%s'.", token.lexeme)
