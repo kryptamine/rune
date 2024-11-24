@@ -34,6 +34,10 @@ func (p *PrintVisitor) visitVarExpr(node *VarExpr) (any, error) {
 	return nil, nil
 }
 
+func (p *PrintVisitor) visitLogicalExpr(node *LogicalExpr) (any, error) {
+	return nil, nil
+}
+
 func (p *PrintVisitor) visitAssignExpr(node *AssignExpr) (any, error) {
 	return nil, nil
 }

@@ -64,6 +64,52 @@ func (s *Parser) statement() (Stmt, error) {
 	return s.expressionStatement()
 }
 
+func (s *Parser) or() (Expr, error) {
+	expr, err := s.equality()
+	if err != nil {
+		return nil, err
+	}
+
+	for s.match(OR) {
+		operator := s.previous()
+		right, err := s.and()
+		if err != nil {
+			return nil, err
+		}
+
+		expr = &LogicalExpr{
+			left:  expr,
+			right: right,
+			op:    operator,
+		}
+	}
+
+	return expr, nil
+}
+
+func (s *Parser) and() (Expr, error) {
+	expr, err := s.equality()
+	if err != nil {
+		return nil, err
+	}
+
+	for s.match(AND) {
+		operator := s.previous()
+		right, err := s.equality()
+		if err != nil {
+			return nil, err
+		}
+
+		expr = &LogicalExpr{
+			left:  expr,
+			right: right,
+			op:    operator,
+		}
+	}
+
+	return expr, nil
+}
+
 func (s *Parser) block() ([]Stmt, error) {
 	var stmts []Stmt
 
@@ -205,7 +251,7 @@ func (s *Parser) printTokens() {
 }
 
 func (s *Parser) assignment() (Expr, error) {
-	expr, err := s.equality()
+	expr, err := s.or()
 
 	if err != nil {
 		return nil, err

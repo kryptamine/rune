@@ -50,6 +50,26 @@ func (p *Interpreter) visitPrintStmt(exprStmt *PrintStmt) error {
 	return nil
 }
 
+func (p *Interpreter) visitLogicalExpr(node *LogicalExpr) (any, error) {
+	left, err := node.left.accept(p)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if node.op.tokenType == OR {
+		if p.isTruthy(left) {
+			return left, nil
+		}
+	} else {
+		if !p.isTruthy(left) {
+			return left, nil
+		}
+	}
+
+	return node.right.accept(p)
+}
+
 func (p *Interpreter) visitVarStmt(varStmt *VarStmt) error {
 	if varStmt.initializer != nil {
 		value, err := varStmt.initializer.accept(p)

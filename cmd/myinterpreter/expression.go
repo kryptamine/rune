@@ -7,6 +7,7 @@ type ExprVisitor interface {
 	visitUnaryExpr(UnaryExpr *UnaryExpr) (any, error)
 	visitVarExpr(varExpr *VarExpr) (any, error)
 	visitAssignExpr(assignExpr *AssignExpr) (any, error)
+	visitLogicalExpr(logicalExpr *LogicalExpr) (any, error)
 }
 
 type Expr interface {
@@ -38,6 +39,12 @@ type VarExpr struct {
 	name Token
 }
 
+type LogicalExpr struct {
+	left  Expr
+	right Expr
+	op    Token
+}
+
 type GroupingExpr struct {
 	expr Expr
 }
@@ -64,4 +71,8 @@ func (n *UnaryExpr) accept(v ExprVisitor) (any, error) {
 
 func (n *AssignExpr) accept(v ExprVisitor) (any, error) {
 	return v.visitAssignExpr(n)
+}
+
+func (n *LogicalExpr) accept(v ExprVisitor) (any, error) {
+	return v.visitLogicalExpr(n)
 }
