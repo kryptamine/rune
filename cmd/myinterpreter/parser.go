@@ -61,11 +61,108 @@ func (s *Parser) statement() (Stmt, error) {
 		}, nil
 	}
 
+	if s.match(FOR) {
+		return s.forStatement()
+	}
+
 	if s.match(IF) {
 		return s.ifStatement()
 	}
 
 	return s.expressionStatement()
+}
+
+func (s *Parser) forStatement() (Stmt, error) {
+	_, err := s.consume(LEFT_PAREN, fmt.Errorf("Expect '(' after 'for'."))
+	if err != nil {
+		return nil, err
+	}
+
+	var initializer Stmt
+
+	if s.match(SEMICOLON) {
+		initializer = nil
+	} else if s.match(VAR) {
+		initializer, err = s.varDeclaration()
+
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		initializer, err = s.expressionStatement()
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var condition Expr
+
+	if !s.check(SEMICOLON) {
+		condition, err = s.expression()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	_, err = s.consume(SEMICOLON, fmt.Errorf("Expect ';' after condition."))
+	if err != nil {
+		return nil, err
+	}
+
+	var increment Expr
+
+	if !s.check(RIGHT_PAREN) {
+		increment, err = s.expression()
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	_, err = s.consume(RIGHT_PAREN, fmt.Errorf("Expect ')' after clauses."))
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := s.statement()
+	if err != nil {
+		return nil, err
+	}
+
+	if increment != nil {
+		body = &BlockStmt{
+			stmts: []Stmt{
+				body,
+				&ExprStmt{
+					expr: increment,
+				},
+			},
+		}
+	}
+
+	if condition == nil {
+		condition = &LiteralExpr{
+			tokenType: TRUE,
+			value:     true,
+		}
+	}
+
+	body = &WhileStmt{
+		condition: condition,
+		body:      body,
+	}
+
+	if initializer != nil {
+		body = &BlockStmt{
+			stmts: []Stmt{
+				initializer,
+				body,
+			},
+		}
+	}
+
+	return body, nil
 }
 
 func (s *Parser) whileStatement() (Stmt, error) {
