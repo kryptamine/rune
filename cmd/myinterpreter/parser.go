@@ -590,7 +590,13 @@ func (s *Parser) primary() (Expr, error) {
 		}, nil
 	}
 
-	return nil, fmt.Errorf("Expect expression at: %s", s.peek())
+	current := s.peek()
+
+	return nil, fmt.Errorf(
+		"[line: %d] Error at '%s': Expect expression.",
+		current.line,
+		current.lexeme,
+	)
 }
 
 func (s *Parser) match(tokenTypes ...TokenType) bool {
@@ -631,7 +637,11 @@ func (s *Parser) consume(tokenType TokenType, err error) (Token, error) {
 		return s.advance(), nil
 	}
 
-	return Token{}, err
+	return Token{}, fmt.Errorf(
+		"[line: %d] %s",
+		s.peek().line,
+		err.Error(),
+	)
 }
 
 func (s *Parser) peek() Token {

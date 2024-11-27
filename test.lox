@@ -1,4 +1,1 @@
- for (var foo = 0; foo < 3; foo = foo + 1) {
-   print foo;
- }
-
+var i = 1
