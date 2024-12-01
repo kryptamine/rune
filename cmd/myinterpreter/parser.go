@@ -314,11 +314,69 @@ func (s *Parser) expressionStatement() (Stmt, error) {
 }
 
 func (s *Parser) declaration() (Stmt, error) {
+	if s.match(FUN) {
+		return s.function("function")
+	}
+
 	if s.match(VAR) {
 		return s.varDeclaration()
 	}
 
 	return s.statement()
+}
+
+func (s *Parser) function(kind string) (Stmt, error) {
+	name, err := s.consume(IDENTIFIER, fmt.Errorf("Expect %s name.", kind))
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = s.consume(LEFT_PAREN, fmt.Errorf("Expect '(' after %s name.", kind))
+	if err != nil {
+		return nil, err
+	}
+
+	parameters := []Token{}
+
+	if !s.check(RIGHT_PAREN) {
+		for true {
+			if len(parameters) >= 255 {
+				return nil, fmt.Errorf("[line %d] Cannot have more than 255 parameters.", s.peek().line)
+			}
+
+			param, err := s.consume(IDENTIFIER, fmt.Errorf("Expect parameter name."))
+			if err != nil {
+				return nil, err
+			}
+
+			parameters = append(parameters, param)
+
+			if !s.match(COMMA) {
+				break
+			}
+		}
+	}
+
+	_, err = s.consume(RIGHT_PAREN, fmt.Errorf("Expect ')' after parameters."))
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = s.consume(LEFT_BRACE, fmt.Errorf("Expect '{' before %s body.", kind))
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := s.block()
+	if err != nil {
+		return nil, err
+	}
+
+	return &FunctionStmt{
+		name:       name,
+		body:       body,
+		parameters: parameters,
+	}, nil
 }
 
 func (s *Parser) varDeclaration() (Stmt, error) {
@@ -472,7 +530,56 @@ func (s *Parser) unary() (Expr, error) {
 		}, nil
 	}
 
-	return s.primary()
+	return s.call()
+}
+
+func (s *Parser) call() (Expr, error) {
+	expr, err := s.primary()
+	if err != nil {
+		return nil, err
+	}
+
+	for true {
+		if s.match(LEFT_PAREN) {
+			expr, err = s.finishCall(expr)
+
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			break
+		}
+	}
+
+	return expr, nil
+}
+
+func (s *Parser) finishCall(expr Expr) (Expr, error) {
+	args := []Expr{}
+
+	if !s.check(RIGHT_PAREN) {
+		for true {
+			arg, err := s.expression()
+			if err != nil {
+				return nil, err
+			}
+			args = append(args, arg)
+
+			if !s.match(COMMA) {
+				break
+			}
+		}
+	}
+
+	_, err := s.consume(RIGHT_PAREN, fmt.Errorf("Expect ')' after arguments."))
+	if err != nil {
+		return nil, err
+	}
+
+	return &CallExpr{
+		callee: expr,
+		args:   args,
+	}, nil
 }
 
 func (s *Parser) term() (Expr, error) {

@@ -1,0 +1,39 @@
+package main
+
+import "time"
+
+type Callable interface {
+	Call(interpreter *Interpreter, args []any) (any, error)
+}
+
+type Function struct {
+	declaration *FunctionStmt
+}
+
+func (f *Function) Call(interpreter *Interpreter, args []any) (any, error) {
+	env := NewEnvironment(interpreter.environment)
+
+	for i, param := range f.declaration.parameters {
+		if len(args) <= i {
+			continue
+		}
+
+		env.define(param.lexeme, args[i])
+	}
+
+	if err := interpreter.executeBlock(f.declaration.body, env); err != nil {
+		return nil, err
+	}
+
+	return nil, nil
+}
+
+type ClockCallable struct{}
+
+func (c *ClockCallable) Call(interpreter *Interpreter, args []any) (any, error) {
+	return float64(time.Now().Unix()), nil
+}
+
+func (c *ClockCallable) String() string {
+	return "<native fn>"
+}

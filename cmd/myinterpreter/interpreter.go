@@ -10,8 +10,12 @@ type Interpreter struct {
 }
 
 func Interpret(stmts []Stmt) error {
+	globals := NewEnvironment(nil)
+
+	globals.define("clock", &ClockCallable{})
+
 	p := &Interpreter{
-		environment: NewEnvironment(nil),
+		environment: globals,
 	}
 
 	for _, stmt := range stmts {
@@ -107,6 +111,38 @@ func (p *Interpreter) visitVarStmt(varStmt *VarStmt) error {
 	return nil
 }
 
+func (p *Interpreter) visitCallExpr(callExpr *CallExpr) (any, error) {
+	callee, err := callExpr.callee.accept(p)
+	if err != nil {
+		return nil, err
+	}
+
+	args := []any{}
+
+	for _, arg := range callExpr.args {
+		arg, err := arg.accept(p)
+		if err != nil {
+			return nil, err
+		}
+		args = append(args, arg)
+	}
+
+	if callable, ok := callee.(Callable); ok {
+		return callable.Call(p, args)
+	}
+
+	return nil, fmt.Errorf("Can only call functions and classes.")
+}
+
+func (p *Interpreter) visitFunctionStmt(functionStmt *FunctionStmt) error {
+	function := &Function{
+		declaration: functionStmt,
+	}
+
+	p.environment.define(functionStmt.name.lexeme, function)
+	return nil
+}
+
 func (p *Interpreter) visitIfStmt(ifStmt *IfStmt) error {
 	condition, err := ifStmt.condition.accept(p)
 	if err != nil {
@@ -123,10 +159,14 @@ func (p *Interpreter) visitIfStmt(ifStmt *IfStmt) error {
 }
 
 func (p *Interpreter) visitBlockStmt(blockStmt *BlockStmt) error {
-	prevEnv := p.environment
-	p.environment = NewEnvironment(p.environment)
+	return p.executeBlock(blockStmt.stmts, NewEnvironment(p.environment))
+}
 
-	for _, stmt := range blockStmt.stmts {
+func (p *Interpreter) executeBlock(statements []Stmt, env *Environment) error {
+	prevEnv := p.environment
+	p.environment = env
+
+	for _, stmt := range statements {
 		err := stmt.accept(p)
 		if err != nil {
 			return err

@@ -1,1 +1,1 @@
-var i = 1
+print clock();

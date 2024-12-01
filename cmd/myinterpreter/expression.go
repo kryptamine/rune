@@ -8,6 +8,7 @@ type ExprVisitor interface {
 	visitVarExpr(varExpr *VarExpr) (any, error)
 	visitAssignExpr(assignExpr *AssignExpr) (any, error)
 	visitLogicalExpr(logicalExpr *LogicalExpr) (any, error)
+	visitCallExpr(callExpr *CallExpr) (any, error)
 }
 
 type Expr interface {
@@ -49,6 +50,11 @@ type GroupingExpr struct {
 	expr Expr
 }
 
+type CallExpr struct {
+	callee Expr
+	args   []Expr
+}
+
 func (n *BinaryExpr) accept(v ExprVisitor) (any, error) {
 	return v.visitBinaryExpr(n)
 }
@@ -75,4 +81,8 @@ func (n *AssignExpr) accept(v ExprVisitor) (any, error) {
 
 func (n *LogicalExpr) accept(v ExprVisitor) (any, error) {
 	return v.visitLogicalExpr(n)
+}
+
+func (n *CallExpr) accept(v ExprVisitor) (any, error) {
+	return v.visitCallExpr(n)
 }

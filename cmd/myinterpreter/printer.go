@@ -30,6 +30,10 @@ func (p *PrintVisitor) visitBinaryExpr(node *BinaryExpr) (any, error) {
 	return nil, nil
 }
 
+func (p *PrintVisitor) visitCallExpr(node *CallExpr) (any, error) {
+	return nil, nil
+}
+
 func (p *PrintVisitor) visitVarExpr(node *VarExpr) (any, error) {
 	return nil, nil
 }
