@@ -1,6 +1,9 @@
 package main
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 type Callable interface {
 	Call(interpreter *Interpreter, args []any) (any, error)
@@ -26,6 +29,10 @@ func (f *Function) Call(interpreter *Interpreter, args []any) (any, error) {
 	}
 
 	return nil, nil
+}
+
+func (f *Function) String() string {
+	return fmt.Sprintf("<fn %s>", f.declaration.name.lexeme)
 }
 
 type ClockCallable struct{}
