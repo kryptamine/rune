@@ -357,12 +357,18 @@ func (s *Parser) function(kind string) (Stmt, error) {
 		}
 	}
 
-	_, err = s.consume(RIGHT_PAREN, fmt.Errorf("Expect ')' after parameters."))
+	_, err = s.consume(RIGHT_PAREN, fmt.Errorf(
+		"Error at '%s': Expect ')' after parameters.",
+		s.peek().lexeme,
+	))
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = s.consume(LEFT_BRACE, fmt.Errorf("Expect '{' before %s body.", kind))
+	_, err = s.consume(LEFT_BRACE, fmt.Errorf(
+		"Error at '%s': Expect '{' before function body.",
+		s.peek().lexeme,
+	))
 	if err != nil {
 		return nil, err
 	}
@@ -413,8 +419,10 @@ func (s *Parser) printStmt() (Stmt, error) {
 		return nil, err
 	}
 
-	_, err = s.consume(SEMICOLON, fmt.Errorf("Expect ';' after value."))
-
+	_, err = s.consume(SEMICOLON, fmt.Errorf(
+		"Error at '%s': Expect ';' after value.",
+		s.peek().lexeme,
+	))
 	if err != nil {
 		return nil, err
 	}
@@ -687,7 +695,10 @@ func (s *Parser) primary() (Expr, error) {
 			return nil, err
 		}
 
-		_, err = s.consume(RIGHT_PAREN, fmt.Errorf("Expect ')' after expression."))
+		_, err = s.consume(RIGHT_PAREN, fmt.Errorf(
+			"Error at '%s': Expect ')' after expression.",
+			s.peek().lexeme,
+		))
 		if err != nil {
 			return nil, err
 		}
