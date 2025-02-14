@@ -38,7 +38,7 @@ func Interpret(stmts []Stmt) error {
 
 func (p *Interpreter) visitReturnStmt(returnStmt *ReturnStmt) error {
 	if returnStmt.value == nil {
-		return nil
+		return &Return{nil}
 	}
 
 	value, err := returnStmt.value.accept(p)
