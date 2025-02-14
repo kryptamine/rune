@@ -27,7 +27,6 @@ func (f *Function) Call(interpreter *Interpreter, args []any) (any, error) {
 	err := interpreter.executeBlock(f.declaration.body, env)
 
 	if ret, isReturn := err.(*Return); isReturn {
-		fmt.Printf("Function CALL returned value: %v\n", ret.value)
 		return ret.value, nil
 	}
 

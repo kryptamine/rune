@@ -14,7 +14,7 @@ type Return struct {
 }
 
 func (e *Return) Error() string {
-	return fmt.Sprintf("%s", e.value)
+	return "<fn return>"
 }
 
 func Interpret(stmts []Stmt) error {
@@ -37,9 +37,14 @@ func Interpret(stmts []Stmt) error {
 }
 
 func (p *Interpreter) visitReturnStmt(returnStmt *ReturnStmt) error {
-	var value any
-	if returnStmt.value != nil {
-		value, _ = returnStmt.value.accept(p)
+	if returnStmt.value == nil {
+		return nil
+	}
+
+	value, err := returnStmt.value.accept(p)
+
+	if err != nil {
+		return err
 	}
 
 	return &Return{value}
@@ -147,7 +152,9 @@ func (p *Interpreter) visitCallExpr(callExpr *CallExpr) (any, error) {
 	if callable, ok := callee.(Callable); ok {
 		res, err := callable.Call(p, args)
 
-		fmt.Printf("Function call returned value: %v\n", res)
+		if ret, isReturn := res.(*Return); isReturn {
+			return ret.value, nil
+		}
 
 		return res, err
 	}
@@ -158,6 +165,10 @@ func (p *Interpreter) visitCallExpr(callExpr *CallExpr) (any, error) {
 func (p *Interpreter) visitFunctionStmt(functionStmt *FunctionStmt) error {
 	function := &Function{
 		declaration: functionStmt,
+	}
+
+	if len(function.declaration.name.lexeme) == 0 {
+		return fmt.Errorf("Function name is required.")
 	}
 
 	p.environment.define(functionStmt.name.lexeme, function)
@@ -187,14 +198,16 @@ func (p *Interpreter) executeBlock(statements []Stmt, env *Environment) error {
 	prevEnv := p.environment
 	p.environment = env
 
+	defer func() {
+		p.environment = prevEnv
+	}()
+
 	for _, stmt := range statements {
 		err := stmt.accept(p)
 		if err != nil {
 			return err
 		}
 	}
-
-	p.environment = prevEnv
 
 	return nil
 }
