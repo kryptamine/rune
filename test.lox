@@ -1,7 +1,13 @@
-fun test() {
+fun fib(n) {
+  if (n < 0) {
+    return 0; // Prevent negative recursion
+  }
 
-  return 1;
+  if (n == 0) {
+    return 0;
+  }
+
+  return fib(n - 1) + fib(n - 2);
 }
 
-print test();
-
+print(fib(10));

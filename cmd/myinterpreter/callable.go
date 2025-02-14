@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"time"
 )
@@ -25,16 +24,14 @@ func (f *Function) Call(interpreter *Interpreter, args []any) (any, error) {
 		env.define(param.lexeme, args[i])
 	}
 
-	if err := interpreter.executeBlock(f.declaration.body, env); err != nil {
-		target := &Return{}
-		if errors.As(err, &target) {
-			return target.value, nil
-		}
+	err := interpreter.executeBlock(f.declaration.body, env)
 
-		return nil, err
+	if ret, isReturn := err.(*Return); isReturn {
+		fmt.Printf("Function CALL returned value: %v\n", ret.value)
+		return ret.value, nil
 	}
 
-	return nil, nil
+	return nil, err
 }
 
 func (f *Function) String() string {
