@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"time"
 )
@@ -25,6 +26,11 @@ func (f *Function) Call(interpreter *Interpreter, args []any) (any, error) {
 	}
 
 	if err := interpreter.executeBlock(f.declaration.body, env); err != nil {
+		target := &Return{}
+		if errors.As(err, &target) {
+			return target.value, nil
+		}
+
 		return nil, err
 	}
 

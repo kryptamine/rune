@@ -46,6 +46,10 @@ func (s *Parser) statement() (Stmt, error) {
 		return s.printStmt()
 	}
 
+	if s.match(RETURN) {
+		return s.returnStmt()
+	}
+
 	if s.match(WHILE) {
 		return s.whileStatement()
 	}
@@ -409,6 +413,31 @@ func (s *Parser) varDeclaration() (Stmt, error) {
 	return &VarStmt{
 		initializer: initializer,
 		name:        name,
+	}, nil
+}
+
+func (s *Parser) returnStmt() (Stmt, error) {
+	keyword := s.previous()
+	var value Expr
+
+	if !s.check(SEMICOLON) {
+		v, err := s.expression()
+
+		value = v
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	_, err := s.consume(SEMICOLON, fmt.Errorf("Expect ';' after return value."))
+	if err != nil {
+		return nil, err
+	}
+
+	return &ReturnStmt{
+		value:   value,
+		keyword: keyword,
 	}, nil
 }
 

@@ -8,11 +8,17 @@ type StmtVisitor interface {
 	visitIfStmt(ifStmt *IfStmt) error
 	visitWhileStmt(whileStmt *WhileStmt) error
 	visitFunctionStmt(functionStmt *FunctionStmt) error
+	visitReturnStmt(returnStmt *ReturnStmt) error
 }
 
 type VarStmt struct {
 	initializer Expr
 	name        Token
+}
+
+type ReturnStmt struct {
+	value   Expr
+	keyword Token
 }
 
 type PrintStmt struct {
@@ -74,4 +80,8 @@ func (n *IfStmt) accept(v StmtVisitor) error {
 
 func (n *WhileStmt) accept(v StmtVisitor) error {
 	return v.visitWhileStmt(n)
+}
+
+func (n *ReturnStmt) accept(v StmtVisitor) error {
+	return v.visitReturnStmt(n)
 }

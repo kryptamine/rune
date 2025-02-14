@@ -9,6 +9,14 @@ type Interpreter struct {
 	environment *Environment
 }
 
+type Return struct {
+	value any
+}
+
+func (e *Return) Error() string {
+	return fmt.Sprintf("%s", e.value)
+}
+
 func Interpret(stmts []Stmt) error {
 	globals := NewEnvironment(nil)
 
@@ -26,6 +34,15 @@ func Interpret(stmts []Stmt) error {
 	}
 
 	return nil
+}
+
+func (p *Interpreter) visitReturnStmt(returnStmt *ReturnStmt) error {
+	var value any
+	if returnStmt.value != nil {
+		value, _ = returnStmt.value.accept(p)
+	}
+
+	return &Return{value}
 }
 
 func (p *Interpreter) visitExprStmt(exprStmt *ExprStmt) error {
