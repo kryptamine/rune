@@ -15,7 +15,7 @@ type Function struct {
 }
 
 func (f *Function) Call(interpreter *Interpreter, args []any) (any, error) {
-	env := NewEnvironment(interpreter.environment)
+	env := NewEnvironment(f.environment)
 
 	for i, param := range f.declaration.parameters {
 		if len(args) <= i {
@@ -32,6 +32,10 @@ func (f *Function) Call(interpreter *Interpreter, args []any) (any, error) {
 	}
 
 	return nil, err
+}
+
+func (f *Function) Arity() int {
+	return len(f.declaration.parameters)
 }
 
 func (f *Function) String() string {
