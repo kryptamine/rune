@@ -11,6 +11,7 @@ type Callable interface {
 
 type Function struct {
 	declaration *FunctionStmt
+	environment *Environment
 }
 
 func (f *Function) Call(interpreter *Interpreter, args []any) (any, error) {

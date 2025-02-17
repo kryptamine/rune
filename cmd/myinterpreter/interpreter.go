@@ -67,23 +67,22 @@ func (p *Interpreter) visitPrintStmt(exprStmt *PrintStmt) error {
 		return err
 	}
 
-	if l, ok := val.(float64); ok {
+	if val == nil {
+		fmt.Println("nil")
+		return nil
+	}
+
+	if v, ok := val.(float64); ok {
 		// Check if the float is an integer value
-		if l == float64(int64(l)) {
+		if v == float64(int64(v)) {
 			// Print with one decimal place (e.g., 10.0 instead of 10)
-			fmt.Println(fmt.Sprintf("%.0f", l))
-		} else {
-			fmt.Println(fmt.Sprintf("%g", l))
+			fmt.Println(fmt.Sprintf("%.0f", v))
 		}
 
 		return nil
 	}
 
-	if val == nil {
-		fmt.Println("nil")
-	} else {
-		fmt.Println(val)
-	}
+	fmt.Println(val)
 
 	return nil
 }
@@ -171,6 +170,7 @@ func (p *Interpreter) visitCallExpr(callExpr *CallExpr) (any, error) {
 func (p *Interpreter) visitFunctionStmt(functionStmt *FunctionStmt) error {
 	function := &Function{
 		declaration: functionStmt,
+		environment: p.environment,
 	}
 
 	if len(function.declaration.name.lexeme) == 0 {
