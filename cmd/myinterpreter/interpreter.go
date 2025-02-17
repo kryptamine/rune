@@ -67,6 +67,18 @@ func (p *Interpreter) visitPrintStmt(exprStmt *PrintStmt) error {
 		return err
 	}
 
+	if l, ok := val.(float64); ok {
+		// Check if the float is an integer value
+		if l == float64(int64(l)) {
+			// Print with one decimal place (e.g., 10.0 instead of 10)
+			fmt.Println(fmt.Sprintf("%.0f", l))
+		} else {
+			fmt.Println(fmt.Sprintf("%g", l))
+		}
+
+		return nil
+	}
+
 	if val == nil {
 		fmt.Println("nil")
 	} else {

@@ -1,27 +1,23 @@
-fun fib(n) {
-  if (n <= 1) return n;
-  return fib(n - 2) + fib(n - 1);
-}
+ fun square(x) {
+   return x * x;
+ }
+ 
+ // This higher-order function applies a
+ // function N times to a starting value x.
+ fun applyTimesN(N, f, x) {
+   var i = 0;
+   while (i < N) {
+     x = f(x);
+     i = i + 1;
+   }
+   return x;
+ }
+ 
+ // 6 is squared once
+ print applyTimesN(1, square, 6);
+ // 6 is squared twice
+ print applyTimesN(2, square, 6);
+ // 6 is squared thrice
+ print applyTimesN(3, square, 6);
+ 
 
-print(fib(10));
-
-
-var arr = [1, 2, 3];
-
-fun bubbleSort(arr) {
-  var n = arr.length;
-  for (var i = 0; i < n; i = i + 1) {
-    for (var j = 0; j < n - i - 1; j = j + 1) {
-      if (arr[j] > arr[j + 1]) {
-        var temp = arr[j];
-        arr[j] = arr[j + 1];
-        arr[j + 1] = temp;
-      }
-    }
-  }
-
-  return arr;
-}
-
-
-print(bubbleSort(arr));
