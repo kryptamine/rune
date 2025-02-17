@@ -77,6 +77,8 @@ func (p *Interpreter) visitPrintStmt(exprStmt *PrintStmt) error {
 		if v == float64(int64(v)) {
 			// Print with one decimal place (e.g., 10.0 instead of 10)
 			fmt.Println(fmt.Sprintf("%.0f", v))
+		} else {
+			fmt.Println(fmt.Sprintf("%g", v))
 		}
 
 		return nil
