@@ -7,6 +7,7 @@ import (
 
 type Callable interface {
 	Call(interpreter *Interpreter, args []any) (any, error)
+	Arity() int
 }
 
 type Function struct {
@@ -46,6 +47,10 @@ type ClockCallable struct{}
 
 func (c *ClockCallable) Call(interpreter *Interpreter, args []any) (any, error) {
 	return float64(time.Now().Unix()), nil
+}
+
+func (c *ClockCallable) Arity() int {
+	return 0
 }
 
 func (c *ClockCallable) String() string {

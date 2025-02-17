@@ -163,6 +163,10 @@ func (p *Interpreter) visitCallExpr(callExpr *CallExpr) (any, error) {
 	}
 
 	if callable, ok := callee.(Callable); ok {
+		if len(args) != callable.Arity() {
+			return nil, fmt.Errorf("Expected %d arguments but got %d.", callable.Arity(), len(args))
+		}
+
 		return callable.Call(p, args)
 	}
 
