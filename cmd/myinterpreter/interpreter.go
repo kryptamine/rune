@@ -150,13 +150,7 @@ func (p *Interpreter) visitCallExpr(callExpr *CallExpr) (any, error) {
 	}
 
 	if callable, ok := callee.(Callable); ok {
-		res, err := callable.Call(p, args)
-
-		if ret, isReturn := res.(*Return); isReturn {
-			return ret.value, nil
-		}
-
-		return res, err
+		return callable.Call(p, args)
 	}
 
 	return nil, fmt.Errorf("Can only call functions and classes.")
