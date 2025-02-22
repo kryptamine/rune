@@ -20,7 +20,7 @@ func Scan(source []byte) ([]Token, []error) {
 }
 
 func (token Token) String() string {
-	literal := "nil"
+	literal := "null"
 
 	if token.literal != "" {
 		literal = token.literal
