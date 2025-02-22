@@ -164,13 +164,16 @@ func (p *Interpreter) visitCallExpr(callExpr *CallExpr) (any, error) {
 
 	if callable, ok := callee.(Callable); ok {
 		if len(args) != callable.Arity() {
-			return nil, fmt.Errorf("Expected %d arguments but got %d.", callable.Arity(), len(args))
+			return nil, NewRuntimeError(
+				callExpr.token,
+				fmt.Sprintf("Expected %d arguments but got %d.", callable.Arity(), len(args)),
+			)
 		}
 
 		return callable.Call(p, args)
 	}
 
-	return nil, fmt.Errorf("Can only call functions and classes.")
+	return nil, NewRuntimeError(callExpr.token, "Can only call functions and classes.")
 }
 
 func (p *Interpreter) visitFunctionStmt(functionStmt *FunctionStmt) error {
@@ -180,7 +183,7 @@ func (p *Interpreter) visitFunctionStmt(functionStmt *FunctionStmt) error {
 	}
 
 	if len(function.declaration.name.lexeme) == 0 {
-		return fmt.Errorf("Function name is required.")
+		return NewRuntimeError(functionStmt.name, "Function name is required.")
 	}
 
 	p.environment.define(functionStmt.name.lexeme, function)
@@ -261,7 +264,7 @@ func (p *Interpreter) visitBinaryExpr(node *BinaryExpr) (any, error) {
 			return left.(float64) + right.(float64), nil
 		}
 
-		return nil, fmt.Errorf("Operands must be two numbers or two strings.")
+		return nil, NewRuntimeError(node.operator, "Operands must be two numbers or two strings.")
 	case MINUS:
 		if err := p.checkNumberOperands(left, right); err != nil {
 			return nil, err

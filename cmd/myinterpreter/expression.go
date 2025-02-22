@@ -51,6 +51,7 @@ type GroupingExpr struct {
 }
 
 type CallExpr struct {
+	token  Token
 	callee Expr
 	args   []Expr
 }

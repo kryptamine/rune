@@ -27,7 +27,7 @@ func (e *Environment) get(token Token) (any, error) {
 		return e.enclosing.get(token)
 	}
 
-	return nil, fmt.Errorf("Undefined variable '%s'.", token.lexeme)
+	return nil, NewRuntimeError(token, fmt.Sprintf("Undefined variable '%s'.", token.lexeme))
 }
 
 func (e *Environment) assign(token Token, value any) error {
@@ -40,5 +40,5 @@ func (e *Environment) assign(token Token, value any) error {
 		return e.enclosing.assign(token, value)
 	}
 
-	return fmt.Errorf("Undefined variable '%s'.", token.lexeme)
+	return NewRuntimeError(token, fmt.Sprintf("Undefined variable '%s'.", token.lexeme))
 }
