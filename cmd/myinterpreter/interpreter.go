@@ -267,37 +267,37 @@ func (p *Interpreter) visitBinaryExpr(node *BinaryExpr) (any, error) {
 		return nil, NewRuntimeError(node.operator, "Operands must be two numbers or two strings.")
 	case MINUS:
 		if err := p.checkNumberOperands(left, right); err != nil {
-			return nil, err
+			return nil, NewRuntimeError(node.operator, err.Error())
 		}
 		return p.toFloat(left) - p.toFloat(right), nil
 	case SLASH:
 		if err := p.checkNumberOperands(left, right); err != nil {
-			return nil, err
+			return nil, NewRuntimeError(node.operator, err.Error())
 		}
 		return p.toFloat(left) / p.toFloat(right), nil
 	case STAR:
 		if err := p.checkNumberOperands(left, right); err != nil {
-			return nil, err
+			return nil, NewRuntimeError(node.operator, err.Error())
 		}
 		return p.toFloat(left) * p.toFloat(right), nil
 	case LESS:
 		if err := p.checkNumberOperands(left, right); err != nil {
-			return nil, err
+			return nil, NewRuntimeError(node.operator, err.Error())
 		}
 		return p.toFloat(left) < p.toFloat(right), nil
 	case LESS_EQUAL:
 		if err := p.checkNumberOperands(left, right); err != nil {
-			return nil, err
+			return nil, NewRuntimeError(node.operator, err.Error())
 		}
 		return p.toFloat(left) <= p.toFloat(right), nil
 	case GREATER:
 		if err := p.checkNumberOperands(left, right); err != nil {
-			return nil, err
+			return nil, NewRuntimeError(node.operator, err.Error())
 		}
 		return p.toFloat(left) > p.toFloat(right), nil
 	case GREATER_EQUAL:
 		if err := p.checkNumberOperands(left, right); err != nil {
-			return nil, err
+			return nil, NewRuntimeError(node.operator, err.Error())
 		}
 		return p.toFloat(left) >= p.toFloat(right), nil
 	}
@@ -335,7 +335,7 @@ func (p *Interpreter) visitUnaryExpr(node *UnaryExpr) (any, error) {
 		return !p.isTruthy(right), nil
 	case MINUS:
 		if err := p.checkNumberOperand(right); err != nil {
-			return nil, err
+			return nil, NewRuntimeError(node.operator, err.Error())
 		}
 
 		return -1 * p.toFloat(right), nil
