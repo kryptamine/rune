@@ -39,6 +39,7 @@ func main() {
 	case "parse":
 		if len(errors) > 0 {
 			os.Exit(65)
+			return
 		}
 
 		expr, err := Evaluate(tokens)
