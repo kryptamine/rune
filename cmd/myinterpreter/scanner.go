@@ -20,27 +20,18 @@ func Scan(source []byte) ([]Token, []error) {
 }
 
 func (token Token) String() string {
-	if token.literal == "" {
-		return fmt.Sprintf(
-			"%s %s null",
-			token.tokenType,
-			token.lexeme,
-		)
+	literal := "nil"
+
+	if token.literal != "" {
+		literal = token.literal
 	}
 
 	return fmt.Sprintf(
 		"%s %s %s",
 		token.tokenType,
 		token.lexeme,
-		token.literal,
+		literal,
 	)
-}
-
-func If[T any](cond bool, vtrue, vfalse T) T {
-	if cond {
-		return vtrue
-	}
-	return vfalse
 }
 
 func (s *Scanner) scanTokens() []Token {

@@ -62,3 +62,10 @@ func isAlpha(c rune) bool {
 		(c >= 'A' && c <= 'Z') ||
 		c == '_'
 }
+
+func If[T any](cond bool, vtrue, vfalse T) T {
+	if cond {
+		return vtrue
+	}
+	return vfalse
+}
