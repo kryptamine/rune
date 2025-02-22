@@ -685,7 +685,11 @@ func (s *Parser) primary() (Expr, error) {
 
 	if s.match(NUMBER) {
 		prev := s.previous()
-		value, _ := strconv.ParseFloat(prev.literal, 64)
+		value, err := strconv.ParseFloat(prev.literal, 64)
+
+		if err != nil {
+			return nil, NewRuntimeError(prev, "Invalid number.")
+		}
 
 		return &LiteralExpr{
 			value:     value,
