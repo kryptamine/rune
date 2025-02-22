@@ -5,6 +5,23 @@ import (
 	"strconv"
 )
 
+type RuntimeError struct {
+	token  Token
+	errMsg string
+}
+
+func (e RuntimeError) Error() string {
+	return fmt.Sprintf(
+		"[line: %d] %s",
+		e.token.line,
+		e.errMsg,
+	)
+}
+
+func NewRuntimeError(token Token, msg string) error {
+	return RuntimeError{token: token, errMsg: msg}
+}
+
 type Parser struct {
 	tokens  []Token
 	errors  []error
@@ -77,7 +94,7 @@ func (s *Parser) statement() (Stmt, error) {
 }
 
 func (s *Parser) forStatement() (Stmt, error) {
-	_, err := s.consume(LEFT_PAREN, fmt.Errorf("Expect '(' after 'for'."))
+	_, err := s.consume(LEFT_PAREN, "Expect '(' after 'for'.")
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +126,7 @@ func (s *Parser) forStatement() (Stmt, error) {
 		}
 	}
 
-	_, err = s.consume(SEMICOLON, fmt.Errorf("Expect ';' after condition."))
+	_, err = s.consume(SEMICOLON, "Expect ';' after condition.")
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +141,7 @@ func (s *Parser) forStatement() (Stmt, error) {
 		}
 	}
 
-	_, err = s.consume(RIGHT_PAREN, fmt.Errorf("Expect ')' after clauses."))
+	_, err = s.consume(RIGHT_PAREN, "Expect ')' after clauses.")
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +187,7 @@ func (s *Parser) forStatement() (Stmt, error) {
 }
 
 func (s *Parser) whileStatement() (Stmt, error) {
-	_, err := s.consume(LEFT_PAREN, fmt.Errorf("Expect '(' after 'while'."))
+	_, err := s.consume(LEFT_PAREN, "Expect '(' after 'while'.")
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +197,7 @@ func (s *Parser) whileStatement() (Stmt, error) {
 		return nil, err
 	}
 
-	_, err = s.consume(RIGHT_PAREN, fmt.Errorf("Expect ')' after condition."))
+	_, err = s.consume(RIGHT_PAREN, "Expect ')' after condition.")
 	if err != nil {
 		return nil, err
 	}
@@ -255,7 +272,7 @@ func (s *Parser) block() ([]Stmt, error) {
 		stmts = append(stmts, stmt)
 	}
 
-	_, err := s.consume(RIGHT_BRACE, fmt.Errorf("Expect '}' after block."))
+	_, err := s.consume(RIGHT_BRACE, "Expect '}' after block.")
 	if err != nil {
 		return nil, err
 	}
@@ -264,7 +281,7 @@ func (s *Parser) block() ([]Stmt, error) {
 }
 
 func (s *Parser) ifStatement() (Stmt, error) {
-	_, err := s.consume(LEFT_PAREN, fmt.Errorf("Expect '(' after 'if'."))
+	_, err := s.consume(LEFT_PAREN, "Expect '(' after 'if'.")
 	if err != nil {
 		return nil, err
 	}
@@ -274,7 +291,7 @@ func (s *Parser) ifStatement() (Stmt, error) {
 		return nil, err
 	}
 
-	_, err = s.consume(RIGHT_PAREN, fmt.Errorf("Expect ')' after condition."))
+	_, err = s.consume(RIGHT_PAREN, "Expect ')' after condition.")
 	if err != nil {
 		return nil, err
 	}
@@ -307,7 +324,7 @@ func (s *Parser) expressionStatement() (Stmt, error) {
 		return nil, err
 	}
 
-	_, err = s.consume(SEMICOLON, fmt.Errorf("Expect ';' after expression."))
+	_, err = s.consume(SEMICOLON, "Expect ';' after expression.")
 	if err != nil {
 		return nil, err
 	}
@@ -330,12 +347,12 @@ func (s *Parser) declaration() (Stmt, error) {
 }
 
 func (s *Parser) function(kind string) (Stmt, error) {
-	name, err := s.consume(IDENTIFIER, fmt.Errorf("Expect %s name.", kind))
+	name, err := s.consume(IDENTIFIER, fmt.Sprintf("Expect %s name.", kind))
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = s.consume(LEFT_PAREN, fmt.Errorf("Expect '(' after %s name.", kind))
+	_, err = s.consume(LEFT_PAREN, fmt.Sprintf("Expect '(' after %s name.", kind))
 	if err != nil {
 		return nil, err
 	}
@@ -345,10 +362,10 @@ func (s *Parser) function(kind string) (Stmt, error) {
 	if !s.check(RIGHT_PAREN) {
 		for true {
 			if len(parameters) >= 255 {
-				return nil, fmt.Errorf("[line %d] Cannot have more than 255 parameters.", s.peek().line)
+				return nil, NewRuntimeError(s.peek(), "Cannot have more than 255 parameters.")
 			}
 
-			param, err := s.consume(IDENTIFIER, fmt.Errorf("Expect parameter name."))
+			param, err := s.consume(IDENTIFIER, "Expect parameter name.")
 			if err != nil {
 				return nil, err
 			}
@@ -361,7 +378,7 @@ func (s *Parser) function(kind string) (Stmt, error) {
 		}
 	}
 
-	_, err = s.consume(RIGHT_PAREN, fmt.Errorf(
+	_, err = s.consume(RIGHT_PAREN, fmt.Sprintf(
 		"Error at '%s': Expect ')' after parameters.",
 		s.peek().lexeme,
 	))
@@ -369,7 +386,7 @@ func (s *Parser) function(kind string) (Stmt, error) {
 		return nil, err
 	}
 
-	_, err = s.consume(LEFT_BRACE, fmt.Errorf(
+	_, err = s.consume(LEFT_BRACE, fmt.Sprintf(
 		"Error at '%s': Expect '{' before function body.",
 		s.peek().lexeme,
 	))
@@ -390,7 +407,7 @@ func (s *Parser) function(kind string) (Stmt, error) {
 }
 
 func (s *Parser) varDeclaration() (Stmt, error) {
-	name, err := s.consume(IDENTIFIER, fmt.Errorf("Expect variable name."))
+	name, err := s.consume(IDENTIFIER, "Expect variable name.")
 	if err != nil {
 		return nil, err
 	}
@@ -405,7 +422,7 @@ func (s *Parser) varDeclaration() (Stmt, error) {
 		}
 	}
 
-	_, err = s.consume(SEMICOLON, fmt.Errorf("Expect ';' after variable declaration."))
+	_, err = s.consume(SEMICOLON, "Expect ';' after variable declaration.")
 	if err != nil {
 		return nil, err
 	}
@@ -430,7 +447,7 @@ func (s *Parser) returnStmt() (Stmt, error) {
 		}
 	}
 
-	_, err := s.consume(SEMICOLON, fmt.Errorf("Expect ';' after return value."))
+	_, err := s.consume(SEMICOLON, "Expect ';' after return value.")
 	if err != nil {
 		return nil, err
 	}
@@ -448,7 +465,7 @@ func (s *Parser) printStmt() (Stmt, error) {
 		return nil, err
 	}
 
-	_, err = s.consume(SEMICOLON, fmt.Errorf(
+	_, err = s.consume(SEMICOLON, fmt.Sprintf(
 		"Error at '%s': Expect ';' after value.",
 		s.peek().lexeme,
 	))
@@ -488,7 +505,7 @@ func (s *Parser) assignment() (Expr, error) {
 			}, nil
 		}
 
-		return nil, fmt.Errorf("Invalid assignment target.")
+		return nil, NewRuntimeError(s.peek(), "Invalid assignment target.")
 	}
 
 	return expr, nil
@@ -600,7 +617,7 @@ func (s *Parser) finishCall(expr Expr) (Expr, error) {
 		}
 	}
 
-	_, err := s.consume(RIGHT_PAREN, fmt.Errorf("Expect ')' after arguments."))
+	_, err := s.consume(RIGHT_PAREN, "Expect ')' after arguments.")
 	if err != nil {
 		return nil, err
 	}
@@ -716,7 +733,7 @@ func (s *Parser) primary() (Expr, error) {
 			return nil, err
 		}
 
-		_, err = s.consume(RIGHT_PAREN, fmt.Errorf(
+		_, err = s.consume(RIGHT_PAREN, fmt.Sprintf(
 			"Error at '%s': Expect ')' after expression.",
 			s.peek().lexeme,
 		))
@@ -731,11 +748,7 @@ func (s *Parser) primary() (Expr, error) {
 
 	current := s.peek()
 
-	return nil, fmt.Errorf(
-		"[line: %d] Error at '%s': Expect expression.",
-		current.line,
-		current.lexeme,
-	)
+	return nil, NewRuntimeError(current, "Expect expression.")
 }
 
 func (s *Parser) match(tokenTypes ...TokenType) bool {
@@ -771,16 +784,12 @@ func (s *Parser) advance() Token {
 	return s.previous()
 }
 
-func (s *Parser) consume(tokenType TokenType, err error) (Token, error) {
+func (s *Parser) consume(tokenType TokenType, errMsg string) (Token, error) {
 	if s.check(tokenType) {
 		return s.advance(), nil
 	}
 
-	return Token{}, fmt.Errorf(
-		"[line: %d] %s",
-		s.peek().line,
-		err.Error(),
-	)
+	return Token{}, NewRuntimeError(s.peek(), errMsg)
 }
 
 func (s *Parser) peek() Token {
