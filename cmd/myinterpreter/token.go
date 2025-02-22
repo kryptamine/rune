@@ -44,6 +44,8 @@ const (
 	SEMICOLON
 	LEFT_PAREN
 	RIGHT_PAREN
+	LEFT_BRACKET
+	RIGHT_BRACKET
 	LEFT_BRACE
 	RIGHT_BRACE
 	COMMA
@@ -151,6 +153,10 @@ func (tokenType TokenType) String() string {
 		return "LEFT_PAREN"
 	case RIGHT_PAREN:
 		return "RIGHT_PAREN"
+	case LEFT_BRACKET:
+		return "LEFT_BRACKET"
+	case RIGHT_BRACKET:
+		return "RIGHT_BRACKET"
 	case LEFT_BRACE:
 		return "LEFT_BRACE"
 	case RIGHT_BRACE:

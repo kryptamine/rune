@@ -44,3 +44,7 @@ func (p *PrintVisitor) visitGroupingExpr(node *GroupingExpr) (any, error) {
 func (p *PrintVisitor) visitUnaryExpr(node *UnaryExpr) (any, error) {
 	return p.printNode(node)
 }
+
+func (p *PrintVisitor) visitArrayExpr(node *ArrayExpr) (any, error) {
+	return p.printNode(node)
+}

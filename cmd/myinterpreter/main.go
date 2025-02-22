@@ -84,7 +84,7 @@ func main() {
 			os.Exit(65)
 		}
 
-		err = Evaluate(stmts)
+		err = EvaluateStmts(stmts)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			os.Exit(70)

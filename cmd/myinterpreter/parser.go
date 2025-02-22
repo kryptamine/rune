@@ -662,6 +662,32 @@ func (s *Parser) factor() (Expr, error) {
 }
 
 func (s *Parser) primary() (Expr, error) {
+	if s.match(LEFT_BRACKET) {
+		var items []Expr
+
+		// Parse array elements until closing bracket
+		if !s.check(RIGHT_BRACKET) {
+			for {
+				elem, err := s.expression()
+				if err != nil {
+					return nil, err
+				}
+				items = append(items, elem)
+
+				if !s.match(COMMA) {
+					break
+				}
+			}
+		}
+
+		_, err := s.consume(RIGHT_BRACKET, "Expect ']' after array elements.")
+		if err != nil {
+			return nil, err
+		}
+
+		return &ArrayExpr{items: items}, nil
+	}
+
 	if s.match(TRUE) {
 		return &LiteralExpr{
 			value:     true,

@@ -8,19 +8,11 @@ type Interpreter struct {
 	environment *Environment
 }
 
-type Return struct {
-	value any
-}
-
-func (e *Return) Error() string {
-	return "<fn return>"
-}
-
 func EvaluateExpr(expr Expr) (any, error) {
 	return expr.accept(&Interpreter{})
 }
 
-func Evaluate(stmts []Stmt) error {
+func EvaluateStmts(stmts []Stmt) error {
 	globals := NewEnvironment(nil)
 
 	globals.define("clock", &ClockCallable{})
@@ -335,6 +327,10 @@ func (p *Interpreter) visitUnaryExpr(node *UnaryExpr) (any, error) {
 	}
 
 	return nil, nil
+}
+
+func (p *Interpreter) visitArrayExpr(node *ArrayExpr) (any, error) {
+	return node.items, nil
 }
 
 func (p *Interpreter) checkNumberOperands(left any, right any) error {

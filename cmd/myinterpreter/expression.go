@@ -11,6 +11,7 @@ type ExprVisitor interface {
 	visitAssignExpr(assignExpr *AssignExpr) (any, error)
 	visitLogicalExpr(logicalExpr *LogicalExpr) (any, error)
 	visitCallExpr(callExpr *CallExpr) (any, error)
+	visitArrayExpr(arrayExpr *ArrayExpr) (any, error)
 }
 
 type Expr interface {
@@ -59,6 +60,15 @@ type CallExpr struct {
 	token  Token
 	callee Expr
 	args   []Expr
+}
+
+type ArrayExpr struct {
+	token Token
+	items []Expr
+}
+
+func (n *ArrayExpr) accept(v ExprVisitor) (any, error) {
+	return v.visitArrayExpr(n)
 }
 
 func (n *BinaryExpr) accept(v ExprVisitor) (any, error) {

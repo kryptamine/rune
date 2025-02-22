@@ -5,6 +5,15 @@ import (
 	"time"
 )
 
+// Return is a special type of error that is returned by a function
+type Return struct {
+	value any
+}
+
+func (e *Return) Error() string {
+	return "<fn return>"
+}
+
 type Callable interface {
 	Call(interpreter *Interpreter, args []any) (any, error)
 	Arity() int

@@ -70,6 +70,12 @@ func (s *Scanner) scanToken() {
 	case ')':
 		s.addToken(RIGHT_PAREN)
 		break
+	case '[':
+		s.addToken(LEFT_BRACKET)
+		break
+	case ']':
+		s.addToken(RIGHT_BRACKET)
+		break
 	case '{':
 		s.addToken(LEFT_BRACE)
 		break
