@@ -137,9 +137,9 @@ func (s *Scanner) scanToken() {
 		s.line++
 		break
 	default:
-		if s.isAlpha(char) {
+		if isAlpha(char) {
 			s.identifier()
-		} else if s.isDigit(char) {
+		} else if isDigit(char) {
 			s.number()
 		} else {
 			s.errors = append(s.errors, fmt.Errorf("[line %d] Error: Unexpected character: %c", s.line, char))
@@ -201,15 +201,15 @@ func (s *Scanner) string() error {
 }
 
 func (s *Scanner) number() {
-	for s.isDigit(s.peek()) {
+	for isDigit(s.peek()) {
 		s.advance()
 	}
 	// Look for a fractional part.
-	if s.peek() == '.' && s.isDigit(s.peekNext()) {
+	if s.peek() == '.' && isDigit(s.peekNext()) {
 		// Consume the "."
 		s.advance()
 
-		for s.isDigit(s.peek()) {
+		for isDigit(s.peek()) {
 			s.advance()
 		}
 	}
@@ -241,17 +241,7 @@ func (s *Scanner) identifier() {
 }
 
 func (s *Scanner) isAlphaNumeric(c rune) bool {
-	return s.isAlpha(c) || s.isDigit(c)
-}
-
-func (s *Scanner) isAlpha(c rune) bool {
-	return (c >= 'a' && c <= 'z') ||
-		(c >= 'A' && c <= 'Z') ||
-		c == '_'
-}
-
-func (s *Scanner) isDigit(c rune) bool {
-	return c >= '0' && c <= '9'
+	return isAlpha(c) || isDigit(c)
 }
 
 func (s *Scanner) peek() rune {

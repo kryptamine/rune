@@ -52,3 +52,13 @@ func isFloat(val any) bool {
 	_, ok := val.(float64)
 	return ok
 }
+
+func isDigit(c rune) bool {
+	return c >= '0' && c <= '9'
+}
+
+func isAlpha(c rune) bool {
+	return (c >= 'a' && c <= 'z') ||
+		(c >= 'A' && c <= 'Z') ||
+		c == '_'
+}
