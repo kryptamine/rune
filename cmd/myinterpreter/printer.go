@@ -4,8 +4,8 @@ import "fmt"
 
 type PrintVisitor struct{}
 
-func PrintExpr(expr Expr) (any, error) {
-	return expr.accept(&Interpreter{})
+func PrintExpr(expr Expr) {
+	expr.accept(&PrintVisitor{})
 }
 
 func (p *PrintVisitor) printNode(node Expr) (any, error) {

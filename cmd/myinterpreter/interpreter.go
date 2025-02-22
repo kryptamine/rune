@@ -16,7 +16,11 @@ func (e *Return) Error() string {
 	return "<fn return>"
 }
 
-func Interpret(stmts []Stmt) error {
+func EvaluateExpr(expr Expr) (any, error) {
+	return expr.accept(&Interpreter{})
+}
+
+func Evaluate(stmts []Stmt) error {
 	globals := NewEnvironment(nil)
 
 	globals.define("clock", &ClockCallable{})

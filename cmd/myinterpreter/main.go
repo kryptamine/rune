@@ -42,28 +42,28 @@ func main() {
 			return
 		}
 
-		expr, err := Evaluate(tokens)
+		expr, err := ParseExpr(tokens)
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			os.Exit(65)
 		}
 
-		expr.accept(&PrintVisitor{})
+		PrintExpr(expr)
 		break
 	case "evaluate":
 		if len(errors) > 0 {
 			os.Exit(65)
 		}
 
-		expr, err := Evaluate(tokens)
+		expr, err := ParseExpr(tokens)
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			os.Exit(65)
 		}
 
-		result, err := PrintExpr(expr)
+		result, err := EvaluateExpr(expr)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			os.Exit(70)
@@ -77,14 +77,14 @@ func main() {
 		break
 
 	case "run":
-		stmts, err := Parse(tokens)
+		stmts, err := ParseStmts(tokens)
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			os.Exit(65)
 		}
 
-		err = Interpret(stmts)
+		err = Evaluate(stmts)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			os.Exit(70)

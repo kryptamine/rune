@@ -11,7 +11,7 @@ type Parser struct {
 	current int
 }
 
-func Evaluate(tokens []Token) (Expr, error) {
+func ParseExpr(tokens []Token) (Expr, error) {
 	parser := Parser{
 		tokens:  tokens,
 		current: 0,
@@ -20,7 +20,7 @@ func Evaluate(tokens []Token) (Expr, error) {
 	return parser.expression()
 }
 
-func Parse(tokens []Token) ([]Stmt, error) {
+func ParseStmts(tokens []Token) ([]Stmt, error) {
 	var stmts []Stmt
 
 	parser := Parser{
