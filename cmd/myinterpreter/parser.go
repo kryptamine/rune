@@ -465,14 +465,6 @@ func (s *Parser) expression() (Expr, error) {
 	return s.assignment()
 }
 
-func (s *Parser) printTokens() {
-	fmt.Println(fmt.Sprintf("current: %d", s.current))
-
-	for i := s.current; i < len(s.tokens); i++ {
-		fmt.Println(s.tokens[i])
-	}
-}
-
 func (s *Parser) assignment() (Expr, error) {
 	expr, err := s.or()
 
