@@ -15,9 +15,9 @@ func EvaluateExpr(expr Expr) (any, error) {
 func EvaluateStmts(stmts []Stmt) error {
 	globals := NewEnvironment(nil)
 
-	globals.define("clock", &ClockCallable{})
-	globals.define("len", &LenCallable{})
-	globals.define("append", &AppendCallable{})
+	globals.RegisterGlobalCallable("clock", NewClockCallable())
+	globals.RegisterGlobalCallable("len", NewLenCallable())
+	globals.RegisterGlobalCallable("append", NewAppendCallable())
 
 	p := &Interpreter{
 		environment: globals,
@@ -162,7 +162,7 @@ func (p *Interpreter) visitCallExpr(callExpr *CallExpr) (any, error) {
 }
 
 func (p *Interpreter) visitFunctionStmt(functionStmt *FunctionStmt) error {
-	function := &Function{
+	function := &FunctionCallable{
 		declaration: functionStmt,
 		environment: p.environment,
 	}

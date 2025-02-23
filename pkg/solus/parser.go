@@ -60,9 +60,7 @@ func (s *Parser) statement() (Stmt, error) {
 			return nil, err
 		}
 
-		return &BlockStmt{
-			stmts: block,
-		}, nil
+		return NewBlockStmt(block), nil
 	}
 
 	if s.match(FOR) {
@@ -135,14 +133,7 @@ func (s *Parser) forStatement() (Stmt, error) {
 	}
 
 	if increment != nil {
-		body = &BlockStmt{
-			stmts: []Stmt{
-				body,
-				&ExprStmt{
-					expr: increment,
-				},
-			},
-		}
+		body = NewBlockStmt([]Stmt{body, &ExprStmt{expr: increment}})
 	}
 
 	if condition == nil {
@@ -158,12 +149,7 @@ func (s *Parser) forStatement() (Stmt, error) {
 	}
 
 	if initializer != nil {
-		body = &BlockStmt{
-			stmts: []Stmt{
-				initializer,
-				body,
-			},
-		}
+		body = NewBlockStmt([]Stmt{initializer, body})
 	}
 
 	return body, nil
@@ -209,11 +195,7 @@ func (s *Parser) or() (Expr, error) {
 			return nil, err
 		}
 
-		expr = &LogicalExpr{
-			left:  expr,
-			right: right,
-			op:    operator,
-		}
+		expr = NewLogicalExpr(expr, right, operator)
 	}
 
 	return expr, nil
@@ -232,11 +214,7 @@ func (s *Parser) and() (Expr, error) {
 			return nil, err
 		}
 
-		expr = &LogicalExpr{
-			left:  expr,
-			right: right,
-			op:    operator,
-		}
+		expr = NewLogicalExpr(expr, right, operator)
 	}
 
 	return expr, nil
@@ -294,11 +272,7 @@ func (s *Parser) ifStatement() (Stmt, error) {
 		}
 	}
 
-	return &IfStmt{
-		condition: condition,
-		then:      then,
-		el:        el,
-	}, nil
+	return NewIfStmt(condition, then, el), nil
 }
 
 func (s *Parser) expressionStatement() (Stmt, error) {
@@ -312,9 +286,7 @@ func (s *Parser) expressionStatement() (Stmt, error) {
 		return nil, err
 	}
 
-	return &ExprStmt{
-		expr: expr,
-	}, nil
+	return NewExprStmt(expr), nil
 }
 
 func (s *Parser) declaration() (Stmt, error) {

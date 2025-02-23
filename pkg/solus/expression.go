@@ -53,6 +53,10 @@ type LogicalExpr struct {
 	op    Token
 }
 
+func NewLogicalExpr(left Expr, right Expr, op Token) Expr {
+	return &LogicalExpr{left: left, right: right, op: op}
+}
+
 type GroupingExpr struct {
 	expr Expr
 }

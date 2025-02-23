@@ -1,7 +1,8 @@
-var a = [1, 2, 3];
+var a = [1, 2, 3, "vika"];
 
-a = append(a, [1,2,3]);
+a = append(a, "sasha");
+a = append(a, "vika + sasha");
 
-print(a);
-
-
+for (var i = 0; i < len(a); i = i + 1) {
+    print(a[i]);
+}

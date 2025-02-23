@@ -14,6 +14,14 @@ func NewEnvironment(enclosing *Environment) *Environment {
 	}
 }
 
+func (e *Environment) RegisterGlobalCallable(name string, value Callable) {
+	e.define(name, value)
+}
+
+func (e *Environment) String() string {
+	return fmt.Sprintf("<env %v>", e.values)
+}
+
 func (e *Environment) define(name string, value any) {
 	e.values[name] = value
 }

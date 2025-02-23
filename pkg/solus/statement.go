@@ -29,14 +29,26 @@ type ExprStmt struct {
 	expr Expr
 }
 
+func NewExprStmt(expr Expr) Stmt {
+	return &ExprStmt{expr: expr}
+}
+
 type BlockStmt struct {
 	stmts []Stmt
+}
+
+func NewBlockStmt(stmts []Stmt) Stmt {
+	return &BlockStmt{stmts: stmts}
 }
 
 type IfStmt struct {
 	condition Expr
 	then      Stmt
 	el        Stmt
+}
+
+func NewIfStmt(condition Expr, then Stmt, el Stmt) Stmt {
+	return &IfStmt{condition: condition, then: then, el: el}
 }
 
 type WhileStmt struct {
