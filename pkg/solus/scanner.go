@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/codecrafters-io/interpreter-starter-go/pkg/ast"
+	"github.com/codecrafters-io/interpreter-starter-go/pkg/helpers"
 	"strconv"
 )
 
@@ -90,16 +91,16 @@ func (s *Scanner) scanToken() {
 		break
 		// Operators
 	case '=':
-		s.addToken(If(s.match('='), ast.EQUAL_EQUAL, ast.EQUAL))
+		s.addToken(helpers.If(s.match('='), ast.EQUAL_EQUAL, ast.EQUAL))
 		break
 	case '!':
-		s.addToken(If(s.match('='), ast.BANG_EQUAL, ast.BANG))
+		s.addToken(helpers.If(s.match('='), ast.BANG_EQUAL, ast.BANG))
 		break
 	case '<':
-		s.addToken(If(s.match('='), ast.LESS_EQUAL, ast.LESS))
+		s.addToken(helpers.If(s.match('='), ast.LESS_EQUAL, ast.LESS))
 		break
 	case '>':
-		s.addToken(If(s.match('='), ast.GREATER_EQUAL, ast.GREATER))
+		s.addToken(helpers.If(s.match('='), ast.GREATER_EQUAL, ast.GREATER))
 		break
 	case '/':
 		if s.match('/') {
@@ -125,9 +126,9 @@ func (s *Scanner) scanToken() {
 		s.line++
 		break
 	default:
-		if isAlpha(char) {
+		if helpers.IsAlpha(char) {
 			s.identifier()
-		} else if isDigit(char) {
+		} else if helpers.IsDigit(char) {
 			s.number()
 		} else {
 			s.errors = append(s.errors, fmt.Errorf("[line %d] Error: Unexpected character: %c", s.line, char))
@@ -180,15 +181,15 @@ func (s *Scanner) string() error {
 }
 
 func (s *Scanner) number() {
-	for isDigit(s.peek()) {
+	for helpers.IsDigit(s.peek()) {
 		s.advance()
 	}
 	// Look for a fractional part.
-	if s.peek() == '.' && isDigit(s.peekNext()) {
+	if s.peek() == '.' && helpers.IsDigit(s.peekNext()) {
 		// Consume the "."
 		s.advance()
 
-		for isDigit(s.peek()) {
+		for helpers.IsDigit(s.peek()) {
 			s.advance()
 		}
 	}
@@ -220,7 +221,7 @@ func (s *Scanner) identifier() {
 }
 
 func (s *Scanner) isAlphaNumeric(c rune) bool {
-	return isAlpha(c) || isDigit(c)
+	return helpers.IsAlpha(c) || helpers.IsDigit(c)
 }
 
 func (s *Scanner) peek() rune {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/codecrafters-io/interpreter-starter-go/pkg/ast"
 	"github.com/codecrafters-io/interpreter-starter-go/pkg/errors"
+	"github.com/codecrafters-io/interpreter-starter-go/pkg/helpers"
 )
 
 type Interpreter struct {
@@ -84,11 +85,11 @@ func (p *Interpreter) VisitLogicalExpr(node *ast.LogicalExpr) (any, error) {
 	}
 
 	if node.Op.TokenType == ast.OR {
-		if isTruthy(left) {
+		if helpers.IsTruthy(left) {
 			return left, nil
 		}
 	} else {
-		if !isTruthy(left) {
+		if !helpers.IsTruthy(left) {
 			return left, nil
 		}
 	}
@@ -102,7 +103,7 @@ func (p *Interpreter) VisitWhileStmt(whileStmt *ast.WhileStmt) error {
 		return err
 	}
 
-	for isTruthy(val) {
+	for helpers.IsTruthy(val) {
 		err := whileStmt.Body.Accept(p)
 		if err != nil {
 			return err
@@ -183,7 +184,7 @@ func (p *Interpreter) VisitIfStmt(ifStmt *ast.IfStmt) error {
 		return err
 	}
 
-	if isTruthy(condition) {
+	if helpers.IsTruthy(condition) {
 		return ifStmt.Then.Accept(p)
 	} else if ifStmt.El != nil {
 		return ifStmt.El.Accept(p)
@@ -239,15 +240,15 @@ func (p *Interpreter) VisitBinaryExpr(node *ast.BinaryExpr) (any, error) {
 
 	switch node.Operator.TokenType {
 	case ast.EQUAL_EQUAL:
-		return isEqual(left, right), nil
+		return helpers.IsEqual(left, right), nil
 	case ast.BANG_EQUAL:
-		return !isEqual(left, right), nil
+		return !helpers.IsEqual(left, right), nil
 	case ast.PLUS:
-		if isString(left) && isString(right) {
+		if helpers.IsString(left) && helpers.IsString(right) {
 			return left.(string) + right.(string), nil
 		}
 
-		if isFloat(left) && isFloat(right) {
+		if helpers.IsFloat(left) && helpers.IsFloat(right) {
 			return left.(float64) + right.(float64), nil
 		}
 
@@ -256,37 +257,37 @@ func (p *Interpreter) VisitBinaryExpr(node *ast.BinaryExpr) (any, error) {
 		if err := p.checkNumberOperands(left, right); err != nil {
 			return nil, errors.NewRuntimeError(node.Operator, err.Error())
 		}
-		return toFloat(left) - toFloat(right), nil
+		return helpers.ToFloat(left) - helpers.ToFloat(right), nil
 	case ast.SLASH:
 		if err := p.checkNumberOperands(left, right); err != nil {
 			return nil, errors.NewRuntimeError(node.Operator, err.Error())
 		}
-		return toFloat(left) / toFloat(right), nil
+		return helpers.ToFloat(left) / helpers.ToFloat(right), nil
 	case ast.STAR:
 		if err := p.checkNumberOperands(left, right); err != nil {
 			return nil, errors.NewRuntimeError(node.Operator, err.Error())
 		}
-		return toFloat(left) * toFloat(right), nil
+		return helpers.ToFloat(left) * helpers.ToFloat(right), nil
 	case ast.LESS:
 		if err := p.checkNumberOperands(left, right); err != nil {
 			return nil, errors.NewRuntimeError(node.Operator, err.Error())
 		}
-		return toFloat(left) < toFloat(right), nil
+		return helpers.ToFloat(left) < helpers.ToFloat(right), nil
 	case ast.LESS_EQUAL:
 		if err := p.checkNumberOperands(left, right); err != nil {
 			return nil, errors.NewRuntimeError(node.Operator, err.Error())
 		}
-		return toFloat(left) <= toFloat(right), nil
+		return helpers.ToFloat(left) <= helpers.ToFloat(right), nil
 	case ast.GREATER:
 		if err := p.checkNumberOperands(left, right); err != nil {
 			return nil, errors.NewRuntimeError(node.Operator, err.Error())
 		}
-		return toFloat(left) > toFloat(right), nil
+		return helpers.ToFloat(left) > helpers.ToFloat(right), nil
 	case ast.GREATER_EQUAL:
 		if err := p.checkNumberOperands(left, right); err != nil {
 			return nil, errors.NewRuntimeError(node.Operator, err.Error())
 		}
-		return toFloat(left) >= toFloat(right), nil
+		return helpers.ToFloat(left) >= helpers.ToFloat(right), nil
 	}
 
 	return nil, nil
@@ -309,13 +310,13 @@ func (p *Interpreter) VisitUnaryExpr(node *ast.UnaryExpr) (any, error) {
 
 	switch node.Operator.TokenType {
 	case ast.BANG:
-		return !isTruthy(right), nil
+		return !helpers.IsTruthy(right), nil
 	case ast.MINUS:
-		if !isFloat(right) {
+		if !helpers.IsFloat(right) {
 			return nil, errors.NewRuntimeError(node.Operator, "Operand must be a number.")
 		}
 
-		return -1 * toFloat(right), nil
+		return -1 * helpers.ToFloat(right), nil
 	}
 
 	return nil, nil
@@ -352,7 +353,7 @@ func (p *Interpreter) VisitIndexExpr(node *ast.IndexExpr) (any, error) {
 	}
 
 	idx, ok := indexVal.(float64)
-	if !isFloat(indexVal) || int(idx) < 0 || int(idx) >= len(arr) {
+	if !helpers.IsFloat(indexVal) || int(idx) < 0 || int(idx) >= len(arr) {
 		return nil, errors.NewRuntimeError(node.Token, fmt.Sprintf("Index out of bounds: %v of %v", idx, len(arr)))
 	}
 
@@ -360,7 +361,7 @@ func (p *Interpreter) VisitIndexExpr(node *ast.IndexExpr) (any, error) {
 }
 
 func (p *Interpreter) checkNumberOperands(left any, right any) error {
-	if isFloat(left) && isFloat(right) {
+	if helpers.IsFloat(left) && helpers.IsFloat(right) {
 		return nil
 	}
 

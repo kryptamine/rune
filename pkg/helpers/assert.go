@@ -1,8 +1,6 @@
-package solus
+package helpers
 
-import "strconv"
-
-func isTruthy(val any) bool {
+func IsTruthy(val any) bool {
 	if val == nil {
 		return false
 	}
@@ -19,19 +17,7 @@ func isTruthy(val any) bool {
 	}
 }
 
-func toFloat(val any) float64 {
-	switch i2 := val.(type) {
-	case float64:
-		return i2
-	case string:
-		val, _ := strconv.ParseFloat(i2, 64)
-		return val
-	default:
-		return 0.0
-	}
-}
-
-func isEqual(left any, right any) bool {
+func IsEqual(left any, right any) bool {
 	if left == nil && right == nil {
 		return true
 	}
@@ -43,21 +29,21 @@ func isEqual(left any, right any) bool {
 	return left == right
 }
 
-func isString(val any) bool {
+func IsString(val any) bool {
 	_, ok := val.(string)
 	return ok
 }
 
-func isFloat(val any) bool {
+func IsFloat(val any) bool {
 	_, ok := val.(float64)
 	return ok
 }
 
-func isDigit(c rune) bool {
+func IsDigit(c rune) bool {
 	return c >= '0' && c <= '9'
 }
 
-func isAlpha(c rune) bool {
+func IsAlpha(c rune) bool {
 	return (c >= 'a' && c <= 'z') ||
 		(c >= 'A' && c <= 'Z') ||
 		c == '_'
