@@ -103,6 +103,10 @@ type AppendCallable struct {
 }
 
 func (c *AppendCallable) Call(interpreter *Interpreter, args []any, token Token) (any, error) {
+	if len(args) < 2 {
+		return nil, NewRuntimeError(token, "Can't append to nothing, pass an array to append to. Example: append([1, 2, 3], 4)")
+	}
+
 	switch v := args[0].(type) {
 	case []any:
 		v = append(v, args[1:]...)

@@ -1,7 +1,8 @@
-package solus
+package main
 
 import (
 	"fmt"
+	"github.com/codecrafters-io/interpreter-starter-go/pkg/solus"
 	"os"
 )
 
@@ -20,7 +21,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	tokens, errors := Scan(fileContents)
+	tokens, errors := solus.Scan(fileContents)
 
 	switch command {
 	case "tokenize":
@@ -42,28 +43,28 @@ func main() {
 			return
 		}
 
-		expr, err := ParseExpr(tokens)
+		expr, err := solus.ParseExpr(tokens)
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			os.Exit(65)
 		}
 
-		PrintExpr(expr)
+		solus.PrintExpr(expr)
 		break
 	case "evaluate":
 		if len(errors) > 0 {
 			os.Exit(65)
 		}
 
-		expr, err := ParseExpr(tokens)
+		expr, err := solus.ParseExpr(tokens)
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			os.Exit(65)
 		}
 
-		result, err := EvaluateExpr(expr)
+		result, err := solus.EvaluateExpr(expr)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			os.Exit(70)
@@ -77,14 +78,14 @@ func main() {
 		break
 
 	case "run":
-		stmts, err := ParseStmts(tokens)
+		stmts, err := solus.ParseStmts(tokens)
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			os.Exit(65)
 		}
 
-		err = EvaluateStmts(stmts)
+		err = solus.EvaluateStmts(stmts)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			os.Exit(70)
