@@ -1,10 +1,3 @@
-var res = {
-  a: [1, 10, 5, 3, 1],
-  val: true,
-  b: {
-    c: 10,
-  }
-};
-
-print(res["val"]);
-
+for (var i = 0; {}; i = i + 1) {
+  print(i);
+}
