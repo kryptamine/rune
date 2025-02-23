@@ -1,4 +1,4 @@
-package main
+package solus
 
 type StmtVisitor interface {
 	visitPrintStmt(printStmt *PrintStmt) error

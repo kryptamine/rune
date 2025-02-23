@@ -1,4 +1,4 @@
-package main
+package solus
 
 import (
 	"fmt"
@@ -344,7 +344,7 @@ func (s *Parser) function(kind string) (Stmt, error) {
 
 	if !s.check(RIGHT_PAREN) {
 		for true {
-			if len(parameters) >= 255 {
+			if len(parameters) >= MaxArity {
 				return nil, NewRuntimeError(s.peek(), "Cannot have more than 255 parameters.")
 			}
 

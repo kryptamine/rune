@@ -1,4 +1,4 @@
-package main
+package solus
 
 import (
 	"fmt"
@@ -148,14 +148,14 @@ func (p *Interpreter) visitCallExpr(callExpr *CallExpr) (any, error) {
 	}
 
 	if callable, ok := callee.(Callable); ok {
-		if len(args) != callable.Arity() {
+		if callable.Arity() != -1 && len(args) != callable.Arity() {
 			return nil, NewRuntimeError(
 				callExpr.token,
 				fmt.Sprintf("Expected %d arguments but got %d.", callable.Arity(), len(args)),
 			)
 		}
 
-		return callable.Call(p, args)
+		return callable.Call(p, args, callExpr.token)
 	}
 
 	return nil, NewRuntimeError(callExpr.token, "Can only call functions and classes.")
