@@ -148,7 +148,7 @@ func (p *Interpreter) visitCallExpr(callExpr *CallExpr) (any, error) {
 	}
 
 	if callable, ok := callee.(Callable); ok {
-		if len(args) > callable.Arity() {
+		if len(args) != callable.Arity() {
 			return nil, NewRuntimeError(
 				callExpr.token,
 				fmt.Sprintf("Expected %d arguments but got %d.", callable.Arity(), len(args)),
