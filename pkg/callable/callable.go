@@ -1,0 +1,28 @@
+package callable
+
+import (
+	"github.com/codecrafters-io/interpreter-starter-go/pkg/ast"
+	"github.com/codecrafters-io/interpreter-starter-go/pkg/environment"
+)
+
+const MaxArity = 255
+
+// Return is a special type of error that is returned by a function
+type Return struct {
+	value any
+}
+
+func NewReturn(value any) *Return {
+	return &Return{value}
+}
+
+func (e *Return) Error() string {
+	return "<fn return>"
+}
+
+type ExecuteBlockFn func(statements []ast.Stmt, env *environment.Environment) error
+
+type Callable interface {
+	Call(executeBlock ExecuteBlockFn, args []any, token ast.Token) (any, error)
+	Arity() int
+}

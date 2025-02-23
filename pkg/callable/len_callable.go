@@ -1,4 +1,4 @@
-package solus
+package callable
 
 import (
 	"fmt"
@@ -13,7 +13,7 @@ func NewLenCallable() Callable {
 	return &LenCallable{}
 }
 
-func (c *LenCallable) Call(interpreter *Interpreter, args []any, token ast.Token) (any, error) {
+func (c *LenCallable) Call(_ ExecuteBlockFn, args []any, token ast.Token) (any, error) {
 	if len(args) == 0 {
 		return 0, fmt.Errorf("len() requires one argument")
 	}

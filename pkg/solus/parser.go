@@ -2,9 +2,11 @@ package solus
 
 import (
 	"fmt"
-	"github.com/codecrafters-io/interpreter-starter-go/pkg/ast"
-	"github.com/codecrafters-io/interpreter-starter-go/pkg/errors"
 	"strconv"
+
+	"github.com/codecrafters-io/interpreter-starter-go/pkg/ast"
+	"github.com/codecrafters-io/interpreter-starter-go/pkg/callable"
+	"github.com/codecrafters-io/interpreter-starter-go/pkg/errors"
 )
 
 type Parser struct {
@@ -309,7 +311,7 @@ func (s *Parser) function(kind string) (ast.Stmt, error) {
 
 	if !s.check(ast.RIGHT_PAREN) {
 		for true {
-			if len(parameters) >= MaxArity {
+			if len(parameters) >= callable.MaxArity {
 				return nil, errors.NewRuntimeError(s.peek(), "Cannot have more than 255 parameters.")
 			}
 

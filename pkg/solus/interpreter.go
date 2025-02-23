@@ -3,6 +3,7 @@ package solus
 import (
 	"fmt"
 	"github.com/codecrafters-io/interpreter-starter-go/pkg/ast"
+	"github.com/codecrafters-io/interpreter-starter-go/pkg/callable"
 	"github.com/codecrafters-io/interpreter-starter-go/pkg/environment"
 	"github.com/codecrafters-io/interpreter-starter-go/pkg/errors"
 	"github.com/codecrafters-io/interpreter-starter-go/pkg/helpers"
@@ -24,9 +25,9 @@ func EvaluateStmts(stmts []ast.Stmt) error {
 	}
 
 	// Global functions.
-	p.registerGlobalCallable("clock", NewClockCallable())
-	p.registerGlobalCallable("len", NewLenCallable())
-	p.registerGlobalCallable("append", NewAppendCallable())
+	p.registerGlobalCallable("clock", callable.NewClockCallable())
+	p.registerGlobalCallable("len", callable.NewLenCallable())
+	p.registerGlobalCallable("append", callable.NewAppendCallable())
 
 	for _, stmt := range stmts {
 		err := stmt.Accept(p)
@@ -38,13 +39,13 @@ func EvaluateStmts(stmts []ast.Stmt) error {
 	return nil
 }
 
-func (p *Interpreter) registerGlobalCallable(name string, value Callable) {
+func (p *Interpreter) registerGlobalCallable(name string, value callable.Callable) {
 	p.environment.Define(name, value)
 }
 
 func (p *Interpreter) VisitReturnStmt(returnStmt *ast.ReturnStmt) error {
 	if returnStmt.Value == nil {
-		return &Return{nil}
+		return callable.NewReturn(nil)
 	}
 
 	value, err := returnStmt.Value.Accept(p)
@@ -53,7 +54,7 @@ func (p *Interpreter) VisitReturnStmt(returnStmt *ast.ReturnStmt) error {
 		return err
 	}
 
-	return &Return{value}
+	return callable.NewReturn(value)
 }
 
 func (p *Interpreter) VisitExprStmt(exprStmt *ast.ExprStmt) error {
@@ -156,7 +157,7 @@ func (p *Interpreter) VisitCallExpr(callExpr *ast.CallExpr) (any, error) {
 		args = append(args, arg)
 	}
 
-	if callable, ok := callee.(Callable); ok {
+	if callable, ok := callee.(callable.Callable); ok {
 		if callable.Arity() != -1 && len(args) != callable.Arity() {
 			return nil, errors.NewRuntimeError(
 				callExpr.Token,
@@ -164,19 +165,16 @@ func (p *Interpreter) VisitCallExpr(callExpr *ast.CallExpr) (any, error) {
 			)
 		}
 
-		return callable.Call(p, args, callExpr.Token)
+		return callable.Call(p.executeBlock, args, callExpr.Token)
 	}
 
 	return nil, errors.NewRuntimeError(callExpr.Token, "Can only call functions and classes.")
 }
 
 func (p *Interpreter) VisitFunctionStmt(functionStmt *ast.FunctionStmt) error {
-	function := &FunctionCallable{
-		declaration: functionStmt,
-		environment: p.environment,
-	}
+	function := callable.NewFunctionCallable(functionStmt, p.environment)
 
-	if len(function.declaration.Name.Lexeme) == 0 {
+	if len(function.Declaration.Name.Lexeme) == 0 {
 		return errors.NewRuntimeError(functionStmt.Name, "Function name is required.")
 	}
 

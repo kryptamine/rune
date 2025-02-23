@@ -1,8 +1,16 @@
-var a = [1, 2, 3, "vika"];
 
-a = append(a, "sasha");
-a = append(a, "vika + sasha");
+fun makeCounter() {
+  var i = 0;
+  fun count() {
+    i = i + 2;
 
-for (var i = 0; i < len(a); i = i + 1) {
-    print(a[i]);
+    return i;
+  }
+  return count;
 }
+
+var counter = makeCounter();
+counter();
+counter();
+print(counter());
+

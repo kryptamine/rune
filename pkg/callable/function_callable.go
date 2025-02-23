@@ -1,4 +1,4 @@
-package solus
+package callable
 
 import (
 	"fmt"
@@ -8,14 +8,21 @@ import (
 
 // FunctionCallable is a callable that represents a function.
 type FunctionCallable struct {
-	declaration *ast.FunctionStmt
+	Declaration *ast.FunctionStmt
 	environment *environment.Environment
 }
 
-func (f *FunctionCallable) Call(interpreter *Interpreter, args []any, _ ast.Token) (any, error) {
+func NewFunctionCallable(declaration *ast.FunctionStmt, environment *environment.Environment) *FunctionCallable {
+	return &FunctionCallable{
+		Declaration: declaration,
+		environment: environment,
+	}
+}
+
+func (f *FunctionCallable) Call(executeBlock ExecuteBlockFn, args []any, _ ast.Token) (any, error) {
 	env := environment.NewEnvironment(f.environment)
 
-	for i, param := range f.declaration.Parameters {
+	for i, param := range f.Declaration.Parameters {
 		if len(args) <= i {
 			continue
 		}
@@ -23,7 +30,7 @@ func (f *FunctionCallable) Call(interpreter *Interpreter, args []any, _ ast.Toke
 		env.Define(param.Lexeme, args[i])
 	}
 
-	err := interpreter.executeBlock(f.declaration.Body, env)
+	err := executeBlock(f.Declaration.Body, env)
 
 	if ret, isReturn := err.(*Return); isReturn {
 		return ret.value, nil
@@ -33,9 +40,9 @@ func (f *FunctionCallable) Call(interpreter *Interpreter, args []any, _ ast.Toke
 }
 
 func (f *FunctionCallable) Arity() int {
-	return len(f.declaration.Parameters)
+	return len(f.Declaration.Parameters)
 }
 
 func (f *FunctionCallable) String() string {
-	return fmt.Sprintf("<fn %s>", f.declaration.Name.Lexeme)
+	return fmt.Sprintf("<fn %s>", f.Declaration.Name.Lexeme)
 }

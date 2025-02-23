@@ -1,4 +1,4 @@
-package solus
+package callable
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ func NewAppendCallable() Callable {
 	return &AppendCallable{}
 }
 
-func (c *AppendCallable) Call(interpreter *Interpreter, args []any, token ast.Token) (any, error) {
+func (c *AppendCallable) Call(_ ExecuteBlockFn, args []any, token ast.Token) (any, error) {
 	if len(args) < 2 {
 		return nil, errors.NewRuntimeError(token, "Can't append to nothing, pass an array to append to. Example: append([1, 2, 3], 4)")
 	}
