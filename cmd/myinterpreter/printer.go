@@ -48,3 +48,7 @@ func (p *PrintVisitor) visitUnaryExpr(node *UnaryExpr) (any, error) {
 func (p *PrintVisitor) visitArrayExpr(node *ArrayExpr) (any, error) {
 	return p.printNode(node)
 }
+
+func (p *PrintVisitor) visitIndexExpr(node *IndexExpr) (any, error) {
+	return p.printNode(node)
+}

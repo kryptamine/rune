@@ -16,6 +16,8 @@ func EvaluateStmts(stmts []Stmt) error {
 	globals := NewEnvironment(nil)
 
 	globals.define("clock", &ClockCallable{})
+	globals.define("len", &LenCallable{})
+	globals.define("append", &AppendCallable{})
 
 	p := &Interpreter{
 		environment: globals,
@@ -66,18 +68,6 @@ func (p *Interpreter) visitPrintStmt(exprStmt *PrintStmt) error {
 		fmt.Println("nil")
 		return nil
 	}
-
-	// if v, ok := val.(float64); ok {
-	// 	// Check if the float is an integer value
-	// 	if v == float64(int64(v)) {
-	// 		// Print with one decimal place (e.g., 10.0 instead of 10)
-	// 		fmt.Println(fmt.Sprintf("%.0f", v))
-	// 	} else {
-	// 		fmt.Println(fmt.Sprintf("%g", v))
-	// 	}
-	//
-	// 	return nil
-	// }
 
 	fmt.Println(val)
 
@@ -158,7 +148,7 @@ func (p *Interpreter) visitCallExpr(callExpr *CallExpr) (any, error) {
 	}
 
 	if callable, ok := callee.(Callable); ok {
-		if len(args) != callable.Arity() {
+		if len(args) > callable.Arity() {
 			return nil, NewRuntimeError(
 				callExpr.token,
 				fmt.Sprintf("Expected %d arguments but got %d.", callable.Arity(), len(args)),
@@ -330,7 +320,41 @@ func (p *Interpreter) visitUnaryExpr(node *UnaryExpr) (any, error) {
 }
 
 func (p *Interpreter) visitArrayExpr(node *ArrayExpr) (any, error) {
-	return node.items, nil
+	var result []any
+
+	for _, item := range node.items {
+		item, err := item.accept(p)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, item)
+	}
+
+	return result, nil
+}
+
+func (p *Interpreter) visitIndexExpr(node *IndexExpr) (any, error) {
+	arrayVal, err := node.array.accept(p)
+	if err != nil {
+		return nil, err
+	}
+
+	indexVal, err := node.index.accept(p)
+	if err != nil {
+		return nil, err
+	}
+
+	arr, ok := arrayVal.([]any)
+	if !ok {
+		return nil, NewRuntimeError(node.token, "Indexing is only supported on arrays.")
+	}
+
+	idx, ok := indexVal.(float64)
+	if !isFloat(indexVal) || int(idx) < 0 || int(idx) >= len(arr) {
+		return nil, NewRuntimeError(node.token, fmt.Sprintf("Index out of bounds: %v of %v", idx, len(arr)))
+	}
+
+	return arr[int(idx)], nil
 }
 
 func (p *Interpreter) checkNumberOperands(left any, right any) error {

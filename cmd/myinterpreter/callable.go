@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+const MaxArity = 255
+
 // Return is a special type of error that is returned by a function
 type Return struct {
 	value any
@@ -64,4 +66,45 @@ func (c *ClockCallable) Arity() int {
 
 func (c *ClockCallable) String() string {
 	return "<native fn>"
+}
+
+type LenCallable struct{}
+
+func (c *LenCallable) Call(interpreter *Interpreter, args []any) (any, error) {
+	if len(args) == 0 {
+		return 0, fmt.Errorf("len() requires one argument")
+	}
+
+	switch v := args[0].(type) {
+	case []any:
+		return float64(len(v)), nil
+	case string:
+		return float64(len(v)), nil
+	default:
+		return 0, fmt.Errorf("len() expects an array or string, got %T", args[0])
+	}
+}
+
+func (c *LenCallable) Arity() int {
+	return 1
+}
+
+func (c *LenCallable) String() string {
+	return "<native fn>"
+}
+
+type AppendCallable struct{}
+
+func (c *AppendCallable) Call(interpreter *Interpreter, args []any) (any, error) {
+	switch v := args[0].(type) {
+	case []any:
+		v = append(v, args[1:]...)
+		return v, nil
+	default:
+		return 0, fmt.Errorf("append() expects an array, got %T", args[0])
+	}
+}
+
+func (c *AppendCallable) Arity() int {
+	return MaxArity
 }

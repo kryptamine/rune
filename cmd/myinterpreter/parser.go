@@ -568,13 +568,25 @@ func (s *Parser) call() (Expr, error) {
 		return nil, err
 	}
 
-	for true {
+	for {
 		if s.match(LEFT_PAREN) {
 			expr, err = s.finishCall(expr)
 
 			if err != nil {
 				return nil, err
 			}
+		} else if s.match(LEFT_BRACKET) {
+			index, err := s.expression()
+			if err != nil {
+				return nil, err
+			}
+
+			_, err = s.consume(RIGHT_BRACKET, "Expect ']' after index.")
+			if err != nil {
+				return nil, err
+			}
+
+			expr = &IndexExpr{array: expr, index: index, token: s.previous()}
 		} else {
 			break
 		}
