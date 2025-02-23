@@ -59,3 +59,7 @@ func (p *PrintVisitor) VisitIndexExpr(node *ast.IndexExpr) (any, error) {
 func (p *PrintVisitor) VisitSetIndexExpr(node *ast.SetIndexExpr) (any, error) {
 	return p.printNode(node)
 }
+
+func (p *PrintVisitor) VisitObjectExpr(node *ast.ObjectExpr) (any, error) {
+	return p.printNode(node)
+}

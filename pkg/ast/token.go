@@ -52,6 +52,7 @@ const (
 	WHILE
 
 	// Single tokens
+	COLON
 	SEMICOLON
 	LEFT_PAREN
 	RIGHT_PAREN
@@ -103,6 +104,8 @@ var Keywords = map[string]TokenType{
 
 func (tokenType TokenType) String() string {
 	switch tokenType {
+	case COLON:
+		return "COLON"
 	case SEMICOLON:
 		return "SEMICOLON"
 	case COMMA:

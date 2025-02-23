@@ -341,7 +341,8 @@ func (p *Interpreter) VisitArrayExpr(node *ast.ArrayExpr) (any, error) {
 }
 
 func (p *Interpreter) VisitIndexExpr(node *ast.IndexExpr) (any, error) {
-	arrayVal, err := node.Array.Accept(p)
+	// Evaluate the object (could be an array or an object)
+	targetVal, err := node.Array.Accept(p)
 	if err != nil {
 		return nil, err
 	}
@@ -351,17 +352,36 @@ func (p *Interpreter) VisitIndexExpr(node *ast.IndexExpr) (any, error) {
 		return nil, err
 	}
 
-	arr, ok := arrayVal.([]any)
-	if !ok {
-		return nil, errors.NewRuntimeError(node.Token, "Indexing is only supported on arrays.")
+	// Handle Array Indexing
+	if arr, ok := targetVal.([]any); ok {
+		if !helpers.IsFloat(indexVal) {
+			return nil, errors.NewRuntimeError(node.Token, "Array index must be a number.")
+		}
+
+		idx := int(indexVal.(float64))
+		if idx < 0 || idx >= len(arr) {
+			return nil, errors.NewRuntimeError(node.Token, fmt.Sprintf("Index out of bounds: %v of %v", idx, len(arr)))
+		}
+
+		return arr[idx], nil
 	}
 
-	idx, ok := indexVal.(float64)
-	if !helpers.IsFloat(indexVal) || int(idx) < 0 || int(idx) >= len(arr) {
-		return nil, errors.NewRuntimeError(node.Token, fmt.Sprintf("Index out of bounds: %v of %v", idx, len(arr)))
+	// Handle Object Property Access
+	if obj, ok := targetVal.(map[string]any); ok {
+		key, ok := indexVal.(string)
+		if !ok {
+			return nil, errors.NewRuntimeError(node.Token, "Object keys must be strings.")
+		}
+
+		value, exists := obj[key]
+		if !exists {
+			return nil, errors.NewRuntimeError(node.Token, fmt.Sprintf("Undefined property '%s'.", key))
+		}
+
+		return value, nil
 	}
 
-	return arr[int(idx)], nil
+	return nil, errors.NewRuntimeError(node.Token, "Indexing is only supported on arrays and objects.")
 }
 
 func (p *Interpreter) VisitSetIndexExpr(node *ast.SetIndexExpr) (any, error) {
@@ -381,7 +401,7 @@ func (p *Interpreter) VisitSetIndexExpr(node *ast.SetIndexExpr) (any, error) {
 	}
 
 	idx, ok := indexVal.(float64)
-	if !helpers.IsFloat(indexVal) || int(idx) < 0 || int(idx) >= len(arr) {
+	if !ok || int(idx) < 0 || int(idx) >= len(arr) {
 		return nil, errors.NewRuntimeError(node.Token, fmt.Sprintf("Index out of bounds: %v of %v", idx, len(arr)))
 	}
 
@@ -393,6 +413,21 @@ func (p *Interpreter) VisitSetIndexExpr(node *ast.SetIndexExpr) (any, error) {
 	arr[int(idx)] = value
 
 	return value, nil
+}
+
+func (p *Interpreter) VisitObjectExpr(node *ast.ObjectExpr) (any, error) {
+	obj := make(map[string]any)
+
+	for key, value := range node.Pairs {
+		v, err := value.Accept(p)
+		if err != nil {
+			return nil, err
+		}
+
+		obj[key] = v
+	}
+
+	return obj, nil
 }
 
 func (p *Interpreter) checkNumberOperands(left any, right any) error {

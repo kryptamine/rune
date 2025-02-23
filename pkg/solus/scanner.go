@@ -53,6 +53,9 @@ func (s *Scanner) scanToken() {
 	char := s.advance()
 
 	switch char {
+	case ':':
+		s.addToken(ast.COLON)
+		break
 	case ';':
 		s.addToken(ast.SEMICOLON)
 		break

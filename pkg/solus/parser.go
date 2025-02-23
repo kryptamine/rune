@@ -608,6 +608,47 @@ func (s *Parser) factor() (ast.Expr, error) {
 }
 
 func (s *Parser) primary() (ast.Expr, error) {
+	// Parse object literal
+	if s.match(ast.LEFT_BRACE) {
+		pairs := make(map[string]ast.Expr)
+
+		for !s.check(ast.RIGHT_BRACE) && !s.isAtEnd() {
+			// Parse key (should be an identifier or string)
+			key, err := s.consume(ast.IDENTIFIER, "Expect property name.")
+			if err != nil {
+				return nil, err
+			}
+
+			// Expect ':' after key
+			_, err = s.consume(ast.COLON, "Expect ':' after property name.")
+			if err != nil {
+				return nil, err
+			}
+
+			// Parse value expression
+			value, err := s.expression()
+			if err != nil {
+				return nil, err
+			}
+
+			pairs[key.Lexeme] = value
+
+			// Allow optional commas but not required before closing `}`
+			if !s.match(ast.COMMA) {
+				break
+			}
+		}
+
+		// Expect closing `}`
+		_, err := s.consume(ast.RIGHT_BRACE, "Expect '}' after object properties.")
+		if err != nil {
+			return nil, err
+		}
+
+		return ast.NewObjectExpr(s.previous(), pairs), nil
+	}
+
+	// Parse array literal
 	if s.match(ast.LEFT_BRACKET) {
 		var items []ast.Expr
 
