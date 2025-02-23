@@ -1,4 +1,4 @@
-package solus
+package errors
 
 import (
 	"fmt"

@@ -3,6 +3,7 @@ package solus
 import (
 	"fmt"
 	"github.com/codecrafters-io/interpreter-starter-go/pkg/ast"
+	"github.com/codecrafters-io/interpreter-starter-go/pkg/errors"
 )
 
 // LenCallable is a callable that returns the length of an array or string.
@@ -23,7 +24,7 @@ func (c *LenCallable) Call(interpreter *Interpreter, args []any, token ast.Token
 	case string:
 		return float64(len(v)), nil
 	default:
-		return 0, NewRuntimeError(token, fmt.Sprintf("len() can only be called on strings and arrays, got %T", args[0]))
+		return 0, errors.NewRuntimeError(token, fmt.Sprintf("len() can only be called on strings and arrays, got %T", args[0]))
 	}
 }
 

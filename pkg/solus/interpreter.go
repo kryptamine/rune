@@ -3,6 +3,7 @@ package solus
 import (
 	"fmt"
 	"github.com/codecrafters-io/interpreter-starter-go/pkg/ast"
+	"github.com/codecrafters-io/interpreter-starter-go/pkg/errors"
 )
 
 type Interpreter struct {
@@ -150,7 +151,7 @@ func (p *Interpreter) VisitCallExpr(callExpr *ast.CallExpr) (any, error) {
 
 	if callable, ok := callee.(Callable); ok {
 		if callable.Arity() != -1 && len(args) != callable.Arity() {
-			return nil, NewRuntimeError(
+			return nil, errors.NewRuntimeError(
 				callExpr.Token,
 				fmt.Sprintf("Expected %d arguments but got %d.", callable.Arity(), len(args)),
 			)
@@ -159,7 +160,7 @@ func (p *Interpreter) VisitCallExpr(callExpr *ast.CallExpr) (any, error) {
 		return callable.Call(p, args, callExpr.Token)
 	}
 
-	return nil, NewRuntimeError(callExpr.Token, "Can only call functions and classes.")
+	return nil, errors.NewRuntimeError(callExpr.Token, "Can only call functions and classes.")
 }
 
 func (p *Interpreter) VisitFunctionStmt(functionStmt *ast.FunctionStmt) error {
@@ -169,7 +170,7 @@ func (p *Interpreter) VisitFunctionStmt(functionStmt *ast.FunctionStmt) error {
 	}
 
 	if len(function.declaration.Name.Lexeme) == 0 {
-		return NewRuntimeError(functionStmt.Name, "Function name is required.")
+		return errors.NewRuntimeError(functionStmt.Name, "Function name is required.")
 	}
 
 	p.environment.define(functionStmt.Name.Lexeme, function)
@@ -250,40 +251,40 @@ func (p *Interpreter) VisitBinaryExpr(node *ast.BinaryExpr) (any, error) {
 			return left.(float64) + right.(float64), nil
 		}
 
-		return nil, NewRuntimeError(node.Operator, "Operands must be two numbers or two strings.")
+		return nil, errors.NewRuntimeError(node.Operator, "Operands must be two numbers or two strings.")
 	case ast.MINUS:
 		if err := p.checkNumberOperands(left, right); err != nil {
-			return nil, NewRuntimeError(node.Operator, err.Error())
+			return nil, errors.NewRuntimeError(node.Operator, err.Error())
 		}
 		return toFloat(left) - toFloat(right), nil
 	case ast.SLASH:
 		if err := p.checkNumberOperands(left, right); err != nil {
-			return nil, NewRuntimeError(node.Operator, err.Error())
+			return nil, errors.NewRuntimeError(node.Operator, err.Error())
 		}
 		return toFloat(left) / toFloat(right), nil
 	case ast.STAR:
 		if err := p.checkNumberOperands(left, right); err != nil {
-			return nil, NewRuntimeError(node.Operator, err.Error())
+			return nil, errors.NewRuntimeError(node.Operator, err.Error())
 		}
 		return toFloat(left) * toFloat(right), nil
 	case ast.LESS:
 		if err := p.checkNumberOperands(left, right); err != nil {
-			return nil, NewRuntimeError(node.Operator, err.Error())
+			return nil, errors.NewRuntimeError(node.Operator, err.Error())
 		}
 		return toFloat(left) < toFloat(right), nil
 	case ast.LESS_EQUAL:
 		if err := p.checkNumberOperands(left, right); err != nil {
-			return nil, NewRuntimeError(node.Operator, err.Error())
+			return nil, errors.NewRuntimeError(node.Operator, err.Error())
 		}
 		return toFloat(left) <= toFloat(right), nil
 	case ast.GREATER:
 		if err := p.checkNumberOperands(left, right); err != nil {
-			return nil, NewRuntimeError(node.Operator, err.Error())
+			return nil, errors.NewRuntimeError(node.Operator, err.Error())
 		}
 		return toFloat(left) > toFloat(right), nil
 	case ast.GREATER_EQUAL:
 		if err := p.checkNumberOperands(left, right); err != nil {
-			return nil, NewRuntimeError(node.Operator, err.Error())
+			return nil, errors.NewRuntimeError(node.Operator, err.Error())
 		}
 		return toFloat(left) >= toFloat(right), nil
 	}
@@ -311,7 +312,7 @@ func (p *Interpreter) VisitUnaryExpr(node *ast.UnaryExpr) (any, error) {
 		return !isTruthy(right), nil
 	case ast.MINUS:
 		if !isFloat(right) {
-			return nil, NewRuntimeError(node.Operator, "Operand must be a number.")
+			return nil, errors.NewRuntimeError(node.Operator, "Operand must be a number.")
 		}
 
 		return -1 * toFloat(right), nil
@@ -347,12 +348,12 @@ func (p *Interpreter) VisitIndexExpr(node *ast.IndexExpr) (any, error) {
 
 	arr, ok := arrayVal.([]any)
 	if !ok {
-		return nil, NewRuntimeError(node.Token, "Indexing is only supported on arrays.")
+		return nil, errors.NewRuntimeError(node.Token, "Indexing is only supported on arrays.")
 	}
 
 	idx, ok := indexVal.(float64)
 	if !isFloat(indexVal) || int(idx) < 0 || int(idx) >= len(arr) {
-		return nil, NewRuntimeError(node.Token, fmt.Sprintf("Index out of bounds: %v of %v", idx, len(arr)))
+		return nil, errors.NewRuntimeError(node.Token, fmt.Sprintf("Index out of bounds: %v of %v", idx, len(arr)))
 	}
 
 	return arr[int(idx)], nil

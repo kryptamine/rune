@@ -3,6 +3,7 @@ package solus
 import (
 	"fmt"
 	"github.com/codecrafters-io/interpreter-starter-go/pkg/ast"
+	"github.com/codecrafters-io/interpreter-starter-go/pkg/errors"
 	"strconv"
 )
 
@@ -309,7 +310,7 @@ func (s *Parser) function(kind string) (ast.Stmt, error) {
 	if !s.check(ast.RIGHT_PAREN) {
 		for true {
 			if len(parameters) >= MaxArity {
-				return nil, NewRuntimeError(s.peek(), "Cannot have more than 255 parameters.")
+				return nil, errors.NewRuntimeError(s.peek(), "Cannot have more than 255 parameters.")
 			}
 
 			param, err := s.consume(ast.IDENTIFIER, "Expect parameter name.")
@@ -437,7 +438,7 @@ func (s *Parser) assignment() (ast.Expr, error) {
 			return ast.NewAssignExpr(token, value), nil
 		}
 
-		return nil, NewRuntimeError(s.peek(), "Invalid assignment target.")
+		return nil, errors.NewRuntimeError(s.peek(), "Invalid assignment target.")
 	}
 
 	return expr, nil
@@ -643,7 +644,7 @@ func (s *Parser) primary() (ast.Expr, error) {
 		value, err := strconv.ParseFloat(prev.Literal, 64)
 
 		if err != nil {
-			return nil, NewRuntimeError(prev, "Invalid number.")
+			return nil, errors.NewRuntimeError(prev, "Invalid number.")
 		}
 
 		return ast.NewLiteralExpr(ast.NUMBER, value), nil
@@ -681,7 +682,7 @@ func (s *Parser) primary() (ast.Expr, error) {
 
 	current := s.peek()
 
-	return nil, NewRuntimeError(current, "Expect expression.")
+	return nil, errors.NewRuntimeError(current, "Expect expression.")
 }
 
 func (s *Parser) match(tokenTypes ...ast.TokenType) bool {
@@ -722,7 +723,7 @@ func (s *Parser) consume(tokenType ast.TokenType, errMsg string) (ast.Token, err
 		return s.advance(), nil
 	}
 
-	return ast.Token{}, NewRuntimeError(s.peek(), errMsg)
+	return ast.Token{}, errors.NewRuntimeError(s.peek(), errMsg)
 }
 
 func (s *Parser) peek() ast.Token {

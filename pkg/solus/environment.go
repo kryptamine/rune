@@ -3,6 +3,7 @@ package solus
 import (
 	"fmt"
 	"github.com/codecrafters-io/interpreter-starter-go/pkg/ast"
+	"github.com/codecrafters-io/interpreter-starter-go/pkg/errors"
 )
 
 type Environment struct {
@@ -38,7 +39,7 @@ func (e *Environment) get(token ast.Token) (any, error) {
 		return e.enclosing.get(token)
 	}
 
-	return nil, NewRuntimeError(token, fmt.Sprintf("Undefined variable '%s'.", token.Lexeme))
+	return nil, errors.NewRuntimeError(token, fmt.Sprintf("Undefined variable '%s'.", token.Lexeme))
 }
 
 func (e *Environment) assign(token ast.Token, value any) error {
@@ -51,5 +52,5 @@ func (e *Environment) assign(token ast.Token, value any) error {
 		return e.enclosing.assign(token, value)
 	}
 
-	return NewRuntimeError(token, fmt.Sprintf("Undefined variable '%s'.", token.Lexeme))
+	return errors.NewRuntimeError(token, fmt.Sprintf("Undefined variable '%s'.", token.Lexeme))
 }
