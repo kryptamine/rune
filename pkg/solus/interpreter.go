@@ -2,17 +2,18 @@ package solus
 
 import (
 	"fmt"
+	"github.com/codecrafters-io/interpreter-starter-go/pkg/ast"
 )
 
 type Interpreter struct {
 	environment *Environment
 }
 
-func EvaluateExpr(expr Expr) (any, error) {
-	return expr.accept(&Interpreter{})
+func EvaluateExpr(expr ast.Expr) (any, error) {
+	return expr.Accept(&Interpreter{})
 }
 
-func EvaluateStmts(stmts []Stmt) error {
+func EvaluateStmts(stmts []ast.Stmt) error {
 	globals := NewEnvironment(nil)
 
 	globals.RegisterGlobalCallable("clock", NewClockCallable())
@@ -24,7 +25,7 @@ func EvaluateStmts(stmts []Stmt) error {
 	}
 
 	for _, stmt := range stmts {
-		err := stmt.accept(p)
+		err := stmt.Accept(p)
 		if err != nil {
 			return err
 		}
@@ -33,12 +34,12 @@ func EvaluateStmts(stmts []Stmt) error {
 	return nil
 }
 
-func (p *Interpreter) visitReturnStmt(returnStmt *ReturnStmt) error {
-	if returnStmt.value == nil {
+func (p *Interpreter) VisitReturnStmt(returnStmt *ast.ReturnStmt) error {
+	if returnStmt.Value == nil {
 		return &Return{nil}
 	}
 
-	value, err := returnStmt.value.accept(p)
+	value, err := returnStmt.Value.Accept(p)
 
 	if err != nil {
 		return err
@@ -47,8 +48,8 @@ func (p *Interpreter) visitReturnStmt(returnStmt *ReturnStmt) error {
 	return &Return{value}
 }
 
-func (p *Interpreter) visitExprStmt(exprStmt *ExprStmt) error {
-	_, err := exprStmt.expr.accept(p)
+func (p *Interpreter) VisitExprStmt(exprStmt *ast.ExprStmt) error {
+	_, err := exprStmt.Expr.Accept(p)
 
 	if err != nil {
 		return err
@@ -57,8 +58,8 @@ func (p *Interpreter) visitExprStmt(exprStmt *ExprStmt) error {
 	return nil
 }
 
-func (p *Interpreter) visitPrintStmt(exprStmt *PrintStmt) error {
-	val, err := exprStmt.expr.accept(p)
+func (p *Interpreter) VisitPrintStmt(exprStmt *ast.PrintStmt) error {
+	val, err := exprStmt.Expr.Accept(p)
 
 	if err != nil {
 		return err
@@ -74,14 +75,14 @@ func (p *Interpreter) visitPrintStmt(exprStmt *PrintStmt) error {
 	return nil
 }
 
-func (p *Interpreter) visitLogicalExpr(node *LogicalExpr) (any, error) {
-	left, err := node.left.accept(p)
+func (p *Interpreter) VisitLogicalExpr(node *ast.LogicalExpr) (any, error) {
+	left, err := node.Left.Accept(p)
 
 	if err != nil {
 		return nil, err
 	}
 
-	if node.op.tokenType == OR {
+	if node.Op.TokenType == ast.OR {
 		if isTruthy(left) {
 			return left, nil
 		}
@@ -91,22 +92,22 @@ func (p *Interpreter) visitLogicalExpr(node *LogicalExpr) (any, error) {
 		}
 	}
 
-	return node.right.accept(p)
+	return node.Right.Accept(p)
 }
 
-func (p *Interpreter) visitWhileStmt(whileStmt *WhileStmt) error {
-	val, err := whileStmt.condition.accept(p)
+func (p *Interpreter) VisitWhileStmt(whileStmt *ast.WhileStmt) error {
+	val, err := whileStmt.Condition.Accept(p)
 	if err != nil {
 		return err
 	}
 
 	for isTruthy(val) {
-		err := whileStmt.body.accept(p)
+		err := whileStmt.Body.Accept(p)
 		if err != nil {
 			return err
 		}
 
-		val, err = whileStmt.condition.accept(p)
+		val, err = whileStmt.Condition.Accept(p)
 		if err != nil {
 			return err
 		}
@@ -115,32 +116,32 @@ func (p *Interpreter) visitWhileStmt(whileStmt *WhileStmt) error {
 	return nil
 }
 
-func (p *Interpreter) visitVarStmt(varStmt *VarStmt) error {
-	if varStmt.initializer != nil {
-		value, err := varStmt.initializer.accept(p)
+func (p *Interpreter) VisitVarStmt(varStmt *ast.VarStmt) error {
+	if varStmt.Initializer != nil {
+		value, err := varStmt.Initializer.Accept(p)
 
 		if err != nil {
 			return err
 		}
 
-		p.environment.define(varStmt.name.lexeme, value)
+		p.environment.define(varStmt.Name.Lexeme, value)
 	} else {
-		p.environment.define(varStmt.name.lexeme, nil)
+		p.environment.define(varStmt.Name.Lexeme, nil)
 	}
 
 	return nil
 }
 
-func (p *Interpreter) visitCallExpr(callExpr *CallExpr) (any, error) {
-	callee, err := callExpr.callee.accept(p)
+func (p *Interpreter) VisitCallExpr(callExpr *ast.CallExpr) (any, error) {
+	callee, err := callExpr.Callee.Accept(p)
 	if err != nil {
 		return nil, err
 	}
 
 	args := []any{}
 
-	for _, arg := range callExpr.args {
-		arg, err := arg.accept(p)
+	for _, arg := range callExpr.Args {
+		arg, err := arg.Accept(p)
 		if err != nil {
 			return nil, err
 		}
@@ -150,51 +151,51 @@ func (p *Interpreter) visitCallExpr(callExpr *CallExpr) (any, error) {
 	if callable, ok := callee.(Callable); ok {
 		if callable.Arity() != -1 && len(args) != callable.Arity() {
 			return nil, NewRuntimeError(
-				callExpr.token,
+				callExpr.Token,
 				fmt.Sprintf("Expected %d arguments but got %d.", callable.Arity(), len(args)),
 			)
 		}
 
-		return callable.Call(p, args, callExpr.token)
+		return callable.Call(p, args, callExpr.Token)
 	}
 
-	return nil, NewRuntimeError(callExpr.token, "Can only call functions and classes.")
+	return nil, NewRuntimeError(callExpr.Token, "Can only call functions and classes.")
 }
 
-func (p *Interpreter) visitFunctionStmt(functionStmt *FunctionStmt) error {
+func (p *Interpreter) VisitFunctionStmt(functionStmt *ast.FunctionStmt) error {
 	function := &FunctionCallable{
 		declaration: functionStmt,
 		environment: p.environment,
 	}
 
-	if len(function.declaration.name.lexeme) == 0 {
-		return NewRuntimeError(functionStmt.name, "Function name is required.")
+	if len(function.declaration.Name.Lexeme) == 0 {
+		return NewRuntimeError(functionStmt.Name, "Function name is required.")
 	}
 
-	p.environment.define(functionStmt.name.lexeme, function)
+	p.environment.define(functionStmt.Name.Lexeme, function)
 	return nil
 }
 
-func (p *Interpreter) visitIfStmt(ifStmt *IfStmt) error {
-	condition, err := ifStmt.condition.accept(p)
+func (p *Interpreter) VisitIfStmt(ifStmt *ast.IfStmt) error {
+	condition, err := ifStmt.Condition.Accept(p)
 	if err != nil {
 		return err
 	}
 
 	if isTruthy(condition) {
-		return ifStmt.then.accept(p)
-	} else if ifStmt.el != nil {
-		return ifStmt.el.accept(p)
+		return ifStmt.Then.Accept(p)
+	} else if ifStmt.El != nil {
+		return ifStmt.El.Accept(p)
 	}
 
 	return nil
 }
 
-func (p *Interpreter) visitBlockStmt(blockStmt *BlockStmt) error {
-	return p.executeBlock(blockStmt.stmts, NewEnvironment(p.environment))
+func (p *Interpreter) VisitBlockStmt(blockStmt *ast.BlockStmt) error {
+	return p.executeBlock(blockStmt.Stmts, NewEnvironment(p.environment))
 }
 
-func (p *Interpreter) executeBlock(statements []Stmt, env *Environment) error {
+func (p *Interpreter) executeBlock(statements []ast.Stmt, env *Environment) error {
 	prevEnv := p.environment
 	p.environment = env
 
@@ -203,7 +204,7 @@ func (p *Interpreter) executeBlock(statements []Stmt, env *Environment) error {
 	}()
 
 	for _, stmt := range statements {
-		err := stmt.accept(p)
+		err := stmt.Accept(p)
 		if err != nil {
 			return err
 		}
@@ -212,35 +213,35 @@ func (p *Interpreter) executeBlock(statements []Stmt, env *Environment) error {
 	return nil
 }
 
-func (p *Interpreter) visitVarExpr(node *VarExpr) (any, error) {
-	return p.environment.get(node.name)
+func (p *Interpreter) VisitVarExpr(node *ast.VarExpr) (any, error) {
+	return p.environment.get(node.Name)
 }
 
-func (p *Interpreter) visitAssignExpr(node *AssignExpr) (any, error) {
-	value, err := node.value.accept(p)
+func (p *Interpreter) VisitAssignExpr(node *ast.AssignExpr) (any, error) {
+	value, err := node.Value.Accept(p)
 	if err != nil {
 		return nil, err
 	}
 
-	p.environment.assign(node.name, value)
+	p.environment.assign(node.Name, value)
 
 	return value, nil
 }
 
-func (p *Interpreter) visitBinaryExpr(node *BinaryExpr) (any, error) {
-	left, err := node.left.accept(p)
-	right, err := node.right.accept(p)
+func (p *Interpreter) VisitBinaryExpr(node *ast.BinaryExpr) (any, error) {
+	left, err := node.Left.Accept(p)
+	right, err := node.Right.Accept(p)
 
 	if err != nil {
 		return nil, err
 	}
 
-	switch node.operator.tokenType {
-	case EQUAL_EQUAL:
+	switch node.Operator.TokenType {
+	case ast.EQUAL_EQUAL:
 		return isEqual(left, right), nil
-	case BANG_EQUAL:
+	case ast.BANG_EQUAL:
 		return !isEqual(left, right), nil
-	case PLUS:
+	case ast.PLUS:
 		if isString(left) && isString(right) {
 			return left.(string) + right.(string), nil
 		}
@@ -249,40 +250,40 @@ func (p *Interpreter) visitBinaryExpr(node *BinaryExpr) (any, error) {
 			return left.(float64) + right.(float64), nil
 		}
 
-		return nil, NewRuntimeError(node.operator, "Operands must be two numbers or two strings.")
-	case MINUS:
+		return nil, NewRuntimeError(node.Operator, "Operands must be two numbers or two strings.")
+	case ast.MINUS:
 		if err := p.checkNumberOperands(left, right); err != nil {
-			return nil, NewRuntimeError(node.operator, err.Error())
+			return nil, NewRuntimeError(node.Operator, err.Error())
 		}
 		return toFloat(left) - toFloat(right), nil
-	case SLASH:
+	case ast.SLASH:
 		if err := p.checkNumberOperands(left, right); err != nil {
-			return nil, NewRuntimeError(node.operator, err.Error())
+			return nil, NewRuntimeError(node.Operator, err.Error())
 		}
 		return toFloat(left) / toFloat(right), nil
-	case STAR:
+	case ast.STAR:
 		if err := p.checkNumberOperands(left, right); err != nil {
-			return nil, NewRuntimeError(node.operator, err.Error())
+			return nil, NewRuntimeError(node.Operator, err.Error())
 		}
 		return toFloat(left) * toFloat(right), nil
-	case LESS:
+	case ast.LESS:
 		if err := p.checkNumberOperands(left, right); err != nil {
-			return nil, NewRuntimeError(node.operator, err.Error())
+			return nil, NewRuntimeError(node.Operator, err.Error())
 		}
 		return toFloat(left) < toFloat(right), nil
-	case LESS_EQUAL:
+	case ast.LESS_EQUAL:
 		if err := p.checkNumberOperands(left, right); err != nil {
-			return nil, NewRuntimeError(node.operator, err.Error())
+			return nil, NewRuntimeError(node.Operator, err.Error())
 		}
 		return toFloat(left) <= toFloat(right), nil
-	case GREATER:
+	case ast.GREATER:
 		if err := p.checkNumberOperands(left, right); err != nil {
-			return nil, NewRuntimeError(node.operator, err.Error())
+			return nil, NewRuntimeError(node.Operator, err.Error())
 		}
 		return toFloat(left) > toFloat(right), nil
-	case GREATER_EQUAL:
+	case ast.GREATER_EQUAL:
 		if err := p.checkNumberOperands(left, right); err != nil {
-			return nil, NewRuntimeError(node.operator, err.Error())
+			return nil, NewRuntimeError(node.Operator, err.Error())
 		}
 		return toFloat(left) >= toFloat(right), nil
 	}
@@ -290,27 +291,27 @@ func (p *Interpreter) visitBinaryExpr(node *BinaryExpr) (any, error) {
 	return nil, nil
 }
 
-func (p *Interpreter) visitLiteralExpr(node *LiteralExpr) (any, error) {
-	return node.value, nil
+func (p *Interpreter) VisitLiteralExpr(node *ast.LiteralExpr) (any, error) {
+	return node.Value, nil
 }
 
-func (p *Interpreter) visitGroupingExpr(node *GroupingExpr) (any, error) {
-	return node.expr.accept(p)
+func (p *Interpreter) VisitGroupingExpr(node *ast.GroupingExpr) (any, error) {
+	return node.Expr.Accept(p)
 }
 
-func (p *Interpreter) visitUnaryExpr(node *UnaryExpr) (any, error) {
-	right, err := node.right.accept(p)
+func (p *Interpreter) VisitUnaryExpr(node *ast.UnaryExpr) (any, error) {
+	right, err := node.Right.Accept(p)
 
 	if err != nil {
 		return nil, err
 	}
 
-	switch node.operator.tokenType {
-	case BANG:
+	switch node.Operator.TokenType {
+	case ast.BANG:
 		return !isTruthy(right), nil
-	case MINUS:
+	case ast.MINUS:
 		if !isFloat(right) {
-			return nil, NewRuntimeError(node.operator, "Operand must be a number.")
+			return nil, NewRuntimeError(node.Operator, "Operand must be a number.")
 		}
 
 		return -1 * toFloat(right), nil
@@ -319,11 +320,11 @@ func (p *Interpreter) visitUnaryExpr(node *UnaryExpr) (any, error) {
 	return nil, nil
 }
 
-func (p *Interpreter) visitArrayExpr(node *ArrayExpr) (any, error) {
+func (p *Interpreter) VisitArrayExpr(node *ast.ArrayExpr) (any, error) {
 	var result []any
 
-	for _, item := range node.items {
-		item, err := item.accept(p)
+	for _, item := range node.Items {
+		item, err := item.Accept(p)
 		if err != nil {
 			return nil, err
 		}
@@ -333,25 +334,25 @@ func (p *Interpreter) visitArrayExpr(node *ArrayExpr) (any, error) {
 	return result, nil
 }
 
-func (p *Interpreter) visitIndexExpr(node *IndexExpr) (any, error) {
-	arrayVal, err := node.array.accept(p)
+func (p *Interpreter) VisitIndexExpr(node *ast.IndexExpr) (any, error) {
+	arrayVal, err := node.Array.Accept(p)
 	if err != nil {
 		return nil, err
 	}
 
-	indexVal, err := node.index.accept(p)
+	indexVal, err := node.Index.Accept(p)
 	if err != nil {
 		return nil, err
 	}
 
 	arr, ok := arrayVal.([]any)
 	if !ok {
-		return nil, NewRuntimeError(node.token, "Indexing is only supported on arrays.")
+		return nil, NewRuntimeError(node.Token, "Indexing is only supported on arrays.")
 	}
 
 	idx, ok := indexVal.(float64)
 	if !isFloat(indexVal) || int(idx) < 0 || int(idx) >= len(arr) {
-		return nil, NewRuntimeError(node.token, fmt.Sprintf("Index out of bounds: %v of %v", idx, len(arr)))
+		return nil, NewRuntimeError(node.Token, fmt.Sprintf("Index out of bounds: %v of %v", idx, len(arr)))
 	}
 
 	return arr[int(idx)], nil

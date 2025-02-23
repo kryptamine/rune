@@ -1,54 +1,57 @@
 package solus
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/codecrafters-io/interpreter-starter-go/pkg/ast"
+)
 
 type PrintVisitor struct{}
 
-func PrintExpr(expr Expr) {
-	expr.accept(&PrintVisitor{})
+func PrintExpr(expr ast.Expr) {
+	expr.Accept(&PrintVisitor{})
 }
 
-func (p *PrintVisitor) printNode(node Expr) (any, error) {
+func (p *PrintVisitor) printNode(node ast.Expr) (any, error) {
 	fmt.Print(node)
 	return nil, nil
 }
 
-func (p *PrintVisitor) visitBinaryExpr(node *BinaryExpr) (any, error) {
+func (p *PrintVisitor) VisitBinaryExpr(node *ast.BinaryExpr) (any, error) {
 	return p.printNode(node)
 }
 
-func (p *PrintVisitor) visitCallExpr(node *CallExpr) (any, error) {
+func (p *PrintVisitor) VisitCallExpr(node *ast.CallExpr) (any, error) {
 	return p.printNode(node)
 }
 
-func (p *PrintVisitor) visitVarExpr(node *VarExpr) (any, error) {
+func (p *PrintVisitor) VisitVarExpr(node *ast.VarExpr) (any, error) {
 	return p.printNode(node)
 }
 
-func (p *PrintVisitor) visitLogicalExpr(node *LogicalExpr) (any, error) {
+func (p *PrintVisitor) VisitLogicalExpr(node *ast.LogicalExpr) (any, error) {
 	return p.printNode(node)
 }
 
-func (p *PrintVisitor) visitAssignExpr(node *AssignExpr) (any, error) {
+func (p *PrintVisitor) VisitAssignExpr(node *ast.AssignExpr) (any, error) {
 	return p.printNode(node)
 }
 
-func (p *PrintVisitor) visitLiteralExpr(node *LiteralExpr) (any, error) {
+func (p *PrintVisitor) VisitLiteralExpr(node *ast.LiteralExpr) (any, error) {
 	return p.printNode(node)
 }
 
-func (p *PrintVisitor) visitGroupingExpr(node *GroupingExpr) (any, error) {
+func (p *PrintVisitor) VisitGroupingExpr(node *ast.GroupingExpr) (any, error) {
 	return p.printNode(node)
 }
 
-func (p *PrintVisitor) visitUnaryExpr(node *UnaryExpr) (any, error) {
+func (p *PrintVisitor) VisitUnaryExpr(node *ast.UnaryExpr) (any, error) {
 	return p.printNode(node)
 }
 
-func (p *PrintVisitor) visitArrayExpr(node *ArrayExpr) (any, error) {
+func (p *PrintVisitor) VisitArrayExpr(node *ast.ArrayExpr) (any, error) {
 	return p.printNode(node)
 }
 
-func (p *PrintVisitor) visitIndexExpr(node *IndexExpr) (any, error) {
+func (p *PrintVisitor) VisitIndexExpr(node *ast.IndexExpr) (any, error) {
 	return p.printNode(node)
 }

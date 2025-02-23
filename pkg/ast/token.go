@@ -1,22 +1,33 @@
-package solus
+package ast
+
+import "fmt"
 
 type TokenType int
 
 type Token struct {
-	tokenType TokenType
-	lexeme    string
-	literal   string
-	line      int
+	TokenType TokenType
+	Lexeme    string
+	Literal   string
+	Line      int
 }
 
-type Scanner struct {
-	source string
-	tokens []Token
-	errors []error
+func NewToken(tokenType TokenType, lexeme string, literal string, line int) Token {
+	return Token{TokenType: tokenType, Lexeme: lexeme, Literal: literal, Line: line}
+}
 
-	start   int
-	current int
-	line    int
+func (token Token) String() string {
+	literal := "null"
+
+	if token.Literal != "" {
+		literal = token.Literal
+	}
+
+	return fmt.Sprintf(
+		"%s %s %s",
+		token.TokenType,
+		token.Lexeme,
+		literal,
+	)
 }
 
 const (
@@ -71,7 +82,7 @@ const (
 	NUMBER
 )
 
-var keywords = map[string]TokenType{
+var Keywords = map[string]TokenType{
 	"var":    VAR,
 	"and":    AND,
 	"or":     OR,

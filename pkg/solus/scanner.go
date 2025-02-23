@@ -3,13 +3,24 @@ package solus
 import (
 	"errors"
 	"fmt"
+	"github.com/codecrafters-io/interpreter-starter-go/pkg/ast"
 	"strconv"
 )
 
-func Scan(source []byte) ([]Token, []error) {
+type Scanner struct {
+	source string
+	tokens []ast.Token
+	errors []error
+
+	start   int
+	current int
+	line    int
+}
+
+func Scan(source []byte) ([]ast.Token, []error) {
 	scanner := &Scanner{
 		source:  string(source),
-		tokens:  []Token{},
+		tokens:  []ast.Token{},
 		errors:  []error{},
 		current: 0,
 		line:    1,
@@ -19,22 +30,7 @@ func Scan(source []byte) ([]Token, []error) {
 	return scanner.scanTokens(), scanner.errors
 }
 
-func (token Token) String() string {
-	literal := "null"
-
-	if token.literal != "" {
-		literal = token.literal
-	}
-
-	return fmt.Sprintf(
-		"%s %s %s",
-		token.tokenType,
-		token.lexeme,
-		literal,
-	)
-}
-
-func (s *Scanner) scanTokens() []Token {
+func (s *Scanner) scanTokens() []ast.Token {
 	for !s.isAtEnd() {
 		s.start = s.current
 		s.scanToken()
@@ -42,12 +38,7 @@ func (s *Scanner) scanTokens() []Token {
 
 	s.tokens = append(
 		s.tokens,
-		Token{
-			tokenType: EOF,
-			lexeme:    "",
-			literal:   "",
-			line:      s.line,
-		},
+		ast.NewToken(ast.EOF, "", "", s.line),
 	)
 
 	return s.tokens
@@ -62,53 +53,53 @@ func (s *Scanner) scanToken() {
 
 	switch char {
 	case ';':
-		s.addToken(SEMICOLON)
+		s.addToken(ast.SEMICOLON)
 		break
 	case '(':
-		s.addToken(LEFT_PAREN)
+		s.addToken(ast.LEFT_PAREN)
 		break
 	case ')':
-		s.addToken(RIGHT_PAREN)
+		s.addToken(ast.RIGHT_PAREN)
 		break
 	case '[':
-		s.addToken(LEFT_BRACKET)
+		s.addToken(ast.LEFT_BRACKET)
 		break
 	case ']':
-		s.addToken(RIGHT_BRACKET)
+		s.addToken(ast.RIGHT_BRACKET)
 		break
 	case '{':
-		s.addToken(LEFT_BRACE)
+		s.addToken(ast.LEFT_BRACE)
 		break
 	case '}':
-		s.addToken(RIGHT_BRACE)
+		s.addToken(ast.RIGHT_BRACE)
 		break
 	case ',':
-		s.addToken(COMMA)
+		s.addToken(ast.COMMA)
 		break
 	case '.':
-		s.addToken(DOT)
+		s.addToken(ast.DOT)
 		break
 	case '-':
-		s.addToken(MINUS)
+		s.addToken(ast.MINUS)
 		break
 	case '+':
-		s.addToken(PLUS)
+		s.addToken(ast.PLUS)
 		break
 	case '*':
-		s.addToken(STAR)
+		s.addToken(ast.STAR)
 		break
 		// Operators
 	case '=':
-		s.addToken(If(s.match('='), EQUAL_EQUAL, EQUAL))
+		s.addToken(If(s.match('='), ast.EQUAL_EQUAL, ast.EQUAL))
 		break
 	case '!':
-		s.addToken(If(s.match('='), BANG_EQUAL, BANG))
+		s.addToken(If(s.match('='), ast.BANG_EQUAL, ast.BANG))
 		break
 	case '<':
-		s.addToken(If(s.match('='), LESS_EQUAL, LESS))
+		s.addToken(If(s.match('='), ast.LESS_EQUAL, ast.LESS))
 		break
 	case '>':
-		s.addToken(If(s.match('='), GREATER_EQUAL, GREATER))
+		s.addToken(If(s.match('='), ast.GREATER_EQUAL, ast.GREATER))
 		break
 	case '/':
 		if s.match('/') {
@@ -117,7 +108,7 @@ func (s *Scanner) scanToken() {
 				s.advance()
 			}
 		} else {
-			s.addToken(SLASH)
+			s.addToken(ast.SLASH)
 		}
 	case '"':
 		if err := s.string(); err != nil {
@@ -144,30 +135,21 @@ func (s *Scanner) scanToken() {
 	}
 }
 
-func (s *Scanner) addToken(tokenType TokenType) {
+func (s *Scanner) addToken(tokenType ast.TokenType) {
 	lexeme := s.source[s.start:s.current]
 
 	s.tokens = append(
 		s.tokens,
-		Token{
-			tokenType: tokenType,
-			lexeme:    lexeme,
-			line:      s.line,
-		},
+		ast.NewToken(tokenType, lexeme, "", s.line),
 	)
 }
 
-func (s *Scanner) addTokenWithLiteral(tokenType TokenType, literal string) {
+func (s *Scanner) addTokenWithLiteral(tokenType ast.TokenType, literal string) {
 	lexeme := s.source[s.start:s.current]
 
 	s.tokens = append(
 		s.tokens,
-		Token{
-			tokenType: tokenType,
-			lexeme:    lexeme,
-			literal:   literal,
-			line:      s.line,
-		},
+		ast.NewToken(tokenType, lexeme, literal, s.line),
 	)
 }
 
@@ -192,7 +174,7 @@ func (s *Scanner) string() error {
 
 	value := s.source[s.start+1 : s.current-1]
 
-	s.addTokenWithLiteral(STRING, value)
+	s.addTokenWithLiteral(ast.STRING, value)
 
 	return nil
 }
@@ -220,7 +202,7 @@ func (s *Scanner) number() {
 		literal = fmt.Sprintf("%g", val) // Keeps the precision for non-whole numbers
 	}
 
-	s.addTokenWithLiteral(NUMBER, literal)
+	s.addTokenWithLiteral(ast.NUMBER, literal)
 }
 
 func (s *Scanner) identifier() {
@@ -230,10 +212,10 @@ func (s *Scanner) identifier() {
 
 	text := s.source[s.start:s.current]
 
-	if val, ok := keywords[text]; ok {
+	if val, ok := ast.Keywords[text]; ok {
 		s.addToken(val)
 	} else {
-		s.addToken(IDENTIFIER)
+		s.addToken(ast.IDENTIFIER)
 	}
 }
 

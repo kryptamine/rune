@@ -1,6 +1,7 @@
 package solus
 
 import (
+	"github.com/codecrafters-io/interpreter-starter-go/pkg/ast"
 	"time"
 )
 
@@ -11,7 +12,7 @@ func NewClockCallable() Callable {
 	return &ClockCallable{}
 }
 
-func (c *ClockCallable) Call(interpreter *Interpreter, args []any, _ Token) (any, error) {
+func (c *ClockCallable) Call(interpreter *Interpreter, args []any, _ ast.Token) (any, error) {
 	return float64(time.Now().Unix()), nil
 }
 

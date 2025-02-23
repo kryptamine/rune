@@ -1,6 +1,9 @@
 package solus
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/codecrafters-io/interpreter-starter-go/pkg/ast"
+)
 
 type Environment struct {
 	values    map[string]any
@@ -26,8 +29,8 @@ func (e *Environment) define(name string, value any) {
 	e.values[name] = value
 }
 
-func (e *Environment) get(token Token) (any, error) {
-	if val, ok := e.values[token.lexeme]; ok {
+func (e *Environment) get(token ast.Token) (any, error) {
+	if val, ok := e.values[token.Lexeme]; ok {
 		return val, nil
 	}
 
@@ -35,12 +38,12 @@ func (e *Environment) get(token Token) (any, error) {
 		return e.enclosing.get(token)
 	}
 
-	return nil, NewRuntimeError(token, fmt.Sprintf("Undefined variable '%s'.", token.lexeme))
+	return nil, NewRuntimeError(token, fmt.Sprintf("Undefined variable '%s'.", token.Lexeme))
 }
 
-func (e *Environment) assign(token Token, value any) error {
-	if _, ok := e.values[token.lexeme]; ok {
-		e.values[token.lexeme] = value
+func (e *Environment) assign(token ast.Token, value any) error {
+	if _, ok := e.values[token.Lexeme]; ok {
+		e.values[token.Lexeme] = value
 		return nil
 	}
 
@@ -48,5 +51,5 @@ func (e *Environment) assign(token Token, value any) error {
 		return e.enclosing.assign(token, value)
 	}
 
-	return NewRuntimeError(token, fmt.Sprintf("Undefined variable '%s'.", token.lexeme))
+	return NewRuntimeError(token, fmt.Sprintf("Undefined variable '%s'.", token.Lexeme))
 }

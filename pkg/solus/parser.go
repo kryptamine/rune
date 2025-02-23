@@ -2,16 +2,17 @@ package solus
 
 import (
 	"fmt"
+	"github.com/codecrafters-io/interpreter-starter-go/pkg/ast"
 	"strconv"
 )
 
 type Parser struct {
-	tokens  []Token
+	tokens  []ast.Token
 	errors  []error
 	current int
 }
 
-func ParseExpr(tokens []Token) (Expr, error) {
+func ParseExpr(tokens []ast.Token) (ast.Expr, error) {
 	parser := Parser{
 		tokens:  tokens,
 		current: 0,
@@ -20,8 +21,8 @@ func ParseExpr(tokens []Token) (Expr, error) {
 	return parser.expression()
 }
 
-func ParseStmts(tokens []Token) ([]Stmt, error) {
-	var stmts []Stmt
+func ParseStmts(tokens []ast.Token) ([]ast.Stmt, error) {
+	var stmts []ast.Stmt
 
 	parser := Parser{
 		tokens:  tokens,
@@ -41,50 +42,50 @@ func ParseStmts(tokens []Token) ([]Stmt, error) {
 	return stmts, nil
 }
 
-func (s *Parser) statement() (Stmt, error) {
-	if s.match(PRINT) {
+func (s *Parser) statement() (ast.Stmt, error) {
+	if s.match(ast.PRINT) {
 		return s.printStmt()
 	}
 
-	if s.match(RETURN) {
+	if s.match(ast.RETURN) {
 		return s.returnStmt()
 	}
 
-	if s.match(WHILE) {
+	if s.match(ast.WHILE) {
 		return s.whileStatement()
 	}
 
-	if s.match(LEFT_BRACE) {
+	if s.match(ast.LEFT_BRACE) {
 		block, err := s.block()
 		if err != nil {
 			return nil, err
 		}
 
-		return NewBlockStmt(block), nil
+		return ast.NewBlockStmt(block), nil
 	}
 
-	if s.match(FOR) {
+	if s.match(ast.FOR) {
 		return s.forStatement()
 	}
 
-	if s.match(IF) {
+	if s.match(ast.IF) {
 		return s.ifStatement()
 	}
 
 	return s.expressionStatement()
 }
 
-func (s *Parser) forStatement() (Stmt, error) {
-	_, err := s.consume(LEFT_PAREN, "Expect '(' after 'for'.")
+func (s *Parser) forStatement() (ast.Stmt, error) {
+	_, err := s.consume(ast.LEFT_PAREN, "Expect '(' after 'for'.")
 	if err != nil {
 		return nil, err
 	}
 
-	var initializer Stmt
+	var initializer ast.Stmt
 
-	if s.match(SEMICOLON) {
+	if s.match(ast.SEMICOLON) {
 		initializer = nil
-	} else if s.match(VAR) {
+	} else if s.match(ast.VAR) {
 		initializer, err = s.varDeclaration()
 
 		if err != nil {
@@ -98,23 +99,23 @@ func (s *Parser) forStatement() (Stmt, error) {
 		}
 	}
 
-	var condition Expr
+	var condition ast.Expr
 
-	if !s.check(SEMICOLON) {
+	if !s.check(ast.SEMICOLON) {
 		condition, err = s.expression()
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	_, err = s.consume(SEMICOLON, "Expect ';' after condition.")
+	_, err = s.consume(ast.SEMICOLON, "Expect ';' after condition.")
 	if err != nil {
 		return nil, err
 	}
 
-	var increment Expr
+	var increment ast.Expr
 
-	if !s.check(RIGHT_PAREN) {
+	if !s.check(ast.RIGHT_PAREN) {
 		increment, err = s.expression()
 
 		if err != nil {
@@ -122,7 +123,7 @@ func (s *Parser) forStatement() (Stmt, error) {
 		}
 	}
 
-	_, err = s.consume(RIGHT_PAREN, "Expect ')' after clauses.")
+	_, err = s.consume(ast.RIGHT_PAREN, "Expect ')' after clauses.")
 	if err != nil {
 		return nil, err
 	}
@@ -133,30 +134,24 @@ func (s *Parser) forStatement() (Stmt, error) {
 	}
 
 	if increment != nil {
-		body = NewBlockStmt([]Stmt{body, &ExprStmt{expr: increment}})
+		body = ast.NewBlockStmt([]ast.Stmt{body, ast.NewExprStmt(increment)})
 	}
 
 	if condition == nil {
-		condition = &LiteralExpr{
-			tokenType: TRUE,
-			value:     true,
-		}
+		condition = ast.NewLiteralExpr(ast.TRUE, true)
 	}
 
-	body = &WhileStmt{
-		condition: condition,
-		body:      body,
-	}
+	body = ast.NewWhileStmt(condition, body)
 
 	if initializer != nil {
-		body = NewBlockStmt([]Stmt{initializer, body})
+		body = ast.NewBlockStmt([]ast.Stmt{initializer, body})
 	}
 
 	return body, nil
 }
 
-func (s *Parser) whileStatement() (Stmt, error) {
-	_, err := s.consume(LEFT_PAREN, "Expect '(' after 'while'.")
+func (s *Parser) whileStatement() (ast.Stmt, error) {
+	_, err := s.consume(ast.LEFT_PAREN, "Expect '(' after 'while'.")
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +161,7 @@ func (s *Parser) whileStatement() (Stmt, error) {
 		return nil, err
 	}
 
-	_, err = s.consume(RIGHT_PAREN, "Expect ')' after condition.")
+	_, err = s.consume(ast.RIGHT_PAREN, "Expect ')' after condition.")
 	if err != nil {
 		return nil, err
 	}
@@ -176,54 +171,51 @@ func (s *Parser) whileStatement() (Stmt, error) {
 		return nil, err
 	}
 
-	return &WhileStmt{
-		condition: condition,
-		body:      body,
-	}, nil
+	return ast.NewWhileStmt(condition, body), nil
 }
 
-func (s *Parser) or() (Expr, error) {
+func (s *Parser) or() (ast.Expr, error) {
 	expr, err := s.and()
 	if err != nil {
 		return nil, err
 	}
 
-	for s.match(OR) {
+	for s.match(ast.OR) {
 		operator := s.previous()
 		right, err := s.and()
 		if err != nil {
 			return nil, err
 		}
 
-		expr = NewLogicalExpr(expr, right, operator)
+		expr = ast.NewLogicalExpr(expr, right, operator)
 	}
 
 	return expr, nil
 }
 
-func (s *Parser) and() (Expr, error) {
+func (s *Parser) and() (ast.Expr, error) {
 	expr, err := s.equality()
 	if err != nil {
 		return nil, err
 	}
 
-	for s.match(AND) {
+	for s.match(ast.AND) {
 		operator := s.previous()
 		right, err := s.equality()
 		if err != nil {
 			return nil, err
 		}
 
-		expr = NewLogicalExpr(expr, right, operator)
+		expr = ast.NewLogicalExpr(expr, right, operator)
 	}
 
 	return expr, nil
 }
 
-func (s *Parser) block() ([]Stmt, error) {
-	var stmts []Stmt
+func (s *Parser) block() ([]ast.Stmt, error) {
+	var stmts []ast.Stmt
 
-	for !s.check(RIGHT_BRACE) && !s.isAtEnd() {
+	for !s.check(ast.RIGHT_BRACE) && !s.isAtEnd() {
 		stmt, err := s.declaration()
 
 		if err != nil {
@@ -233,7 +225,7 @@ func (s *Parser) block() ([]Stmt, error) {
 		stmts = append(stmts, stmt)
 	}
 
-	_, err := s.consume(RIGHT_BRACE, "Expect '}' after block.")
+	_, err := s.consume(ast.RIGHT_BRACE, "Expect '}' after block.")
 	if err != nil {
 		return nil, err
 	}
@@ -241,8 +233,8 @@ func (s *Parser) block() ([]Stmt, error) {
 	return stmts, nil
 }
 
-func (s *Parser) ifStatement() (Stmt, error) {
-	_, err := s.consume(LEFT_PAREN, "Expect '(' after 'if'.")
+func (s *Parser) ifStatement() (ast.Stmt, error) {
+	_, err := s.consume(ast.LEFT_PAREN, "Expect '(' after 'if'.")
 	if err != nil {
 		return nil, err
 	}
@@ -252,7 +244,7 @@ func (s *Parser) ifStatement() (Stmt, error) {
 		return nil, err
 	}
 
-	_, err = s.consume(RIGHT_PAREN, "Expect ')' after condition.")
+	_, err = s.consume(ast.RIGHT_PAREN, "Expect ')' after condition.")
 	if err != nil {
 		return nil, err
 	}
@@ -262,9 +254,9 @@ func (s *Parser) ifStatement() (Stmt, error) {
 		return nil, err
 	}
 
-	var el Stmt
+	var el ast.Stmt
 
-	if s.match(ELSE) {
+	if s.match(ast.ELSE) {
 		el, err = s.statement()
 
 		if err != nil {
@@ -272,78 +264,78 @@ func (s *Parser) ifStatement() (Stmt, error) {
 		}
 	}
 
-	return NewIfStmt(condition, then, el), nil
+	return ast.NewIfStmt(condition, then, el), nil
 }
 
-func (s *Parser) expressionStatement() (Stmt, error) {
+func (s *Parser) expressionStatement() (ast.Stmt, error) {
 	expr, err := s.expression()
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = s.consume(SEMICOLON, "Expect ';' after expression.")
+	_, err = s.consume(ast.SEMICOLON, "Expect ';' after expression.")
 	if err != nil {
 		return nil, err
 	}
 
-	return NewExprStmt(expr), nil
+	return ast.NewExprStmt(expr), nil
 }
 
-func (s *Parser) declaration() (Stmt, error) {
-	if s.match(FUN) {
+func (s *Parser) declaration() (ast.Stmt, error) {
+	if s.match(ast.FUN) {
 		return s.function("function")
 	}
 
-	if s.match(VAR) {
+	if s.match(ast.VAR) {
 		return s.varDeclaration()
 	}
 
 	return s.statement()
 }
 
-func (s *Parser) function(kind string) (Stmt, error) {
-	name, err := s.consume(IDENTIFIER, fmt.Sprintf("Expect %s name.", kind))
+func (s *Parser) function(kind string) (ast.Stmt, error) {
+	name, err := s.consume(ast.IDENTIFIER, fmt.Sprintf("Expect %s name.", kind))
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = s.consume(LEFT_PAREN, fmt.Sprintf("Expect '(' after %s name.", kind))
+	_, err = s.consume(ast.LEFT_PAREN, fmt.Sprintf("Expect '(' after %s name.", kind))
 	if err != nil {
 		return nil, err
 	}
 
-	parameters := []Token{}
+	parameters := []ast.Token{}
 
-	if !s.check(RIGHT_PAREN) {
+	if !s.check(ast.RIGHT_PAREN) {
 		for true {
 			if len(parameters) >= MaxArity {
 				return nil, NewRuntimeError(s.peek(), "Cannot have more than 255 parameters.")
 			}
 
-			param, err := s.consume(IDENTIFIER, "Expect parameter name.")
+			param, err := s.consume(ast.IDENTIFIER, "Expect parameter name.")
 			if err != nil {
 				return nil, err
 			}
 
 			parameters = append(parameters, param)
 
-			if !s.match(COMMA) {
+			if !s.match(ast.COMMA) {
 				break
 			}
 		}
 	}
 
-	_, err = s.consume(RIGHT_PAREN, fmt.Sprintf(
+	_, err = s.consume(ast.RIGHT_PAREN, fmt.Sprintf(
 		"Error at '%s': Expect ')' after parameters.",
-		s.peek().lexeme,
+		s.peek().Lexeme,
 	))
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = s.consume(LEFT_BRACE, fmt.Sprintf(
+	_, err = s.consume(ast.LEFT_BRACE, fmt.Sprintf(
 		"Error at '%s': Expect '{' before function body.",
-		s.peek().lexeme,
+		s.peek().Lexeme,
 	))
 	if err != nil {
 		return nil, err
@@ -354,18 +346,18 @@ func (s *Parser) function(kind string) (Stmt, error) {
 		return nil, err
 	}
 
-	return NewFunctionStmt(name, parameters, body), nil
+	return ast.NewFunctionStmt(name, parameters, body), nil
 }
 
-func (s *Parser) varDeclaration() (Stmt, error) {
-	name, err := s.consume(IDENTIFIER, "Expect variable name.")
+func (s *Parser) varDeclaration() (ast.Stmt, error) {
+	name, err := s.consume(ast.IDENTIFIER, "Expect variable name.")
 	if err != nil {
 		return nil, err
 	}
 
-	var initializer Expr
+	var initializer ast.Expr
 
-	if s.match(EQUAL) {
+	if s.match(ast.EQUAL) {
 		initializer, err = s.expression()
 
 		if err != nil {
@@ -373,19 +365,19 @@ func (s *Parser) varDeclaration() (Stmt, error) {
 		}
 	}
 
-	_, err = s.consume(SEMICOLON, "Expect ';' after variable declaration.")
+	_, err = s.consume(ast.SEMICOLON, "Expect ';' after variable declaration.")
 	if err != nil {
 		return nil, err
 	}
 
-	return NewVarStmt(initializer, name), nil
+	return ast.NewVarStmt(initializer, name), nil
 }
 
-func (s *Parser) returnStmt() (Stmt, error) {
+func (s *Parser) returnStmt() (ast.Stmt, error) {
 	keyword := s.previous()
-	var value Expr
+	var value ast.Expr
 
-	if !s.check(SEMICOLON) {
+	if !s.check(ast.SEMICOLON) {
 		v, err := s.expression()
 
 		value = v
@@ -395,54 +387,54 @@ func (s *Parser) returnStmt() (Stmt, error) {
 		}
 	}
 
-	_, err := s.consume(SEMICOLON, "Expect ';' after return value.")
+	_, err := s.consume(ast.SEMICOLON, "Expect ';' after return value.")
 	if err != nil {
 		return nil, err
 	}
 
-	return NewReturnStmt(value, keyword), nil
+	return ast.NewReturnStmt(value, keyword), nil
 }
 
-func (s *Parser) printStmt() (Stmt, error) {
+func (s *Parser) printStmt() (ast.Stmt, error) {
 	expr, err := s.expression()
 
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = s.consume(SEMICOLON, fmt.Sprintf(
+	_, err = s.consume(ast.SEMICOLON, fmt.Sprintf(
 		"Error at '%s': Expect ';' after value.",
-		s.peek().lexeme,
+		s.peek().Lexeme,
 	))
 	if err != nil {
 		return nil, err
 	}
 
-	return NewPrintStmt(expr), nil
+	return ast.NewPrintStmt(expr), nil
 }
 
-func (s *Parser) expression() (Expr, error) {
+func (s *Parser) expression() (ast.Expr, error) {
 	return s.assignment()
 }
 
-func (s *Parser) assignment() (Expr, error) {
+func (s *Parser) assignment() (ast.Expr, error) {
 	expr, err := s.or()
 
 	if err != nil {
 		return nil, err
 	}
 
-	if s.match(EQUAL) {
+	if s.match(ast.EQUAL) {
 		value, err := s.assignment()
 
 		if err != nil {
 			return nil, err
 		}
 
-		if s, ok := expr.(*VarExpr); ok {
-			token := s.name
+		if s, ok := expr.(*ast.VarExpr); ok {
+			token := s.Name
 
-			return NewAssignExpr(token, value), nil
+			return ast.NewAssignExpr(token, value), nil
 		}
 
 		return nil, NewRuntimeError(s.peek(), "Invalid assignment target.")
@@ -451,14 +443,14 @@ func (s *Parser) assignment() (Expr, error) {
 	return expr, nil
 }
 
-func (s *Parser) equality() (Expr, error) {
+func (s *Parser) equality() (ast.Expr, error) {
 	expr, err := s.comparison()
 
 	if err != nil {
 		return nil, err
 	}
 
-	for s.match(BANG_EQUAL, EQUAL_EQUAL) {
+	for s.match(ast.BANG_EQUAL, ast.EQUAL_EQUAL) {
 		operator := s.previous()
 		right, err := s.comparison()
 
@@ -466,20 +458,20 @@ func (s *Parser) equality() (Expr, error) {
 			return nil, err
 		}
 
-		expr = NewBinaryExpr(expr, right, operator)
+		expr = ast.NewBinaryExpr(expr, right, operator)
 	}
 
 	return expr, nil
 }
 
-func (s *Parser) comparison() (Expr, error) {
+func (s *Parser) comparison() (ast.Expr, error) {
 	expr, err := s.term()
 
 	if err != nil {
 		return nil, err
 	}
 
-	for s.match(GREATER, GREATER_EQUAL, LESS, LESS_EQUAL) {
+	for s.match(ast.GREATER, ast.GREATER_EQUAL, ast.LESS, ast.LESS_EQUAL) {
 		operator := s.previous()
 		right, err := s.term()
 
@@ -487,14 +479,14 @@ func (s *Parser) comparison() (Expr, error) {
 			return nil, err
 		}
 
-		expr = NewBinaryExpr(expr, right, operator)
+		expr = ast.NewBinaryExpr(expr, right, operator)
 	}
 
 	return expr, nil
 }
 
-func (s *Parser) unary() (Expr, error) {
-	for s.match(BANG, MINUS) {
+func (s *Parser) unary() (ast.Expr, error) {
+	for s.match(ast.BANG, ast.MINUS) {
 		operator := s.previous()
 		right, err := s.unary()
 
@@ -502,37 +494,37 @@ func (s *Parser) unary() (Expr, error) {
 			return nil, err
 		}
 
-		return NewUnaryExpr(right, operator), nil
+		return ast.NewUnaryExpr(right, operator), nil
 	}
 
 	return s.call()
 }
 
-func (s *Parser) call() (Expr, error) {
+func (s *Parser) call() (ast.Expr, error) {
 	expr, err := s.primary()
 	if err != nil {
 		return nil, err
 	}
 
 	for {
-		if s.match(LEFT_PAREN) {
+		if s.match(ast.LEFT_PAREN) {
 			expr, err = s.finishCall(expr)
 
 			if err != nil {
 				return nil, err
 			}
-		} else if s.match(LEFT_BRACKET) {
+		} else if s.match(ast.LEFT_BRACKET) {
 			index, err := s.expression()
 			if err != nil {
 				return nil, err
 			}
 
-			_, err = s.consume(RIGHT_BRACKET, "Expect ']' after index.")
+			_, err = s.consume(ast.RIGHT_BRACKET, "Expect ']' after index.")
 			if err != nil {
 				return nil, err
 			}
 
-			expr = NewIndexExpr(expr, index, s.previous())
+			expr = ast.NewIndexExpr(expr, index, s.previous())
 		} else {
 			break
 		}
@@ -541,10 +533,10 @@ func (s *Parser) call() (Expr, error) {
 	return expr, nil
 }
 
-func (s *Parser) finishCall(expr Expr) (Expr, error) {
-	args := []Expr{}
+func (s *Parser) finishCall(expr ast.Expr) (ast.Expr, error) {
+	args := []ast.Expr{}
 
-	if !s.check(RIGHT_PAREN) {
+	if !s.check(ast.RIGHT_PAREN) {
 		for true {
 			arg, err := s.expression()
 			if err != nil {
@@ -552,48 +544,48 @@ func (s *Parser) finishCall(expr Expr) (Expr, error) {
 			}
 			args = append(args, arg)
 
-			if !s.match(COMMA) {
+			if !s.match(ast.COMMA) {
 				break
 			}
 		}
 	}
 
-	_, err := s.consume(RIGHT_PAREN, "Expect ')' after arguments.")
+	_, err := s.consume(ast.RIGHT_PAREN, "Expect ')' after arguments.")
 	if err != nil {
 		return nil, err
 	}
 
-	return NewCallExpr(s.previous(), expr, args), nil
+	return ast.NewCallExpr(s.previous(), expr, args), nil
 }
 
-func (s *Parser) term() (Expr, error) {
+func (s *Parser) term() (ast.Expr, error) {
 	expr, err := s.factor()
 
 	if err != nil {
 		return nil, err
 	}
 
-	for s.match(PLUS, MINUS) {
+	for s.match(ast.PLUS, ast.MINUS) {
 		operator := s.previous()
 		right, err := s.factor()
 		if err != nil {
 			return nil, err
 		}
 
-		expr = NewBinaryExpr(expr, right, operator)
+		expr = ast.NewBinaryExpr(expr, right, operator)
 	}
 
 	return expr, nil
 }
 
-func (s *Parser) factor() (Expr, error) {
+func (s *Parser) factor() (ast.Expr, error) {
 	expr, err := s.unary()
 
 	if err != nil {
 		return nil, err
 	}
 
-	for s.match(SLASH, STAR) {
+	for s.match(ast.SLASH, ast.STAR) {
 		operator := s.previous()
 		right, err := s.unary()
 
@@ -601,18 +593,18 @@ func (s *Parser) factor() (Expr, error) {
 			return nil, err
 		}
 
-		expr = NewBinaryExpr(expr, right, operator)
+		expr = ast.NewBinaryExpr(expr, right, operator)
 	}
 
 	return expr, nil
 }
 
-func (s *Parser) primary() (Expr, error) {
-	if s.match(LEFT_BRACKET) {
-		var items []Expr
+func (s *Parser) primary() (ast.Expr, error) {
+	if s.match(ast.LEFT_BRACKET) {
+		var items []ast.Expr
 
 		// Parse array elements until closing bracket
-		if !s.check(RIGHT_BRACKET) {
+		if !s.check(ast.RIGHT_BRACKET) {
 			for {
 				elem, err := s.expression()
 				if err != nil {
@@ -620,71 +612,71 @@ func (s *Parser) primary() (Expr, error) {
 				}
 				items = append(items, elem)
 
-				if !s.match(COMMA) {
+				if !s.match(ast.COMMA) {
 					break
 				}
 			}
 		}
 
-		_, err := s.consume(RIGHT_BRACKET, "Expect ']' after array elements.")
+		_, err := s.consume(ast.RIGHT_BRACKET, "Expect ']' after array elements.")
 		if err != nil {
 			return nil, err
 		}
 
-		return NewArrayExpr(s.previous(), items), nil
+		return ast.NewArrayExpr(s.previous(), items), nil
 	}
 
-	if s.match(TRUE) {
-		return NewLiteralExpr(TRUE, true), nil
+	if s.match(ast.TRUE) {
+		return ast.NewLiteralExpr(ast.TRUE, true), nil
 	}
 
-	if s.match(FALSE) {
-		return NewLiteralExpr(FALSE, false), nil
+	if s.match(ast.FALSE) {
+		return ast.NewLiteralExpr(ast.FALSE, false), nil
 	}
 
-	if s.match(NIL) {
-		return NewLiteralExpr(NIL, nil), nil
+	if s.match(ast.NIL) {
+		return ast.NewLiteralExpr(ast.NIL, nil), nil
 	}
 
-	if s.match(NUMBER) {
+	if s.match(ast.NUMBER) {
 		prev := s.previous()
-		value, err := strconv.ParseFloat(prev.literal, 64)
+		value, err := strconv.ParseFloat(prev.Literal, 64)
 
 		if err != nil {
 			return nil, NewRuntimeError(prev, "Invalid number.")
 		}
 
-		return NewLiteralExpr(NUMBER, value), nil
+		return ast.NewLiteralExpr(ast.NUMBER, value), nil
 	}
 
-	if s.match(STRING) {
+	if s.match(ast.STRING) {
 		prev := s.previous()
 
-		return NewLiteralExpr(STRING, prev.literal), nil
+		return ast.NewLiteralExpr(ast.STRING, prev.Literal), nil
 	}
 
-	if s.match(IDENTIFIER) {
+	if s.match(ast.IDENTIFIER) {
 		prev := s.previous()
 
-		return NewVarExpr(prev), nil
+		return ast.NewVarExpr(prev), nil
 	}
 
-	if s.match(LEFT_PAREN) {
+	if s.match(ast.LEFT_PAREN) {
 		expr, err := s.expression()
 
 		if err != nil {
 			return nil, err
 		}
 
-		_, err = s.consume(RIGHT_PAREN, fmt.Sprintf(
+		_, err = s.consume(ast.RIGHT_PAREN, fmt.Sprintf(
 			"Error at '%s': Expect ')' after expression.",
-			s.peek().lexeme,
+			s.peek().Lexeme,
 		))
 		if err != nil {
 			return nil, err
 		}
 
-		return NewGroupingExpr(expr), nil
+		return ast.NewGroupingExpr(expr), nil
 	}
 
 	current := s.peek()
@@ -692,7 +684,7 @@ func (s *Parser) primary() (Expr, error) {
 	return nil, NewRuntimeError(current, "Expect expression.")
 }
 
-func (s *Parser) match(tokenTypes ...TokenType) bool {
+func (s *Parser) match(tokenTypes ...ast.TokenType) bool {
 	for _, tokenType := range tokenTypes {
 		if s.check(tokenType) {
 			s.advance()
@@ -705,19 +697,19 @@ func (s *Parser) match(tokenTypes ...TokenType) bool {
 	return false
 }
 
-func (s *Parser) check(tokenType TokenType) bool {
+func (s *Parser) check(tokenType ast.TokenType) bool {
 	if s.isAtEnd() {
 		return false
 	}
 
-	if s.peek().tokenType == tokenType {
+	if s.peek().TokenType == tokenType {
 		return true
 	}
 
 	return false
 }
 
-func (s *Parser) advance() Token {
+func (s *Parser) advance() ast.Token {
 	if !s.isAtEnd() {
 		s.current++
 	}
@@ -725,22 +717,22 @@ func (s *Parser) advance() Token {
 	return s.previous()
 }
 
-func (s *Parser) consume(tokenType TokenType, errMsg string) (Token, error) {
+func (s *Parser) consume(tokenType ast.TokenType, errMsg string) (ast.Token, error) {
 	if s.check(tokenType) {
 		return s.advance(), nil
 	}
 
-	return Token{}, NewRuntimeError(s.peek(), errMsg)
+	return ast.Token{}, NewRuntimeError(s.peek(), errMsg)
 }
 
-func (s *Parser) peek() Token {
+func (s *Parser) peek() ast.Token {
 	return s.tokens[s.current]
 }
 
 func (s *Parser) isAtEnd() bool {
-	return s.peek().tokenType == EOF
+	return s.peek().TokenType == ast.EOF
 }
 
-func (s *Parser) previous() Token {
+func (s *Parser) previous() ast.Token {
 	return s.tokens[s.current-1]
 }

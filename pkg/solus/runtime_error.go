@@ -1,20 +1,23 @@
 package solus
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/codecrafters-io/interpreter-starter-go/pkg/ast"
+)
 
 type RuntimeError struct {
-	token  Token
+	token  ast.Token
 	errMsg string
 }
 
 func (e RuntimeError) Error() string {
 	return fmt.Sprintf(
 		"[line: %d] %s",
-		e.token.line,
+		e.token.Line,
 		e.errMsg,
 	)
 }
 
-func NewRuntimeError(token Token, msg string) error {
+func NewRuntimeError(token ast.Token, msg string) error {
 	return RuntimeError{token: token, errMsg: msg}
 }
