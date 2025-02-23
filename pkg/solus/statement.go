@@ -16,13 +16,25 @@ type VarStmt struct {
 	name        Token
 }
 
+func NewVarStmt(initializer Expr, name Token) Stmt {
+	return &VarStmt{initializer: initializer, name: name}
+}
+
 type ReturnStmt struct {
 	value   Expr
 	keyword Token
 }
 
+func NewReturnStmt(value Expr, keyword Token) Stmt {
+	return &ReturnStmt{value: value, keyword: keyword}
+}
+
 type PrintStmt struct {
 	expr Expr
+}
+
+func NewPrintStmt(expr Expr) Stmt {
+	return &PrintStmt{expr: expr}
 }
 
 type ExprStmt struct {
@@ -60,6 +72,10 @@ type FunctionStmt struct {
 	name       Token
 	parameters []Token
 	body       []Stmt
+}
+
+func NewFunctionStmt(name Token, parameters []Token, body []Stmt) Stmt {
+	return &FunctionStmt{name: name, parameters: parameters, body: body}
 }
 
 type Stmt interface {

@@ -354,11 +354,7 @@ func (s *Parser) function(kind string) (Stmt, error) {
 		return nil, err
 	}
 
-	return &FunctionStmt{
-		name:       name,
-		body:       body,
-		parameters: parameters,
-	}, nil
+	return NewFunctionStmt(name, parameters, body), nil
 }
 
 func (s *Parser) varDeclaration() (Stmt, error) {
@@ -382,10 +378,7 @@ func (s *Parser) varDeclaration() (Stmt, error) {
 		return nil, err
 	}
 
-	return &VarStmt{
-		initializer: initializer,
-		name:        name,
-	}, nil
+	return NewVarStmt(initializer, name), nil
 }
 
 func (s *Parser) returnStmt() (Stmt, error) {
@@ -407,10 +400,7 @@ func (s *Parser) returnStmt() (Stmt, error) {
 		return nil, err
 	}
 
-	return &ReturnStmt{
-		value:   value,
-		keyword: keyword,
-	}, nil
+	return NewReturnStmt(value, keyword), nil
 }
 
 func (s *Parser) printStmt() (Stmt, error) {
@@ -428,9 +418,7 @@ func (s *Parser) printStmt() (Stmt, error) {
 		return nil, err
 	}
 
-	return &PrintStmt{
-		expr: expr,
-	}, nil
+	return NewPrintStmt(expr), nil
 }
 
 func (s *Parser) expression() (Expr, error) {
@@ -454,10 +442,7 @@ func (s *Parser) assignment() (Expr, error) {
 		if s, ok := expr.(*VarExpr); ok {
 			token := s.name
 
-			return &AssignExpr{
-				name:  token,
-				value: value,
-			}, nil
+			return NewAssignExpr(token, value), nil
 		}
 
 		return nil, NewRuntimeError(s.peek(), "Invalid assignment target.")
@@ -481,11 +466,7 @@ func (s *Parser) equality() (Expr, error) {
 			return nil, err
 		}
 
-		expr = &BinaryExpr{
-			left:     expr,
-			right:    right,
-			operator: operator,
-		}
+		expr = NewBinaryExpr(expr, right, operator)
 	}
 
 	return expr, nil
@@ -506,11 +487,7 @@ func (s *Parser) comparison() (Expr, error) {
 			return nil, err
 		}
 
-		expr = &BinaryExpr{
-			left:     expr,
-			right:    right,
-			operator: operator,
-		}
+		expr = NewBinaryExpr(expr, right, operator)
 	}
 
 	return expr, nil
@@ -525,10 +502,7 @@ func (s *Parser) unary() (Expr, error) {
 			return nil, err
 		}
 
-		return &UnaryExpr{
-			right:    right,
-			operator: operator,
-		}, nil
+		return NewUnaryExpr(right, operator), nil
 	}
 
 	return s.call()
@@ -558,7 +532,7 @@ func (s *Parser) call() (Expr, error) {
 				return nil, err
 			}
 
-			expr = &IndexExpr{array: expr, index: index, token: s.previous()}
+			expr = NewIndexExpr(expr, index, s.previous())
 		} else {
 			break
 		}
@@ -589,11 +563,7 @@ func (s *Parser) finishCall(expr Expr) (Expr, error) {
 		return nil, err
 	}
 
-	return &CallExpr{
-		token:  s.previous(),
-		callee: expr,
-		args:   args,
-	}, nil
+	return NewCallExpr(s.previous(), expr, args), nil
 }
 
 func (s *Parser) term() (Expr, error) {
@@ -610,11 +580,7 @@ func (s *Parser) term() (Expr, error) {
 			return nil, err
 		}
 
-		expr = &BinaryExpr{
-			left:     expr,
-			right:    right,
-			operator: operator,
-		}
+		expr = NewBinaryExpr(expr, right, operator)
 	}
 
 	return expr, nil
@@ -635,11 +601,7 @@ func (s *Parser) factor() (Expr, error) {
 			return nil, err
 		}
 
-		expr = &BinaryExpr{
-			left:     expr,
-			right:    right,
-			operator: operator,
-		}
+		expr = NewBinaryExpr(expr, right, operator)
 	}
 
 	return expr, nil
@@ -669,28 +631,19 @@ func (s *Parser) primary() (Expr, error) {
 			return nil, err
 		}
 
-		return &ArrayExpr{items: items}, nil
+		return NewArrayExpr(s.previous(), items), nil
 	}
 
 	if s.match(TRUE) {
-		return &LiteralExpr{
-			value:     true,
-			tokenType: TRUE,
-		}, nil
+		return NewLiteralExpr(TRUE, true), nil
 	}
 
 	if s.match(FALSE) {
-		return &LiteralExpr{
-			value:     false,
-			tokenType: FALSE,
-		}, nil
+		return NewLiteralExpr(FALSE, false), nil
 	}
 
 	if s.match(NIL) {
-		return &LiteralExpr{
-			value:     nil,
-			tokenType: NIL,
-		}, nil
+		return NewLiteralExpr(NIL, nil), nil
 	}
 
 	if s.match(NUMBER) {
@@ -701,27 +654,19 @@ func (s *Parser) primary() (Expr, error) {
 			return nil, NewRuntimeError(prev, "Invalid number.")
 		}
 
-		return &LiteralExpr{
-			value:     value,
-			tokenType: NUMBER,
-		}, nil
+		return NewLiteralExpr(NUMBER, value), nil
 	}
 
 	if s.match(STRING) {
 		prev := s.previous()
 
-		return &LiteralExpr{
-			value:     prev.literal,
-			tokenType: STRING,
-		}, nil
+		return NewLiteralExpr(STRING, prev.literal), nil
 	}
 
 	if s.match(IDENTIFIER) {
 		prev := s.previous()
 
-		return &VarExpr{
-			name: prev,
-		}, nil
+		return NewVarExpr(prev), nil
 	}
 
 	if s.match(LEFT_PAREN) {
@@ -739,9 +684,7 @@ func (s *Parser) primary() (Expr, error) {
 			return nil, err
 		}
 
-		return &GroupingExpr{
-			expr: expr,
-		}, nil
+		return NewGroupingExpr(expr), nil
 	}
 
 	current := s.peek()

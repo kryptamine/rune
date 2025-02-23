@@ -20,22 +20,31 @@ type Expr interface {
 }
 
 type BinaryExpr struct {
-	Expr
 	left     Expr
 	right    Expr
 	operator Token
 }
 
+func NewBinaryExpr(left Expr, right Expr, operator Token) Expr {
+	return &BinaryExpr{left: left, right: right, operator: operator}
+}
+
 type AssignExpr struct {
-	Expr
 	name  Token
 	value Expr
 }
 
+func NewAssignExpr(name Token, value Expr) Expr {
+	return &AssignExpr{name: name, value: value}
+}
+
 type UnaryExpr struct {
-	Expr
 	right    Expr
 	operator Token
+}
+
+func NewUnaryExpr(right Expr, operator Token) Expr {
+	return &UnaryExpr{right: right, operator: operator}
 }
 
 type LiteralExpr struct {
@@ -43,8 +52,16 @@ type LiteralExpr struct {
 	value     any
 }
 
+func NewLiteralExpr(tokenType TokenType, value any) Expr {
+	return &LiteralExpr{tokenType: tokenType, value: value}
+}
+
 type VarExpr struct {
 	name Token
+}
+
+func NewVarExpr(name Token) Expr {
+	return &VarExpr{name: name}
 }
 
 type LogicalExpr struct {
@@ -61,10 +78,18 @@ type GroupingExpr struct {
 	expr Expr
 }
 
+func NewGroupingExpr(expr Expr) Expr {
+	return &GroupingExpr{expr: expr}
+}
+
 type CallExpr struct {
 	token  Token
 	callee Expr
 	args   []Expr
+}
+
+func NewCallExpr(token Token, callee Expr, args []Expr) Expr {
+	return &CallExpr{token: token, callee: callee, args: args}
 }
 
 type ArrayExpr struct {
@@ -72,10 +97,18 @@ type ArrayExpr struct {
 	items []Expr
 }
 
+func NewArrayExpr(token Token, items []Expr) Expr {
+	return &ArrayExpr{token: token, items: items}
+}
+
 type IndexExpr struct {
 	token Token
 	array Expr
 	index Expr
+}
+
+func NewIndexExpr(array Expr, index Expr, token Token) Expr {
+	return &IndexExpr{array: array, index: index, token: token}
 }
 
 func (n *ArrayExpr) accept(v ExprVisitor) (any, error) {
