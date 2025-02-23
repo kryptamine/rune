@@ -434,6 +434,11 @@ func (s *Parser) assignment() (ast.Expr, error) {
 			return nil, err
 		}
 
+		// Check for array indexing.
+		if arrayExpr, ok := expr.(*ast.IndexExpr); ok {
+			return ast.NewSetIndexExpr(arrayExpr.Token, arrayExpr.Array, arrayExpr.Index, value), nil
+		}
+
 		if s, ok := expr.(*ast.VarExpr); ok {
 			token := s.Name
 

@@ -13,6 +13,7 @@ type ExprVisitor interface {
 	VisitCallExpr(callExpr *CallExpr) (any, error)
 	VisitArrayExpr(arrayExpr *ArrayExpr) (any, error)
 	VisitIndexExpr(indexExpr *IndexExpr) (any, error)
+	VisitSetIndexExpr(setIndexExpr *SetIndexExpr) (any, error)
 }
 
 type Expr interface {
@@ -107,6 +108,17 @@ type IndexExpr struct {
 	Index Expr
 }
 
+type SetIndexExpr struct {
+	Token Token
+	Array Expr
+	Index Expr
+	Value Expr
+}
+
+func NewSetIndexExpr(token Token, array Expr, index Expr, value Expr) Expr {
+	return &SetIndexExpr{Array: array, Index: index, Value: value, Token: token}
+}
+
 func NewIndexExpr(array Expr, index Expr, token Token) Expr {
 	return &IndexExpr{Array: array, Index: index, Token: token}
 }
@@ -183,4 +195,8 @@ func (n *LogicalExpr) Accept(v ExprVisitor) (any, error) {
 
 func (n *CallExpr) Accept(v ExprVisitor) (any, error) {
 	return v.VisitCallExpr(n)
+}
+
+func (n *SetIndexExpr) Accept(v ExprVisitor) (any, error) {
+	return v.VisitSetIndexExpr(n)
 }

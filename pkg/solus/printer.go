@@ -55,3 +55,7 @@ func (p *PrintVisitor) VisitArrayExpr(node *ast.ArrayExpr) (any, error) {
 func (p *PrintVisitor) VisitIndexExpr(node *ast.IndexExpr) (any, error) {
 	return p.printNode(node)
 }
+
+func (p *PrintVisitor) VisitSetIndexExpr(node *ast.SetIndexExpr) (any, error) {
+	return p.printNode(node)
+}
