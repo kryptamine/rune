@@ -3,23 +3,24 @@ package solus
 import (
 	"fmt"
 	"github.com/codecrafters-io/interpreter-starter-go/pkg/ast"
+	"github.com/codecrafters-io/interpreter-starter-go/pkg/environment"
 )
 
 // FunctionCallable is a callable that represents a function.
 type FunctionCallable struct {
 	declaration *ast.FunctionStmt
-	environment *Environment
+	environment *environment.Environment
 }
 
 func (f *FunctionCallable) Call(interpreter *Interpreter, args []any, _ ast.Token) (any, error) {
-	env := NewEnvironment(f.environment)
+	env := environment.NewEnvironment(f.environment)
 
 	for i, param := range f.declaration.Parameters {
 		if len(args) <= i {
 			continue
 		}
 
-		env.define(param.Lexeme, args[i])
+		env.Define(param.Lexeme, args[i])
 	}
 
 	err := interpreter.executeBlock(f.declaration.Body, env)

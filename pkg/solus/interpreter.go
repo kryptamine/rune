@@ -3,12 +3,13 @@ package solus
 import (
 	"fmt"
 	"github.com/codecrafters-io/interpreter-starter-go/pkg/ast"
+	"github.com/codecrafters-io/interpreter-starter-go/pkg/environment"
 	"github.com/codecrafters-io/interpreter-starter-go/pkg/errors"
 	"github.com/codecrafters-io/interpreter-starter-go/pkg/helpers"
 )
 
 type Interpreter struct {
-	environment *Environment
+	environment *environment.Environment
 }
 
 func EvaluateExpr(expr ast.Expr) (any, error) {
@@ -16,15 +17,16 @@ func EvaluateExpr(expr ast.Expr) (any, error) {
 }
 
 func EvaluateStmts(stmts []ast.Stmt) error {
-	globals := NewEnvironment(nil)
-
-	globals.RegisterGlobalCallable("clock", NewClockCallable())
-	globals.RegisterGlobalCallable("len", NewLenCallable())
-	globals.RegisterGlobalCallable("append", NewAppendCallable())
+	globals := environment.NewEnvironment(nil)
 
 	p := &Interpreter{
 		environment: globals,
 	}
+
+	// Global functions.
+	p.registerGlobalCallable("clock", NewClockCallable())
+	p.registerGlobalCallable("len", NewLenCallable())
+	p.registerGlobalCallable("append", NewAppendCallable())
 
 	for _, stmt := range stmts {
 		err := stmt.Accept(p)
@@ -34,6 +36,10 @@ func EvaluateStmts(stmts []ast.Stmt) error {
 	}
 
 	return nil
+}
+
+func (p *Interpreter) registerGlobalCallable(name string, value Callable) {
+	p.environment.Define(name, value)
 }
 
 func (p *Interpreter) VisitReturnStmt(returnStmt *ast.ReturnStmt) error {
@@ -126,9 +132,9 @@ func (p *Interpreter) VisitVarStmt(varStmt *ast.VarStmt) error {
 			return err
 		}
 
-		p.environment.define(varStmt.Name.Lexeme, value)
+		p.environment.Define(varStmt.Name.Lexeme, value)
 	} else {
-		p.environment.define(varStmt.Name.Lexeme, nil)
+		p.environment.Define(varStmt.Name.Lexeme, nil)
 	}
 
 	return nil
@@ -174,7 +180,7 @@ func (p *Interpreter) VisitFunctionStmt(functionStmt *ast.FunctionStmt) error {
 		return errors.NewRuntimeError(functionStmt.Name, "Function name is required.")
 	}
 
-	p.environment.define(functionStmt.Name.Lexeme, function)
+	p.environment.Define(functionStmt.Name.Lexeme, function)
 	return nil
 }
 
@@ -194,10 +200,10 @@ func (p *Interpreter) VisitIfStmt(ifStmt *ast.IfStmt) error {
 }
 
 func (p *Interpreter) VisitBlockStmt(blockStmt *ast.BlockStmt) error {
-	return p.executeBlock(blockStmt.Stmts, NewEnvironment(p.environment))
+	return p.executeBlock(blockStmt.Stmts, environment.NewEnvironment(p.environment))
 }
 
-func (p *Interpreter) executeBlock(statements []ast.Stmt, env *Environment) error {
+func (p *Interpreter) executeBlock(statements []ast.Stmt, env *environment.Environment) error {
 	prevEnv := p.environment
 	p.environment = env
 
@@ -216,7 +222,7 @@ func (p *Interpreter) executeBlock(statements []ast.Stmt, env *Environment) erro
 }
 
 func (p *Interpreter) VisitVarExpr(node *ast.VarExpr) (any, error) {
-	return p.environment.get(node.Name)
+	return p.environment.Get(node.Name)
 }
 
 func (p *Interpreter) VisitAssignExpr(node *ast.AssignExpr) (any, error) {
@@ -225,7 +231,7 @@ func (p *Interpreter) VisitAssignExpr(node *ast.AssignExpr) (any, error) {
 		return nil, err
 	}
 
-	p.environment.assign(node.Name, value)
+	p.environment.Assign(node.Name, value)
 
 	return value, nil
 }
