@@ -1,3 +1,6 @@
+# Build artifacts.
 /build
-program.rn
 rune
+
+# Test program.
+program.rn

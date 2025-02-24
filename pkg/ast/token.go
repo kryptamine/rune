@@ -37,7 +37,6 @@ const (
 	VAR
 	AND
 	OR
-	CLASS
 	ELSE
 	FALSE
 	FUN
@@ -46,8 +45,6 @@ const (
 	NIL
 	PRINT
 	RETURN
-	SUPER
-	THIS
 	TRUE
 	WHILE
 
@@ -79,6 +76,8 @@ const (
 	GREATER_EQUAL
 
 	// Types
+	OBJECT
+	ARRAY
 	STRING
 	NUMBER
 )
@@ -87,7 +86,6 @@ var Keywords = map[string]TokenType{
 	"var":    VAR,
 	"and":    AND,
 	"or":     OR,
-	"class":  CLASS,
 	"else":   ELSE,
 	"false":  FALSE,
 	"fun":    FUN,
@@ -96,8 +94,6 @@ var Keywords = map[string]TokenType{
 	"nil":    NIL,
 	"print":  PRINT,
 	"return": RETURN,
-	"super":  SUPER,
-	"this":   THIS,
 	"true":   TRUE,
 	"while":  WHILE,
 }
@@ -128,6 +124,10 @@ func (tokenType TokenType) String() string {
 		return "STRING"
 	case NUMBER:
 		return "NUMBER"
+	case ARRAY:
+		return "ARRAY"
+	case OBJECT:
+		return "OBJECT"
 
 		// keywords
 	case VAR:
@@ -135,8 +135,6 @@ func (tokenType TokenType) String() string {
 	case AND:
 		return "AND"
 
-	case CLASS:
-		return "CLASS"
 	case ELSE:
 		return "ELSE"
 	case FALSE:
@@ -153,10 +151,6 @@ func (tokenType TokenType) String() string {
 		return "PRINT"
 	case RETURN:
 		return "RETURN"
-	case SUPER:
-		return "SUPER"
-	case THIS:
-		return "THIS"
 	case TRUE:
 		return "TRUE"
 	case WHILE:

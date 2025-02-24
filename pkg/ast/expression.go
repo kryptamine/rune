@@ -95,12 +95,12 @@ func NewCallExpr(token Token, callee Expr, args []Expr) Expr {
 }
 
 type ArrayExpr struct {
-	Token Token
-	Items []Expr
+	TokenType TokenType
+	Items     []Expr
 }
 
-func NewArrayExpr(token Token, items []Expr) Expr {
-	return &ArrayExpr{Token: token, Items: items}
+func NewArrayExpr(tokenType TokenType, items []Expr) Expr {
+	return &ArrayExpr{TokenType: tokenType, Items: items}
 }
 
 type IndexExpr struct {
@@ -125,12 +125,12 @@ func NewSetIndexExpr(token Token, array Expr, index Expr, value Expr) Expr {
 }
 
 type ObjectExpr struct {
-	Token Token
-	Pairs map[string]Expr
+	TokenType TokenType
+	Pairs     map[string]Expr
 }
 
-func NewObjectExpr(token Token, pairs map[string]Expr) Expr {
-	return &ObjectExpr{Token: token, Pairs: pairs}
+func NewObjectExpr(tokenType TokenType, pairs map[string]Expr) Expr {
+	return &ObjectExpr{TokenType: tokenType, Pairs: pairs}
 }
 
 func (n *ObjectExpr) Accept(v ExprVisitor) (any, error) {

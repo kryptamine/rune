@@ -40,12 +40,16 @@ func main() {
 		for _, token := range tokens {
 			fmt.Println(token)
 		}
-		if len(errors) > 0 {
-			for _, err := range errors {
-				fmt.Fprintf(os.Stderr, "%v\n", err)
-			}
-			os.Exit(65)
+
+		if len(errors) == 0 {
+			return
 		}
+
+		for _, err := range errors {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+		}
+
+		os.Exit(65)
 
 	case "evaluate":
 		if len(errors) > 0 {
