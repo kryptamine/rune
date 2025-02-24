@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
-	"rune/pkg/solus"
+	"rune/pkg/rune"
 )
 
 func main() {
@@ -22,7 +22,7 @@ func main() {
 		return
 	}
 
-	tokens, errors := solus.Scan(fileContents)
+	tokens, errors := rune.Scan(fileContents)
 
 	switch command {
 	case "tokenize":
@@ -45,28 +45,28 @@ func main() {
 			return
 		}
 
-		expr, err := solus.ParseExpr(tokens)
+		expr, err := rune.ParseExpr(tokens)
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			os.Exit(65)
 		}
 
-		solus.PrintExpr(expr)
+		rune.PrintExpr(expr)
 		break
 	case "evaluate":
 		if len(errors) > 0 {
 			os.Exit(65)
 		}
 
-		expr, err := solus.ParseExpr(tokens)
+		expr, err := rune.ParseExpr(tokens)
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			os.Exit(65)
 		}
 
-		result, err := solus.EvaluateExpr(expr)
+		result, err := rune.EvaluateExpr(expr)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			os.Exit(70)
@@ -80,14 +80,14 @@ func main() {
 		break
 
 	case "run":
-		stmts, err := solus.ParseStmts(tokens)
+		stmts, err := rune.ParseStmts(tokens)
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			os.Exit(65)
 		}
 
-		err = solus.EvaluateStmts(stmts)
+		err = rune.EvaluateStmts(stmts)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			os.Exit(70)
