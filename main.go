@@ -6,10 +6,22 @@ import (
 	"rune/pkg/rune"
 )
 
+func printUsage() {
+	fmt.Fprintf(os.Stderr, "Rune Interpreter v0.1\n")
+	fmt.Fprintf(os.Stderr, "Copyright: Alexander Satretdinov (c)\n")
+	fmt.Fprintf(os.Stderr, "A simple interpreter for processing and evaluating scripts.\n\n")
+	fmt.Fprintf(os.Stderr, "Usage: rune <command> <filename>\n")
+	fmt.Fprintf(os.Stderr, "Commands:\n")
+	fmt.Fprintf(os.Stderr, "  tokenize  - Tokenizes the input file\n")
+	fmt.Fprintf(os.Stderr, "  evaluate  - Evaluates a single expression from the input file\n")
+	fmt.Fprintf(os.Stderr, "  run       - Runs the program from the input file\n")
+	os.Exit(1)
+}
+
 func main() {
 	if len(os.Args) < 3 {
-		fmt.Fprintln(os.Stderr, "Usage: ./your_program.sh tokenize <filename>")
-		os.Exit(1)
+		printUsage()
+		return
 	}
 
 	command := os.Args[1]
@@ -19,7 +31,6 @@ func main() {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error reading file: %v\n", err)
 		os.Exit(1)
-		return
 	}
 
 	tokens, errors := rune.Scan(fileContents)
@@ -29,38 +40,19 @@ func main() {
 		for _, token := range tokens {
 			fmt.Println(token)
 		}
-
 		if len(errors) > 0 {
 			for _, err := range errors {
 				fmt.Fprintf(os.Stderr, "%v\n", err)
 			}
-
-			os.Exit(65)
-			return
-		}
-		break
-	case "parse":
-		if len(errors) > 0 {
-			os.Exit(65)
-			return
-		}
-
-		expr, err := rune.ParseExpr(tokens)
-
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "%v\n", err)
 			os.Exit(65)
 		}
 
-		rune.PrintExpr(expr)
-		break
 	case "evaluate":
 		if len(errors) > 0 {
 			os.Exit(65)
 		}
 
 		expr, err := rune.ParseExpr(tokens)
-
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			os.Exit(65)
@@ -72,30 +64,21 @@ func main() {
 			os.Exit(70)
 		}
 
-		if result == nil {
-			result = "nil"
-		}
-
-		fmt.Print(result)
-		break
+		fmt.Println(result)
 
 	case "run":
 		stmts, err := rune.ParseStmts(tokens)
-
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			os.Exit(65)
 		}
 
-		err = rune.EvaluateStmts(stmts)
-		if err != nil {
+		if err := rune.EvaluateStmts(stmts); err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			os.Exit(70)
 		}
-		break
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)
-		os.Exit(1)
-		break
+		printUsage()
 	}
 }
