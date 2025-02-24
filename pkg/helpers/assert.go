@@ -9,7 +9,7 @@ func IsTruthy(val any) bool {
 	case bool:
 		return i2
 	case string:
-		return true
+		return len(i2) != 0
 	case float64:
 		return i2 != 0.0
 	default:

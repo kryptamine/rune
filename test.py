@@ -36,14 +36,14 @@ class Interpreter:
         self.tests = tests
 
 
-def c_interpreter(name, tests):
-    path = "/tmp/interpreter-target"
+def suite(name, tests):
+    path = "./rune"
 
     INTERPRETERS[name] = Interpreter(name, [path], tests)
     SUITES.append(name)
 
 
-c_interpreter(
+suite(
     "clox",
     {
         "test": "pass",
@@ -53,7 +53,7 @@ c_interpreter(
     },
 )
 
-c_interpreter(
+suite(
     "chap17_compiling",
     {
         # No real interpreter yet.
@@ -62,7 +62,7 @@ c_interpreter(
     },
 )
 
-c_interpreter(
+suite(
     "chap18_types",
     {
         # No real interpreter yet.
@@ -71,7 +71,7 @@ c_interpreter(
     },
 )
 
-c_interpreter(
+suite(
     "chap19_strings",
     {
         # No real interpreter yet.
@@ -80,7 +80,7 @@ c_interpreter(
     },
 )
 
-c_interpreter(
+suite(
     "chap20_hash",
     {
         # No real interpreter yet.
@@ -89,7 +89,7 @@ c_interpreter(
     },
 )
 
-c_interpreter(
+suite(
     "chap21_global",
     {
         "test": "pass",
@@ -135,7 +135,7 @@ c_interpreter(
     },
 )
 
-c_interpreter(
+suite(
     "chap22_local",
     {
         "test": "pass",
@@ -168,7 +168,7 @@ c_interpreter(
     },
 )
 
-c_interpreter(
+suite(
     "chap23_jumping",
     {
         "test": "pass",
@@ -200,7 +200,7 @@ c_interpreter(
     },
 )
 
-c_interpreter(
+suite(
     "chap24_calls",
     {
         "test": "pass",
@@ -219,7 +219,7 @@ c_interpreter(
     },
 )
 
-c_interpreter(
+suite(
     "chap25_closures",
     {
         "test": "pass",
@@ -359,7 +359,7 @@ class Test:
         # Make sure the stack trace has the right line. Skip over any lines that
         # come from builtin libraries.
         match = False
-        stack_lines = error_lines[line + 1 :]
+        stack_lines = error_lines[line:]
         for stack_line in stack_lines:
             match = STACK_TRACE_RE.search(stack_line)
             if match:
@@ -371,10 +371,6 @@ class Test:
                 self.fail(stack_line)
         else:
             pass
-            # stack_line = int(match.group(1))
-            # if stack_line != self.runtime_error_line:
-            #   self.fail('Expected runtime error on line {0} but was on line {1}.',
-            #       self.runtime_error_line, stack_line)
 
     def validate_compile_errors(self, error_lines):
         # Validate that every compile error was expected.

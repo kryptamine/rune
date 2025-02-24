@@ -11,6 +11,7 @@ import (
 
 type Interpreter struct {
 	environment *environment.Environment
+	isFunction  bool
 }
 
 func EvaluateExpr(expr ast.Expr) (any, error) {
@@ -45,6 +46,16 @@ func (p *Interpreter) registerGlobalCallable(name string, value callable.Callabl
 }
 
 func (p *Interpreter) VisitReturnStmt(returnStmt *ast.ReturnStmt) error {
+	if !p.isFunction {
+		return errors.NewRuntimeError(
+			returnStmt.Keyword,
+			fmt.Sprintf(
+				"Error at '%s': Cannot return from top-level code.",
+				returnStmt.Keyword.Lexeme,
+			),
+		)
+	}
+
 	if returnStmt.Value == nil {
 		return callable.NewReturn(nil)
 	}
@@ -169,7 +180,7 @@ func (p *Interpreter) VisitCallExpr(callExpr *ast.CallExpr) (any, error) {
 		return callable.Call(p.executeBlock, args, callExpr.Token)
 	}
 
-	return nil, errors.NewRuntimeError(callExpr.Token, "Can only call functions and classes.")
+	return nil, errors.NewRuntimeError(callExpr.Token, "Can only call functions.")
 }
 
 func (p *Interpreter) VisitFunctionStmt(functionStmt *ast.FunctionStmt) error {
@@ -205,9 +216,11 @@ func (p *Interpreter) VisitBlockStmt(blockStmt *ast.BlockStmt) error {
 func (p *Interpreter) executeBlock(statements []ast.Stmt, env *environment.Environment) error {
 	prevEnv := p.environment
 	p.environment = env
+	p.isFunction = true
 
 	defer func() {
 		p.environment = prevEnv
+		p.isFunction = false
 	}()
 
 	for _, stmt := range statements {

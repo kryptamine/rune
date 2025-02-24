@@ -353,7 +353,11 @@ func (s *Parser) function(kind string) (ast.Stmt, error) {
 }
 
 func (s *Parser) varDeclaration() (ast.Stmt, error) {
-	name, err := s.consume(ast.IDENTIFIER, "Expect variable name.")
+	name, err := s.consume(
+		ast.IDENTIFIER,
+		fmt.Sprintf("Error at '%s': Expect variable name.", s.peek().Lexeme),
+	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -730,7 +734,10 @@ func (s *Parser) primary() (ast.Expr, error) {
 
 	current := s.peek()
 
-	return nil, errors.NewRuntimeError(current, "Expect expression.")
+	return nil, errors.NewRuntimeError(
+		current,
+		fmt.Sprintf("Error at '%s': Expect expression.", current.Lexeme),
+	)
 }
 
 func (s *Parser) match(tokenTypes ...ast.TokenType) bool {
