@@ -1,7 +1,7 @@
 package callable
 
 import (
-	"github.com/codecrafters-io/interpreter-starter-go/pkg/ast"
+	"rune/pkg/ast"
 	"time"
 )
 

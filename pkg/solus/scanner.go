@@ -3,8 +3,8 @@ package solus
 import (
 	"errors"
 	"fmt"
-	"github.com/codecrafters-io/interpreter-starter-go/pkg/ast"
-	"github.com/codecrafters-io/interpreter-starter-go/pkg/helpers"
+	"rune/pkg/ast"
+	"rune/pkg/helpers"
 	"strconv"
 )
 

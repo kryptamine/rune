@@ -1,8 +1,8 @@
 package callable
 
 import (
-	"github.com/codecrafters-io/interpreter-starter-go/pkg/ast"
-	"github.com/codecrafters-io/interpreter-starter-go/pkg/environment"
+	"rune/pkg/ast"
+	"rune/pkg/environment"
 )
 
 const MaxArity = 255

@@ -2,8 +2,8 @@ package callable
 
 import (
 	"fmt"
-	"github.com/codecrafters-io/interpreter-starter-go/pkg/ast"
-	"github.com/codecrafters-io/interpreter-starter-go/pkg/environment"
+	"rune/pkg/ast"
+	"rune/pkg/environment"
 )
 
 // FunctionCallable is a callable that represents a function.

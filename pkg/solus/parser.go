@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/codecrafters-io/interpreter-starter-go/pkg/ast"
-	"github.com/codecrafters-io/interpreter-starter-go/pkg/callable"
-	"github.com/codecrafters-io/interpreter-starter-go/pkg/errors"
+	"rune/pkg/ast"
+	"rune/pkg/callable"
+	"rune/pkg/errors"
 )
 
 type Parser struct {

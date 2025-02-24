@@ -2,7 +2,7 @@ package errors
 
 import (
 	"fmt"
-	"github.com/codecrafters-io/interpreter-starter-go/pkg/ast"
+	"rune/pkg/ast"
 )
 
 type RuntimeError struct {

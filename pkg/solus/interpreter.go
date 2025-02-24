@@ -2,11 +2,11 @@ package solus
 
 import (
 	"fmt"
-	"github.com/codecrafters-io/interpreter-starter-go/pkg/ast"
-	"github.com/codecrafters-io/interpreter-starter-go/pkg/callable"
-	"github.com/codecrafters-io/interpreter-starter-go/pkg/environment"
-	"github.com/codecrafters-io/interpreter-starter-go/pkg/errors"
-	"github.com/codecrafters-io/interpreter-starter-go/pkg/helpers"
+	"rune/pkg/ast"
+	"rune/pkg/callable"
+	"rune/pkg/environment"
+	"rune/pkg/errors"
+	"rune/pkg/helpers"
 )
 
 type Interpreter struct {

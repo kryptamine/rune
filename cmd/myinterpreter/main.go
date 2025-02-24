@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/codecrafters-io/interpreter-starter-go/pkg/solus"
 	"os"
+	"rune/pkg/solus"
 )
 
 func main() {
