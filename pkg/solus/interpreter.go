@@ -28,6 +28,7 @@ func EvaluateStmts(stmts []ast.Stmt) error {
 	p.registerGlobalCallable("clock", callable.NewClockCallable())
 	p.registerGlobalCallable("len", callable.NewLenCallable())
 	p.registerGlobalCallable("append", callable.NewAppendCallable())
+	p.registerGlobalCallable("json", callable.NewJsonCallable())
 
 	for _, stmt := range stmts {
 		err := stmt.Accept(p)
@@ -229,7 +230,9 @@ func (p *Interpreter) VisitAssignExpr(node *ast.AssignExpr) (any, error) {
 		return nil, err
 	}
 
-	p.environment.Assign(node.Name, value)
+	if err := p.environment.Assign(node.Name, value); err != nil {
+		return nil, err
+	}
 
 	return value, nil
 }

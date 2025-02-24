@@ -19,6 +19,7 @@ func main() {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error reading file: %v\n", err)
 		os.Exit(1)
+		return
 	}
 
 	tokens, errors := solus.Scan(fileContents)
@@ -35,6 +36,7 @@ func main() {
 			}
 
 			os.Exit(65)
+			return
 		}
 		break
 	case "parse":

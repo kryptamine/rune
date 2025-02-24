@@ -445,7 +445,7 @@ func (s *Parser) assignment() (ast.Expr, error) {
 			return ast.NewAssignExpr(token, value), nil
 		}
 
-		return nil, errors.NewRuntimeError(s.peek(), "Invalid assignment target.")
+		return nil, errors.NewRuntimeError(s.peek(), "Error at '=': Invalid assignment target.")
 	}
 
 	return expr, nil
