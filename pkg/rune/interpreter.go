@@ -276,10 +276,6 @@ func (p *Interpreter) VisitAssignExpr(node *ast.AssignExpr) (any, error) {
 		}
 	}
 
-	// if err := p.environment.Assign(node.Name, value); err != nil {
-	// 	return nil, err
-	// }
-
 	return value, nil
 }
 
