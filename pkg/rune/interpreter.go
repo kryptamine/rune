@@ -17,7 +17,6 @@ type Interpreter struct {
 	locals         map[ast.Expr]int
 	recursionDepth int
 	maxRecursion   int
-	isFunction     bool
 }
 
 func EvaluateExpr(expr ast.Expr) (any, error) {
@@ -62,16 +61,6 @@ func (p *Interpreter) registerGlobalCallable(name string, value callable.Callabl
 }
 
 func (p *Interpreter) VisitReturnStmt(returnStmt *ast.ReturnStmt) error {
-	// if !p.isFunction {
-	// 	return errors.NewRuntimeError(
-	// 		returnStmt.Keyword,
-	// 		fmt.Sprintf(
-	// 			"Error at '%s': Cannot return from top-level code.",
-	// 			returnStmt.Keyword.Lexeme,
-	// 		),
-	// 	)
-	// }
-
 	if returnStmt.Value == nil {
 		return callable.NewReturn(nil)
 	}
