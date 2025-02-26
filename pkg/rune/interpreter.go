@@ -261,10 +261,6 @@ func (p *Interpreter) GetLocalDistance(expr ast.Expr) (int, bool) {
 	return distance, ok
 }
 
-func (in *Interpreter) asString(expr ast.Expr) string {
-	return fmt.Sprintf("%#v", expr)
-}
-
 func (p *Interpreter) VisitAssignExpr(node *ast.AssignExpr) (any, error) {
 	value, err := node.Value.Accept(p)
 	if err != nil {
