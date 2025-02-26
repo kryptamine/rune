@@ -1,5 +1,9 @@
 package helpers
 
+import (
+	"rune/pkg/callable"
+)
+
 func IsTruthy(val any) bool {
 	if val == nil {
 		return false
@@ -12,6 +16,8 @@ func IsTruthy(val any) bool {
 		return len(i2) != 0
 	case float64:
 		return i2 != 0.0
+	case *callable.FunctionCallable:
+		return true
 	default:
 		return false
 	}

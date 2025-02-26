@@ -1,6 +1,7 @@
 package rune
 
 import (
+	"fmt"
 	"rune/pkg/ast"
 	"rune/pkg/errors"
 )
@@ -62,7 +63,10 @@ func (p *Resolver) VisitVarExpr(expr *ast.VarExpr) (any, error) {
 	exists, defined := p.has(expr.Name.Lexeme)
 
 	if !p.isScopesEmpty() && exists && !defined {
-		return nil, errors.NewRuntimeError(expr.Name, "Can't read local variable in its own initializer.")
+		return nil, errors.NewRuntimeError(
+			expr.Name,
+			fmt.Sprintf("Error at '%s': Cannot read local variable in its own initializer.", expr.Name.Lexeme),
+		)
 	}
 
 	p.resolveLocal(expr, expr.Name)
@@ -267,7 +271,10 @@ func (p *Resolver) declare(name ast.Token) error {
 	}
 
 	if _, ok := p.peekScope()[name.Lexeme]; ok {
-		return errors.NewRuntimeError(name, "Already a variable with this name in this scope.")
+		return errors.NewRuntimeError(
+			name,
+			fmt.Sprintf("Error at '%s': Variable with this name already declared in this scope.", name.Lexeme),
+		)
 	}
 
 	scope := p.peekScope()

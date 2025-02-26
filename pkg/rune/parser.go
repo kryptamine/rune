@@ -312,7 +312,10 @@ func (s *Parser) function(kind string) (ast.Stmt, error) {
 	if !s.check(ast.RIGHT_PAREN) {
 		for true {
 			if len(parameters) >= callable.MaxArity {
-				return nil, errors.NewRuntimeError(s.peek(), "Cannot have more than 255 parameters.")
+				return nil, errors.NewRuntimeError(
+					s.peek(),
+					fmt.Sprintf("Error at '%s': Cannot have more than %d parameters.", s.peek().Lexeme, callable.MaxArity),
+				)
 			}
 
 			param, err := s.consume(ast.IDENTIFIER, "Expect parameter name.")

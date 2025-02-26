@@ -5,7 +5,7 @@ import (
 	"rune/pkg/environment"
 )
 
-const MaxArity = 255
+const MaxArity = 8
 
 // Return is a special type of error that is returned by a function
 type Return struct {

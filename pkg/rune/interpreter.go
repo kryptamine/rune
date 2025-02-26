@@ -9,24 +9,30 @@ import (
 	"rune/pkg/helpers"
 )
 
+const maxRecursionDepth = 999
+
 type Interpreter struct {
-	environment *environment.Environment
-	globals     *environment.Environment
-	locals      map[ast.Expr]int
-	isFunction  bool
+	environment    *environment.Environment
+	globals        *environment.Environment
+	locals         map[ast.Expr]int
+	recursionDepth int
+	maxRecursion   int
+	isFunction     bool
 }
 
 func EvaluateExpr(expr ast.Expr) (any, error) {
 	return expr.Accept(&Interpreter{})
 }
 
-func EvaluateStmts(stmts []ast.Stmt) error {
+func EvaluateStmts(stmts []ast.Stmt) (error, int) {
 	globals := environment.NewEnvironment(nil)
 
 	p := &Interpreter{
-		environment: globals,
-		locals:      make(map[ast.Expr]int),
-		globals:     globals,
+		environment:    globals,
+		locals:         make(map[ast.Expr]int),
+		globals:        globals,
+		recursionDepth: 0,
+		maxRecursion:   maxRecursionDepth,
 	}
 
 	// Global functions.
@@ -38,17 +44,17 @@ func EvaluateStmts(stmts []ast.Stmt) error {
 	resolver := NewResolver(p)
 
 	if err := resolver.ResolveStmts(stmts); err != nil {
-		return err
+		return err, 65
 	}
 
 	for _, stmt := range stmts {
 		err := stmt.Accept(p)
 		if err != nil {
-			return err
+			return err, 70
 		}
 	}
 
-	return nil
+	return nil, 0
 }
 
 func (p *Interpreter) registerGlobalCallable(name string, value callable.Callable) {
@@ -164,6 +170,13 @@ func (p *Interpreter) VisitVarStmt(varStmt *ast.VarStmt) error {
 }
 
 func (p *Interpreter) VisitCallExpr(callExpr *ast.CallExpr) (any, error) {
+	if p.recursionDepth >= p.maxRecursion {
+		return nil, errors.NewRuntimeError(callExpr.Token, "Stack overflow.")
+	}
+
+	p.recursionDepth++
+	defer func() { p.recursionDepth-- }()
+
 	callee, err := callExpr.Callee.Accept(p)
 	if err != nil {
 		return nil, err

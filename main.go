@@ -77,9 +77,9 @@ func main() {
 			os.Exit(65)
 		}
 
-		if err := rune.EvaluateStmts(stmts); err != nil {
+		if err, code := rune.EvaluateStmts(stmts); err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
-			os.Exit(70)
+			os.Exit(code)
 		}
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)
