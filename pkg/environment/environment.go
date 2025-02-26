@@ -63,8 +63,6 @@ func (e *Environment) ancestor(distance int) *Environment {
 	env := e
 
 	for range distance {
-
-		fmt.Println(env, "env distance")
 		env = env.enclosing
 	}
 
