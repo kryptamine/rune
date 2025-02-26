@@ -1,6 +1,6 @@
 # Build artifacts.
 /build
-rune
+/rune
 
 # Test program.
 program.rn
