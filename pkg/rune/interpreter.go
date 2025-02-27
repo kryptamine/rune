@@ -19,17 +19,13 @@ type Interpreter struct {
 	maxRecursion   int
 }
 
-func EvaluateExpr(expr ast.Expr) (any, error) {
-	return expr.Accept(&Interpreter{})
-}
-
-func EvaluateStmts(stmts []ast.Stmt) (error, int) {
+func NewInterpreter() *Interpreter {
 	globals := environment.NewEnvironment(nil)
 
 	p := &Interpreter{
 		environment:    globals,
-		locals:         make(map[ast.Expr]int),
 		globals:        globals,
+		locals:         make(map[ast.Expr]int),
 		recursionDepth: 0,
 		maxRecursion:   maxRecursionDepth,
 	}
@@ -40,20 +36,22 @@ func EvaluateStmts(stmts []ast.Stmt) (error, int) {
 	p.registerGlobalCallable("append", callable.NewAppendCallable())
 	p.registerGlobalCallable("json", callable.NewJsonCallable())
 
-	resolver := NewResolver(p)
+	return p
+}
 
-	if err := resolver.ResolveStmts(stmts); err != nil {
-		return err, 65
-	}
+func EvaluateExpr(expr ast.Expr) (any, error) {
+	return expr.Accept(&Interpreter{})
+}
 
+func (p *Interpreter) EvaluateStmts(stmts []ast.Stmt) error {
 	for _, stmt := range stmts {
 		err := stmt.Accept(p)
 		if err != nil {
-			return err, 70
+			return err
 		}
 	}
 
-	return nil, 0
+	return nil
 }
 
 func (p *Interpreter) registerGlobalCallable(name string, value callable.Callable) {
