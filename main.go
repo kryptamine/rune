@@ -79,6 +79,10 @@ func evaluate(fileContents []byte) int {
 func run(fileContents []byte) int {
 	tokens, errors := rune.Scan(fileContents)
 	if len(errors) > 0 {
+		for _, err := range errors {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+		}
+
 		return exitCodeParseError
 	}
 	stmts, err := rune.ParseStmts(tokens)

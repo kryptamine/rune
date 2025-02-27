@@ -116,7 +116,7 @@ func (s *Scanner) scanToken() {
 		}
 	case '"':
 		if err := s.string(); err != nil {
-			s.errors = append(s.errors, fmt.Errorf("[line %d] Error: %w", s.line, err))
+			s.errors = append(s.errors, fmt.Errorf("[line: %d] Error: %w", s.line, err))
 		}
 
 		break
@@ -134,7 +134,7 @@ func (s *Scanner) scanToken() {
 		} else if helpers.IsDigit(char) {
 			s.number()
 		} else {
-			s.errors = append(s.errors, fmt.Errorf("[line %d] Error: Unexpected character: %c", s.line, char))
+			s.errors = append(s.errors, fmt.Errorf("[line: %d] Error: Unexpected character: %c", s.line, char))
 		}
 	}
 }
