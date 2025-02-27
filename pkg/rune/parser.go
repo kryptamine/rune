@@ -7,6 +7,7 @@ import (
 	"rune/pkg/ast"
 	"rune/pkg/callable"
 	"rune/pkg/errors"
+	"slices"
 )
 
 type Parser struct {
@@ -441,7 +442,6 @@ func (s *Parser) assignment() (ast.Expr, error) {
 			return nil, err
 		}
 
-		// Check for array indexing.
 		if arrayExpr, ok := expr.(*ast.IndexExpr); ok {
 			return ast.NewSetIndexExpr(arrayExpr.Token, arrayExpr.Array, arrayExpr.Index, value), nil
 		}
@@ -632,7 +632,6 @@ func (s *Parser) primary() (ast.Expr, error) {
 				return nil, err
 			}
 
-			// Parse value expression
 			value, err := s.expression()
 			if err != nil {
 				return nil, err
@@ -659,7 +658,6 @@ func (s *Parser) primary() (ast.Expr, error) {
 	if s.match(ast.LEFT_BRACKET) {
 		var items []ast.Expr
 
-		// Parse array elements until closing bracket
 		if !s.check(ast.RIGHT_BRACKET) {
 			for {
 				elem, err := s.expression()
@@ -744,13 +742,9 @@ func (s *Parser) primary() (ast.Expr, error) {
 }
 
 func (s *Parser) match(tokenTypes ...ast.TokenType) bool {
-	for _, tokenType := range tokenTypes {
-		if s.check(tokenType) {
-			s.advance()
-
-			return true
-		}
-
+	if slices.ContainsFunc(tokenTypes, s.check) {
+		s.advance()
+		return true
 	}
 
 	return false
