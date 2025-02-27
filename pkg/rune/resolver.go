@@ -198,18 +198,47 @@ func (p *Resolver) VisitUnaryExpr(expr *ast.UnaryExpr) (any, error) {
 }
 
 func (p *Resolver) VisitArrayExpr(expr *ast.ArrayExpr) (any, error) {
+	for _, item := range expr.Items {
+		if _, err := p.resolveExpr(item); err != nil {
+			return nil, err
+		}
+	}
 	return nil, nil
 }
 
 func (p *Resolver) VisitIndexExpr(expr *ast.IndexExpr) (any, error) {
+	if _, err := p.resolveExpr(expr.Array); err != nil {
+		return nil, err
+	}
+
+	if _, err := p.resolveExpr(expr.Index); err != nil {
+		return nil, err
+	}
+
 	return nil, nil
 }
 
 func (p *Resolver) VisitSetIndexExpr(expr *ast.SetIndexExpr) (any, error) {
+	if _, err := p.resolveExpr(expr.Array); err != nil {
+		return nil, err
+	}
+
+	if _, err := p.resolveExpr(expr.Index); err != nil {
+		return nil, err
+	}
+
+	if _, err := p.resolveExpr(expr.Value); err != nil {
+		return nil, err
+	}
 	return nil, nil
 }
 
 func (p *Resolver) VisitObjectExpr(expr *ast.ObjectExpr) (any, error) {
+	for _, pair := range expr.Pairs {
+		if _, err := p.resolveExpr(pair); err != nil {
+			return nil, err
+		}
+	}
 	return nil, nil
 }
 

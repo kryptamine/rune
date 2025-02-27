@@ -1,0 +1,8 @@
+var arr = [1, 2, 3];
+
+var sum = 0;
+for (var i = 0; i < len(arr); i = i + 1) {
+    sum = sum + arr[i];
+}
+
+print(sum); // expect: 6
