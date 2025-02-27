@@ -22,33 +22,7 @@ failed = 0
 num_skipped = 0
 expectations = 0
 
-interpreter = None
 filter_path = None
-
-INTERPRETERS = {}
-SUITES = []
-
-
-class Interpreter:
-    def __init__(self, name, args, tests):
-        self.name = name
-        self.args = args
-        self.tests = tests
-
-
-def suite(name, tests):
-    path = "./rune"
-
-    INTERPRETERS[name] = Interpreter(name, [path], tests)
-    SUITES.append(name)
-
-
-suite(
-    "clox",
-    {
-        "test": "pass",
-    },
-)
 
 
 class Test:
@@ -68,7 +42,7 @@ class Test:
         # Get the path components.
         parts = self.path.split("/")
         subpath = ""
-        state = None
+        state = "pass"
 
         # Figure out the state of the test. We don't break out of this loop because
         # we want lines for more specific paths to override more general ones.
@@ -76,9 +50,6 @@ class Test:
             if subpath:
                 subpath += "/"
             subpath += part
-
-            if subpath in interpreter.tests:
-                state = interpreter.tests[subpath]
 
         if not state:
             print('Unknown test state for "{}".'.format(self.path))
@@ -132,7 +103,7 @@ class Test:
 
     def run(self):
         # Invoke the interpreter and run the test with the file path as an argument.
-        args = interpreter.args[:] + ["run", self.path]
+        args = ["./rune", "run", self.path]
 
         proc = Popen(args, stdout=PIPE, stderr=PIPE, text=True)
         out, err = proc.communicate()
@@ -371,14 +342,11 @@ def run_script(path):
             print("      " + pink(failure))
 
 
-def run_suite(name):
-    global interpreter
+def run_suite():
     global passed
     global failed
     global num_skipped
     global expectations
-
-    interpreter = INTERPRETERS[name]
 
     passed = 0
     failed = 0
@@ -412,7 +380,7 @@ def main(argv):
     if len(argv) == 2:
         filter_path = argv[1]
 
-    if not run_suite("clox"):
+    if not run_suite():
         sys.exit(1)
 
 
