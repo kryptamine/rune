@@ -1,0 +1,15 @@
+var obj = {
+  num: 10,
+  bool: true,
+  str: "Hello",
+  foo: nil,
+  arr: [1, 2, 3],
+};
+
+print(obj["num"]); // expect: 10
+print(obj["bool"]); // expect: true
+print(obj["str"]); // expect: Hello
+print(obj["foo"]); // expect: nil
+print(obj["arr"][0]); // expect: 1
+print(obj["arr"][1]); // expect: 2
+print(obj["arr"][2]); // expect: 3

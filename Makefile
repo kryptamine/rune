@@ -10,7 +10,7 @@ build:
 
 .PHONY: test
 test: build
-	python3 test.py
+	python3 test.py $(filter)
 
 .PHONY: run
 run: build
