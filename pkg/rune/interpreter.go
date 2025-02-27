@@ -447,7 +447,10 @@ func (p *Interpreter) VisitSetIndexExpr(node *ast.SetIndexExpr) (any, error) {
 	case []any:
 		idx, ok := indexVal.(float64)
 		if !ok || int(idx) < 0 || int(idx) >= len(target) {
-			return nil, errors.NewRuntimeError(node.Token, fmt.Sprintf("Index out of bounds: %v of %v", idx, len(target)))
+			return nil, errors.NewRuntimeError(
+				node.Token,
+				fmt.Sprintf("Index out of bounds: %v of %v", idx, len(target)),
+			)
 		}
 		target[int(idx)] = value
 		return value, nil
@@ -455,13 +458,19 @@ func (p *Interpreter) VisitSetIndexExpr(node *ast.SetIndexExpr) (any, error) {
 	case map[string]any:
 		key, ok := indexVal.(string)
 		if !ok {
-			return nil, errors.NewRuntimeError(node.Token, "Object properties must be accessed with string keys.")
+			return nil, errors.NewRuntimeError(
+				node.Token,
+				"Object properties must be accessed with string keys.",
+			)
 		}
 		target[key] = value
 		return value, nil
 
 	default:
-		return nil, errors.NewRuntimeError(node.Token, "Indexing is only supported on arrays and objects.")
+		return nil, errors.NewRuntimeError(
+			node.Token,
+			"Indexing is only supported on arrays and objects.",
+		)
 	}
 }
 

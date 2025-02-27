@@ -78,6 +78,7 @@ func evaluate(fileContents []byte) int {
 
 func run(fileContents []byte) int {
 	tokens, errors := rune.Scan(fileContents)
+
 	if len(errors) > 0 {
 		for _, err := range errors {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
@@ -85,6 +86,7 @@ func run(fileContents []byte) int {
 
 		return exitCodeParseError
 	}
+
 	stmts, err := rune.ParseStmts(tokens)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
@@ -93,6 +95,7 @@ func run(fileContents []byte) int {
 
 	interpreter := rune.NewInterpreter()
 	resolver := rune.NewResolver(interpreter)
+
 	if err := resolver.ResolveStmts(stmts); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		return exitCodeParseError
@@ -111,6 +114,7 @@ func main() {
 		printUsage()
 		return
 	}
+
 	command := os.Args[1]
 	if command == "version" {
 		fmt.Println(fmt.Sprintf("Rune Interpreter v%s", version))
