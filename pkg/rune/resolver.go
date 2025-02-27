@@ -11,6 +11,7 @@ type Scope = map[string]bool
 type Resolver struct {
 	interpreter *Interpreter
 	scopes      []Scope
+	isFunction  bool
 }
 
 func NewResolver(interpreter *Interpreter) *Resolver {
@@ -120,6 +121,13 @@ func (p *Resolver) VisitFunctionStmt(fnStmt *ast.FunctionStmt) error {
 }
 
 func (p *Resolver) VisitReturnStmt(returnStmt *ast.ReturnStmt) error {
+	if !p.isFunction {
+		return errors.NewRuntimeError(
+			returnStmt.Keyword,
+			fmt.Sprintf("Error at '%s': Cannot return from top-level code.", returnStmt.Keyword.Lexeme),
+		)
+	}
+
 	if returnStmt.Value != nil {
 		_, err := p.resolveExpr(returnStmt.Value)
 		return err
@@ -246,6 +254,7 @@ func (p *Resolver) endScope() {
 }
 
 func (p *Resolver) resolveFn(fn *ast.FunctionStmt) error {
+	p.isFunction = true
 	p.beginScope()
 
 	for _, fnParam := range fn.Parameters {
