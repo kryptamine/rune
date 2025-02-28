@@ -15,11 +15,9 @@ ERROR_LINE_EXPECT = re.compile(r"// \[((java|c) )?line: (\d+)\] (Error.*)")
 RUNTIME_ERROR_EXPECT = re.compile(r"// expect runtime error: (.+)")
 SYNTAX_ERROR_RE = re.compile(r"\[.*line: (\d+)\] (Error.+)")
 STACK_TRACE_RE = re.compile(r"\[line: (\d+)\]")
-NONTEST_RE = re.compile(r"// nontest")
 
 passed = 0
 failed = 0
-num_skipped = 0
 expectations = 0
 
 filter_path = None
@@ -36,7 +34,6 @@ class Test:
         self.failures = []
 
     def parse(self):
-        global num_skipped
         global expectations
 
         # Get the path components.
@@ -53,9 +50,6 @@ class Test:
 
         if not state:
             print('Unknown test state for "{}".'.format(self.path))
-        if state == "skip":
-            num_skipped += 1
-            return False
         # TODO: State for tests that should be run but are expected to fail?
 
         line_num = 1
@@ -90,11 +84,6 @@ class Test:
                     # If we expect a runtime error, it should exit with EX_SOFTWARE.
                     self.exit_code = 70
                     expectations += 1
-
-                match = NONTEST_RE.search(line)
-                if match:
-                    # Not a test file at all, so ignore it.
-                    return False
 
                 line_num += 1
 
@@ -304,7 +293,6 @@ def run_script(path):
 
     global passed
     global failed
-    global num_skipped
 
     if splitext(path)[1] != ".lox":
         return
@@ -345,12 +333,10 @@ def run_script(path):
 def run_suite():
     global passed
     global failed
-    global num_skipped
     global expectations
 
     passed = 0
     failed = 0
-    num_skipped = 0
     expectations = 0
 
     walk(join(REPO_DIR, "test"), run_script)
