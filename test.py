@@ -319,15 +319,14 @@ def run_script(path):
     test.run()
 
     # Display the results.
-    if len(test.failures) == 0:
+    if not test.failures:
         passed += 1
-        print_line(green("PASS") + ": " + path)
+        print_line(f"{green('PASS')}: {path}")
     else:
         failed += 1
-        print_line(red("FAIL") + ": " + path)
-        print("")
+        print_line(f"{red('FAIL')}: {path}\n")
         for failure in test.failures:
-            print("      " + pink(failure))
+            print(f"      {pink(failure)}")
 
 
 def run_suite():
@@ -342,16 +341,13 @@ def run_suite():
     walk(join(REPO_DIR, "test"), run_script)
     print_line()
 
-    if failed == 0:
-        print(
-            "All "
-            + green(passed)
-            + " tests passed ("
-            + str(expectations)
-            + " expectations)."
-        )
-    else:
-        print(green(passed) + " tests passed. " + red(failed) + " tests failed.")
+    summary = (
+        f"All {green(passed)} tests passed ({expectations} expectations)."
+        if failed == 0
+        else f"{green(passed)} tests passed. {red(failed)} tests failed."
+    )
+
+    print(summary)
 
     return failed == 0
 
