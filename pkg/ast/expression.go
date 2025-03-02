@@ -31,6 +31,14 @@ func NewBinaryExpr(left Expr, right Expr, operator Token) Expr {
 	return &BinaryExpr{Left: left, Right: right, Operator: operator}
 }
 
+func (n *BinaryExpr) Accept(v ExprVisitor) (any, error) {
+	return v.VisitBinaryExpr(n)
+}
+
+func (n *BinaryExpr) String() string {
+	return fmt.Sprintf("(%s %v %v)", n.Operator.Lexeme, n.Left, n.Right)
+}
+
 type AssignExpr struct {
 	Name  Token
 	Value Expr
@@ -143,14 +151,6 @@ func (n *ArrayExpr) Accept(v ExprVisitor) (any, error) {
 
 func (n *IndexExpr) Accept(v ExprVisitor) (any, error) {
 	return v.VisitIndexExpr(n)
-}
-
-func (n *BinaryExpr) Accept(v ExprVisitor) (any, error) {
-	return v.VisitBinaryExpr(n)
-}
-
-func (n *BinaryExpr) String() string {
-	return fmt.Sprintf("(%s %v %v)", n.Operator.Lexeme, n.Left, n.Right)
 }
 
 func (n *LiteralExpr) Accept(v ExprVisitor) (any, error) {
