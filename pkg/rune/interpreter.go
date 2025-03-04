@@ -94,6 +94,13 @@ func (p *Interpreter) VisitPrintStmt(exprStmt *ast.PrintStmt) error {
 		return nil
 	}
 
+	if v, ok := val.(float64); ok {
+		if v == float64(int64(v)) {
+			fmt.Println(fmt.Sprintf("%.0f", v))
+			return nil
+		}
+	}
+
 	fmt.Println(val)
 
 	return nil
