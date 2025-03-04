@@ -14,6 +14,8 @@ const (
 	exitCodeError      = 1
 	exitCodeParseError = 65
 	exitCodeEvalError  = 70
+
+	runeExtension = ".rn"
 )
 
 func printUsage() {
@@ -129,7 +131,7 @@ func main() {
 
 	fileName := os.Args[2]
 
-	if !strings.HasSuffix(fileName, ".rn") {
+	if !strings.HasSuffix(fileName, runeExtension) {
 		fmt.Fprintf(os.Stderr, "Error: Only .rn files are supported. Provided file: %s\n", fileName)
 		os.Exit(exitCodeError)
 	}
