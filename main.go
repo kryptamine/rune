@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"rune/pkg/rune"
+	"strings"
 )
 
 const version = "0.1"
@@ -126,7 +127,14 @@ func main() {
 		return
 	}
 
-	fileContents, err := os.ReadFile(os.Args[2])
+	fileName := os.Args[2]
+
+	if !strings.HasSuffix(fileName, ".rn") {
+		fmt.Fprintf(os.Stderr, "Error: Only .rn files are supported. Provided file: %s\n", fileName)
+		os.Exit(exitCodeError)
+	}
+
+	fileContents, err := os.ReadFile(fileName)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error reading file: %v\n", err)
 		os.Exit(exitCodeError)
