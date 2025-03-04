@@ -294,7 +294,7 @@ def run_script(path):
     global passed
     global failed
 
-    if splitext(path)[1] != ".lox":
+    if splitext(path)[1] != ".rn":
         return
 
     # Check if we are just running a subset of the tests.
