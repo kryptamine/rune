@@ -1,0 +1,23 @@
+// Bubble Sort algorithm
+
+fun bubbleSort(arr) {
+    var n = len(arr); 
+
+    for (var i = 0; i < n; i = i+1) {
+        for (var j = 1; j < (n-i); j = j+1) {
+            if (arr[j-1] > arr[j]) {
+                var temp = arr[j-1];
+                arr[j-1] = arr[j];
+                arr[j] = temp;
+            }
+        }
+    }
+
+    return arr;
+}
+
+var arr = [3, 44, 38, 5, 47, 15, 36, 26, 27, 2, 46, 4, 19, 50, 48];
+
+bubbleSort(arr);
+
+print(arr); 

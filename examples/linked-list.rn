@@ -1,0 +1,64 @@
+// Linked List
+
+fun createNode(data) {
+    return {
+        data: data,
+        next: nil,
+    };
+}
+
+fun createList(arr) {
+    var head = nil;
+    var tail = nil;
+
+    for (var i = 0; i < len(arr); i = i+1) {
+        var node = createNode(arr[i]);
+        if (head == nil) {
+            head = node;
+            tail = node;
+        } else {
+            tail["next"] = node;
+            tail = node;
+        }
+    }
+    
+    tail["next"] = nil;
+
+    return head;
+}
+
+fun printList(list) {
+    var current = list;
+
+    while (current != nil) {
+        print(current["data"]);
+        current = current["next"];
+    }
+}
+
+fun reverseList(list) {
+    var prev = nil;
+    var current = list;
+    var next = nil;
+
+    while (current != nil) {
+        next = current["next"];
+        current["next"] = prev;
+        prev = current;
+        current = next;
+    }
+
+    return prev;
+}
+
+var arr = [1, 2, 3, 4, 5];
+var list = createList(arr);
+
+print("Original list: ");
+printList(list);
+
+list = reverseList(list);
+
+print("Reversed list: ");
+printList(list);
+
