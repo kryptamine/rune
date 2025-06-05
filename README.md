@@ -50,7 +50,7 @@ Example usage:
 
 ## Running Tests
 
-A test suite is implemented using Python. To execute all tests, use:
+Test Framework with tests suites is stolen from [Ben Hoyt](https://github.com/benhoyt/loxlox) and patched.
 
 ```sh
 make test
@@ -74,7 +74,7 @@ Rune provides several built-in functions:
 
 - **`len(arr)`** — Returns the length of an array.
 - **`append(arr, value1, value2, ...)`** — Appends values to an array and returns the new array.
-- **`json(url)`** — Fetches and parses JSON from a URL.
+- **`json(url)`** — Fetches and parses JSON from a URL, error handling is not implemented.
 - **`clock()`** — Returns the current time in seconds.
 
 ## Example Program
@@ -101,3 +101,4 @@ This project is open-source and follows the MIT license.
 
 - [Crafting Interpreters](https://craftinginterpreters.com/) by Robert Nystrom
 - [Lox Programming Language](https://github.com/munificent/craftinginterpreters)
+- [Test Framework] (https://github.com/benhoyt/loxlox)
