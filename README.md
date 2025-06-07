@@ -101,4 +101,4 @@ This project is open-source and follows the MIT license.
 
 - [Crafting Interpreters](https://craftinginterpreters.com/) by Robert Nystrom
 - [Lox Programming Language](https://github.com/munificent/craftinginterpreters)
-- [Test Framework] (https://github.com/benhoyt/loxlox)
+- [Test Framework](https://github.com/benhoyt/loxlox)
