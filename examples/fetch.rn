@@ -1,0 +1,5 @@
+// Fetching data from URL
+
+var res = json("https://dummyjson.com/todos");
+
+print(res);

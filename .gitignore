@@ -1,0 +1,5 @@
+# Build artifacts.
+/rune
+
+# Test program.
+program.rn

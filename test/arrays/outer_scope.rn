@@ -1,0 +1,11 @@
+var arr = [];
+
+fun foo() {
+  for (var i = 0; i < 3; i = i + 1) {
+    arr = append(arr, i);
+  }
+
+  return arr;
+}
+
+print(foo()); // expect: [0 1 2]

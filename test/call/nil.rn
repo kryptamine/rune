@@ -1,0 +1,2 @@
+nil(); // expect runtime error: [line: 1] Can only call functions.
+ 

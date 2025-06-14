@@ -1,0 +1,3 @@
+var arr = [];
+
+arr[1]; // expect runtime error: [line: 3] Index out of bounds: 1 of 0

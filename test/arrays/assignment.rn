@@ -1,0 +1,19 @@
+var arr = [1, 2, 3];
+
+print(arr[0]); // expect: 1
+print(arr[1]); // expect: 2
+print(arr[2]); // expect: 3
+
+// Test appending elements to an array
+arr = append(arr, 3, 4, 5);
+print(arr[3]); // expect: 3
+print(arr[4]); // expect: 4
+print(arr[5]); // expect: 5
+
+// Test modifying an array element
+arr[0] = 10;
+print(arr[0]); // expect: 10
+
+// Test array length
+var arrLen = len(arr);
+print(arrLen); // expect: 6

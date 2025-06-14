@@ -1,0 +1,1 @@
+1 < "1"; // expect runtime error: [line: 1] Operands must be numbers.
