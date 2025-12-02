@@ -120,7 +120,7 @@ func main() {
 
 	command := os.Args[1]
 	if command == "version" {
-		fmt.Println(fmt.Sprintf("Rune Interpreter v%s", version))
+		fmt.Printf("Rune Interpreter v%s", version)
 		return
 	}
 
