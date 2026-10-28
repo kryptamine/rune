@@ -1,0 +1,5 @@
+print 1e3;     // expect: 1000
+print 2.5E2;   // expect: 250
+print 1e-3;    // expect: 0.001
+print 1e+2;    // expect: 100
+print 12e0;    // expect: 12

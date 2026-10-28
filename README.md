@@ -14,6 +14,8 @@ Rune is a dynamically typed interpreted programming language inspired by [Lox](h
 - Recursive descent parser and tree-walk interpreter
 - Parser recovers from syntax errors and reports all of them in one run
 - String escapes: `\n`, `\t`, `\r`, `\"`, `\\`
+- Number literals with exponents: `1e3`, `2.5E-2`
+- Object property access with `obj.name` as sugar for `obj["name"]`
 - Cross-platform, compiles to a single binary
 
 ## Installation

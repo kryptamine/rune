@@ -1,0 +1,11 @@
+var a = [1];
+a[0] = a;
+print a; // expect: [[...]]
+
+var o = {name: "o"};
+o["self"] = o;
+print o; // expect: {name: o, self: {...}}
+
+// A value shared without a cycle is printed in full every time.
+var shared = [1, 2];
+print [shared, shared]; // expect: [[1, 2], [1, 2]]

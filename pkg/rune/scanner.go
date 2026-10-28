@@ -3,6 +3,7 @@ package rune
 import (
 	"errors"
 	"fmt"
+	"math"
 	"rune/pkg/ast"
 	"rune/pkg/helpers"
 	"strconv"
@@ -234,10 +235,26 @@ func (s *Scanner) number() {
 		}
 	}
 
+	// Look for an exponent: e10, E-3, e+2.
+	if s.peek() == 'e' || s.peek() == 'E' {
+		digitAt := s.current + 1
+		if digitAt < len(s.source) && (s.source[digitAt] == '+' || s.source[digitAt] == '-') {
+			digitAt++
+		}
+
+		if digitAt < len(s.source) && helpers.IsDigit(rune(s.source[digitAt])) {
+			s.current = digitAt
+
+			for helpers.IsDigit(s.peek()) {
+				s.advance()
+			}
+		}
+	}
+
 	val, _ := strconv.ParseFloat(s.source[s.start:s.current], 64)
 	literal := ""
 
-	if val == float64(int(val)) {
+	if val == math.Trunc(val) {
 		literal = fmt.Sprintf("%.1f", val) // Ensures 1234.0 for whole numbers
 	} else {
 		literal = fmt.Sprintf("%g", val) // Keeps the precision for non-whole numbers

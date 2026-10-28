@@ -1,0 +1,13 @@
+var obj = {num: 10, inner: {arr: [1, 2]}};
+
+print obj.num;          // expect: 10
+print obj.inner.arr[1]; // expect: 2
+
+obj.num = 20;
+obj.inner.added = "new";
+print obj.num;          // expect: 20
+print obj["inner"].added; // expect: new
+
+var a = obj.b = 3;
+print a; // expect: 3
+print obj.b; // expect: 3
