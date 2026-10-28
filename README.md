@@ -12,6 +12,7 @@ Rune is a dynamically typed interpreted programming language inspired by [Lox](h
 - Supports expressions, statements, variables, and functions
 - Built-in functions for array manipulation, JSON parsing, and timing
 - Recursive descent parser and tree-walk interpreter
+- Parser recovers from syntax errors and reports all of them in one run
 - Cross-platform, compiles to a single binary
 
 ## Installation

@@ -1,0 +1,3 @@
+{
+  print 1;
+// [line: 4] Error at end: Expect '}' after block.

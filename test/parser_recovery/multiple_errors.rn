@@ -1,0 +1,4 @@
+var a = ; // [line: 1] Error at ';': Expect expression.
+print "ok"
+var b = 1; // [line: 3] Error at 'var': Expect ';' after value.
+var = 2; // [line: 4] Error at '=': Expect variable name.

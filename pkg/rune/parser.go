@@ -16,6 +16,7 @@ type Parser struct {
 	current int
 }
 
+// ParseExpr parses a single expression and stops at the first error.
 func ParseExpr(tokens []ast.Token) (ast.Expr, error) {
 	parser := Parser{
 		tokens:  tokens,
@@ -25,7 +26,9 @@ func ParseExpr(tokens []ast.Token) (ast.Expr, error) {
 	return parser.expression()
 }
 
-func ParseStmts(tokens []ast.Token) ([]ast.Stmt, error) {
+// ParseStmts parses a whole program. On a syntax error it records it, skips to
+// the next statement boundary and keeps going, so all errors are reported at once.
+func ParseStmts(tokens []ast.Token) ([]ast.Stmt, []error) {
 	var stmts []ast.Stmt
 
 	parser := Parser{
@@ -34,16 +37,48 @@ func ParseStmts(tokens []ast.Token) ([]ast.Stmt, error) {
 	}
 
 	for !parser.isAtEnd() {
-		stmt, err := parser.declaration()
-
-		if err != nil {
-			return nil, err
+		if stmt := parser.safeDeclaration(); stmt != nil {
+			stmts = append(stmts, stmt)
 		}
+	}
 
-		stmts = append(stmts, stmt)
+	if len(parser.errors) > 0 {
+		return nil, parser.errors
 	}
 
 	return stmts, nil
+}
+
+// safeDeclaration parses a declaration and recovers from a syntax error in it.
+// It returns nil if the declaration was invalid.
+func (s *Parser) safeDeclaration() ast.Stmt {
+	stmt, err := s.declaration()
+	if err != nil {
+		s.errors = append(s.errors, err)
+		s.synchronize()
+
+		return nil
+	}
+
+	return stmt
+}
+
+// synchronize discards tokens until it reaches a likely start of the next statement.
+func (s *Parser) synchronize() {
+	s.advance()
+
+	for !s.isAtEnd() {
+		if s.previous().TokenType == ast.SEMICOLON {
+			return
+		}
+
+		switch s.peek().TokenType {
+		case ast.FUN, ast.VAR, ast.FOR, ast.IF, ast.WHILE, ast.PRINT, ast.RETURN:
+			return
+		}
+
+		s.advance()
+	}
 }
 
 func (s *Parser) statement() (ast.Stmt, error) {
@@ -220,13 +255,9 @@ func (s *Parser) block() ([]ast.Stmt, error) {
 	var stmts []ast.Stmt
 
 	for !s.check(ast.RIGHT_BRACE) && !s.isAtEnd() {
-		stmt, err := s.declaration()
-
-		if err != nil {
-			return nil, err
+		if stmt := s.safeDeclaration(); stmt != nil {
+			stmts = append(stmts, stmt)
 		}
-
-		stmts = append(stmts, stmt)
 	}
 
 	_, err := s.consume(ast.RIGHT_BRACE, "Expect '}' after block.")
@@ -312,11 +343,12 @@ func (s *Parser) function(kind string) (ast.Stmt, error) {
 
 	if !s.check(ast.RIGHT_PAREN) {
 		for {
-			if len(parameters) >= callable.MaxArity {
-				return nil, errors.NewRuntimeError(
+			// Report but keep parsing: the parser is not in a confused state.
+			if len(parameters) == callable.MaxArity {
+				s.errors = append(s.errors, errors.NewSyntaxError(
 					s.peek(),
-					fmt.Sprintf("Error at '%s': Cannot have more than %d parameters.", s.peek().Lexeme, callable.MaxArity),
-				)
+					fmt.Sprintf("Cannot have more than %d parameters.", callable.MaxArity),
+				))
 			}
 
 			param, err := s.consume(ast.IDENTIFIER, "Expect parameter name.")
@@ -332,18 +364,12 @@ func (s *Parser) function(kind string) (ast.Stmt, error) {
 		}
 	}
 
-	_, err = s.consume(ast.RIGHT_PAREN, fmt.Sprintf(
-		"Error at '%s': Expect ')' after parameters.",
-		s.peek().Lexeme,
-	))
+	_, err = s.consume(ast.RIGHT_PAREN, "Expect ')' after parameters.")
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = s.consume(ast.LEFT_BRACE, fmt.Sprintf(
-		"Error at '%s': Expect '{' before function body.",
-		s.peek().Lexeme,
-	))
+	_, err = s.consume(ast.LEFT_BRACE, "Expect '{' before function body.")
 	if err != nil {
 		return nil, err
 	}
@@ -357,11 +383,7 @@ func (s *Parser) function(kind string) (ast.Stmt, error) {
 }
 
 func (s *Parser) varDeclaration() (ast.Stmt, error) {
-	name, err := s.consume(
-		ast.IDENTIFIER,
-		fmt.Sprintf("Error at '%s': Expect variable name.", s.peek().Lexeme),
-	)
-
+	name, err := s.consume(ast.IDENTIFIER, "Expect variable name.")
 	if err != nil {
 		return nil, err
 	}
@@ -413,10 +435,7 @@ func (s *Parser) printStmt() (ast.Stmt, error) {
 		return nil, err
 	}
 
-	_, err = s.consume(ast.SEMICOLON, fmt.Sprintf(
-		"Error at '%s': Expect ';' after value.",
-		s.peek().Lexeme,
-	))
+	_, err = s.consume(ast.SEMICOLON, "Expect ';' after value.")
 	if err != nil {
 		return nil, err
 	}
@@ -450,7 +469,7 @@ func (s *Parser) assignment() (ast.Expr, error) {
 			return ast.NewAssignExpr(target.Name, value), nil
 		}
 
-		return nil, errors.NewRuntimeError(equals, "Error at '=': Invalid assignment target.")
+		return nil, errors.NewSyntaxError(equals, "Invalid assignment target.")
 	}
 
 	return expr, nil
@@ -627,7 +646,7 @@ func (s *Parser) primary() (ast.Expr, error) {
 			case s.match(ast.STRING):
 				key = s.previous().Literal
 			default:
-				return nil, errors.NewRuntimeError(s.peek(), "Expect property name.")
+				return nil, errors.NewSyntaxError(s.peek(), "Expect property name.")
 			}
 
 			// Expect ':' after key
@@ -701,7 +720,7 @@ func (s *Parser) primary() (ast.Expr, error) {
 		value, err := strconv.ParseFloat(prev.Lexeme, 64)
 
 		if err != nil {
-			return nil, errors.NewRuntimeError(prev, "Invalid number.")
+			return nil, errors.NewSyntaxError(prev, "Invalid number.")
 		}
 
 		return ast.NewLiteralExpr(ast.NUMBER, value), nil
@@ -726,10 +745,7 @@ func (s *Parser) primary() (ast.Expr, error) {
 			return nil, err
 		}
 
-		_, err = s.consume(ast.RIGHT_PAREN, fmt.Sprintf(
-			"Error at '%s': Expect ')' after expression.",
-			s.peek().Lexeme,
-		))
+		_, err = s.consume(ast.RIGHT_PAREN, "Expect ')' after expression.")
 		if err != nil {
 			return nil, err
 		}
@@ -737,12 +753,7 @@ func (s *Parser) primary() (ast.Expr, error) {
 		return ast.NewGroupingExpr(expr), nil
 	}
 
-	current := s.peek()
-
-	return nil, errors.NewRuntimeError(
-		current,
-		fmt.Sprintf("Error at '%s': Expect expression.", current.Lexeme),
-	)
+	return nil, errors.NewSyntaxError(s.peek(), "Expect expression.")
 }
 
 func (s *Parser) match(tokenTypes ...ast.TokenType) bool {
@@ -779,7 +790,7 @@ func (s *Parser) consume(tokenType ast.TokenType, errMsg string) (ast.Token, err
 		return s.advance(), nil
 	}
 
-	return ast.Token{}, errors.NewRuntimeError(s.peek(), errMsg)
+	return ast.Token{}, errors.NewSyntaxError(s.peek(), errMsg)
 }
 
 func (s *Parser) peek() ast.Token {

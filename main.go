@@ -51,9 +51,7 @@ func tokenize(fileContents []byte) int {
 		return exitCodeOk
 	}
 
-	for _, err := range errors {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-	}
+	printErrors(errors)
 
 	return exitCodeParseError
 }
@@ -61,10 +59,7 @@ func tokenize(fileContents []byte) int {
 func evaluate(fileContents []byte) int {
 	tokens, errors := rune.Scan(fileContents)
 	if len(errors) > 0 {
-		for _, err := range errors {
-			fmt.Fprintf(os.Stderr, "%v\n", err)
-		}
-
+		printErrors(errors)
 		return exitCodeParseError
 	}
 
@@ -84,28 +79,30 @@ func evaluate(fileContents []byte) int {
 	return exitCodeOk
 }
 
-func run(fileContents []byte) int {
-	tokens, errors := rune.Scan(fileContents)
-
-	if len(errors) > 0 {
-		for _, err := range errors {
-			fmt.Fprintf(os.Stderr, "%v\n", err)
-		}
-
-		return exitCodeParseError
-	}
-
-	stmts, err := rune.ParseStmts(tokens)
-	if err != nil {
+func printErrors(errs []error) {
+	for _, err := range errs {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
+	}
+}
+
+func run(fileContents []byte) int {
+	// The scanner skips bad characters, so the parser can still run and
+	// report its own errors alongside the scanner's.
+	tokens, scanErrors := rune.Scan(fileContents)
+	stmts, parseErrors := rune.ParseStmts(tokens)
+
+	if len(scanErrors) > 0 || len(parseErrors) > 0 {
+		printErrors(scanErrors)
+		printErrors(parseErrors)
+
 		return exitCodeParseError
 	}
 
 	interpreter := rune.NewInterpreter()
 	resolver := rune.NewResolver(interpreter)
 
-	if err := resolver.ResolveStmts(stmts); err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+	if resolveErrors := resolver.ResolveStmts(stmts); len(resolveErrors) > 0 {
+		printErrors(resolveErrors)
 		return exitCodeParseError
 	}
 

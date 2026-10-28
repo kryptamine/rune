@@ -1,0 +1,8 @@
+fun f() {
+  var x = 1 +; // [line: 2] Error at ';': Expect expression.
+  print x;
+  x = ; // [line: 4] Error at ';': Expect expression.
+}
+
+fun g( { } // [line: 7] Error at '{': Expect parameter name.
+print 1 // [line: 9] Error at end: Expect ';' after value.
