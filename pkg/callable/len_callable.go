@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"rune/pkg/ast"
 	"rune/pkg/errors"
+	"rune/pkg/helpers"
 	"unicode/utf8"
 )
 
@@ -23,7 +24,7 @@ func (c *LenCallable) Call(_ ExecuteBlockFn, args []any, token ast.Token) (any, 
 	case string:
 		return float64(utf8.RuneCountInString(v)), nil
 	default:
-		return nil, errors.NewRuntimeError(token, fmt.Sprintf("len() can only be called on strings, arrays and objects, got %T", args[0]))
+		return nil, errors.NewRuntimeError(token, fmt.Sprintf("len() can only be called on strings, arrays and objects, got %s", helpers.TypeName(args[0])))
 	}
 }
 

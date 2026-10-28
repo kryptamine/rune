@@ -1,0 +1,2 @@
+print [1, 2,]; // expect: [1, 2]
+print len([1,]); // expect: 1

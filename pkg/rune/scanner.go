@@ -6,6 +6,7 @@ import (
 	"rune/pkg/ast"
 	"rune/pkg/helpers"
 	"strconv"
+	"strings"
 	"unicode/utf8"
 )
 
@@ -165,13 +166,48 @@ func (s *Scanner) currentChar() rune {
 	return rune(s.source[s.current])
 }
 
+var escapes = map[byte]byte{
+	'n':  '\n',
+	't':  '\t',
+	'r':  '\r',
+	'"':  '"',
+	'\\': '\\',
+}
+
 func (s *Scanner) string() error {
+	var value strings.Builder
+	var escapeErr error
+
 	for s.peek() != '"' && !s.isAtEnd() {
-		if s.peek() == '\n' {
+		c := s.source[s.current]
+		s.current++
+
+		if c == '\n' {
 			s.line++
 		}
 
-		s.advance()
+		if c != '\\' {
+			value.WriteByte(c)
+			continue
+		}
+
+		if s.isAtEnd() {
+			break
+		}
+
+		// Keep scanning after a bad escape so the string still becomes a token.
+		r, size := utf8.DecodeRuneInString(s.source[s.current:])
+		s.current += size
+
+		if e, ok := escapes[byte(r)]; ok && size == 1 {
+			value.WriteByte(e)
+		} else if escapeErr == nil {
+			escapeErr = fmt.Errorf("Invalid escape sequence '\\%c'.", r)
+		}
+
+		if r == '\n' {
+			s.line++
+		}
 	}
 
 	if s.isAtEnd() {
@@ -179,12 +215,9 @@ func (s *Scanner) string() error {
 	}
 
 	s.advance()
+	s.addTokenWithLiteral(ast.STRING, value.String())
 
-	value := s.source[s.start+1 : s.current-1]
-
-	s.addTokenWithLiteral(ast.STRING, value)
-
-	return nil
+	return escapeErr
 }
 
 func (s *Scanner) number() {

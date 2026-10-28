@@ -10,7 +10,8 @@ import (
 	"rune/pkg/helpers"
 )
 
-const maxRecursionDepth = 999
+// maxRecursionDepth caps nested calls; 10k frames take ~40MB of memory.
+const maxRecursionDepth = 10_000
 
 type Interpreter struct {
 	environment    *environment.Environment
@@ -466,13 +467,13 @@ func (p *Interpreter) VisitSetIndexExpr(node *ast.SetIndexExpr) (any, error) {
 func (p *Interpreter) VisitObjectExpr(node *ast.ObjectExpr) (any, error) {
 	obj := make(map[string]any)
 
-	for key, value := range node.Pairs {
-		v, err := value.Accept(p)
+	for _, pair := range node.Pairs {
+		v, err := pair.Value.Accept(p)
 		if err != nil {
 			return nil, err
 		}
 
-		obj[key] = v
+		obj[pair.Key] = v
 	}
 
 	return obj, nil

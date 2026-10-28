@@ -1,0 +1,10 @@
+fun p(x) { print x; return x; }
+
+var o = {d: p(1), c: p(2), b: p(3), a: p(4)};
+// expect: 1
+// expect: 2
+// expect: 3
+// expect: 4
+
+var dup = {a: 1, a: 2};
+print dup["a"]; // expect: 2
