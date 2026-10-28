@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"rune/pkg/helpers"
 	"rune/pkg/rune"
 	"strings"
 )
@@ -60,6 +61,10 @@ func tokenize(fileContents []byte) int {
 func evaluate(fileContents []byte) int {
 	tokens, errors := rune.Scan(fileContents)
 	if len(errors) > 0 {
+		for _, err := range errors {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+		}
+
 		return exitCodeParseError
 	}
 
@@ -75,7 +80,7 @@ func evaluate(fileContents []byte) int {
 		return exitCodeEvalError
 	}
 
-	fmt.Println(result)
+	fmt.Println(helpers.Stringify(result))
 	return exitCodeOk
 }
 
@@ -120,7 +125,7 @@ func main() {
 
 	command := os.Args[1]
 	if command == "version" {
-		fmt.Println(fmt.Sprintf("Rune Interpreter v%s", version))
+		fmt.Printf("Rune Interpreter v%s\n", version)
 		return
 	}
 

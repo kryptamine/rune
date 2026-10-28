@@ -13,7 +13,7 @@ func NewClockCallable() Callable {
 }
 
 func (c *ClockCallable) Call(_ ExecuteBlockFn, args []any, _ ast.Token) (any, error) {
-	return float64(time.Now().Unix()), nil
+	return float64(time.Now().UnixNano()) / float64(time.Second), nil
 }
 
 func (c *ClockCallable) Arity() int {

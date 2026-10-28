@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"rune/pkg/ast"
 	"rune/pkg/errors"
+	"slices"
 )
 
 type AppendCallable struct{}
@@ -19,10 +20,10 @@ func (c *AppendCallable) Call(_ ExecuteBlockFn, args []any, token ast.Token) (an
 
 	switch v := args[0].(type) {
 	case []any:
-		v = append(v, args[1:]...)
-		return v, nil
+		// Always copy so the result never shares a backing array with the input.
+		return slices.Concat(v, args[1:]), nil
 	default:
-		return 0, errors.NewRuntimeError(token, fmt.Sprintf("Can only append to arrays, got %T", args[0]))
+		return nil, errors.NewRuntimeError(token, fmt.Sprintf("Can only append to arrays, got %T", args[0]))
 	}
 }
 

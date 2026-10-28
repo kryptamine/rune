@@ -1,34 +1,34 @@
 package helpers
 
-import (
-	"rune/pkg/callable"
-)
+import "reflect"
 
+// IsTruthy follows JS-like semantics: nil, false, 0 and "" are falsy,
+// everything else (including arrays, objects and functions) is truthy.
 func IsTruthy(val any) bool {
-	if val == nil {
+	switch v := val.(type) {
+	case nil:
 		return false
-	}
-
-	switch i2 := val.(type) {
 	case bool:
-		return i2
+		return v
 	case string:
-		return len(i2) != 0
+		return len(v) != 0
 	case float64:
-		return i2 != 0.0
-	case *callable.FunctionCallable:
-		return true
+		return v != 0.0
 	default:
-		return false
+		return true
 	}
 }
 
+// IsEqual compares arrays and objects structurally and everything else with ==.
+// Plain == on slices or maps would panic, so containers go through DeepEqual.
 func IsEqual(left any, right any) bool {
-	if left == nil && right == nil {
-		return true
+	switch left.(type) {
+	case []any, map[string]any:
+		return reflect.DeepEqual(left, right)
 	}
 
-	if left == nil {
+	switch right.(type) {
+	case []any, map[string]any:
 		return false
 	}
 

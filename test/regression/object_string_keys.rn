@@ -1,0 +1,4 @@
+var obj = {"first name": "Ann", age: 3};
+print obj["first name"]; // expect: Ann
+print len(obj); // expect: 2
+print len("Þॐ"); // expect: 2

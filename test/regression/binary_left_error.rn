@@ -1,0 +1,1 @@
+print undefinedVar + 1; // expect runtime error: [line: 1] Undefined variable 'undefinedVar'.

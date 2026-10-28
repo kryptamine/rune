@@ -17,14 +17,10 @@ func NewJsonCallable() Callable {
 }
 
 func (c *JsonCallable) Call(_ ExecuteBlockFn, args []any, token ast.Token) (any, error) {
-	if len(args) < 1 {
-		return nil, errors.NewRuntimeError(token, "Expected 1 argument, got 0.")
-	}
-
 	switch url := args[0].(type) {
 	case string:
 		httpClient := http.Client{
-			Timeout: time.Second * 2,
+			Timeout: time.Second * 10,
 		}
 
 		res, err := httpClient.Get(url)
@@ -39,7 +35,8 @@ func (c *JsonCallable) Call(_ ExecuteBlockFn, args []any, token ast.Token) (any,
 			return nil, errors.NewRuntimeError(token, fmt.Sprintf("Error fetching %s: Status code %d", url, res.StatusCode))
 		}
 
-		jsonRes := map[string]any{}
+		// Top-level value may be an object, an array or a primitive.
+		var jsonRes any
 
 		if err := json.NewDecoder(res.Body).Decode(&jsonRes); err != nil {
 			return nil, errors.NewRuntimeError(token, fmt.Sprintf("Error parsing JSON from %s: %s", url, err.Error()))
