@@ -61,7 +61,7 @@ class Test:
                     expectations += 1
 
                 match = ERROR_EXPECT.search(line)
-                if match and not self.compile_errors:
+                if match:
                     self.compile_errors.add(match.group(1))
 
                     # If we expect a compile error, it should exit with EX_DATAERR.
@@ -70,12 +70,11 @@ class Test:
 
                 match = ERROR_LINE_EXPECT.search(line)
                 if match:
-                    if not self.compile_errors:
-                        self.compile_errors.add(match.group(4))
+                    self.compile_errors.add(match.group(4))
 
-                        # If we expect a compile error, it should exit with EX_DATAERR.
-                        self.exit_code = 65
-                        expectations += 1
+                    # If we expect a compile error, it should exit with EX_DATAERR.
+                    self.exit_code = 65
+                    expectations += 1
 
                 match = RUNTIME_ERROR_EXPECT.search(line)
                 if match:

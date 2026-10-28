@@ -95,9 +95,12 @@ func run(fileContents []byte) int {
 		return exitCodeParseError
 	}
 
-	stmts, err := rune.ParseStmts(tokens)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+	stmts, parseErrors := rune.ParseStmts(tokens)
+	if len(parseErrors) > 0 {
+		for _, err := range parseErrors {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+		}
+
 		return exitCodeParseError
 	}
 
