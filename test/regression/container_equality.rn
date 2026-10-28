@@ -1,0 +1,6 @@
+print [1, 2] == [1, 2]; // expect: true
+print [1] == [2]; // expect: false
+print {a: 1} == {a: 1}; // expect: true
+print [1] == nil; // expect: false
+print nil == [1]; // expect: false
+print [] == []; // expect: true

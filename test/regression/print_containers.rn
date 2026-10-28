@@ -1,0 +1,1 @@
+print [nil, true, 1.5, "s", [1], {b: 2, a: 1}]; // expect: [nil, true, 1.5, s, [1], {a: 1, b: 2}]

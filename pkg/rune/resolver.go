@@ -283,7 +283,10 @@ func (p *Resolver) endScope() {
 }
 
 func (p *Resolver) resolveFn(fn *ast.FunctionStmt) error {
+	enclosingIsFunction := p.isFunction
 	p.isFunction = true
+	defer func() { p.isFunction = enclosingIsFunction }()
+
 	p.beginScope()
 
 	for _, fnParam := range fn.Parameters {

@@ -1,0 +1,6 @@
+var a = append([1, 2, 3], 0);
+var b = append(a, 4);
+var c = append(a, 5);
+print b[4]; // expect: 4
+print c[4]; // expect: 5
+print len(a); // expect: 4

@@ -311,7 +311,7 @@ func (s *Parser) function(kind string) (ast.Stmt, error) {
 	parameters := []ast.Token{}
 
 	if !s.check(ast.RIGHT_PAREN) {
-		for true {
+		for {
 			if len(parameters) >= callable.MaxArity {
 				return nil, errors.NewRuntimeError(
 					s.peek(),
@@ -436,23 +436,21 @@ func (s *Parser) assignment() (ast.Expr, error) {
 	}
 
 	if s.match(ast.EQUAL) {
+		equals := s.previous()
 		value, err := s.assignment()
 
 		if err != nil {
 			return nil, err
 		}
 
-		if arrayExpr, ok := expr.(*ast.IndexExpr); ok {
-			return ast.NewSetIndexExpr(arrayExpr.Token, arrayExpr.Array, arrayExpr.Index, value), nil
+		switch target := expr.(type) {
+		case *ast.IndexExpr:
+			return ast.NewSetIndexExpr(target.Token, target.Array, target.Index, value), nil
+		case *ast.VarExpr:
+			return ast.NewAssignExpr(target.Name, value), nil
 		}
 
-		if s, ok := expr.(*ast.VarExpr); ok {
-			token := s.Name
-
-			return ast.NewAssignExpr(token, value), nil
-		}
-
-		return nil, errors.NewRuntimeError(s.peek(), "Error at '=': Invalid assignment target.")
+		return nil, errors.NewRuntimeError(equals, "Error at '=': Invalid assignment target.")
 	}
 
 	return expr, nil
@@ -501,7 +499,7 @@ func (s *Parser) comparison() (ast.Expr, error) {
 }
 
 func (s *Parser) unary() (ast.Expr, error) {
-	for s.match(ast.BANG, ast.MINUS) {
+	if s.match(ast.BANG, ast.MINUS) {
 		operator := s.previous()
 		right, err := s.unary()
 
@@ -552,7 +550,7 @@ func (s *Parser) finishCall(expr ast.Expr) (ast.Expr, error) {
 	args := []ast.Expr{}
 
 	if !s.check(ast.RIGHT_PAREN) {
-		for true {
+		for {
 			arg, err := s.expression()
 			if err != nil {
 				return nil, err
@@ -620,14 +618,20 @@ func (s *Parser) primary() (ast.Expr, error) {
 		pairs := make(map[string]ast.Expr)
 
 		for !s.check(ast.RIGHT_BRACE) && !s.isAtEnd() {
-			// Parse key (should be an identifier or string)
-			key, err := s.consume(ast.IDENTIFIER, "Expect property name.")
-			if err != nil {
-				return nil, err
+			// Parse key (an identifier or a string)
+			var key string
+
+			switch {
+			case s.match(ast.IDENTIFIER):
+				key = s.previous().Lexeme
+			case s.match(ast.STRING):
+				key = s.previous().Literal
+			default:
+				return nil, errors.NewRuntimeError(s.peek(), "Expect property name.")
 			}
 
 			// Expect ':' after key
-			_, err = s.consume(ast.COLON, "Expect ':' after property name.")
+			_, err := s.consume(ast.COLON, "Expect ':' after property name.")
 			if err != nil {
 				return nil, err
 			}
@@ -637,7 +641,7 @@ func (s *Parser) primary() (ast.Expr, error) {
 				return nil, err
 			}
 
-			pairs[key.Lexeme] = value
+			pairs[key] = value
 
 			// Allow optional commas but not required before closing `}`
 			if !s.match(ast.COMMA) {
@@ -694,7 +698,7 @@ func (s *Parser) primary() (ast.Expr, error) {
 
 	if s.match(ast.NUMBER) {
 		prev := s.previous()
-		value, err := strconv.ParseFloat(prev.Literal, 64)
+		value, err := strconv.ParseFloat(prev.Lexeme, 64)
 
 		if err != nil {
 			return nil, errors.NewRuntimeError(prev, "Invalid number.")

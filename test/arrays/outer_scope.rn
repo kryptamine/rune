@@ -8,4 +8,4 @@ fun foo() {
   return arr;
 }
 
-print(foo()); // expect: [0 1 2]
+print(foo()); // expect: [0, 1, 2]

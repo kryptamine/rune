@@ -6,6 +6,7 @@ import (
 	"rune/pkg/ast"
 	"rune/pkg/helpers"
 	"strconv"
+	"unicode/utf8"
 )
 
 type Scanner struct {
@@ -134,7 +135,10 @@ func (s *Scanner) scanToken() {
 		} else if helpers.IsDigit(char) {
 			s.number()
 		} else {
-			s.errors = append(s.errors, fmt.Errorf("[line: %d] Error: Unexpected character: %c", s.line, char))
+			// Report the whole (possibly multi-byte) character, not a single byte of it.
+			r, size := utf8.DecodeRuneInString(s.source[s.start:])
+			s.current = s.start + size
+			s.errors = append(s.errors, fmt.Errorf("[line: %d] Error: Unexpected character: %c", s.line, r))
 		}
 	}
 }

@@ -2,6 +2,7 @@ package rune
 
 import (
 	"fmt"
+	"math"
 	"rune/pkg/ast"
 	"rune/pkg/callable"
 	"rune/pkg/environment"
@@ -40,7 +41,7 @@ func NewInterpreter() *Interpreter {
 }
 
 func EvaluateExpr(expr ast.Expr) (any, error) {
-	return expr.Accept(&Interpreter{})
+	return expr.Accept(NewInterpreter())
 }
 
 func (p *Interpreter) EvaluateStmts(stmts []ast.Stmt) error {
@@ -89,19 +90,7 @@ func (p *Interpreter) VisitPrintStmt(exprStmt *ast.PrintStmt) error {
 		return err
 	}
 
-	if val == nil {
-		fmt.Println("nil")
-		return nil
-	}
-
-	if v, ok := val.(float64); ok {
-		if v == float64(int64(v)) {
-			fmt.Println(fmt.Sprintf("%.0f", v))
-			return nil
-		}
-	}
-
-	fmt.Println(val)
+	fmt.Println(helpers.Stringify(val))
 
 	return nil
 }
@@ -148,17 +137,18 @@ func (p *Interpreter) VisitWhileStmt(whileStmt *ast.WhileStmt) error {
 }
 
 func (p *Interpreter) VisitVarStmt(varStmt *ast.VarStmt) error {
-	if varStmt.Initializer != nil {
-		value, err := varStmt.Initializer.Accept(p)
+	var value any
 
+	if varStmt.Initializer != nil {
+		v, err := varStmt.Initializer.Accept(p)
 		if err != nil {
 			return err
 		}
 
-		p.environment.Define(varStmt.Name.Lexeme, value)
-	} else {
-		p.environment.Define(varStmt.Name.Lexeme, nil)
+		value = v
 	}
+
+	p.environment.Define(varStmt.Name.Lexeme, value)
 
 	return nil
 }
@@ -202,11 +192,6 @@ func (p *Interpreter) VisitCallExpr(callExpr *ast.CallExpr) (any, error) {
 
 func (p *Interpreter) VisitFunctionStmt(functionStmt *ast.FunctionStmt) error {
 	function := callable.NewFunctionCallable(functionStmt, p.environment)
-
-	if len(function.Declaration.Name.Lexeme) == 0 {
-		return errors.NewRuntimeError(functionStmt.Name, "Function name is required.")
-	}
-
 	p.environment.Define(functionStmt.Name.Lexeme, function)
 	return nil
 }
@@ -286,8 +271,11 @@ func (p *Interpreter) VisitAssignExpr(node *ast.AssignExpr) (any, error) {
 
 func (p *Interpreter) VisitBinaryExpr(node *ast.BinaryExpr) (any, error) {
 	left, err := node.Left.Accept(p)
-	right, err := node.Right.Accept(p)
+	if err != nil {
+		return nil, err
+	}
 
+	right, err := node.Right.Accept(p)
 	if err != nil {
 		return nil, err
 	}
@@ -377,7 +365,7 @@ func (p *Interpreter) VisitUnaryExpr(node *ast.UnaryExpr) (any, error) {
 }
 
 func (p *Interpreter) VisitArrayExpr(node *ast.ArrayExpr) (any, error) {
-	var result []any
+	result := make([]any, 0, len(node.Items))
 
 	for _, item := range node.Items {
 		item, err := item.Accept(p)
@@ -404,13 +392,9 @@ func (p *Interpreter) VisitIndexExpr(node *ast.IndexExpr) (any, error) {
 
 	// Handle Array Indexing
 	if arr, ok := targetVal.([]any); ok {
-		if !helpers.IsFloat(indexVal) {
-			return nil, errors.NewRuntimeError(node.Token, "Array index must be a number.")
-		}
-
-		idx := int(indexVal.(float64))
-		if idx < 0 || idx >= len(arr) {
-			return nil, errors.NewRuntimeError(node.Token, fmt.Sprintf("Index out of bounds: %v of %v", idx, len(arr)))
+		idx, err := arrayIndex(node.Token, indexVal, len(arr))
+		if err != nil {
+			return nil, err
 		}
 
 		return arr[idx], nil
@@ -452,14 +436,12 @@ func (p *Interpreter) VisitSetIndexExpr(node *ast.SetIndexExpr) (any, error) {
 
 	switch target := targetVal.(type) {
 	case []any:
-		idx, ok := indexVal.(float64)
-		if !ok || int(idx) < 0 || int(idx) >= len(target) {
-			return nil, errors.NewRuntimeError(
-				node.Token,
-				fmt.Sprintf("Index out of bounds: %v of %v", idx, len(target)),
-			)
+		idx, err := arrayIndex(node.Token, indexVal, len(target))
+		if err != nil {
+			return nil, err
 		}
-		target[int(idx)] = value
+
+		target[idx] = value
 		return value, nil
 
 	case map[string]any:
@@ -494,6 +476,20 @@ func (p *Interpreter) VisitObjectExpr(node *ast.ObjectExpr) (any, error) {
 	}
 
 	return obj, nil
+}
+
+// arrayIndex validates that val is an integer index within [0, length).
+func arrayIndex(token ast.Token, val any, length int) (int, error) {
+	f, ok := val.(float64)
+	if !ok || f != math.Trunc(f) {
+		return 0, errors.NewRuntimeError(token, "Array index must be an integer.")
+	}
+
+	if f < 0 || f >= float64(length) {
+		return 0, errors.NewRuntimeError(token, fmt.Sprintf("Index out of bounds: %v of %v", f, length))
+	}
+
+	return int(f), nil
 }
 
 func (p *Interpreter) checkNumberOperands(left any, right any) error {

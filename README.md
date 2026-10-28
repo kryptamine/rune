@@ -1,5 +1,5 @@
 ![ci](https://github.com/kryptamine/rune/actions/workflows/ci.yml/badge.svg)
-![Go](https://img.shields.io/badge/Go-1.20+-blue?logo=go&logoColor=white)
+![Go](https://img.shields.io/badge/Go-1.26+-blue?logo=go&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3.8+-yellow?logo=python&logoColor=white)
 
 # Rune Interpreter
@@ -76,10 +76,10 @@ python3 test.py arrays
 
 Rune provides several built-in functions:
 
-- **`len(arr)`** — Returns the length of an array.
-- **`append(arr, value1, value2, ...)`** — Appends values to an array and returns the new array.
-- **`json(url)`** — Fetches and parses JSON from a URL, error handling is not implemented.
-- **`clock()`** — Returns the current time in seconds.
+- **`len(value)`** — Returns the length of an array, object or string (in characters).
+- **`append(arr, value1, value2, ...)`** — Returns a new array with the values appended; the original array is not modified.
+- **`json(url)`** — Fetches and parses JSON from a URL (object, array or primitive); network, HTTP status and parse errors are reported as runtime errors.
+- **`clock()`** — Returns the current time in seconds (with sub-second precision).
 
 ## Example Program
 
