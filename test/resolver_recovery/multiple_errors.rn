@@ -1,0 +1,9 @@
+return 1; // [line: 1] Error at 'return': Cannot return from top-level code.
+
+fun f(a, a) {} // [line: 3] Error at 'a': Variable with this name already declared in this scope.
+
+{
+  var b = b; // [line: 6] Error at 'b': Cannot read local variable in its own initializer.
+  var c = 1;
+  var c = 2; // [line: 8] Error at 'c': Variable with this name already declared in this scope.
+}
