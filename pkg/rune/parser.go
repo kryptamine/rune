@@ -94,7 +94,8 @@ func (s *Parser) statement() (ast.Stmt, error) {
 		return s.whileStatement()
 	}
 
-	if s.match(ast.LEFT_BRACE) {
+	// "{ key: ..." can only be an object literal; anything else after "{" is a block.
+	if !s.isObjectLiteralStart() && s.match(ast.LEFT_BRACE) {
 		block, err := s.block()
 		if err != nil {
 			return nil, err
@@ -557,6 +558,14 @@ func (s *Parser) call() (ast.Expr, error) {
 			}
 
 			expr = ast.NewIndexExpr(expr, index, s.previous())
+		} else if s.match(ast.DOT) {
+			// obj.name is sugar for obj["name"].
+			name, err := s.consume(ast.IDENTIFIER, "Expect property name after '.'.")
+			if err != nil {
+				return nil, err
+			}
+
+			expr = ast.NewIndexExpr(expr, ast.NewLiteralExpr(ast.STRING, name.Lexeme), name)
 		} else {
 			break
 		}
@@ -792,6 +801,17 @@ func (s *Parser) consume(tokenType ast.TokenType, errMsg string) (ast.Token, err
 	}
 
 	return ast.Token{}, errors.NewSyntaxError(s.peek(), errMsg)
+}
+
+// isObjectLiteralStart reports whether the upcoming tokens are "{", a property name and ":".
+func (s *Parser) isObjectLiteralStart() bool {
+	if !s.check(ast.LEFT_BRACE) || s.current+2 >= len(s.tokens) {
+		return false
+	}
+
+	key := s.tokens[s.current+1].TokenType
+
+	return (key == ast.IDENTIFIER || key == ast.STRING) && s.tokens[s.current+2].TokenType == ast.COLON
 }
 
 func (s *Parser) peek() ast.Token {
