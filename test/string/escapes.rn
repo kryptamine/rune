@@ -1,0 +1,6 @@
+print "a\tb"; // expect: a	b
+print "say \"hi\""; // expect: say "hi"
+print "back\\slash"; // expect: back\slash
+print "two\nlines"; // expect: two
+// expect: lines
+print len("\n"); // expect: 1

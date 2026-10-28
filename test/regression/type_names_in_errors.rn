@@ -1,0 +1,1 @@
+len(1); // expect runtime error: [line: 1] len() can only be called on strings, arrays and objects, got number

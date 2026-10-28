@@ -182,7 +182,7 @@ func (p *Resolver) VisitSetIndexExpr(expr *ast.SetIndexExpr) (any, error) {
 
 func (p *Resolver) VisitObjectExpr(expr *ast.ObjectExpr) (any, error) {
 	for _, pair := range expr.Pairs {
-		p.resolveExpr(pair)
+		p.resolveExpr(pair.Value)
 	}
 
 	return nil, nil

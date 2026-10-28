@@ -634,7 +634,7 @@ func (s *Parser) factor() (ast.Expr, error) {
 func (s *Parser) primary() (ast.Expr, error) {
 	// Parse object literal
 	if s.match(ast.LEFT_BRACE) {
-		pairs := make(map[string]ast.Expr)
+		var pairs []ast.ObjectPair
 
 		for !s.check(ast.RIGHT_BRACE) && !s.isAtEnd() {
 			// Parse key (an identifier or a string)
@@ -660,7 +660,7 @@ func (s *Parser) primary() (ast.Expr, error) {
 				return nil, err
 			}
 
-			pairs[key] = value
+			pairs = append(pairs, ast.ObjectPair{Key: key, Value: value})
 
 			// Allow optional commas but not required before closing `}`
 			if !s.match(ast.COMMA) {
@@ -689,7 +689,8 @@ func (s *Parser) primary() (ast.Expr, error) {
 				}
 				items = append(items, elem)
 
-				if !s.match(ast.COMMA) {
+				// Allow a trailing comma, as in object literals.
+				if !s.match(ast.COMMA) || s.check(ast.RIGHT_BRACKET) {
 					break
 				}
 			}

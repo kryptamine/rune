@@ -132,12 +132,19 @@ func NewSetIndexExpr(token Token, array Expr, index Expr, value Expr) Expr {
 	return &SetIndexExpr{Array: array, Index: index, Value: value, Token: token}
 }
 
-type ObjectExpr struct {
-	TokenType TokenType
-	Pairs     map[string]Expr
+// ObjectPair is a single "key: value" entry of an object literal.
+type ObjectPair struct {
+	Key   string
+	Value Expr
 }
 
-func NewObjectExpr(tokenType TokenType, pairs map[string]Expr) Expr {
+type ObjectExpr struct {
+	TokenType TokenType
+	// Pairs keep source order so values are evaluated left to right.
+	Pairs []ObjectPair
+}
+
+func NewObjectExpr(tokenType TokenType, pairs []ObjectPair) Expr {
 	return &ObjectExpr{TokenType: tokenType, Pairs: pairs}
 }
 

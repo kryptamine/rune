@@ -8,6 +8,7 @@ import (
 
 	"rune/pkg/ast"
 	"rune/pkg/errors"
+	"rune/pkg/helpers"
 )
 
 type JsonCallable struct{}
@@ -44,7 +45,7 @@ func (c *JsonCallable) Call(_ ExecuteBlockFn, args []any, token ast.Token) (any,
 
 		return jsonRes, nil
 	default:
-		return nil, errors.NewRuntimeError(token, fmt.Sprintf("Can only parse strings, got %T", args[0]))
+		return nil, errors.NewRuntimeError(token, fmt.Sprintf("json() expects a URL string, got %s", helpers.TypeName(args[0])))
 	}
 }
 

@@ -8,6 +8,27 @@ import (
 	"strings"
 )
 
+// TypeName returns the language-level name of a runtime value's type,
+// for use in error messages instead of Go type names.
+func TypeName(val any) string {
+	switch val.(type) {
+	case nil:
+		return "nil"
+	case bool:
+		return "boolean"
+	case float64:
+		return "number"
+	case string:
+		return "string"
+	case []any:
+		return "array"
+	case map[string]any:
+		return "object"
+	default:
+		return "function"
+	}
+}
+
 // Stringify renders a runtime value the way the language prints it.
 func Stringify(val any) string {
 	switch v := val.(type) {
