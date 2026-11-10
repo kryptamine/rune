@@ -1,0 +1,2 @@
+fun () { print "ignored"; };
+print "ok"; // expect: ok

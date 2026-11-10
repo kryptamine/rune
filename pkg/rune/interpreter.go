@@ -2,6 +2,7 @@ package rune
 
 import (
 	"fmt"
+	"maps"
 	"math"
 	"rune/pkg/ast"
 	"rune/pkg/callable"
@@ -9,6 +10,7 @@ import (
 	"rune/pkg/errors"
 	"rune/pkg/helpers"
 	"rune/pkg/value"
+	"slices"
 )
 
 // maxRecursionDepth caps nested calls; 10k frames take ~40MB of memory.
@@ -21,6 +23,17 @@ type returnSignal struct{}
 func (returnSignal) Error() string { return "<fn return>" }
 
 var errReturn error = returnSignal{}
+
+// loopSignal unwinds statements up to the enclosing loop for break and
+// continue. The resolver guarantees they only appear inside loops.
+type loopSignal struct{ name string }
+
+func (s loopSignal) Error() string { return "<" + s.name + ">" }
+
+var (
+	errBreak    error = loopSignal{"break"}
+	errContinue error = loopSignal{"continue"}
+)
 
 type Interpreter struct {
 	// environment is the innermost local scope, or nil at the top level.
@@ -178,10 +191,88 @@ func (p *Interpreter) VisitWhileStmt(whileStmt *ast.WhileStmt) error {
 			return nil
 		}
 
-		if err := whileStmt.Body.Accept(p); err != nil {
+		if err := whileStmt.Body.Accept(p); err != nil && err != errContinue {
+			if err == errBreak {
+				return nil
+			}
+
+			return err
+		}
+
+		if whileStmt.Increment != nil {
+			if _, err := whileStmt.Increment.Accept(p); err != nil {
+				return err
+			}
+		}
+	}
+}
+
+func (p *Interpreter) VisitBreakStmt(*ast.BreakStmt) error { return errBreak }
+
+func (p *Interpreter) VisitContinueStmt(*ast.ContinueStmt) error { return errContinue }
+
+// VisitForInStmt runs the body once per element, each time in a fresh scope,
+// so closures created in the body capture that iteration's variables. The
+// elements are taken when the loop starts; changes made to the iterable by
+// the body do not affect which elements are visited.
+func (p *Interpreter) VisitForInStmt(stmt *ast.ForInStmt) error {
+	iterable, err := stmt.Iterable.Accept(p)
+	if err != nil {
+		return err
+	}
+
+	var keys, vals []value.Value
+
+	switch iterable.Kind() {
+	case value.Array:
+		vals = slices.Clone(iterable.Arr())
+		keys = make([]value.Value, len(vals))
+		for i := range vals {
+			keys[i] = value.NewNumber(float64(i))
+		}
+	case value.String:
+		for i, r := range []rune(iterable.Str()) {
+			keys = append(keys, value.NewNumber(float64(i)))
+			vals = append(vals, value.NewString(string(r)))
+		}
+	case value.Object:
+		obj := iterable.Obj()
+		for _, k := range slices.Sorted(maps.Keys(obj)) {
+			keys = append(keys, value.NewString(k))
+			vals = append(vals, obj[k])
+		}
+		// With one variable, iterating an object yields its keys.
+		if stmt.Key == nil {
+			vals = keys
+		}
+	default:
+		return errors.NewRuntimeError(stmt.Keyword, fmt.Sprintf(
+			"Can only iterate over arrays, strings and objects, got %s.", helpers.TypeName(iterable)))
+	}
+
+	body := []ast.Stmt{stmt.Body}
+
+	for i := range vals {
+		env := environment.NewEnvironment(p.environment, stmt.EnvSize)
+		slot := 0
+
+		if stmt.Key != nil {
+			env.Set(0, keys[i])
+			slot = 1
+		}
+
+		env.Set(slot, vals[i])
+
+		if err := p.executeBlock(body, env); err != nil && err != errContinue {
+			if err == errBreak {
+				return nil
+			}
+
 			return err
 		}
 	}
+
+	return nil
 }
 
 func (p *Interpreter) VisitVarStmt(varStmt *ast.VarStmt) error {
@@ -304,6 +395,10 @@ func arityError(callExpr *ast.CallExpr, arity int) error {
 	)
 }
 
+func (p *Interpreter) VisitFunctionExpr(expr *ast.FunctionExpr) (value.Value, error) {
+	return value.NewFunction(callable.NewFunctionCallable(expr.Decl, p.environment)), nil
+}
+
 func (p *Interpreter) VisitFunctionStmt(functionStmt *ast.FunctionStmt) error {
 	fn := value.NewFunction(callable.NewFunctionCallable(functionStmt, p.environment))
 	p.declare(functionStmt.Local, functionStmt.Slot, functionStmt.Name.Lexeme, fn)
@@ -380,7 +475,31 @@ func (p *Interpreter) VisitBinaryExpr(node *ast.BinaryExpr) (value.Value, error)
 		return value.NilValue, err
 	}
 
-	op := node.Operator.TokenType
+	// Fast path for the common number-number case, kept inline here because
+	// binaryOp is too big for the compiler to inline.
+	if left.IsNumber() && right.IsNumber() {
+		l, r := left.Num(), right.Num()
+
+		switch node.Operator.TokenType {
+		case ast.PLUS:
+			return value.NewNumber(l + r), nil
+		case ast.MINUS:
+			return value.NewNumber(l - r), nil
+		case ast.STAR:
+			return value.NewNumber(l * r), nil
+		case ast.LESS:
+			return value.NewBool(l < r), nil
+		case ast.GREATER:
+			return value.NewBool(l > r), nil
+		}
+	}
+
+	return binaryOp(&node.Operator, left, right)
+}
+
+// binaryOp applies a binary operator; operator also locates errors.
+func binaryOp(operator *ast.Token, left, right value.Value) (value.Value, error) {
+	op := operator.TokenType
 
 	switch op {
 	case ast.EQUAL_EQUAL:
@@ -396,11 +515,11 @@ func (p *Interpreter) VisitBinaryExpr(node *ast.BinaryExpr) (value.Value, error)
 			return value.NewString(left.Str() + right.Str()), nil
 		}
 
-		return value.NilValue, errors.NewRuntimeError(node.Operator, "Operands must be two numbers or two strings.")
+		return value.NilValue, errors.NewRuntimeError(*operator, "Operands must be two numbers or two strings.")
 	}
 
 	if !left.IsNumber() || !right.IsNumber() {
-		return value.NilValue, errors.NewRuntimeError(node.Operator, "Operands must be numbers.")
+		return value.NilValue, errors.NewRuntimeError(*operator, "Operands must be numbers.")
 	}
 
 	l, r := left.Num(), right.Num()
@@ -412,6 +531,8 @@ func (p *Interpreter) VisitBinaryExpr(node *ast.BinaryExpr) (value.Value, error)
 		return value.NewNumber(l / r), nil
 	case ast.STAR:
 		return value.NewNumber(l * r), nil
+	case ast.PERCENT:
+		return value.NewNumber(math.Mod(l, r)), nil
 	case ast.LESS:
 		return value.NewBool(l < r), nil
 	case ast.LESS_EQUAL:
@@ -474,11 +595,16 @@ func (p *Interpreter) VisitIndexExpr(node *ast.IndexExpr) (value.Value, error) {
 		return value.NilValue, err
 	}
 
+	return p.getIndex(node.Token, target, index)
+}
+
+// getIndex reads target[index] for an array or object target.
+func (p *Interpreter) getIndex(token ast.Token, target, index value.Value) (value.Value, error) {
 	switch target.Kind() {
 	case value.Array:
 		arr := target.Arr()
 
-		idx, err := arrayIndex(node.Token, index, len(arr))
+		idx, err := arrayIndex(token, index, len(arr))
 		if err != nil {
 			return value.NilValue, err
 		}
@@ -487,20 +613,20 @@ func (p *Interpreter) VisitIndexExpr(node *ast.IndexExpr) (value.Value, error) {
 
 	case value.Object:
 		if !index.IsString() {
-			return value.NilValue, errors.NewRuntimeError(node.Token, "Object keys must be strings.")
+			return value.NilValue, errors.NewRuntimeError(token, "Object keys must be strings.")
 		}
 
 		key := index.Str()
 
 		v, exists := target.Obj()[key]
 		if !exists {
-			return value.NilValue, errors.NewRuntimeError(node.Token, fmt.Sprintf("Undefined property '%s'.", key))
+			return value.NilValue, errors.NewRuntimeError(token, fmt.Sprintf("Undefined property '%s'.", key))
 		}
 
 		return v, nil
 	}
 
-	return value.NilValue, errors.NewRuntimeError(node.Token, "Indexing is only supported on arrays and objects.")
+	return value.NilValue, errors.NewRuntimeError(token, "Indexing is only supported on arrays and objects.")
 }
 
 func (p *Interpreter) VisitSetIndexExpr(node *ast.SetIndexExpr) (value.Value, error) {
@@ -514,9 +640,25 @@ func (p *Interpreter) VisitSetIndexExpr(node *ast.SetIndexExpr) (value.Value, er
 		return value.NilValue, err
 	}
 
+	// For a compound assignment, read the old value before evaluating the
+	// right-hand side, as "a[i] = a[i] op v" would.
+	var old value.Value
+
+	if node.Op != nil {
+		if old, err = p.getIndex(node.Token, target, index); err != nil {
+			return value.NilValue, err
+		}
+	}
+
 	v, err := node.Value.Accept(p)
 	if err != nil {
 		return value.NilValue, err
+	}
+
+	if node.Op != nil {
+		if v, err = binaryOp(node.Op, old, v); err != nil {
+			return value.NilValue, err
+		}
 	}
 
 	switch target.Kind() {

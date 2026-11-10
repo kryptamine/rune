@@ -1,0 +1,4 @@
+for (c in "héй") print c;
+// expect: h
+// expect: é
+// expect: й

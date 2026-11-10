@@ -1,0 +1,6 @@
+var x = "outer";
+for (x in [1]) {
+  var x = "body";
+  print x; // expect: body
+}
+print x; // expect: outer

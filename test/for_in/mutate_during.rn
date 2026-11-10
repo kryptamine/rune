@@ -1,0 +1,8 @@
+var a = [1, 2, 3];
+for (x in a) {
+  a[2] = 99;
+  print x;
+}
+// expect: 1
+// expect: 2
+// expect: 3

@@ -1,0 +1,7 @@
+fun counter() {
+  var n = 0;
+  return fun () { n += 1; return n; };
+}
+var c = counter();
+c();
+print c(); // expect: 2

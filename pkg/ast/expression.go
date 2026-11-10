@@ -18,6 +18,7 @@ type ExprVisitor interface {
 	VisitIndexExpr(indexExpr *IndexExpr) (value.Value, error)
 	VisitSetIndexExpr(setIndexExpr *SetIndexExpr) (value.Value, error)
 	VisitObjectExpr(objectExpr *ObjectExpr) (value.Value, error)
+	VisitFunctionExpr(functionExpr *FunctionExpr) (value.Value, error)
 }
 
 type Expr interface {
@@ -136,15 +137,33 @@ func NewIndexExpr(array Expr, index Expr, token Token) Expr {
 	return &IndexExpr{Array: array, Index: index, Token: token}
 }
 
+// SetIndexExpr assigns to an array element or object property. For a
+// compound assignment (arr[i] += v) Op is the binary operator to apply to
+// the old value; otherwise it is nil. Array and Index are evaluated once.
 type SetIndexExpr struct {
 	Token Token
 	Array Expr
 	Index Expr
 	Value Expr
+	Op    *Token
 }
 
-func NewSetIndexExpr(token Token, array Expr, index Expr, value Expr) Expr {
-	return &SetIndexExpr{Array: array, Index: index, Value: value, Token: token}
+func NewSetIndexExpr(token Token, array Expr, index Expr, value Expr, op *Token) Expr {
+	return &SetIndexExpr{Array: array, Index: index, Value: value, Token: token, Op: op}
+}
+
+// FunctionExpr is an anonymous function: fun (a, b) { ... }. Its Decl has
+// an empty name and is never declared in any scope.
+type FunctionExpr struct {
+	Decl *FunctionStmt
+}
+
+func NewFunctionExpr(decl *FunctionStmt) Expr {
+	return &FunctionExpr{Decl: decl}
+}
+
+func (n *FunctionExpr) Accept(v ExprVisitor) (value.Value, error) {
+	return v.VisitFunctionExpr(n)
 }
 
 // ObjectPair is a single "key: value" entry of an object literal.

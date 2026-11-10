@@ -1,0 +1,10 @@
+var i = 0;
+while (true) {
+  if (i == 3) break;
+  print i;
+  i += 1;
+}
+// expect: 0
+// expect: 1
+// expect: 2
+print "done"; // expect: done

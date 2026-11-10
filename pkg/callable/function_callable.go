@@ -24,5 +24,9 @@ func (f *FunctionCallable) Arity() int {
 }
 
 func (f *FunctionCallable) String() string {
+	if f.Declaration.Name.Lexeme == "" {
+		return "<fn>"
+	}
+
 	return fmt.Sprintf("<fn %s>", f.Declaration.Name.Lexeme)
 }
