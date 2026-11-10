@@ -6,37 +6,17 @@ import (
 	"rune/pkg/environment"
 )
 
-// FunctionCallable is a callable that represents a function.
+// FunctionCallable is a user-defined function together with its closure.
 type FunctionCallable struct {
 	Declaration *ast.FunctionStmt
-	environment *environment.Environment
+	Closure     *environment.Environment
 }
 
-func NewFunctionCallable(declaration *ast.FunctionStmt, environment *environment.Environment) *FunctionCallable {
+func NewFunctionCallable(declaration *ast.FunctionStmt, closure *environment.Environment) *FunctionCallable {
 	return &FunctionCallable{
 		Declaration: declaration,
-		environment: environment,
+		Closure:     closure,
 	}
-}
-
-func (f *FunctionCallable) Call(executeBlock ExecuteBlockFn, args []any, _ ast.Token) (any, error) {
-	env := environment.NewEnvironment(f.environment)
-
-	for i, param := range f.Declaration.Parameters {
-		if len(args) <= i {
-			continue
-		}
-
-		env.Define(param.Lexeme, args[i])
-	}
-
-	err := executeBlock(f.Declaration.Body, env)
-
-	if ret, isReturn := err.(*Return); isReturn {
-		return ret.value, nil
-	}
-
-	return nil, err
 }
 
 func (f *FunctionCallable) Arity() int {

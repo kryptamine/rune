@@ -19,3 +19,7 @@ run: build
 .PHONY: clean
 clean:
 	rm -f $(BINARY)
+
+.PHONY: bench
+bench:
+	go test ./pkg/rune -run ^$$ -bench . -benchmem

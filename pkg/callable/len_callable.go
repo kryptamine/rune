@@ -5,6 +5,7 @@ import (
 	"rune/pkg/ast"
 	"rune/pkg/errors"
 	"rune/pkg/helpers"
+	"rune/pkg/value"
 	"unicode/utf8"
 )
 
@@ -15,16 +16,16 @@ func NewLenCallable() Callable {
 	return &LenCallable{}
 }
 
-func (c *LenCallable) Call(_ ExecuteBlockFn, args []any, token ast.Token) (any, error) {
-	switch v := args[0].(type) {
-	case []any:
-		return float64(len(v)), nil
-	case map[string]any:
-		return float64(len(v)), nil
-	case string:
-		return float64(utf8.RuneCountInString(v)), nil
+func (c *LenCallable) Call(args []value.Value, token ast.Token) (value.Value, error) {
+	switch v := args[0]; v.Kind() {
+	case value.Array:
+		return value.NewNumber(float64(len(v.Arr()))), nil
+	case value.Object:
+		return value.NewNumber(float64(len(v.Obj()))), nil
+	case value.String:
+		return value.NewNumber(float64(utf8.RuneCountInString(v.Str()))), nil
 	default:
-		return nil, errors.NewRuntimeError(token, fmt.Sprintf("len() can only be called on strings, arrays and objects, got %s", helpers.TypeName(args[0])))
+		return value.NilValue, errors.NewRuntimeError(token, fmt.Sprintf("len() can only be called on strings, arrays and objects, got %s", helpers.TypeName(args[0])))
 	}
 }
 

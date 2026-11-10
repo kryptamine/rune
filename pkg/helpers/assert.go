@@ -1,48 +1,48 @@
 package helpers
 
-import "reflect"
+import (
+	"reflect"
+	"rune/pkg/value"
+)
 
 // IsTruthy follows JS-like semantics: nil, false, 0 and "" are falsy,
 // everything else (including arrays, objects and functions) is truthy.
-func IsTruthy(val any) bool {
-	switch v := val.(type) {
-	case nil:
+func IsTruthy(v value.Value) bool {
+	switch v.Kind() {
+	case value.Nil:
 		return false
-	case bool:
-		return v
-	case string:
-		return len(v) != 0
-	case float64:
-		return v != 0.0
+	case value.Bool:
+		return v.Bool()
+	case value.String:
+		return len(v.Str()) != 0
+	case value.Number:
+		return v.Num() != 0.0
 	default:
 		return true
 	}
 }
 
-// IsEqual compares arrays and objects structurally and everything else with ==.
-// Plain == on slices or maps would panic, so containers go through DeepEqual.
-func IsEqual(left any, right any) bool {
-	switch left.(type) {
-	case []any, map[string]any:
-		return reflect.DeepEqual(left, right)
-	}
-
-	switch right.(type) {
-	case []any, map[string]any:
+// IsEqual compares arrays and objects structurally and everything else by value
+// (functions by identity). Values of different kinds are never equal.
+func IsEqual(left, right value.Value) bool {
+	if left.Kind() != right.Kind() {
 		return false
 	}
 
-	return left == right
-}
-
-func IsString(val any) bool {
-	_, ok := val.(string)
-	return ok
-}
-
-func IsFloat(val any) bool {
-	_, ok := val.(float64)
-	return ok
+	switch left.Kind() {
+	case value.Nil:
+		return true
+	case value.Bool:
+		return left.Bool() == right.Bool()
+	case value.Number:
+		return left.Num() == right.Num()
+	case value.String:
+		return left.Str() == right.Str()
+	case value.Array, value.Object:
+		return reflect.DeepEqual(left.Fn(), right.Fn())
+	default:
+		return left.Fn() == right.Fn()
+	}
 }
 
 func IsDigit(c rune) bool {

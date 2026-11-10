@@ -2,27 +2,15 @@ package callable
 
 import (
 	"rune/pkg/ast"
-	"rune/pkg/environment"
+	"rune/pkg/value"
 )
 
 const MaxArity = 8
 
-// Return is a special type of error that is returned by a function
-type Return struct {
-	value any
-}
-
-func NewReturn(value any) *Return {
-	return &Return{value}
-}
-
-func (e *Return) Error() string {
-	return "<fn return>"
-}
-
-type ExecuteBlockFn func(statements []ast.Stmt, env *environment.Environment) error
-
+// Callable is a native (built-in) function. User-defined functions are
+// FunctionCallable values, which the interpreter calls directly.
 type Callable interface {
-	Call(executeBlock ExecuteBlockFn, args []any, token ast.Token) (any, error)
+	Call(args []value.Value, token ast.Token) (value.Value, error)
+	// Arity is the exact number of arguments, or -1 for variadic.
 	Arity() int
 }

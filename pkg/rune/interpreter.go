@@ -8,28 +8,33 @@ import (
 	"rune/pkg/environment"
 	"rune/pkg/errors"
 	"rune/pkg/helpers"
+	"rune/pkg/value"
 )
 
 // maxRecursionDepth caps nested calls; 10k frames take ~40MB of memory.
 const maxRecursionDepth = 10_000
 
+// returnSignal unwinds statements up to the enclosing call. The value being
+// returned travels in Interpreter.returnValue, so returning never allocates.
+type returnSignal struct{}
+
+func (returnSignal) Error() string { return "<fn return>" }
+
+var errReturn error = returnSignal{}
+
 type Interpreter struct {
+	// environment is the innermost local scope, or nil at the top level.
 	environment    *environment.Environment
-	globals        *environment.Environment
-	locals         map[ast.Expr]int
+	globals        *environment.Globals
+	returnValue    value.Value
 	recursionDepth int
 	maxRecursion   int
 }
 
 func NewInterpreter() *Interpreter {
-	globals := environment.NewEnvironment(nil)
-
 	p := &Interpreter{
-		environment:    globals,
-		globals:        globals,
-		locals:         make(map[ast.Expr]int),
-		recursionDepth: 0,
-		maxRecursion:   maxRecursionDepth,
+		globals:      environment.NewGlobals(),
+		maxRecursion: maxRecursionDepth,
 	}
 
 	// Global functions.
@@ -41,7 +46,7 @@ func NewInterpreter() *Interpreter {
 	return p
 }
 
-func EvaluateExpr(expr ast.Expr) (any, error) {
+func EvaluateExpr(expr ast.Expr) (value.Value, error) {
 	return expr.Accept(NewInterpreter())
 }
 
@@ -56,37 +61,52 @@ func (p *Interpreter) EvaluateStmts(stmts []ast.Stmt) error {
 	return nil
 }
 
-func (p *Interpreter) registerGlobalCallable(name string, value callable.Callable) {
-	p.environment.Define(name, value)
+func (p *Interpreter) registerGlobalCallable(name string, fn callable.Callable) {
+	p.globals.Define(environment.GlobalSlot(name), value.NewFunction(fn))
+}
+
+// globalSlot returns slot, looking it up by name when the resolver has not
+// run (as for a lone expression evaluated with EvaluateExpr).
+func globalSlot(slot int, name string) int {
+	if slot == ast.Unresolved {
+		return environment.GlobalSlot(name)
+	}
+
+	return slot
+}
+
+// declare binds a freshly declared variable or function name.
+func (p *Interpreter) declare(local bool, slot int, name string, v value.Value) {
+	if local {
+		p.environment.Set(slot, v)
+	} else {
+		p.globals.Define(globalSlot(slot, name), v)
+	}
 }
 
 func (p *Interpreter) VisitReturnStmt(returnStmt *ast.ReturnStmt) error {
-	if returnStmt.Value == nil {
-		return callable.NewReturn(nil)
+	if returnStmt.Value != nil {
+		v, err := returnStmt.Value.Accept(p)
+		if err != nil {
+			return err
+		}
+
+		p.returnValue = v
+	} else {
+		p.returnValue = value.NilValue
 	}
 
-	value, err := returnStmt.Value.Accept(p)
-
-	if err != nil {
-		return err
-	}
-
-	return callable.NewReturn(value)
+	return errReturn
 }
 
 func (p *Interpreter) VisitExprStmt(exprStmt *ast.ExprStmt) error {
 	_, err := exprStmt.Expr.Accept(p)
 
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (p *Interpreter) VisitPrintStmt(exprStmt *ast.PrintStmt) error {
 	val, err := exprStmt.Expr.Accept(p)
-
 	if err != nil {
 		return err
 	}
@@ -96,11 +116,10 @@ func (p *Interpreter) VisitPrintStmt(exprStmt *ast.PrintStmt) error {
 	return nil
 }
 
-func (p *Interpreter) VisitLogicalExpr(node *ast.LogicalExpr) (any, error) {
+func (p *Interpreter) VisitLogicalExpr(node *ast.LogicalExpr) (value.Value, error) {
 	left, err := node.Left.Accept(p)
-
 	if err != nil {
-		return nil, err
+		return value.NilValue, err
 	}
 
 	if node.Op.TokenType == ast.OR {
@@ -117,83 +136,146 @@ func (p *Interpreter) VisitLogicalExpr(node *ast.LogicalExpr) (any, error) {
 }
 
 func (p *Interpreter) VisitWhileStmt(whileStmt *ast.WhileStmt) error {
-	val, err := whileStmt.Condition.Accept(p)
-	if err != nil {
-		return err
-	}
-
-	for helpers.IsTruthy(val) {
-		err := whileStmt.Body.Accept(p)
+	for {
+		cond, err := whileStmt.Condition.Accept(p)
 		if err != nil {
 			return err
 		}
 
-		val, err = whileStmt.Condition.Accept(p)
-		if err != nil {
+		if !helpers.IsTruthy(cond) {
+			return nil
+		}
+
+		if err := whileStmt.Body.Accept(p); err != nil {
 			return err
 		}
 	}
-
-	return nil
 }
 
 func (p *Interpreter) VisitVarStmt(varStmt *ast.VarStmt) error {
-	var value any
+	v := value.NilValue
 
 	if varStmt.Initializer != nil {
-		v, err := varStmt.Initializer.Accept(p)
-		if err != nil {
+		var err error
+		if v, err = varStmt.Initializer.Accept(p); err != nil {
 			return err
 		}
-
-		value = v
 	}
 
-	p.environment.Define(varStmt.Name.Lexeme, value)
+	p.declare(varStmt.Local, varStmt.Slot, varStmt.Name.Lexeme, v)
 
 	return nil
 }
 
-func (p *Interpreter) VisitCallExpr(callExpr *ast.CallExpr) (any, error) {
+func (p *Interpreter) VisitCallExpr(callExpr *ast.CallExpr) (value.Value, error) {
 	if p.recursionDepth >= p.maxRecursion {
-		return nil, errors.NewRuntimeError(callExpr.Token, "Stack overflow.")
+		return value.NilValue, errors.NewRuntimeError(callExpr.Token, "Stack overflow.")
 	}
 
 	p.recursionDepth++
-	defer func() { p.recursionDepth-- }()
+	result, err := p.call(callExpr)
+	p.recursionDepth--
 
+	return result, err
+}
+
+func (p *Interpreter) call(callExpr *ast.CallExpr) (value.Value, error) {
 	callee, err := callExpr.Callee.Accept(p)
 	if err != nil {
-		return nil, err
+		return value.NilValue, err
 	}
 
-	args := []any{}
+	if callee.Kind() == value.Function {
+		switch fn := callee.Fn().(type) {
+		case *callable.FunctionCallable:
+			return p.callFunction(fn, callExpr)
+		case callable.Callable:
+			return p.callNative(fn, callExpr)
+		}
+	}
 
-	for _, arg := range callExpr.Args {
-		arg, err := arg.Accept(p)
+	if _, err := p.evalArgs(callExpr.Args); err != nil {
+		return value.NilValue, err
+	}
+
+	return value.NilValue, errors.NewRuntimeError(callExpr.Token, "Can only call functions.")
+}
+
+// callFunction evaluates the arguments straight into the parameter slots of
+// the new environment, so a user-defined call needs no argument slice.
+func (p *Interpreter) callFunction(fn *callable.FunctionCallable, callExpr *ast.CallExpr) (value.Value, error) {
+	decl := fn.Declaration
+
+	if len(callExpr.Args) != len(decl.Parameters) {
+		if _, err := p.evalArgs(callExpr.Args); err != nil {
+			return value.NilValue, err
+		}
+
+		return value.NilValue, arityError(callExpr, len(decl.Parameters))
+	}
+
+	env := environment.NewEnvironment(fn.Closure, decl.EnvSize)
+
+	for i, arg := range callExpr.Args {
+		v, err := arg.Accept(p)
+		if err != nil {
+			return value.NilValue, err
+		}
+
+		env.Set(i, v)
+	}
+
+	err := p.executeBlock(decl.Body, env)
+
+	if err == errReturn {
+		result := p.returnValue
+		p.returnValue = value.NilValue
+
+		return result, nil
+	}
+
+	return value.NilValue, err
+}
+
+func (p *Interpreter) callNative(fn callable.Callable, callExpr *ast.CallExpr) (value.Value, error) {
+	args, err := p.evalArgs(callExpr.Args)
+	if err != nil {
+		return value.NilValue, err
+	}
+
+	if arity := fn.Arity(); arity != -1 && len(args) != arity {
+		return value.NilValue, arityError(callExpr, arity)
+	}
+
+	return fn.Call(args, callExpr.Token)
+}
+
+func (p *Interpreter) evalArgs(exprs []ast.Expr) ([]value.Value, error) {
+	args := make([]value.Value, len(exprs))
+
+	for i, arg := range exprs {
+		v, err := arg.Accept(p)
 		if err != nil {
 			return nil, err
 		}
-		args = append(args, arg)
+
+		args[i] = v
 	}
 
-	if callable, ok := callee.(callable.Callable); ok {
-		if callable.Arity() != -1 && len(args) != callable.Arity() {
-			return nil, errors.NewRuntimeError(
-				callExpr.Token,
-				fmt.Sprintf("Expected %d arguments but got %d.", callable.Arity(), len(args)),
-			)
-		}
+	return args, nil
+}
 
-		return callable.Call(p.executeBlock, args, callExpr.Token)
-	}
-
-	return nil, errors.NewRuntimeError(callExpr.Token, "Can only call functions.")
+func arityError(callExpr *ast.CallExpr, arity int) error {
+	return errors.NewRuntimeError(
+		callExpr.Token,
+		fmt.Sprintf("Expected %d arguments but got %d.", arity, len(callExpr.Args)),
+	)
 }
 
 func (p *Interpreter) VisitFunctionStmt(functionStmt *ast.FunctionStmt) error {
-	function := callable.NewFunctionCallable(functionStmt, p.environment)
-	p.environment.Define(functionStmt.Name.Lexeme, function)
+	fn := value.NewFunction(callable.NewFunctionCallable(functionStmt, p.environment))
+	p.declare(functionStmt.Local, functionStmt.Slot, functionStmt.Name.Lexeme, fn)
+
 	return nil
 }
 
@@ -213,294 +295,254 @@ func (p *Interpreter) VisitIfStmt(ifStmt *ast.IfStmt) error {
 }
 
 func (p *Interpreter) VisitBlockStmt(blockStmt *ast.BlockStmt) error {
-	return p.executeBlock(blockStmt.Stmts, environment.NewEnvironment(p.environment))
+	// A block without declarations needs no scope of its own.
+	if blockStmt.EnvSize == 0 {
+		return p.EvaluateStmts(blockStmt.Stmts)
+	}
+
+	return p.executeBlock(blockStmt.Stmts, environment.NewEnvironment(p.environment, blockStmt.EnvSize))
 }
 
 func (p *Interpreter) executeBlock(statements []ast.Stmt, env *environment.Environment) error {
 	prevEnv := p.environment
 	p.environment = env
 
-	defer func() {
-		p.environment = prevEnv
-	}()
+	err := p.EvaluateStmts(statements)
 
-	for _, stmt := range statements {
-		err := stmt.Accept(p)
-		if err != nil {
-			return err
-		}
+	p.environment = prevEnv
+
+	return err
+}
+
+func (p *Interpreter) VisitVarExpr(node *ast.VarExpr) (value.Value, error) {
+	if node.Depth != ast.Unresolved {
+		return p.environment.GetAt(node.Depth, node.Slot), nil
 	}
 
-	return nil
+	return p.globals.Get(globalSlot(node.Slot, node.Name.Lexeme), node.Name)
 }
 
-func (p *Interpreter) VisitVarExpr(node *ast.VarExpr) (any, error) {
-	return p.lookupVariable(node.Name, node)
-}
-
-func (p *Interpreter) lookupVariable(name ast.Token, expr ast.Expr) (any, error) {
-	if distance, ok := p.GetLocalDistance(expr); ok {
-		return p.environment.GetAt(distance, name.Lexeme), nil
-	}
-
-	return p.globals.Get(name)
-}
-
-func (p *Interpreter) GetLocalDistance(expr ast.Expr) (int, bool) {
-	distance, ok := p.locals[expr]
-
-	return distance, ok
-}
-
-func (p *Interpreter) VisitAssignExpr(node *ast.AssignExpr) (any, error) {
-	value, err := node.Value.Accept(p)
+func (p *Interpreter) VisitAssignExpr(node *ast.AssignExpr) (value.Value, error) {
+	v, err := node.Value.Accept(p)
 	if err != nil {
-		return nil, err
+		return value.NilValue, err
 	}
 
-	distance, ok := p.GetLocalDistance(node)
-	if ok {
-		p.environment.AssignAt(distance, node.Name.Lexeme, value)
-	} else {
-		if err := p.globals.Assign(node.Name, value); err != nil {
-			return nil, err
-		}
+	if node.Depth != ast.Unresolved {
+		p.environment.AssignAt(node.Depth, node.Slot, v)
+	} else if err := p.globals.Assign(globalSlot(node.Slot, node.Name.Lexeme), node.Name, v); err != nil {
+		return value.NilValue, err
 	}
 
-	return value, nil
+	return v, nil
 }
 
-func (p *Interpreter) VisitBinaryExpr(node *ast.BinaryExpr) (any, error) {
+func (p *Interpreter) VisitBinaryExpr(node *ast.BinaryExpr) (value.Value, error) {
 	left, err := node.Left.Accept(p)
 	if err != nil {
-		return nil, err
+		return value.NilValue, err
 	}
 
 	right, err := node.Right.Accept(p)
 	if err != nil {
-		return nil, err
+		return value.NilValue, err
 	}
 
-	switch node.Operator.TokenType {
+	op := node.Operator.TokenType
+
+	switch op {
 	case ast.EQUAL_EQUAL:
-		return helpers.IsEqual(left, right), nil
+		return value.NewBool(helpers.IsEqual(left, right)), nil
 	case ast.BANG_EQUAL:
-		return !helpers.IsEqual(left, right), nil
+		return value.NewBool(!helpers.IsEqual(left, right)), nil
 	case ast.PLUS:
-		if helpers.IsString(left) && helpers.IsString(right) {
-			return left.(string) + right.(string), nil
+		if left.IsNumber() && right.IsNumber() {
+			return value.NewNumber(left.Num() + right.Num()), nil
 		}
 
-		if helpers.IsFloat(left) && helpers.IsFloat(right) {
-			return left.(float64) + right.(float64), nil
+		if left.IsString() && right.IsString() {
+			return value.NewString(left.Str() + right.Str()), nil
 		}
 
-		return nil, errors.NewRuntimeError(node.Operator, "Operands must be two numbers or two strings.")
-	case ast.MINUS:
-		if err := p.checkNumberOperands(left, right); err != nil {
-			return nil, errors.NewRuntimeError(node.Operator, err.Error())
-		}
-		return helpers.ToFloat(left) - helpers.ToFloat(right), nil
-	case ast.SLASH:
-		if err := p.checkNumberOperands(left, right); err != nil {
-			return nil, errors.NewRuntimeError(node.Operator, err.Error())
-		}
-		return helpers.ToFloat(left) / helpers.ToFloat(right), nil
-	case ast.STAR:
-		if err := p.checkNumberOperands(left, right); err != nil {
-			return nil, errors.NewRuntimeError(node.Operator, err.Error())
-		}
-		return helpers.ToFloat(left) * helpers.ToFloat(right), nil
-	case ast.LESS:
-		if err := p.checkNumberOperands(left, right); err != nil {
-			return nil, errors.NewRuntimeError(node.Operator, err.Error())
-		}
-		return helpers.ToFloat(left) < helpers.ToFloat(right), nil
-	case ast.LESS_EQUAL:
-		if err := p.checkNumberOperands(left, right); err != nil {
-			return nil, errors.NewRuntimeError(node.Operator, err.Error())
-		}
-		return helpers.ToFloat(left) <= helpers.ToFloat(right), nil
-	case ast.GREATER:
-		if err := p.checkNumberOperands(left, right); err != nil {
-			return nil, errors.NewRuntimeError(node.Operator, err.Error())
-		}
-		return helpers.ToFloat(left) > helpers.ToFloat(right), nil
-	case ast.GREATER_EQUAL:
-		if err := p.checkNumberOperands(left, right); err != nil {
-			return nil, errors.NewRuntimeError(node.Operator, err.Error())
-		}
-		return helpers.ToFloat(left) >= helpers.ToFloat(right), nil
+		return value.NilValue, errors.NewRuntimeError(node.Operator, "Operands must be two numbers or two strings.")
 	}
 
-	return nil, nil
+	if !left.IsNumber() || !right.IsNumber() {
+		return value.NilValue, errors.NewRuntimeError(node.Operator, "Operands must be numbers.")
+	}
+
+	l, r := left.Num(), right.Num()
+
+	switch op {
+	case ast.MINUS:
+		return value.NewNumber(l - r), nil
+	case ast.SLASH:
+		return value.NewNumber(l / r), nil
+	case ast.STAR:
+		return value.NewNumber(l * r), nil
+	case ast.LESS:
+		return value.NewBool(l < r), nil
+	case ast.LESS_EQUAL:
+		return value.NewBool(l <= r), nil
+	case ast.GREATER:
+		return value.NewBool(l > r), nil
+	case ast.GREATER_EQUAL:
+		return value.NewBool(l >= r), nil
+	}
+
+	return value.NilValue, nil
 }
 
-func (p *Interpreter) VisitLiteralExpr(node *ast.LiteralExpr) (any, error) {
+func (p *Interpreter) VisitLiteralExpr(node *ast.LiteralExpr) (value.Value, error) {
 	return node.Value, nil
 }
 
-func (p *Interpreter) VisitGroupingExpr(node *ast.GroupingExpr) (any, error) {
+func (p *Interpreter) VisitGroupingExpr(node *ast.GroupingExpr) (value.Value, error) {
 	return node.Expr.Accept(p)
 }
 
-func (p *Interpreter) VisitUnaryExpr(node *ast.UnaryExpr) (any, error) {
+func (p *Interpreter) VisitUnaryExpr(node *ast.UnaryExpr) (value.Value, error) {
 	right, err := node.Right.Accept(p)
-
 	if err != nil {
-		return nil, err
+		return value.NilValue, err
 	}
 
 	switch node.Operator.TokenType {
 	case ast.BANG:
-		return !helpers.IsTruthy(right), nil
+		return value.NewBool(!helpers.IsTruthy(right)), nil
 	case ast.MINUS:
-		if !helpers.IsFloat(right) {
-			return nil, errors.NewRuntimeError(node.Operator, "Operand must be a number.")
+		if !right.IsNumber() {
+			return value.NilValue, errors.NewRuntimeError(node.Operator, "Operand must be a number.")
 		}
 
-		return -1 * helpers.ToFloat(right), nil
+		return value.NewNumber(-right.Num()), nil
 	}
 
-	return nil, nil
+	return value.NilValue, nil
 }
 
-func (p *Interpreter) VisitArrayExpr(node *ast.ArrayExpr) (any, error) {
-	result := make([]any, 0, len(node.Items))
-
-	for _, item := range node.Items {
-		item, err := item.Accept(p)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, item)
+func (p *Interpreter) VisitArrayExpr(node *ast.ArrayExpr) (value.Value, error) {
+	items, err := p.evalArgs(node.Items)
+	if err != nil {
+		return value.NilValue, err
 	}
 
-	return result, nil
+	return value.NewArray(items), nil
 }
 
-func (p *Interpreter) VisitIndexExpr(node *ast.IndexExpr) (any, error) {
+func (p *Interpreter) VisitIndexExpr(node *ast.IndexExpr) (value.Value, error) {
 	// Evaluate the object (could be an array or an object)
-	targetVal, err := node.Array.Accept(p)
+	target, err := node.Array.Accept(p)
 	if err != nil {
-		return nil, err
+		return value.NilValue, err
 	}
 
-	indexVal, err := node.Index.Accept(p)
+	index, err := node.Index.Accept(p)
 	if err != nil {
-		return nil, err
+		return value.NilValue, err
 	}
 
-	// Handle Array Indexing
-	if arr, ok := targetVal.([]any); ok {
-		idx, err := arrayIndex(node.Token, indexVal, len(arr))
+	switch target.Kind() {
+	case value.Array:
+		arr := target.Arr()
+
+		idx, err := arrayIndex(node.Token, index, len(arr))
 		if err != nil {
-			return nil, err
+			return value.NilValue, err
 		}
 
 		return arr[idx], nil
-	}
 
-	// Handle Object Property Access
-	if obj, ok := targetVal.(map[string]any); ok {
-		key, ok := indexVal.(string)
-		if !ok {
-			return nil, errors.NewRuntimeError(node.Token, "Object keys must be strings.")
+	case value.Object:
+		if !index.IsString() {
+			return value.NilValue, errors.NewRuntimeError(node.Token, "Object keys must be strings.")
 		}
 
-		value, exists := obj[key]
+		key := index.Str()
+
+		v, exists := target.Obj()[key]
 		if !exists {
-			return nil, errors.NewRuntimeError(node.Token, fmt.Sprintf("Undefined property '%s'.", key))
+			return value.NilValue, errors.NewRuntimeError(node.Token, fmt.Sprintf("Undefined property '%s'.", key))
 		}
 
-		return value, nil
+		return v, nil
 	}
 
-	return nil, errors.NewRuntimeError(node.Token, "Indexing is only supported on arrays and objects.")
+	return value.NilValue, errors.NewRuntimeError(node.Token, "Indexing is only supported on arrays and objects.")
 }
 
-func (p *Interpreter) VisitSetIndexExpr(node *ast.SetIndexExpr) (any, error) {
-	targetVal, err := node.Array.Accept(p)
+func (p *Interpreter) VisitSetIndexExpr(node *ast.SetIndexExpr) (value.Value, error) {
+	target, err := node.Array.Accept(p)
 	if err != nil {
-		return nil, err
+		return value.NilValue, err
 	}
 
-	indexVal, err := node.Index.Accept(p)
+	index, err := node.Index.Accept(p)
 	if err != nil {
-		return nil, err
+		return value.NilValue, err
 	}
 
-	value, err := node.Value.Accept(p)
+	v, err := node.Value.Accept(p)
 	if err != nil {
-		return nil, err
+		return value.NilValue, err
 	}
 
-	switch target := targetVal.(type) {
-	case []any:
-		idx, err := arrayIndex(node.Token, indexVal, len(target))
+	switch target.Kind() {
+	case value.Array:
+		arr := target.Arr()
+
+		idx, err := arrayIndex(node.Token, index, len(arr))
 		if err != nil {
-			return nil, err
+			return value.NilValue, err
 		}
 
-		target[idx] = value
-		return value, nil
+		arr[idx] = v
+		return v, nil
 
-	case map[string]any:
-		key, ok := indexVal.(string)
-		if !ok {
-			return nil, errors.NewRuntimeError(
+	case value.Object:
+		if !index.IsString() {
+			return value.NilValue, errors.NewRuntimeError(
 				node.Token,
 				"Object properties must be accessed with string keys.",
 			)
 		}
-		target[key] = value
-		return value, nil
+
+		target.Obj()[index.Str()] = v
+		return v, nil
 
 	default:
-		return nil, errors.NewRuntimeError(
+		return value.NilValue, errors.NewRuntimeError(
 			node.Token,
 			"Indexing is only supported on arrays and objects.",
 		)
 	}
 }
 
-func (p *Interpreter) VisitObjectExpr(node *ast.ObjectExpr) (any, error) {
-	obj := make(map[string]any)
+func (p *Interpreter) VisitObjectExpr(node *ast.ObjectExpr) (value.Value, error) {
+	obj := make(map[string]value.Value, len(node.Pairs))
 
 	for _, pair := range node.Pairs {
 		v, err := pair.Value.Accept(p)
 		if err != nil {
-			return nil, err
+			return value.NilValue, err
 		}
 
 		obj[pair.Key] = v
 	}
 
-	return obj, nil
+	return value.NewObject(obj), nil
 }
 
-// arrayIndex validates that val is an integer index within [0, length).
-func arrayIndex(token ast.Token, val any, length int) (int, error) {
-	f, ok := val.(float64)
-	if !ok || f != math.Trunc(f) {
+// arrayIndex validates that v is an integer index within [0, length).
+func arrayIndex(token ast.Token, v value.Value, length int) (int, error) {
+	if !v.IsNumber() || v.Num() != math.Trunc(v.Num()) {
 		return 0, errors.NewRuntimeError(token, "Array index must be an integer.")
 	}
 
+	f := v.Num()
 	if f < 0 || f >= float64(length) {
 		return 0, errors.NewRuntimeError(token, fmt.Sprintf("Index out of bounds: %v of %v", f, length))
 	}
 
 	return int(f), nil
-}
-
-func (p *Interpreter) checkNumberOperands(left any, right any) error {
-	if helpers.IsFloat(left) && helpers.IsFloat(right) {
-		return nil
-	}
-
-	return fmt.Errorf("Operands must be numbers.")
-}
-
-func (p *Interpreter) Resolve(expr ast.Expr, depth int) {
-	p.locals[expr] = depth
 }

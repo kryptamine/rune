@@ -99,7 +99,7 @@ func run(fileContents []byte) int {
 	}
 
 	interpreter := rune.NewInterpreter()
-	resolver := rune.NewResolver(interpreter)
+	resolver := rune.NewResolver()
 
 	if resolveErrors := resolver.ResolveStmts(stmts); len(resolveErrors) > 0 {
 		printErrors(resolveErrors)

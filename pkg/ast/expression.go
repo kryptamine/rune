@@ -1,24 +1,27 @@
 package ast
 
-import "fmt"
+import (
+	"fmt"
+	"rune/pkg/value"
+)
 
 type ExprVisitor interface {
-	VisitBinaryExpr(binaryExpr *BinaryExpr) (any, error)
-	VisitLiteralExpr(literalExpr *LiteralExpr) (any, error)
-	VisitGroupingExpr(literalExpr *GroupingExpr) (any, error)
-	VisitUnaryExpr(UnaryExpr *UnaryExpr) (any, error)
-	VisitVarExpr(varExpr *VarExpr) (any, error)
-	VisitAssignExpr(assignExpr *AssignExpr) (any, error)
-	VisitLogicalExpr(logicalExpr *LogicalExpr) (any, error)
-	VisitCallExpr(callExpr *CallExpr) (any, error)
-	VisitArrayExpr(arrayExpr *ArrayExpr) (any, error)
-	VisitIndexExpr(indexExpr *IndexExpr) (any, error)
-	VisitSetIndexExpr(setIndexExpr *SetIndexExpr) (any, error)
-	VisitObjectExpr(objectExpr *ObjectExpr) (any, error)
+	VisitBinaryExpr(binaryExpr *BinaryExpr) (value.Value, error)
+	VisitLiteralExpr(literalExpr *LiteralExpr) (value.Value, error)
+	VisitGroupingExpr(literalExpr *GroupingExpr) (value.Value, error)
+	VisitUnaryExpr(UnaryExpr *UnaryExpr) (value.Value, error)
+	VisitVarExpr(varExpr *VarExpr) (value.Value, error)
+	VisitAssignExpr(assignExpr *AssignExpr) (value.Value, error)
+	VisitLogicalExpr(logicalExpr *LogicalExpr) (value.Value, error)
+	VisitCallExpr(callExpr *CallExpr) (value.Value, error)
+	VisitArrayExpr(arrayExpr *ArrayExpr) (value.Value, error)
+	VisitIndexExpr(indexExpr *IndexExpr) (value.Value, error)
+	VisitSetIndexExpr(setIndexExpr *SetIndexExpr) (value.Value, error)
+	VisitObjectExpr(objectExpr *ObjectExpr) (value.Value, error)
 }
 
 type Expr interface {
-	Accept(v ExprVisitor) (any, error)
+	Accept(v ExprVisitor) (value.Value, error)
 }
 
 type BinaryExpr struct {
@@ -31,7 +34,7 @@ func NewBinaryExpr(left Expr, right Expr, operator Token) Expr {
 	return &BinaryExpr{Left: left, Right: right, Operator: operator}
 }
 
-func (n *BinaryExpr) Accept(v ExprVisitor) (any, error) {
+func (n *BinaryExpr) Accept(v ExprVisitor) (value.Value, error) {
 	return v.VisitBinaryExpr(n)
 }
 
@@ -39,13 +42,21 @@ func (n *BinaryExpr) String() string {
 	return fmt.Sprintf("(%s %v %v)", n.Operator.Lexeme, n.Left, n.Right)
 }
 
+// Unresolved marks a variable reference whose slot is not known yet.
+const Unresolved = -1
+
+// AssignExpr assigns to a variable. Depth is the number of scopes between
+// the use and the declaration, or Unresolved for a global; Slot is the
+// variable's index inside that scope (for globals it is filled lazily).
 type AssignExpr struct {
 	Name  Token
 	Value Expr
+	Depth int
+	Slot  int
 }
 
 func NewAssignExpr(name Token, value Expr) Expr {
-	return &AssignExpr{Name: name, Value: value}
+	return &AssignExpr{Name: name, Value: value, Depth: Unresolved, Slot: Unresolved}
 }
 
 type UnaryExpr struct {
@@ -59,19 +70,23 @@ func NewUnaryExpr(right Expr, operator Token) Expr {
 
 type LiteralExpr struct {
 	TokenType TokenType
-	Value     any
+	Value     value.Value
 }
 
-func NewLiteralExpr(tokenType TokenType, value any) Expr {
-	return &LiteralExpr{TokenType: tokenType, Value: value}
+// NewLiteralExpr accepts a plain Go value (nil, bool, float64 or string).
+func NewLiteralExpr(tokenType TokenType, v any) Expr {
+	return &LiteralExpr{TokenType: tokenType, Value: value.FromGo(v)}
 }
 
+// VarExpr reads a variable; Depth and Slot are as in AssignExpr.
 type VarExpr struct {
-	Name Token
+	Name  Token
+	Depth int
+	Slot  int
 }
 
 func NewVarExpr(name Token) Expr {
-	return &VarExpr{Name: name}
+	return &VarExpr{Name: name, Depth: Unresolved, Slot: Unresolved}
 }
 
 type LogicalExpr struct {
@@ -148,28 +163,29 @@ func NewObjectExpr(tokenType TokenType, pairs []ObjectPair) Expr {
 	return &ObjectExpr{TokenType: tokenType, Pairs: pairs}
 }
 
-func (n *ObjectExpr) Accept(v ExprVisitor) (any, error) {
+func (n *ObjectExpr) Accept(v ExprVisitor) (value.Value, error) {
 	return v.VisitObjectExpr(n)
 }
 
-func (n *ArrayExpr) Accept(v ExprVisitor) (any, error) {
+func (n *ArrayExpr) Accept(v ExprVisitor) (value.Value, error) {
 	return v.VisitArrayExpr(n)
 }
 
-func (n *IndexExpr) Accept(v ExprVisitor) (any, error) {
+func (n *IndexExpr) Accept(v ExprVisitor) (value.Value, error) {
 	return v.VisitIndexExpr(n)
 }
 
-func (n *LiteralExpr) Accept(v ExprVisitor) (any, error) {
+func (n *LiteralExpr) Accept(v ExprVisitor) (value.Value, error) {
 	return v.VisitLiteralExpr(n)
 }
 
 func (n *LiteralExpr) String() string {
-	if n.Value == nil {
+	if n.Value.IsNil() {
 		return "nil"
 	}
 
-	if l, ok := n.Value.(float64); ok {
+	if n.Value.IsNumber() {
+		l := n.Value.Num()
 		// Check if the float is an integer value
 		if l == float64(int64(l)) {
 			// Print with one decimal place (e.g., 10.0 instead of 10)
@@ -179,14 +195,14 @@ func (n *LiteralExpr) String() string {
 		}
 	}
 
-	return fmt.Sprintf("%v", n.Value)
+	return fmt.Sprintf("%v", n.Value.Fn())
 }
 
-func (n *VarExpr) Accept(v ExprVisitor) (any, error) {
+func (n *VarExpr) Accept(v ExprVisitor) (value.Value, error) {
 	return v.VisitVarExpr(n)
 }
 
-func (n *GroupingExpr) Accept(v ExprVisitor) (any, error) {
+func (n *GroupingExpr) Accept(v ExprVisitor) (value.Value, error) {
 	return v.VisitGroupingExpr(n)
 }
 
@@ -194,7 +210,7 @@ func (n *GroupingExpr) String() string {
 	return fmt.Sprintf("(group %v)", n.Expr)
 }
 
-func (n *UnaryExpr) Accept(v ExprVisitor) (any, error) {
+func (n *UnaryExpr) Accept(v ExprVisitor) (value.Value, error) {
 	return v.VisitUnaryExpr(n)
 }
 
@@ -202,7 +218,7 @@ func (n *UnaryExpr) String() string {
 	return fmt.Sprintf("(%s %v)", n.Operator.Lexeme, n.Right)
 }
 
-func (n *AssignExpr) Accept(v ExprVisitor) (any, error) {
+func (n *AssignExpr) Accept(v ExprVisitor) (value.Value, error) {
 	return v.VisitAssignExpr(n)
 }
 
@@ -210,14 +226,14 @@ func (n *AssignExpr) String() string {
 	return fmt.Sprintf("(assign %v %v)", n.Name, n.Value)
 }
 
-func (n *LogicalExpr) Accept(v ExprVisitor) (any, error) {
+func (n *LogicalExpr) Accept(v ExprVisitor) (value.Value, error) {
 	return v.VisitLogicalExpr(n)
 }
 
-func (n *CallExpr) Accept(v ExprVisitor) (any, error) {
+func (n *CallExpr) Accept(v ExprVisitor) (value.Value, error) {
 	return v.VisitCallExpr(n)
 }
 
-func (n *SetIndexExpr) Accept(v ExprVisitor) (any, error) {
+func (n *SetIndexExpr) Accept(v ExprVisitor) (value.Value, error) {
 	return v.VisitSetIndexExpr(n)
 }
