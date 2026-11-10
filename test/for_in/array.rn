@@ -1,0 +1,15 @@
+for (x in [1, 2, 3]) print x;
+// expect: 1
+// expect: 2
+// expect: 3
+
+for (i, x in ["a", "b"]) {
+  print i;
+  print x;
+}
+// expect: 0
+// expect: a
+// expect: 1
+// expect: b
+
+for (x in []) print "never";

@@ -1,0 +1,4 @@
+var fs = [];
+for (x in [1, 2, 3]) fs = append(fs, fun () { return x; });
+print fs[0](); // expect: 1
+print fs[2](); // expect: 3

@@ -1,0 +1,9 @@
+var fs = [];
+for (var i = 0; i < 10; i += 1) {
+  var j = i;
+  if (i == 2) break;
+  fs = append(fs, fun () { return j; });
+}
+print fs[0](); // expect: 0
+print fs[1](); // expect: 1
+print len(fs); // expect: 2

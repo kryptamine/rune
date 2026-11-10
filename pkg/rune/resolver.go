@@ -27,7 +27,10 @@ type Scope struct {
 type Resolver struct {
 	scopes     []*Scope
 	isFunction bool
-	errors     []error
+	// loopDepth counts the loops enclosing the current statement within
+	// the current function; break and continue need it to be positive.
+	loopDepth int
+	errors    []error
 }
 
 func NewResolver() *Resolver {
@@ -113,9 +116,60 @@ func (p *Resolver) VisitIfStmt(ifStmt *ast.IfStmt) error {
 
 func (p *Resolver) VisitWhileStmt(whileStmt *ast.WhileStmt) error {
 	p.resolveExpr(whileStmt.Condition)
-	p.resolveStmt(whileStmt.Body)
+	p.resolveLoopBody(whileStmt.Body)
+
+	if whileStmt.Increment != nil {
+		p.resolveExpr(whileStmt.Increment)
+	}
 
 	return nil
+}
+
+func (p *Resolver) VisitForInStmt(stmt *ast.ForInStmt) error {
+	p.resolveExpr(stmt.Iterable)
+
+	p.beginScope()
+
+	if stmt.Key != nil {
+		p.declare(*stmt.Key)
+		p.define(*stmt.Key)
+	}
+
+	p.declare(stmt.Value)
+	p.define(stmt.Value)
+
+	p.resolveLoopBody(stmt.Body)
+	stmt.EnvSize = p.endScope()
+
+	return nil
+}
+
+func (p *Resolver) resolveLoopBody(body ast.Stmt) {
+	p.loopDepth++
+	p.resolveStmt(body)
+	p.loopDepth--
+}
+
+func (p *Resolver) VisitBreakStmt(stmt *ast.BreakStmt) error {
+	if p.loopDepth == 0 {
+		p.error(stmt.Keyword, "Cannot use 'break' outside of a loop.")
+	}
+
+	return nil
+}
+
+func (p *Resolver) VisitContinueStmt(stmt *ast.ContinueStmt) error {
+	if p.loopDepth == 0 {
+		p.error(stmt.Keyword, "Cannot use 'continue' outside of a loop.")
+	}
+
+	return nil
+}
+
+func (p *Resolver) VisitFunctionExpr(expr *ast.FunctionExpr) (value.Value, error) {
+	p.resolveFn(expr.Decl)
+
+	return value.NilValue, nil
 }
 
 func (p *Resolver) VisitFunctionStmt(fnStmt *ast.FunctionStmt) error {
@@ -285,9 +339,9 @@ func (p *Resolver) endScope() int {
 }
 
 func (p *Resolver) resolveFn(fn *ast.FunctionStmt) {
-	enclosingIsFunction := p.isFunction
-	p.isFunction = true
-	defer func() { p.isFunction = enclosingIsFunction }()
+	enclosingIsFunction, enclosingLoopDepth := p.isFunction, p.loopDepth
+	p.isFunction, p.loopDepth = true, 0
+	defer func() { p.isFunction, p.loopDepth = enclosingIsFunction, enclosingLoopDepth }()
 
 	p.beginScope()
 

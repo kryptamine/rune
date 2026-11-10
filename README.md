@@ -17,6 +17,10 @@ Rune is a dynamically typed interpreted programming language inspired by [Lox](h
 - Number literals with exponents: `1e3`, `2.5E-2`
 - Object property access with `obj.name` as sugar for `obj["name"]`
 - Error handling with `try`/`catch` and `throw`
+- `break` and `continue` in `while`, `for` and `for`-`in` loops
+- `for (x in ...)` over arrays, strings and objects
+- Anonymous functions: `fun (x) { return x * 2; }`
+- Modulo `%` and compound assignment: `+=`, `-=`, `*=`, `/=`, `%=`
 - Cross-platform, compiles to a single binary
 
 ## Installation
@@ -112,6 +116,40 @@ try {
 } catch (e) {
     print e.code; // bad_age
 }
+```
+
+## Loops
+
+`for (x in arr)` visits array elements, string characters or object keys
+(objects are iterated in sorted key order). With two variables you also get
+the index, or the key and the value. Each iteration has its own variable, so
+closures capture the current element.
+
+```javascript
+for (i, name in ["ann", "bob"]) {
+    if (name == "ann") continue;
+    print name; // bob
+}
+
+var ages = { "ann": 31, "bob": 25 };
+for (name, age in ages) {
+    if (age < 30) break;
+    print name + " is 30+";
+}
+```
+
+## Anonymous Functions
+
+`fun` without a name is an expression, so functions can be passed around inline.
+
+```javascript
+fun map(arr, f) {
+    var out = [];
+    for (x in arr) out = append(out, f(x));
+    return out;
+}
+
+print map([1, 2, 3], fun (x) { return x * x; }); // [1, 4, 9]
 ```
 
 ## Example Program

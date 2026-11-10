@@ -1,0 +1,1 @@
+for (x, x in [1]) print x; // [line: 1] Error at 'x': Variable with this name already declared in this scope.

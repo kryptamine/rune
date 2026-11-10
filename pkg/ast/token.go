@@ -50,6 +50,9 @@ const (
 	TRY
 	CATCH
 	THROW
+	BREAK
+	CONTINUE
+	IN
 
 	// Single tokens
 	COLON
@@ -66,6 +69,7 @@ const (
 	PLUS
 	SLASH
 	STAR
+	PERCENT
 	EOF
 
 	// Operators
@@ -77,6 +81,11 @@ const (
 	LESS_EQUAL
 	GREATER
 	GREATER_EQUAL
+	PLUS_EQUAL
+	MINUS_EQUAL
+	STAR_EQUAL
+	SLASH_EQUAL
+	PERCENT_EQUAL
 
 	// Types
 	OBJECT
@@ -86,22 +95,25 @@ const (
 )
 
 var Keywords = map[string]TokenType{
-	"var":    VAR,
-	"and":    AND,
-	"or":     OR,
-	"else":   ELSE,
-	"false":  FALSE,
-	"fun":    FUN,
-	"for":    FOR,
-	"if":     IF,
-	"nil":    NIL,
-	"print":  PRINT,
-	"return": RETURN,
-	"true":   TRUE,
-	"while":  WHILE,
-	"try":    TRY,
-	"catch":  CATCH,
-	"throw":  THROW,
+	"var":      VAR,
+	"and":      AND,
+	"or":       OR,
+	"else":     ELSE,
+	"false":    FALSE,
+	"fun":      FUN,
+	"for":      FOR,
+	"if":       IF,
+	"nil":      NIL,
+	"print":    PRINT,
+	"return":   RETURN,
+	"true":     TRUE,
+	"while":    WHILE,
+	"try":      TRY,
+	"catch":    CATCH,
+	"throw":    THROW,
+	"break":    BREAK,
+	"continue": CONTINUE,
+	"in":       IN,
 }
 
 func (tokenType TokenType) String() string {
@@ -122,6 +134,8 @@ func (tokenType TokenType) String() string {
 		return "SLASH"
 	case STAR:
 		return "STAR"
+	case PERCENT:
+		return "PERCENT"
 	case EOF:
 		return "EOF"
 
@@ -167,6 +181,12 @@ func (tokenType TokenType) String() string {
 		return "CATCH"
 	case THROW:
 		return "THROW"
+	case BREAK:
+		return "BREAK"
+	case CONTINUE:
+		return "CONTINUE"
+	case IN:
+		return "IN"
 	case OR:
 		return "OR"
 	case LEFT_PAREN:
@@ -199,6 +219,16 @@ func (tokenType TokenType) String() string {
 		return "GREATER"
 	case GREATER_EQUAL:
 		return "GREATER_EQUAL"
+	case PLUS_EQUAL:
+		return "PLUS_EQUAL"
+	case MINUS_EQUAL:
+		return "MINUS_EQUAL"
+	case STAR_EQUAL:
+		return "STAR_EQUAL"
+	case SLASH_EQUAL:
+		return "SLASH_EQUAL"
+	case PERCENT_EQUAL:
+		return "PERCENT_EQUAL"
 	default:
 		return "Undefined token."
 	}

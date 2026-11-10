@@ -73,7 +73,8 @@ func (s *Parser) synchronize() {
 		}
 
 		switch s.peek().TokenType {
-		case ast.FUN, ast.VAR, ast.FOR, ast.IF, ast.WHILE, ast.PRINT, ast.RETURN, ast.TRY, ast.THROW:
+		case ast.FUN, ast.VAR, ast.FOR, ast.IF, ast.WHILE, ast.PRINT, ast.RETURN, ast.TRY, ast.THROW,
+			ast.BREAK, ast.CONTINUE:
 			return
 		}
 
@@ -102,6 +103,10 @@ func (s *Parser) statement() (ast.Stmt, error) {
 		return s.throwStatement()
 	}
 
+	if s.match(ast.BREAK, ast.CONTINUE) {
+		return s.loopJumpStatement()
+	}
+
 	// "{ key: ..." can only be an object literal; anything else after "{" is a block.
 	if !s.isObjectLiteralStart() && s.match(ast.LEFT_BRACE) {
 		block, err := s.block()
@@ -123,10 +128,31 @@ func (s *Parser) statement() (ast.Stmt, error) {
 	return s.expressionStatement()
 }
 
+// loopJumpStatement parses `break;` or `continue;` (the keyword is consumed).
+func (s *Parser) loopJumpStatement() (ast.Stmt, error) {
+	keyword := s.previous()
+
+	if _, err := s.consume(ast.SEMICOLON, fmt.Sprintf("Expect ';' after '%s'.", keyword.Lexeme)); err != nil {
+		return nil, err
+	}
+
+	if keyword.TokenType == ast.BREAK {
+		return ast.NewBreakStmt(keyword), nil
+	}
+
+	return ast.NewContinueStmt(keyword), nil
+}
+
 func (s *Parser) forStatement() (ast.Stmt, error) {
+	keyword := s.previous()
+
 	_, err := s.consume(ast.LEFT_PAREN, "Expect '(' after 'for'.")
 	if err != nil {
 		return nil, err
+	}
+
+	if s.isForInStart() {
+		return s.forInStatement(keyword)
 	}
 
 	var initializer ast.Stmt
@@ -181,21 +207,63 @@ func (s *Parser) forStatement() (ast.Stmt, error) {
 		return nil, err
 	}
 
-	if increment != nil {
-		body = ast.NewBlockStmt([]ast.Stmt{body, ast.NewExprStmt(increment)})
-	}
-
 	if condition == nil {
 		condition = ast.NewLiteralExpr(ast.TRUE, true)
 	}
 
-	body = ast.NewWhileStmt(condition, body)
+	body = ast.NewWhileStmt(condition, body, increment)
 
 	if initializer != nil {
 		body = ast.NewBlockStmt([]ast.Stmt{initializer, body})
 	}
 
 	return body, nil
+}
+
+// isForInStart reports whether the tokens after "for (" are "name in" or
+// "name, name in".
+func (s *Parser) isForInStart() bool {
+	if s.peekAt(0) != ast.IDENTIFIER {
+		return false
+	}
+
+	if s.peekAt(1) == ast.IN {
+		return true
+	}
+
+	return s.peekAt(1) == ast.COMMA && s.peekAt(2) == ast.IDENTIFIER && s.peekAt(3) == ast.IN
+}
+
+// forInStatement parses the rest of `for (x in expr) body` or
+// `for (k, v in expr) body` after "for (".
+func (s *Parser) forInStatement(keyword ast.Token) (ast.Stmt, error) {
+	var key *ast.Token
+
+	val := s.advance()
+
+	if s.match(ast.COMMA) {
+		k := val
+		key = &k
+		val = s.advance()
+	}
+
+	s.advance() // "in", checked by isForInStart
+
+	iterable, err := s.expression()
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := s.consume(ast.RIGHT_PAREN, "Expect ')' after for-in clause."); err != nil {
+		return nil, err
+	}
+
+	body, err := s.statement()
+	if err != nil {
+		return nil, err
+	}
+
+	return ast.NewForInStmt(keyword, key, val, iterable, body), nil
 }
 
 // tryStatement parses `try { ... } catch (name) { ... }`; "(name)" is optional.
@@ -276,7 +344,7 @@ func (s *Parser) whileStatement() (ast.Stmt, error) {
 		return nil, err
 	}
 
-	return ast.NewWhileStmt(condition, body), nil
+	return ast.NewWhileStmt(condition, body, nil), nil
 }
 
 func (s *Parser) or() (ast.Expr, error) {
@@ -383,7 +451,9 @@ func (s *Parser) expressionStatement() (ast.Stmt, error) {
 }
 
 func (s *Parser) declaration() (ast.Stmt, error) {
-	if s.match(ast.FUN) {
+	// "fun (" starts an anonymous function expression, not a declaration.
+	if s.check(ast.FUN) && s.peekAt(1) == ast.IDENTIFIER {
+		s.advance()
 		return s.function("function")
 	}
 
@@ -405,6 +475,17 @@ func (s *Parser) function(kind string) (ast.Stmt, error) {
 		return nil, err
 	}
 
+	fn, err := s.functionRest(name)
+	if err != nil {
+		return nil, err
+	}
+
+	return fn, nil
+}
+
+// functionRest parses a function's parameter list and body; the opening
+// "(" has already been consumed.
+func (s *Parser) functionRest(name ast.Token) (*ast.FunctionStmt, error) {
 	parameters := []ast.Token{}
 
 	if !s.check(ast.RIGHT_PAREN) {
@@ -430,7 +511,7 @@ func (s *Parser) function(kind string) (ast.Stmt, error) {
 		}
 	}
 
-	_, err = s.consume(ast.RIGHT_PAREN, "Expect ')' after parameters.")
+	_, err := s.consume(ast.RIGHT_PAREN, "Expect ')' after parameters.")
 	if err != nil {
 		return nil, err
 	}
@@ -445,7 +526,7 @@ func (s *Parser) function(kind string) (ast.Stmt, error) {
 		return nil, err
 	}
 
-	return ast.NewFunctionStmt(name, parameters, body), nil
+	return ast.NewFunctionStmt(name, parameters, body).(*ast.FunctionStmt), nil
 }
 
 func (s *Parser) varDeclaration() (ast.Stmt, error) {
@@ -520,7 +601,7 @@ func (s *Parser) assignment() (ast.Expr, error) {
 		return nil, err
 	}
 
-	if s.match(ast.EQUAL) {
+	if s.match(ast.EQUAL, ast.PLUS_EQUAL, ast.MINUS_EQUAL, ast.STAR_EQUAL, ast.SLASH_EQUAL, ast.PERCENT_EQUAL) {
 		equals := s.previous()
 		value, err := s.assignment()
 
@@ -528,10 +609,25 @@ func (s *Parser) assignment() (ast.Expr, error) {
 			return nil, err
 		}
 
+		// For "a op= b", op is the binary operator, keeping the "op=" lexeme
+		// and line for error messages.
+		var op *ast.Token
+		if opType, ok := compoundOps[equals.TokenType]; ok {
+			t := equals
+			t.TokenType = opType
+			op = &t
+		}
+
 		switch target := expr.(type) {
 		case *ast.IndexExpr:
-			return ast.NewSetIndexExpr(target.Token, target.Array, target.Index, value), nil
+			return ast.NewSetIndexExpr(target.Token, target.Array, target.Index, value, op), nil
 		case *ast.VarExpr:
+			// Reading a variable has no side effects, so "a += b" is just
+			// "a = a + b".
+			if op != nil {
+				value = ast.NewBinaryExpr(ast.NewVarExpr(target.Name), value, *op)
+			}
+
 			return ast.NewAssignExpr(target.Name, value), nil
 		}
 
@@ -539,6 +635,15 @@ func (s *Parser) assignment() (ast.Expr, error) {
 	}
 
 	return expr, nil
+}
+
+// compoundOps maps each compound assignment operator to its binary operator.
+var compoundOps = map[ast.TokenType]ast.TokenType{
+	ast.PLUS_EQUAL:    ast.PLUS,
+	ast.MINUS_EQUAL:   ast.MINUS,
+	ast.STAR_EQUAL:    ast.STAR,
+	ast.SLASH_EQUAL:   ast.SLASH,
+	ast.PERCENT_EQUAL: ast.PERCENT,
 }
 
 func (s *Parser) equality() (ast.Expr, error) {
@@ -691,7 +796,7 @@ func (s *Parser) factor() (ast.Expr, error) {
 		return nil, err
 	}
 
-	for s.match(ast.SLASH, ast.STAR) {
+	for s.match(ast.SLASH, ast.STAR, ast.PERCENT) {
 		operator := s.previous()
 		right, err := s.unary()
 
@@ -776,6 +881,19 @@ func (s *Parser) primary() (ast.Expr, error) {
 		}
 
 		return ast.NewArrayExpr(ast.ARRAY, items), nil
+	}
+
+	// Anonymous function: fun (params) { body }.
+	if s.check(ast.FUN) && s.peekAt(1) == ast.LEFT_PAREN {
+		keyword := s.advance()
+		s.advance()
+
+		decl, err := s.functionRest(ast.NewToken(ast.FUN, "", "", keyword.Line))
+		if err != nil {
+			return nil, err
+		}
+
+		return ast.NewFunctionExpr(decl), nil
 	}
 
 	if s.match(ast.TRUE) {
@@ -877,6 +995,16 @@ func (s *Parser) isObjectLiteralStart() bool {
 	key := s.tokens[s.current+1].TokenType
 
 	return (key == ast.IDENTIFIER || key == ast.STRING) && s.tokens[s.current+2].TokenType == ast.COLON
+}
+
+// peekAt returns the type of the token n positions ahead of the current one,
+// or EOF past the end.
+func (s *Parser) peekAt(n int) ast.TokenType {
+	if s.current+n >= len(s.tokens) {
+		return ast.EOF
+	}
+
+	return s.tokens[s.current+n].TokenType
 }
 
 func (s *Parser) peek() ast.Token {

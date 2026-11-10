@@ -11,6 +11,9 @@ type StmtVisitor interface {
 	VisitReturnStmt(returnStmt *ReturnStmt) error
 	VisitTryStmt(tryStmt *TryStmt) error
 	VisitThrowStmt(throwStmt *ThrowStmt) error
+	VisitBreakStmt(breakStmt *BreakStmt) error
+	VisitContinueStmt(continueStmt *ContinueStmt) error
+	VisitForInStmt(forInStmt *ForInStmt) error
 }
 
 // VarStmt declares a variable. Local is set by the resolver for variables
@@ -73,13 +76,50 @@ func NewIfStmt(condition Expr, then Stmt, el Stmt) Stmt {
 	return &IfStmt{Condition: condition, Then: then, El: el}
 }
 
+// WhileStmt is a while loop, or a desugared C-style for loop: Increment
+// (nil for while) runs after every iteration, including one cut short by
+// continue.
 type WhileStmt struct {
 	Condition Expr
 	Body      Stmt
+	Increment Expr
 }
 
-func NewWhileStmt(condition Expr, body Stmt) Stmt {
-	return &WhileStmt{Condition: condition, Body: body}
+func NewWhileStmt(condition Expr, body Stmt, increment Expr) Stmt {
+	return &WhileStmt{Condition: condition, Body: body, Increment: increment}
+}
+
+// ForInStmt iterates over an array (elements), a string (characters) or an
+// object (keys, in sorted order). With two variables, Key gets the index
+// (or the object key) and Value the element. Each iteration gets a fresh
+// scope of EnvSize slots: Key (if any) first, then Value.
+type ForInStmt struct {
+	Keyword  Token
+	Key      *Token
+	Value    Token
+	Iterable Expr
+	Body     Stmt
+	EnvSize  int
+}
+
+func NewForInStmt(keyword Token, key *Token, val Token, iterable Expr, body Stmt) Stmt {
+	return &ForInStmt{Keyword: keyword, Key: key, Value: val, Iterable: iterable, Body: body}
+}
+
+type BreakStmt struct {
+	Keyword Token
+}
+
+func NewBreakStmt(keyword Token) Stmt {
+	return &BreakStmt{Keyword: keyword}
+}
+
+type ContinueStmt struct {
+	Keyword Token
+}
+
+func NewContinueStmt(keyword Token) Stmt {
+	return &ContinueStmt{Keyword: keyword}
 }
 
 // FunctionStmt declares a function. Local and Slot describe the function's
@@ -164,4 +204,16 @@ func (n *TryStmt) Accept(v StmtVisitor) error {
 
 func (n *ThrowStmt) Accept(v StmtVisitor) error {
 	return v.VisitThrowStmt(n)
+}
+
+func (n *BreakStmt) Accept(v StmtVisitor) error {
+	return v.VisitBreakStmt(n)
+}
+
+func (n *ContinueStmt) Accept(v StmtVisitor) error {
+	return v.VisitContinueStmt(n)
+}
+
+func (n *ForInStmt) Accept(v StmtVisitor) error {
+	return v.VisitForInStmt(n)
 }

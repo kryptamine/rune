@@ -1,0 +1,12 @@
+var calls = 0;
+fun idx() { calls += 1; return 1; }
+
+var arr = [1, 2, 3];
+arr[idx()] += 10;
+print arr;   // expect: [1, 12, 3]
+print calls; // expect: 1
+
+var o = {"n": 1};
+o.n *= 7;
+o["n"] -= 2;
+print o.n; // expect: 5

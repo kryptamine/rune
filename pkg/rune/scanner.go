@@ -87,14 +87,13 @@ func (s *Scanner) scanToken() {
 		s.addToken(ast.DOT)
 		break
 	case '-':
-		s.addToken(ast.MINUS)
-		break
+		s.addToken(helpers.If(s.match('='), ast.MINUS_EQUAL, ast.MINUS))
 	case '+':
-		s.addToken(ast.PLUS)
-		break
+		s.addToken(helpers.If(s.match('='), ast.PLUS_EQUAL, ast.PLUS))
 	case '*':
-		s.addToken(ast.STAR)
-		break
+		s.addToken(helpers.If(s.match('='), ast.STAR_EQUAL, ast.STAR))
+	case '%':
+		s.addToken(helpers.If(s.match('='), ast.PERCENT_EQUAL, ast.PERCENT))
 		// Operators
 	case '=':
 		s.addToken(helpers.If(s.match('='), ast.EQUAL_EQUAL, ast.EQUAL))
@@ -115,7 +114,7 @@ func (s *Scanner) scanToken() {
 				s.advance()
 			}
 		} else {
-			s.addToken(ast.SLASH)
+			s.addToken(helpers.If(s.match('='), ast.SLASH_EQUAL, ast.SLASH))
 		}
 	case '"':
 		if err := s.string(); err != nil {
