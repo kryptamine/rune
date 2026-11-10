@@ -1,0 +1,13 @@
+var err = "global";
+{
+  var a = "local";
+  try {
+    var b = "in try";
+    throw a;
+  } catch (err) {
+    var c = "in catch";
+    print err; // expect: local
+    print c; // expect: in catch
+  }
+}
+print err; // expect: global

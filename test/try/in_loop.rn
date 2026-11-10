@@ -1,0 +1,10 @@
+var items = [1, "x", 3];
+var sum = 0;
+for (var i = 0; i < len(items); i = i + 1) {
+  try {
+    sum = sum + items[i];
+  } catch (err) {
+    print "skip " + items[i]; // expect: skip x
+  }
+}
+print sum; // expect: 4

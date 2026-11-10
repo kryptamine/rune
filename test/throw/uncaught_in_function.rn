@@ -1,0 +1,4 @@
+fun fail() {
+  throw "oops"; // expect runtime error: [line: 2] oops
+}
+fail();

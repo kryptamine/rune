@@ -1,0 +1,10 @@
+try {
+  try {
+    throw "inner";
+  } catch (e) {
+    print "inner caught: " + e; // expect: inner caught: inner
+    throw "outer";
+  }
+} catch (e) {
+  print "outer caught: " + e; // expect: outer caught: outer
+}

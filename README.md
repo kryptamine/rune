@@ -16,6 +16,7 @@ Rune is a dynamically typed interpreted programming language inspired by [Lox](h
 - String escapes: `\n`, `\t`, `\r`, `\"`, `\\`
 - Number literals with exponents: `1e3`, `2.5E-2`
 - Object property access with `obj.name` as sugar for `obj["name"]`
+- Error handling with `try`/`catch` and `throw`
 - Cross-platform, compiles to a single binary
 
 ## Installation
@@ -84,6 +85,34 @@ Rune provides several built-in functions:
 - **`append(arr, value1, value2, ...)`** — Returns a new array with the values appended; the original array is not modified.
 - **`json(url)`** — Fetches and parses JSON from a URL (object, array or primitive); network, HTTP status and parse errors are reported as runtime errors.
 - **`clock()`** — Returns the current time in seconds (with sub-second precision).
+
+## Error Handling
+
+Runtime errors (including those from built-ins like `json()`) can be caught with `try`/`catch`. The catch variable holds the error message as a string; it is optional (`catch { ... }`).
+
+```javascript
+try {
+    var todos = json("https://dummyjson.com/todos");
+    print len(todos.todos);
+} catch (err) {
+    print "request failed: " + err;
+}
+```
+
+`throw` raises any value; `catch` receives it unchanged. An uncaught throw stops the program like any runtime error.
+
+```javascript
+fun parseAge(v) {
+    if (v < 0) throw { "code": "bad_age", "value": v };
+    return v;
+}
+
+try {
+    parseAge(-1);
+} catch (e) {
+    print e.code; // bad_age
+}
+```
 
 ## Example Program
 

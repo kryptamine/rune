@@ -47,6 +47,9 @@ const (
 	RETURN
 	TRUE
 	WHILE
+	TRY
+	CATCH
+	THROW
 
 	// Single tokens
 	COLON
@@ -96,6 +99,9 @@ var Keywords = map[string]TokenType{
 	"return": RETURN,
 	"true":   TRUE,
 	"while":  WHILE,
+	"try":    TRY,
+	"catch":  CATCH,
+	"throw":  THROW,
 }
 
 func (tokenType TokenType) String() string {
@@ -155,6 +161,12 @@ func (tokenType TokenType) String() string {
 		return "TRUE"
 	case WHILE:
 		return "WHILE"
+	case TRY:
+		return "TRY"
+	case CATCH:
+		return "CATCH"
+	case THROW:
+		return "THROW"
 	case OR:
 		return "OR"
 	case LEFT_PAREN:

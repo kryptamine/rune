@@ -73,7 +73,7 @@ func (s *Parser) synchronize() {
 		}
 
 		switch s.peek().TokenType {
-		case ast.FUN, ast.VAR, ast.FOR, ast.IF, ast.WHILE, ast.PRINT, ast.RETURN:
+		case ast.FUN, ast.VAR, ast.FOR, ast.IF, ast.WHILE, ast.PRINT, ast.RETURN, ast.TRY, ast.THROW:
 			return
 		}
 
@@ -92,6 +92,14 @@ func (s *Parser) statement() (ast.Stmt, error) {
 
 	if s.match(ast.WHILE) {
 		return s.whileStatement()
+	}
+
+	if s.match(ast.TRY) {
+		return s.tryStatement()
+	}
+
+	if s.match(ast.THROW) {
+		return s.throwStatement()
 	}
 
 	// "{ key: ..." can only be an object literal; anything else after "{" is a block.
@@ -188,6 +196,63 @@ func (s *Parser) forStatement() (ast.Stmt, error) {
 	}
 
 	return body, nil
+}
+
+// tryStatement parses `try { ... } catch (name) { ... }`; "(name)" is optional.
+func (s *Parser) tryStatement() (ast.Stmt, error) {
+	if _, err := s.consume(ast.LEFT_BRACE, "Expect '{' after 'try'."); err != nil {
+		return nil, err
+	}
+
+	body, err := s.block()
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := s.consume(ast.CATCH, "Expect 'catch' after try block."); err != nil {
+		return nil, err
+	}
+
+	var param *ast.Token
+
+	if s.match(ast.LEFT_PAREN) {
+		name, err := s.consume(ast.IDENTIFIER, "Expect error variable name.")
+		if err != nil {
+			return nil, err
+		}
+
+		param = &name
+
+		if _, err := s.consume(ast.RIGHT_PAREN, "Expect ')' after catch variable."); err != nil {
+			return nil, err
+		}
+	}
+
+	if _, err := s.consume(ast.LEFT_BRACE, "Expect '{' after 'catch'."); err != nil {
+		return nil, err
+	}
+
+	handler, err := s.block()
+	if err != nil {
+		return nil, err
+	}
+
+	return ast.NewTryStmt(ast.NewBlockStmt(body), param, handler), nil
+}
+
+func (s *Parser) throwStatement() (ast.Stmt, error) {
+	keyword := s.previous()
+
+	value, err := s.expression()
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := s.consume(ast.SEMICOLON, "Expect ';' after thrown value."); err != nil {
+		return nil, err
+	}
+
+	return ast.NewThrowStmt(value, keyword), nil
 }
 
 func (s *Parser) whileStatement() (ast.Stmt, error) {
