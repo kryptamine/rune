@@ -138,6 +138,32 @@ func (p *Resolver) VisitReturnStmt(returnStmt *ast.ReturnStmt) error {
 	return nil
 }
 
+func (p *Resolver) VisitTryStmt(tryStmt *ast.TryStmt) error {
+	p.resolveStmt(tryStmt.Body)
+
+	if tryStmt.Param == nil && !declaresLocals(tryStmt.Handler) {
+		p.resolveStmts(tryStmt.Handler)
+		return nil
+	}
+
+	p.beginScope()
+
+	if tryStmt.Param != nil {
+		p.declare(*tryStmt.Param)
+		p.define(*tryStmt.Param)
+	}
+
+	p.resolveStmts(tryStmt.Handler)
+	tryStmt.HandlerEnvSize = p.endScope()
+
+	return nil
+}
+
+func (p *Resolver) VisitThrowStmt(throwStmt *ast.ThrowStmt) error {
+	p.resolveExpr(throwStmt.Value)
+	return nil
+}
+
 func (p *Resolver) VisitAssignExpr(expr *ast.AssignExpr) (value.Value, error) {
 	p.resolveExpr(expr.Value)
 	expr.Depth, expr.Slot = p.resolveLocal(expr.Name)

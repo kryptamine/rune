@@ -1,0 +1,8 @@
+var f;
+try {
+  throw "captured";
+} catch (e) {
+  fun show() { print e; }
+  f = show;
+}
+f(); // expect: captured

@@ -99,6 +99,38 @@ func (p *Interpreter) VisitReturnStmt(returnStmt *ast.ReturnStmt) error {
 	return errReturn
 }
 
+// VisitTryStmt runs the handler when the body fails with a runtime error,
+// built-in or thrown. Return signals pass through untouched.
+func (p *Interpreter) VisitTryStmt(tryStmt *ast.TryStmt) error {
+	err := tryStmt.Body.Accept(p)
+
+	rtErr, ok := err.(errors.RuntimeError)
+	if !ok {
+		return err
+	}
+
+	if tryStmt.HandlerEnvSize == 0 {
+		return p.EvaluateStmts(tryStmt.Handler)
+	}
+
+	env := environment.NewEnvironment(p.environment, tryStmt.HandlerEnvSize)
+
+	if tryStmt.Param != nil {
+		env.Set(0, rtErr.Value())
+	}
+
+	return p.executeBlock(tryStmt.Handler, env)
+}
+
+func (p *Interpreter) VisitThrowStmt(throwStmt *ast.ThrowStmt) error {
+	v, err := throwStmt.Value.Accept(p)
+	if err != nil {
+		return err
+	}
+
+	return errors.NewThrownError(throwStmt.Keyword, v, helpers.Stringify(v))
+}
+
 func (p *Interpreter) VisitExprStmt(exprStmt *ast.ExprStmt) error {
 	_, err := exprStmt.Expr.Accept(p)
 

@@ -9,6 +9,8 @@ type StmtVisitor interface {
 	VisitWhileStmt(whileStmt *WhileStmt) error
 	VisitFunctionStmt(functionStmt *FunctionStmt) error
 	VisitReturnStmt(returnStmt *ReturnStmt) error
+	VisitTryStmt(tryStmt *TryStmt) error
+	VisitThrowStmt(throwStmt *ThrowStmt) error
 }
 
 // VarStmt declares a variable. Local is set by the resolver for variables
@@ -96,6 +98,30 @@ func NewFunctionStmt(name Token, parameters []Token, body []Stmt) Stmt {
 	return &FunctionStmt{Name: name, Parameters: parameters, Body: body, Slot: Unresolved}
 }
 
+// TryStmt runs Body and, if it fails with a runtime error or a throw, runs
+// Handler. Param is the optional catch variable (nil without one); it takes
+// slot 0 of the handler's scope. HandlerEnvSize is the number of locals in
+// that scope; zero means the handler runs in the enclosing environment.
+type TryStmt struct {
+	Body           Stmt
+	Param          *Token
+	Handler        []Stmt
+	HandlerEnvSize int
+}
+
+func NewTryStmt(body Stmt, param *Token, handler []Stmt) Stmt {
+	return &TryStmt{Body: body, Param: param, Handler: handler}
+}
+
+type ThrowStmt struct {
+	Value   Expr
+	Keyword Token
+}
+
+func NewThrowStmt(value Expr, keyword Token) Stmt {
+	return &ThrowStmt{Value: value, Keyword: keyword}
+}
+
 type Stmt interface {
 	Accept(v StmtVisitor) error
 }
@@ -130,4 +156,12 @@ func (n *WhileStmt) Accept(v StmtVisitor) error {
 
 func (n *ReturnStmt) Accept(v StmtVisitor) error {
 	return v.VisitReturnStmt(n)
+}
+
+func (n *TryStmt) Accept(v StmtVisitor) error {
+	return v.VisitTryStmt(n)
+}
+
+func (n *ThrowStmt) Accept(v StmtVisitor) error {
+	return v.VisitThrowStmt(n)
 }

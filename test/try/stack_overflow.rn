@@ -1,0 +1,10 @@
+fun rec() { rec(); }
+
+try {
+  rec();
+} catch (err) {
+  print err; // expect: Stack overflow.
+}
+
+fun ok() { return "still works"; }
+print ok(); // expect: still works

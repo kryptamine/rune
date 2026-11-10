@@ -1,0 +1,11 @@
+try {
+  json(123);
+} catch (err) {
+  print err; // expect: json() expects a URL string, got number
+}
+
+try {
+  len(nil);
+} catch (e) {
+  print e; // expect: len() can only be called on strings, arrays and objects, got nil
+}
