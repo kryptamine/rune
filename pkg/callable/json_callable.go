@@ -9,6 +9,7 @@ import (
 	"rune/pkg/ast"
 	"rune/pkg/errors"
 	"rune/pkg/helpers"
+	"rune/pkg/value"
 )
 
 type JsonCallable struct{}
@@ -17,9 +18,10 @@ func NewJsonCallable() Callable {
 	return &JsonCallable{}
 }
 
-func (c *JsonCallable) Call(_ ExecuteBlockFn, args []any, token ast.Token) (any, error) {
-	switch url := args[0].(type) {
-	case string:
+func (c *JsonCallable) Call(args []value.Value, token ast.Token) (value.Value, error) {
+	switch args[0].Kind() {
+	case value.String:
+		url := args[0].Str()
 		httpClient := http.Client{
 			Timeout: time.Second * 10,
 		}
@@ -27,25 +29,25 @@ func (c *JsonCallable) Call(_ ExecuteBlockFn, args []any, token ast.Token) (any,
 		res, err := httpClient.Get(url)
 
 		if err != nil {
-			return nil, errors.NewRuntimeError(token, fmt.Sprintf("Error fetching %s: %s", url, err.Error()))
+			return value.NilValue, errors.NewRuntimeError(token, fmt.Sprintf("Error fetching %s: %s", url, err.Error()))
 		}
 
 		defer res.Body.Close()
 
 		if res.StatusCode != http.StatusOK {
-			return nil, errors.NewRuntimeError(token, fmt.Sprintf("Error fetching %s: Status code %d", url, res.StatusCode))
+			return value.NilValue, errors.NewRuntimeError(token, fmt.Sprintf("Error fetching %s: Status code %d", url, res.StatusCode))
 		}
 
 		// Top-level value may be an object, an array or a primitive.
 		var jsonRes any
 
 		if err := json.NewDecoder(res.Body).Decode(&jsonRes); err != nil {
-			return nil, errors.NewRuntimeError(token, fmt.Sprintf("Error parsing JSON from %s: %s", url, err.Error()))
+			return value.NilValue, errors.NewRuntimeError(token, fmt.Sprintf("Error parsing JSON from %s: %s", url, err.Error()))
 		}
 
-		return jsonRes, nil
+		return value.FromGo(jsonRes), nil
 	default:
-		return nil, errors.NewRuntimeError(token, fmt.Sprintf("json() expects a URL string, got %s", helpers.TypeName(args[0])))
+		return value.NilValue, errors.NewRuntimeError(token, fmt.Sprintf("json() expects a URL string, got %s", helpers.TypeName(args[0])))
 	}
 }
 

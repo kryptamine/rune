@@ -2,6 +2,7 @@ package callable
 
 import (
 	"rune/pkg/ast"
+	"rune/pkg/value"
 	"time"
 )
 
@@ -12,8 +13,8 @@ func NewClockCallable() Callable {
 	return &ClockCallable{}
 }
 
-func (c *ClockCallable) Call(_ ExecuteBlockFn, args []any, _ ast.Token) (any, error) {
-	return float64(time.Now().UnixNano()) / float64(time.Second), nil
+func (c *ClockCallable) Call(_ []value.Value, _ ast.Token) (value.Value, error) {
+	return value.NewNumber(float64(time.Now().UnixNano()) / float64(time.Second)), nil
 }
 
 func (c *ClockCallable) Arity() int {
