@@ -23,6 +23,7 @@ type ExprVisitor interface {
 	VisitRangeExpr(rangeExpr *RangeExpr) (value.Value, error)
 	VisitStructExpr(structExpr *StructExpr) (value.Value, error)
 	VisitWithExpr(withExpr *WithExpr) (value.Value, error)
+	VisitIsExpr(isExpr *IsExpr) (value.Value, error)
 }
 
 type Expr interface {
@@ -239,6 +240,21 @@ func NewWithExpr(target Expr, keyword Token, pairs []StructPair) Expr {
 
 func (n *WithExpr) Accept(v ExprVisitor) (value.Value, error) {
 	return v.VisitWithExpr(n)
+}
+
+// IsExpr is value is Type.
+type IsExpr struct {
+	Value Expr
+	Type  Expr
+	Token Token
+}
+
+func NewIsExpr(v, typ Expr, token Token) Expr {
+	return &IsExpr{Value: v, Type: typ, Token: token}
+}
+
+func (n *IsExpr) Accept(v ExprVisitor) (value.Value, error) {
+	return v.VisitIsExpr(n)
 }
 
 // ObjectPair is a single "key: value" entry of an object literal.

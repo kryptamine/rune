@@ -124,9 +124,7 @@ func (fs *funcState) declareStructs(stmts []ast.Stmt) {
 			continue
 		}
 
-		fields := make([]string, len(s.Fields))
-		defaults := make([]value.Value, len(s.Fields))
-		required := make([]bool, len(s.Fields))
+		fields := make([]value.Field, len(s.Fields))
 
 		for i, f := range s.Fields {
 			name, ok := fs.unit.names[f.Name.Lexeme]
@@ -135,16 +133,11 @@ func (fs *funcState) declareStructs(stmts []ast.Stmt) {
 				fs.unit.names[name] = name
 			}
 
-			fields[i] = name
-
-			if f.Default == nil {
-				required[i] = true
-			} else {
-				defaults[i], _ = literalOf(f.Default)
-			}
+			def, _ := literalOf(f.Default)
+			fields[i] = value.Field{Name: name, Default: def, Required: f.Default == nil}
 		}
 
-		shape := value.NewShape(s.Name.Lexeme, fields, defaults, required)
+		shape := value.NewShape(s.Name.Lexeme, fields)
 		fs.unit.shapes[s] = shape
 		fs.declareAs(s.Local, value.NewType(shape))
 		fs.defined[s.Local] = true

@@ -91,28 +91,39 @@ func NewObject(fields map[string]Value) Value {
 	return Value{p: *(*unsafe.Pointer)(unsafe.Pointer(&fields)), n: uint64(Object) << kindShift}
 }
 
+// Field declares a struct field; Default is unused when Required.
+type Field struct {
+	Name     string
+	Default  Value
+	Required bool
+}
+
 // Shape describes a struct type: its name and fields in declaration order.
 type Shape struct {
 	Name   string
 	Fields []string
 	// Keys holds Fields as values, for iteration.
-	Keys []Value
-	// Defaults holds the default of each field that is not Required.
-	Defaults []Value
-	required []bool
+	Keys  []Value
+	decls []Field
 }
 
-func NewShape(name string, fields []string, defaults []Value, required []bool) *Shape {
-	keys := make([]Value, len(fields))
-	for i, f := range fields {
-		keys[i] = NewString(f)
+func NewShape(name string, decls []Field) *Shape {
+	fields := make([]string, len(decls))
+	keys := make([]Value, len(decls))
+
+	for i, f := range decls {
+		fields[i] = f.Name
+		keys[i] = NewString(f.Name)
 	}
 
-	return &Shape{Name: name, Fields: fields, Keys: keys, Defaults: defaults, required: required}
+	return &Shape{Name: name, Fields: fields, Keys: keys, decls: decls}
 }
 
-// Required reports whether field i has no default.
-func (s *Shape) Required(i int) bool { return s.required[i] }
+// Default returns the default of field i, if it has one.
+func (s *Shape) Default(i int) (Value, bool) {
+	f := s.decls[i]
+	return f.Default, !f.Required
+}
 
 // Index returns the slot of field name, or -1.
 func (s *Shape) Index(name string) int {

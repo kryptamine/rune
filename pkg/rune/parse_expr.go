@@ -147,7 +147,11 @@ func (s *Parser) equality() (ast.Expr, error) {
 			return nil, err
 		}
 
-		expr = ast.NewBinaryExpr(expr, right, operator)
+		if operator.TokenType == ast.IS {
+			expr = ast.NewIsExpr(expr, right, operator)
+		} else {
+			expr = ast.NewBinaryExpr(expr, right, operator)
+		}
 	}
 
 	return expr, nil

@@ -254,7 +254,7 @@ func (p *Resolver) VisitStructExpr(expr *ast.StructExpr) (value.Value, error) {
 	for i, pair := range expr.Pairs {
 		slot := decl.Slot(pair.Key.Lexeme)
 		if slot < 0 {
-			p.error(pair.Key, decl.Name.Lexeme+" has no field '"+pair.Key.Lexeme+"'.")
+			p.error(pair.Key, noField(decl.Name.Lexeme, pair.Key.Lexeme))
 			continue
 		}
 
@@ -264,7 +264,7 @@ func (p *Resolver) VisitStructExpr(expr *ast.StructExpr) (value.Value, error) {
 
 	for i, f := range decl.Fields {
 		if !given[i] && f.Default == nil {
-			p.error(expr.Name, "Missing field '"+f.Name.Lexeme+"' of "+decl.Name.Lexeme+".")
+			p.error(expr.Name, missingField(decl.Name.Lexeme, f.Name.Lexeme))
 		}
 	}
 
@@ -277,6 +277,13 @@ func (p *Resolver) VisitWithExpr(expr *ast.WithExpr) (value.Value, error) {
 	for _, pair := range expr.Pairs {
 		p.resolveExpr(pair.Value)
 	}
+
+	return value.NilValue, nil
+}
+
+func (p *Resolver) VisitIsExpr(expr *ast.IsExpr) (value.Value, error) {
+	p.resolveExpr(expr.Value)
+	p.resolveExpr(expr.Type)
 
 	return value.NilValue, nil
 }
