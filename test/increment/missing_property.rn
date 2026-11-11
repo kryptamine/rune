@@ -1,0 +1,2 @@
+var o = {};
+o.n++; // expect runtime error: [line: 2] Undefined property 'n'.

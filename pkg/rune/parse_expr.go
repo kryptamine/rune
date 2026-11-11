@@ -196,7 +196,41 @@ func (s *Parser) unary() (ast.Expr, error) {
 		return ast.NewUnaryExpr(right, operator), nil
 	}
 
-	return s.call()
+	if s.match(ast.PLUS_PLUS, ast.MINUS_MINUS) {
+		operator := s.previous()
+		target, err := s.unary()
+
+		if err != nil {
+			return nil, err
+		}
+
+		return update(target, operator, true)
+	}
+
+	return s.postfix()
+}
+
+func (s *Parser) postfix() (ast.Expr, error) {
+	expr, err := s.call()
+
+	if err != nil {
+		return nil, err
+	}
+
+	if s.match(ast.PLUS_PLUS, ast.MINUS_MINUS) {
+		return update(expr, s.previous(), false)
+	}
+
+	return expr, nil
+}
+
+func update(target ast.Expr, operator ast.Token, prefix bool) (ast.Expr, error) {
+	switch target.(type) {
+	case *ast.VarExpr, *ast.IndexExpr:
+		return ast.NewUpdateExpr(target, operator, prefix), nil
+	}
+
+	return nil, errors.NewSyntaxError(operator, "Invalid increment target.")
 }
 
 func (s *Parser) call() (ast.Expr, error) {

@@ -22,6 +22,7 @@ Rune is a dynamically typed interpreted programming language inspired by [Lox](h
 - `for (x in ...)` over arrays, strings and objects
 - Anonymous functions: `fun (x) { return x * 2; }`
 - Modulo `%` and compound assignment: `+=`, `-=`, `*=`, `/=`, `%=`
+- Increment and decrement, prefix and postfix: `++i`, `i++`, `--i`, `i--` (on variables, array elements and properties)
 - Cross-platform, compiles to a single binary
 
 ## Installation
@@ -165,7 +166,7 @@ Built-ins are ordinary globals, so a program may redefine them.
 Before running, the resolved AST is compiled into a tree of Go closures, so each node costs one indirect call and the decisions that depend only on the source are taken once. In particular:
 
 - local variables live in slots resolved ahead of time, and calls to functions that create no closures reuse pooled environments instead of allocating;
-- conditions of `if` and loops yield a Go bool directly; constant operands and literal expressions are folded; `i = i + 1` / `i += 1` is a single node;
+- conditions of `if` and loops yield a Go bool directly; constant operands and literal expressions are folded; `i = i + 1`, `i += 1` and `i++` are single nodes;
 - numbers, booleans and strings are stored inline in values and never allocate;
 - `print` output is buffered and flushed when the program ends (also on a runtime error).
 

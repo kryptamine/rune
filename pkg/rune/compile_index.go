@@ -106,6 +106,22 @@ func compileIndex(n *ast.IndexExpr) evalFn {
 	}
 }
 
+// evalPlace evaluates the target and index of t[i] or t.name for a write.
+func evalPlace(p *Interpreter, target, index evalFn, token *ast.Token, property bool) (value.Value, value.Value, error) {
+	t, err := target(p)
+	if err != nil {
+		return value.NilValue, value.NilValue, err
+	}
+
+	if property && t.Kind() != value.Object {
+		return value.NilValue, value.NilValue, propertyError("set", token, t)
+	}
+
+	i, err := index(p)
+
+	return t, i, err
+}
+
 func compileSetIndex(n *ast.SetIndexExpr) evalFn {
 	target := compileExpr(n.Array)
 	index := compileExpr(n.Index)
@@ -113,16 +129,7 @@ func compileSetIndex(n *ast.SetIndexExpr) evalFn {
 	token, op, property := &n.Token, n.Op, n.Property
 
 	return func(p *Interpreter) (value.Value, error) {
-		t, err := target(p)
-		if err != nil {
-			return value.NilValue, err
-		}
-
-		if property && t.Kind() != value.Object {
-			return value.NilValue, propertyError("set", token, t)
-		}
-
-		i, err := index(p)
+		t, i, err := evalPlace(p, target, index, token, property)
 		if err != nil {
 			return value.NilValue, err
 		}
