@@ -2,18 +2,14 @@ package rune
 
 import (
 	"fmt"
-	"iter"
-	"maps"
 	"rune/pkg/ast"
 	"rune/pkg/environment"
 	"rune/pkg/errors"
 	"rune/pkg/helpers"
 	"rune/pkg/value"
 	"slices"
+	"strings"
 )
-
-// items is what a for-in walks: (index or key, element) pairs.
-type items = iter.Seq2[value.Value, value.Value]
 
 func compileForIn(s *ast.ForInStmt) execFn {
 	iterable := compileIterable(s)
@@ -21,21 +17,24 @@ func compileForIn(s *ast.ForInStmt) execFn {
 	size, pooled, hasKey := s.EnvSize, s.Pooled, s.Key != nil
 
 	return func(p *Interpreter) error {
-		seq, err := iterable(p)
+		c, err := iterable(p)
 		if err != nil {
 			return err
 		}
 
+		prev := p.environment
+
 		var shared *environment.Environment
 		if pooled {
-			shared = p.pool.Get(p.environment, size)
-			defer p.pool.Put(shared)
+			shared = p.pool.Get(prev, size)
 		}
 
-		prev := p.environment
-		defer func() { p.environment = prev }()
+		for {
+			key, val, ok := c.next()
+			if !ok {
+				break
+			}
 
-		for key, val := range seq {
 			env := shared
 			if env == nil {
 				env = environment.NewEnvironment(prev, size)
@@ -50,82 +49,128 @@ func compileForIn(s *ast.ForInStmt) execFn {
 
 			p.environment = env
 
-			switch err := body(p); err {
-			case nil, errContinue:
-			case errBreak:
-				return nil
-			default:
-				return err
+			if err = body(p); err == errContinue {
+				err = nil
+			} else if err != nil {
+				break
 			}
 		}
 
-		return nil
+		p.environment = prev
+
+		if pooled {
+			p.pool.Put(shared)
+		}
+
+		if err == errBreak {
+			return nil
+		}
+
+		return err
 	}
 }
 
+type cursorMode uint8
+
+const (
+	rangeCursor cursorMode = iota
+	arrayCursor
+	stringCursor
+	objectCursor
+)
+
+// cursor walks what a for-in iterates: (index or key, element) pairs. An
+// object cursor walks the keys in arr, reading each value from obj.
+type cursor struct {
+	mode cursorMode
+	i    int
+	r    numRange
+	arr  []value.Value
+	str  string
+	obj  map[string]value.Value
+}
+
+func (c *cursor) next() (key, val value.Value, ok bool) {
+	i := c.i
+	c.i++
+
+	switch c.mode {
+	case rangeCursor:
+		x, ok := c.r.at(float64(i))
+		return value.NewNumber(float64(i)), value.NewNumber(x), ok
+	case arrayCursor:
+		if i < len(c.arr) {
+			return value.NewNumber(float64(i)), c.arr[i], true
+		}
+	case stringCursor:
+		if c.str != "" {
+			ch, n := helpers.NextChar(c.str)
+			c.str = c.str[n:]
+
+			return value.NewNumber(float64(i)), value.NewString(ch), true
+		}
+	case objectCursor:
+		if i < len(c.arr) {
+			return c.arr[i], c.obj[c.arr[i].Str()], true
+		}
+	}
+
+	return key, val, false
+}
+
 // compileIterable counts through a range instead of building its array.
-func compileIterable(s *ast.ForInStmt) func(*Interpreter) (items, error) {
+func compileIterable(s *ast.ForInStmt) func(*Interpreter) (cursor, error) {
 	if r, ok := s.Iterable.(*ast.RangeExpr); ok {
-		return compileRangeItems(r)
+		bounds := compileRange(r)
+
+		return func(p *Interpreter) (cursor, error) {
+			r, err := bounds(p)
+			return cursor{mode: rangeCursor, r: r}, err
+		}
 	}
 
 	e := compileExpr(s.Iterable)
 
-	return func(p *Interpreter) (items, error) {
+	return func(p *Interpreter) (cursor, error) {
 		v, err := e(p)
 		if err != nil {
-			return nil, err
+			return cursor{}, err
 		}
 
-		return itemsOf(s, v)
+		return cursorOf(s, v)
 	}
 }
 
-// itemsOf snapshots arrays; objects yield their keys in sorted
-// order, paired with values only when the loop binds both.
-func itemsOf(s *ast.ForInStmt, v value.Value) (items, error) {
+// cursorOf snapshots arrays. Objects yield their keys in sorted order; a
+// loop that binds only one variable walks them like an array of keys.
+func cursorOf(s *ast.ForInStmt, v value.Value) (cursor, error) {
 	switch v.Kind() {
 	case value.Array:
-		return indexed(slices.Clone(v.Arr())), nil
+		return cursor{mode: arrayCursor, arr: slices.Clone(v.Arr())}, nil
 	case value.String:
-		str := v.Str()
-
-		return func(yield func(value.Value, value.Value) bool) {
-			for i, ch := range helpers.Chars(str) {
-				if !yield(value.NewNumber(float64(i)), value.NewString(ch)) {
-					return
-				}
-			}
-		}, nil
+		return cursor{mode: stringCursor, str: v.Str()}, nil
 	case value.Object:
-		obj, withValues := v.Obj(), s.Key != nil
+		obj := v.Obj()
+		keys := sortedKeys(obj)
 
-		return func(yield func(value.Value, value.Value) bool) {
-			for _, k := range slices.Sorted(maps.Keys(obj)) {
-				key := value.NewString(k)
+		if s.Key == nil {
+			return cursor{mode: arrayCursor, arr: keys}, nil
+		}
 
-				val := key
-				if withValues {
-					val = obj[k]
-				}
-
-				if !yield(key, val) {
-					return
-				}
-			}
-		}, nil
+		return cursor{mode: objectCursor, arr: keys, obj: obj}, nil
 	}
 
-	return nil, errors.NewRuntimeError(s.Keyword, fmt.Sprintf(
+	return cursor{}, errors.NewRuntimeError(s.Keyword, fmt.Sprintf(
 		"Can only iterate over arrays, strings and objects, got %s.", helpers.TypeName(v)))
 }
 
-func indexed(vals []value.Value) items {
-	return func(yield func(value.Value, value.Value) bool) {
-		for i, v := range vals {
-			if !yield(value.NewNumber(float64(i)), v) {
-				return
-			}
-		}
+func sortedKeys(obj map[string]value.Value) []value.Value {
+	keys := make([]value.Value, 0, len(obj))
+	for k := range obj {
+		keys = append(keys, value.NewString(k))
 	}
+
+	slices.SortFunc(keys, func(a, b value.Value) int { return strings.Compare(a.Str(), b.Str()) })
+
+	return keys
 }

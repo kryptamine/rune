@@ -2,7 +2,6 @@ package rune
 
 import (
 	"fmt"
-	"iter"
 	"math"
 	"rune/pkg/ast"
 	"rune/pkg/errors"
@@ -15,28 +14,19 @@ type numRange struct {
 	inclusive        bool
 }
 
-// all yields (index, number) pairs. start + i*step avoids drift with
-// fractional steps; an inclusive end within rounding error is yielded exactly.
-func (r numRange) all() iter.Seq2[value.Value, value.Value] {
-	return func(yield func(value.Value, value.Value) bool) {
-		if math.IsNaN(r.step) {
-			return
-		}
+// at returns the i-th number and whether it is in range. start + i*step
+// avoids drift with fractional steps; an inclusive end within rounding
+// error is returned exactly.
+func (r numRange) at(i float64) (float64, bool) {
+	x := r.start + i*r.step
+	// remaining is how many steps are left to end; negative is past it.
+	remaining := (r.end - x) / r.step
 
-		for i := 0.0; ; i++ {
-			x := r.start + i*r.step
-			// remaining is how many steps are left to end; negative is past it.
-			remaining := (r.end - x) / r.step
-
-			if r.inclusive && math.Abs(remaining) < 1e-9 {
-				x, remaining = r.end, 1
-			}
-
-			if remaining <= 0 || !yield(value.NewNumber(i), value.NewNumber(x)) {
-				return
-			}
-		}
+	if r.inclusive && math.Abs(remaining) < 1e-9 {
+		return r.end, true
 	}
+
+	return x, remaining > 0
 }
 
 func compileRangeExpr(n *ast.RangeExpr) evalFn {
@@ -50,24 +40,13 @@ func compileRangeExpr(n *ast.RangeExpr) evalFn {
 
 		var out []value.Value
 
-		for _, x := range r.all() {
+		c := cursor{mode: rangeCursor, r: r}
+
+		for _, x, ok := c.next(); ok; _, x, ok = c.next() {
 			out = append(out, x)
 		}
 
 		return value.NewArray(out), nil
-	}
-}
-
-func compileRangeItems(n *ast.RangeExpr) func(*Interpreter) (items, error) {
-	bounds := compileRange(n)
-
-	return func(p *Interpreter) (items, error) {
-		r, err := bounds(p)
-		if err != nil {
-			return nil, err
-		}
-
-		return r.all(), nil
 	}
 }
 

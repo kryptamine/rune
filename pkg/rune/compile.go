@@ -63,7 +63,9 @@ func compileFunction(decl *ast.FunctionStmt) *function {
 
 func nop(*Interpreter) error { return nil }
 
+// constant's v is shared by every interpreter running the program.
 func constant(v value.Value) evalFn {
+	v = v.Detach()
 	return func(*Interpreter) (value.Value, error) { return v, nil }
 }
 

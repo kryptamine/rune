@@ -36,7 +36,7 @@ var (
 type Interpreter struct {
 	// environment is the innermost local scope, or nil at the top level.
 	environment    *environment.Environment
-	globals        *environment.Globals
+	globals        environment.Globals
 	pool           environment.Pool
 	frames         stdlib.Frames
 	returnValue    value.Value
@@ -49,17 +49,11 @@ type Interpreter struct {
 }
 
 func NewInterpreter() *Interpreter {
-	p := &Interpreter{
-		globals:      environment.NewGlobals(len(builtinSlots())),
+	return &Interpreter{
+		globals:      builtinGlobals().Clone(),
 		maxRecursion: maxRecursionDepth,
 		dest:         os.Stdout,
 	}
-
-	for i, slot := range builtinSlots() {
-		p.globals.Define(slot, stdlib.Builtins[i].Value)
-	}
-
-	return p
 }
 
 func (p *Interpreter) SetOutput(w io.Writer) {
@@ -81,14 +75,14 @@ func (p *Interpreter) flush() {
 	}
 }
 
-// builtinSlots[i] is the global slot of stdlib.Builtins[i].
-var builtinSlots = sync.OnceValue(func() []int {
-	slots := make([]int, len(stdlib.Builtins))
-	for i, b := range stdlib.Builtins {
-		slots[i] = environment.GlobalSlot(b.Name)
+// builtinGlobals holds the builtins; each interpreter starts from a clone.
+var builtinGlobals = sync.OnceValue(func() *environment.Globals {
+	var g environment.Globals
+	for _, b := range stdlib.Builtins {
+		g.Define(environment.GlobalSlot(b.Name), b.Value)
 	}
 
-	return slots
+	return &g
 })
 
 func EvaluateExpr(expr ast.Expr) (value.Value, error) {
