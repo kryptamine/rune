@@ -49,27 +49,47 @@ type constKey struct {
 }
 
 // compile compiles a program; builtins are the declarations the resolver
-// made for the built-ins it names.
-func compile(stmts []ast.Stmt, builtins map[string]*ast.Local) (*Program, error) {
-	return compileMain(func(fs *funcState) {
+// made for the built-ins it names. The script takes the program's
+// arguments and returns what main, if any, returns.
+func compile(stmts []ast.Stmt, builtins map[string]*ast.Local, main *ast.FunctionStmt) (*Program, error) {
+	return compileScript(func(fs *funcState, args *ast.Local) *ast.Token {
 		fs.declareStructs(stmts)
 		fs.declareTopLevel(stmts, builtins)
 		fs.stmts(stmts)
-		fs.emit(ins{op: opReturnNil}, nil)
+
+		if main == nil {
+			fs.emit(ins{op: opReturnNil}, nil)
+			return nil
+		}
+
+		call := &ast.CallExpr{Token: main.Name, Callee: &ast.VarExpr{Name: main.Name, Local: main.Local}}
+		if len(main.Parameters) == 1 {
+			call.Args = []ast.Expr{&ast.VarExpr{Local: args}}
+		}
+
+		r := fs.alloc()
+		fs.call(call, r)
+		fs.emit(ins{op: opReturn, a: r}, nil)
+
+		return &main.Name
 	})
 }
 
 // compileExpr compiles a lone expression into a program returning it.
 func compileExpr(expr ast.Expr, builtins map[string]*ast.Local) (*Program, error) {
-	return compileMain(func(fs *funcState) {
+	return compileScript(func(fs *funcState, _ *ast.Local) *ast.Token {
 		fs.declareTopLevel(nil, builtins)
 		r := fs.alloc()
 		fs.expr(expr, r)
 		fs.emit(ins{op: opReturn, a: r}, nil)
+
+		return nil
 	})
 }
 
-func compileMain(body func(fs *funcState)) (prog *Program, err error) {
+// compileScript compiles the top level, whose one parameter is args; body
+// returns the name of main, if it calls one.
+func compileScript(body func(fs *funcState, args *ast.Local) *ast.Token) (prog *Program, err error) {
 	defer func() {
 		switch e := recover().(type) {
 		case nil:
@@ -82,10 +102,14 @@ func compileMain(body func(fs *funcState)) (prog *Program, err error) {
 
 	fs := newFunc(nil, "<script>")
 
-	body(fs)
+	args := &ast.Local{}
+	fs.declare(args)
+	fs.proto.arity = 1
+
+	main := body(fs, args)
 	fs.finish()
 
-	return &Program{main: fs.proto}, nil
+	return &Program{script: fs.proto, main: main}, nil
 }
 
 func (fs *funcState) finish() {

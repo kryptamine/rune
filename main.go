@@ -35,7 +35,7 @@ func printUsage() {
 	fmt.Fprintf(os.Stderr, "Copyright: Alexander Satretdinov (c), 2025\n")
 	fmt.Fprintf(os.Stderr, "Based on the Lox programming language and Robert Nystrom's book.\n")
 	fmt.Fprintf(os.Stderr, "A simple interpreter for processing and evaluating scripts.\n\n")
-	fmt.Fprintf(os.Stderr, "Usage: rune <command> <filename>\n")
+	fmt.Fprintf(os.Stderr, "Usage: rune <command> <filename> [args...]\n")
 	fmt.Fprintf(os.Stderr, "Commands:\n")
 	fmt.Fprintf(os.Stderr, "  tokenize  - Tokenizes the input file\n")
 	fmt.Fprintf(os.Stderr, "  evaluate  - Evaluates a single expression from the input file\n")
@@ -45,7 +45,7 @@ func printUsage() {
 	os.Exit(1)
 }
 
-var commands = map[string]func(stdout, stderr io.Writer, path string, src []byte) int{
+var commands = map[string]func(stdout, stderr io.Writer, path string, src []byte, args []string) int{
 	"tokenize": tokenize,
 	"evaluate": evaluate,
 	"run":      run,
@@ -57,7 +57,7 @@ func soleFile(path string, src []byte) []errors.File {
 	return []errors.File{{Path: filepath.Base(path), Source: string(src)}}
 }
 
-func tokenize(stdout, stderr io.Writer, path string, src []byte) int {
+func tokenize(stdout, stderr io.Writer, path string, src []byte, _ []string) int {
 	tokens, errs := rune.Scan(src)
 	for _, token := range tokens {
 		fmt.Fprintln(stdout, token)
@@ -72,7 +72,7 @@ func tokenize(stdout, stderr io.Writer, path string, src []byte) int {
 	return exitCodeParseError
 }
 
-func evaluate(stdout, stderr io.Writer, path string, src []byte) int {
+func evaluate(stdout, stderr io.Writer, path string, src []byte, _ []string) int {
 	files := soleFile(path, src)
 
 	tokens, errs := rune.Scan(src)
@@ -116,7 +116,7 @@ func load(stderr io.Writer, path string) (*rune.Program, []errors.File) {
 	return prog, files
 }
 
-func run(stdout, stderr io.Writer, path string, _ []byte) int {
+func run(stdout, stderr io.Writer, path string, _ []byte, args []string) int {
 	prog, files := load(stderr, path)
 	if prog == nil {
 		return exitCodeParseError
@@ -125,15 +125,16 @@ func run(stdout, stderr io.Writer, path string, _ []byte) int {
 	p := rune.NewInterpreter()
 	p.SetOutput(stdout)
 
-	if err := p.Run(prog); err != nil {
+	code, err := p.Run(prog, args)
+	if err != nil {
 		printError(stderr, err, files)
 		return exitCodeEvalError
 	}
 
-	return exitCodeOk
+	return code
 }
 
-func disasm(stdout, stderr io.Writer, path string, _ []byte) int {
+func disasm(stdout, stderr io.Writer, path string, _ []byte, _ []string) int {
 	prog, _ := load(stderr, path)
 	if prog == nil {
 		return exitCodeParseError
@@ -180,5 +181,5 @@ func main() {
 		printUsage()
 	}
 
-	os.Exit(cmd(os.Stdout, os.Stderr, fileName, fileContents))
+	os.Exit(cmd(os.Stdout, os.Stderr, fileName, fileContents, os.Args[3:]))
 }

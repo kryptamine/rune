@@ -150,7 +150,7 @@ func execute(fsys fs.FS, name string, out io.Writer, timeout time.Duration) outc
 		p.SetOutput(out)
 
 		timer := time.AfterFunc(timeout, p.Interrupt)
-		o.runtimeError = p.Run(o.prog)
+		_, o.runtimeError = p.Run(o.prog, nil)
 		timer.Stop()
 
 		if o.runtimeError != nil {

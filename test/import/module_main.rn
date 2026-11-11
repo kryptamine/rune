@@ -1,0 +1,2 @@
+import _lib.has_main;
+// [line: 1] Error at 'main': Only the entry file can declare main.

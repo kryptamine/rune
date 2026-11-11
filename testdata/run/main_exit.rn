@@ -1,0 +1,4 @@
+fun main() {
+  print "bye";
+  return 3;
+}

@@ -51,6 +51,8 @@ type Resolver struct {
 	// fieldNames holds each field name's one string, shared by every struct
 	// type that has the field.
 	fieldNames map[string]string
+	// main is the program's entry point, if it declares one.
+	main *ast.FunctionStmt
 }
 
 func NewResolver() *Resolver {
@@ -82,10 +84,13 @@ func (p *Resolver) ResolveStmts(stmts []ast.Stmt) []error {
 		case *ast.VarStmt:
 			p.globalMutable[s.Name.Lexeme] = s.Mutable
 			p.topLevel[s.Name.Lexeme] = &ast.Local{TopLevel: true}
+			p.declareMain(s.Name, nil)
 		case *ast.FunctionStmt:
 			p.globalMutable[s.Name.Lexeme] = false
 			p.topLevel[s.Name.Lexeme] = &ast.Local{TopLevel: true}
+			p.declareMain(s.Name, s)
 		case *ast.StructStmt:
+			p.declareMain(s.Name, nil)
 			p.globalMutable[s.Name.Lexeme] = false
 			l := &ast.Local{TopLevel: true}
 			p.topLevel[s.Name.Lexeme] = l
@@ -97,6 +102,23 @@ func (p *Resolver) ResolveStmts(stmts []ast.Stmt) []error {
 	p.resolveStmts(stmts)
 
 	return p.errors
+}
+
+// declareMain takes a top-level declaration of name as the entry point
+// if it is main, which must be a function of the entry file taking at
+// most the program's arguments.
+func (p *Resolver) declareMain(name ast.Token, fn *ast.FunctionStmt) {
+	switch {
+	case name.Lexeme != "main":
+	case fn == nil:
+		p.error(name, "main must be a function.")
+	case name.File != 0:
+		p.error(name, "Only the entry file can declare main.")
+	case len(fn.Parameters) > 1:
+		p.error(name, "main takes at most one parameter.")
+	default:
+		p.main = fn
+	}
 }
 
 // ResolveExpr resolves a lone expression.

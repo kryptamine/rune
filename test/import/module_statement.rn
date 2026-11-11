@@ -1,0 +1,2 @@
+import _lib.side_effect;
+// [line: 2] Error at 'print': Only declarations can be at the top level of a module.

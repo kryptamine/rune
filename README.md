@@ -242,6 +242,24 @@ print square(3);
 ```
 
 All files share one top level: a name declared in one file is visible in every other, and declaring it twice is an error. Each file runs once, after the files it imports; an import cycle is an error.
+An imported file may only declare things at its top level (`fun`, `let`, `struct`); statements such as `print` belong in the entry file.
+
+## main
+
+If the entry file declares `fun main`, it runs after the top level, with the program's arguments as an array of strings if it takes a parameter. It returns `nil` to exit with 0, or an exit code from 0 to 255.
+
+```
+fun main(args) {
+  if (len(args) == 0) {
+    print "usage: greet <name>";
+    return 2;
+  }
+
+  print "hi " + args[0];
+}
+```
+
+`./rune run greet.rn bob` prints `hi bob`.
 
 ## Built-in Functions
 

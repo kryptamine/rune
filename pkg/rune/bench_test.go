@@ -33,7 +33,7 @@ func BenchmarkPrograms(b *testing.B) {
 			b.ReportAllocs()
 
 			for b.Loop() {
-				if err := NewInterpreter().Run(prog); err != nil {
+				if _, err := NewInterpreter().Run(prog, nil); err != nil {
 					b.Fatal(err)
 				}
 			}

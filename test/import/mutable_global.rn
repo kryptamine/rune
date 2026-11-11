@@ -1,5 +1,4 @@
 import _lib.counter;
 
-// expect: math loaded
 count = 10;
 print bump(); // expect: 11

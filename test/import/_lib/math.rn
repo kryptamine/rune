@@ -1,5 +1,3 @@
-print "math loaded";
-
 fun square(x) {
   return x * x;
 }
