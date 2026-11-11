@@ -1,0 +1,3 @@
+[line: 1] Can only call functions.
+    1 | 123(); // expect runtime error: [line: 1] Can only call functions.
+      |     ^

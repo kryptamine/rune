@@ -1,0 +1,3 @@
+[line: 2] Operands must be numbers.
+    2 | a -= 1; // expect runtime error: [line: 2] Operands must be numbers.
+      |   ^

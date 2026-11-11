@@ -1,0 +1,6 @@
+try {
+  throw "x";
+} catch (e) {
+  print e;
+}
+try { print 1; } catch {}

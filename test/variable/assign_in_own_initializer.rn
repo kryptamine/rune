@@ -1,0 +1,4 @@
+{
+  let mut a = a = 0; // Error at 'a': Cannot assign to local variable in its own initializer.
+}
+let mut b = b = 1; // Error at 'b': Cannot assign to global variable in its own initializer.

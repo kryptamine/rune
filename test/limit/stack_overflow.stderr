@@ -1,0 +1,6 @@
+[line: 18] Stack overflow.
+   18 |   foo(); // expect runtime error: [line: 18] Stack overflow.
+      |       ^
+  at foo (line 18)
+  ... repeated 9999 more times
+  at <script> (line 21)

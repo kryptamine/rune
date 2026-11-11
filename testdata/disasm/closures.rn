@@ -1,0 +1,9 @@
+fun counter() {
+  let mut n = 0;
+  fun inc() { n += 1; return n; }
+  return inc;
+}
+let c = counter();
+print c();
+let add = fun (a, b) { return a + b; };
+print add(1, 2);

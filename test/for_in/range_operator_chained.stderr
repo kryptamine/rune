@@ -1,0 +1,3 @@
+[line: 1] Error at '..': Ranges cannot be chained.
+    1 | let a = 1..2..3; // Error at '..': Ranges cannot be chained.
+      |             ^

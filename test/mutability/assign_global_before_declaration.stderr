@@ -1,0 +1,3 @@
+[line: 2] Error at 'b': Cannot assign to immutable variable 'b'.
+    2 |   b = 2; // [line: 2] Error at 'b': Cannot assign to immutable variable 'b'.
+      |   ^

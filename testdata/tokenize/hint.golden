@@ -1,0 +1,15 @@
+exit: 65
+-- stdout --
+TRUE true null
+AND && null
+FALSE false null
+OR || null
+NIL nil null
+EOF  null
+-- stderr --
+[line: 1] Error: Unexpected '&&'; use 'and'.
+    1 | true && false || nil
+      |      ^
+[line: 1] Error: Unexpected '||'; use 'or'.
+    1 | true && false || nil
+      |               ^

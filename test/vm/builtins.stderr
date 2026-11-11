@@ -1,0 +1,3 @@
+[line: 15] Undefined variable 'nope'.
+   15 | nope = 1; // expect runtime error: [line: 15] Undefined variable 'nope'.
+      | ^

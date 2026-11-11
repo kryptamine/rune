@@ -1,0 +1,12 @@
+[line: 2] Error at 'a': Cannot mutate immutable variable 'a'.
+    2 | push(a, 3); // [line: 2] Error at 'a': Cannot mutate immutable variable 'a'.
+      |      ^
+[line: 3] Error at 'a': Cannot mutate immutable variable 'a'.
+    3 | pop(a); // [line: 3] Error at 'a': Cannot mutate immutable variable 'a'.
+      |     ^
+[line: 4] Error at 'a': Cannot mutate immutable variable 'a'.
+    4 | sort(a); // [line: 4] Error at 'a': Cannot mutate immutable variable 'a'.
+      |      ^
+[line: 6] Error at 'o': Cannot mutate immutable variable 'o'.
+    6 | push(o.xs, 1); // [line: 6] Error at 'o': Cannot mutate immutable variable 'o'.
+      |      ^

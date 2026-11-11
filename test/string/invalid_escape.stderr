@@ -1,0 +1,3 @@
+[line: 1] Error: Invalid escape sequence '\q'.
+    1 | print "bad \q escape"; // [line: 1] Error: Invalid escape sequence '\q'.
+      |       ^

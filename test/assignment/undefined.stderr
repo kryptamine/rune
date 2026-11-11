@@ -1,0 +1,3 @@
+[line: 1] Undefined variable 'unknown'.
+    1 | unknown = "what"; // expect runtime error: [line: 1] Undefined variable 'unknown'.
+      | ^

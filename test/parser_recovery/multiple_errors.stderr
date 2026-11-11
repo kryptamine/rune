@@ -1,0 +1,9 @@
+[line: 1] Error at ';': Expect expression.
+    1 | let a = ; // [line: 1] Error at ';': Expect expression.
+      |         ^
+[line: 3] Error at 'let': Expect ';' after value.
+    3 | let b = 1; // [line: 3] Error at 'let': Expect ';' after value.
+      | ^
+[line: 4] Error at '=': Expect variable name.
+    4 | let = 2; // [line: 4] Error at '=': Expect variable name.
+      |     ^

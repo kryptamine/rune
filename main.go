@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"rune/pkg/errors"
 	"rune/pkg/helpers"
@@ -43,77 +44,84 @@ func printUsage() {
 	os.Exit(1)
 }
 
-func tokenize(fileContents []byte) int {
-	tokens, errs := rune.Scan(fileContents)
+var commands = map[string]func(stdout, stderr io.Writer, src []byte) int{
+	"tokenize": tokenize,
+	"evaluate": evaluate,
+	"run":      run,
+	"disasm":   disasm,
+}
+
+func tokenize(stdout, stderr io.Writer, src []byte) int {
+	tokens, errs := rune.Scan(src)
 	for _, token := range tokens {
-		fmt.Println(token)
+		fmt.Fprintln(stdout, token)
 	}
 
 	if len(errs) == 0 {
 		return exitCodeOk
 	}
 
-	printErrors(errs, fileContents)
+	printErrors(stderr, errs, src)
 
 	return exitCodeParseError
 }
 
-func evaluate(fileContents []byte) int {
-	tokens, errs := rune.Scan(fileContents)
+func evaluate(stdout, stderr io.Writer, src []byte) int {
+	tokens, errs := rune.Scan(src)
 	if len(errs) > 0 {
-		printErrors(errs, fileContents)
+		printErrors(stderr, errs, src)
 		return exitCodeParseError
 	}
 
 	expr, err := rune.ParseExpr(tokens)
 	if err != nil {
-		printError(err, fileContents)
+		printErrors(stderr, []error{err}, src)
 		return exitCodeParseError
 	}
 
 	result, err := rune.EvaluateExpr(expr)
 	if err != nil {
-		printError(err, fileContents)
+		printErrors(stderr, []error{err}, src)
 		return exitCodeEvalError
 	}
 
-	fmt.Println(helpers.Stringify(result))
+	fmt.Fprintln(stdout, helpers.Stringify(result))
+
 	return exitCodeOk
 }
 
-func printErrors(errs []error, source []byte) {
+func printErrors(w io.Writer, errs []error, src []byte) {
 	for _, err := range errs {
-		printError(err, source)
+		fmt.Fprint(w, errors.Report(err, string(src)))
 	}
 }
 
-func printError(err error, source []byte) {
-	fmt.Fprint(os.Stderr, errors.Report(err, string(source)))
-}
-
-func run(fileContents []byte) int {
-	prog, errs := rune.Load(fileContents)
+func run(stdout, stderr io.Writer, src []byte) int {
+	prog, errs := rune.Load(src)
 	if len(errs) > 0 {
-		printErrors(errs, fileContents)
+		printErrors(stderr, errs, src)
 		return exitCodeParseError
 	}
 
-	if err := rune.NewInterpreter().Run(prog); err != nil {
-		printError(err, fileContents)
+	p := rune.NewInterpreter()
+	p.SetOutput(stdout)
+
+	if err := p.Run(prog); err != nil {
+		printErrors(stderr, []error{err}, src)
 		return exitCodeEvalError
 	}
 
 	return exitCodeOk
 }
 
-func disasm(fileContents []byte) int {
-	prog, errs := rune.Load(fileContents)
+func disasm(stdout, stderr io.Writer, src []byte) int {
+	prog, errs := rune.Load(src)
 	if len(errs) > 0 {
-		printErrors(errs, fileContents)
+		printErrors(stderr, errs, src)
 		return exitCodeParseError
 	}
 
-	fmt.Print(prog.Disassemble())
+	fmt.Fprint(stdout, prog.Disassemble())
 
 	return exitCodeOk
 }
@@ -148,17 +156,11 @@ func main() {
 		os.Exit(exitCodeError)
 	}
 
-	switch command {
-	case "tokenize":
-		os.Exit(tokenize(fileContents))
-	case "evaluate":
-		os.Exit(evaluate(fileContents))
-	case "run":
-		os.Exit(run(fileContents))
-	case "disasm":
-		os.Exit(disasm(fileContents))
-	default:
+	cmd, ok := commands[command]
+	if !ok {
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)
 		printUsage()
 	}
+
+	os.Exit(cmd(os.Stdout, os.Stderr, fileContents))
 }

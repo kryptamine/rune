@@ -1,0 +1,3 @@
+[line: 2] Error at 'let': Expect expression.
+    2 | if (true) "ok"; else let mut foo;
+      |                      ^

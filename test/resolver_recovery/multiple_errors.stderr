@@ -1,0 +1,12 @@
+[line: 1] Error at 'return': Cannot return from top-level code.
+    1 | return 1; // [line: 1] Error at 'return': Cannot return from top-level code.
+      | ^
+[line: 3] Error at 'a': Variable with this name already declared in this scope.
+    3 | fun f(a, a) {} // [line: 3] Error at 'a': Variable with this name already declared in this scope.
+      |          ^
+[line: 6] Error at 'b': Cannot read local variable in its own initializer.
+    6 |   let b = b; // [line: 6] Error at 'b': Cannot read local variable in its own initializer.
+      |           ^
+[line: 8] Error at 'c': Variable with this name already declared in this scope.
+    8 |   let c = 2; // [line: 8] Error at 'c': Variable with this name already declared in this scope.
+      |       ^

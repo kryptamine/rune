@@ -103,12 +103,15 @@ func (p *Resolver) VisitVarStmt(stmt *ast.VarStmt) error {
 	return nil
 }
 
-func (p *Resolver) VisitVarExpr(expr *ast.VarExpr) (value.Value, error) {
-	if l, exists := p.innermost()[expr.Name.Lexeme]; exists && !l.defined {
+func (p *Resolver) requireInitialized(name ast.Token, verb string) {
+	if l, exists := p.innermost()[name.Lexeme]; exists && !l.defined {
 		kind := helpers.If(p.isScopesEmpty(), "global", "local")
-		p.error(expr.Name, "Cannot read "+kind+" variable in its own initializer.")
+		p.error(name, "Cannot "+verb+" "+kind+" variable in its own initializer.")
 	}
+}
 
+func (p *Resolver) VisitVarExpr(expr *ast.VarExpr) (value.Value, error) {
+	p.requireInitialized(expr.Name, "read")
 	expr.Local = p.resolveLocal(expr.Name)
 
 	return value.NilValue, nil
@@ -252,6 +255,7 @@ func (p *Resolver) VisitThrowStmt(throwStmt *ast.ThrowStmt) error {
 
 func (p *Resolver) VisitAssignExpr(expr *ast.AssignExpr) (value.Value, error) {
 	p.resolveExpr(expr.Value)
+	p.requireInitialized(expr.Name, "assign to")
 	expr.Local = p.resolveLocal(expr.Name)
 	p.requireMutable(expr.Name, "assign to")
 
@@ -431,6 +435,7 @@ func (p *Resolver) resolveLocal(name ast.Token) *ast.Local {
 		if l, exists := p.scopes[i].vars[name.Lexeme]; exists {
 			if p.scopes[i].fnDepth < p.fnDepth {
 				l.local.Captured = true
+				l.local.EarlyCaptured = l.local.EarlyCaptured || !l.defined
 			}
 
 			return l.local

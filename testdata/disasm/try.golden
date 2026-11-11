@@ -1,0 +1,16 @@
+exit: 0
+-- stdout --
+<script>: arity 0, 1 registers, 0 upvalues
+    0  TRY           0 0 5  x=0 y=true
+    1  LOADK         0 0 0
+    2  THROW         0 0 0
+    3  ENDTRY        0 1 0
+    4  JMP           0 0 6
+    5  PRINT         0 0 0
+    6  TRY           0 0 11
+    7  LOADK         0 0 1
+    8  PRINT         0 0 0
+    9  ENDTRY        0 1 0
+   10  JMP           0 0 11
+   11  RETURNNIL     0 0 0
+-- stderr --

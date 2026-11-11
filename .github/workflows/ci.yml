@@ -19,13 +19,11 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: "3.x"
-
       - name: Vet
         run: go vet ./...
 
-      - name: Build and run tests
-        run: make test
+      - name: Test
+        run: go test -race ./...
+
+      - name: Fuzz
+        run: make fuzz FUZZTIME=30s

@@ -1,0 +1,18 @@
+[line: 2] Error at 'arr': Cannot mutate immutable variable 'arr'.
+    2 | arr[0] = 2; // [line: 2] Error at 'arr': Cannot mutate immutable variable 'arr'.
+      | ^
+[line: 3] Error at 'arr': Cannot mutate immutable variable 'arr'.
+    3 | arr[0][0] = 2; // [line: 3] Error at 'arr': Cannot mutate immutable variable 'arr'.
+      | ^
+[line: 4] Error at 'arr': Cannot mutate immutable variable 'arr'.
+    4 | arr[0] += 1; // [line: 4] Error at 'arr': Cannot mutate immutable variable 'arr'.
+      | ^
+[line: 5] Error at 'arr': Cannot mutate immutable variable 'arr'.
+    5 | arr[0]++; // [line: 5] Error at 'arr': Cannot mutate immutable variable 'arr'.
+      | ^
+[line: 7] Error at 'obj': Cannot mutate immutable variable 'obj'.
+    7 | obj.x = 2; // [line: 7] Error at 'obj': Cannot mutate immutable variable 'obj'.
+      | ^
+[line: 8] Error at 'obj': Cannot mutate immutable variable 'obj'.
+    8 | obj["x"] = 2; // [line: 8] Error at 'obj': Cannot mutate immutable variable 'obj'.
+      | ^

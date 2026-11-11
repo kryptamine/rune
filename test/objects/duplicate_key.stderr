@@ -1,0 +1,9 @@
+[line: 1] Error at '"a"': Duplicate property name.
+    1 | let o = {a: 1, "a": 2}; // [line: 1] Error at '"a"': Duplicate property name.
+      |                ^
+[line: 2] Error at 'b': Duplicate property name.
+    2 | let p = {b: 1, b: 2, b: 3};
+      |                ^
+[line: 2] Error at 'b': Duplicate property name.
+    2 | let p = {b: 1, b: 2, b: 3};
+      |                      ^

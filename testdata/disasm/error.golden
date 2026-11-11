@@ -1,0 +1,6 @@
+exit: 65
+-- stdout --
+-- stderr --
+[line: 1] Error at ';': Expect expression.
+    1 | let x = ;
+      |         ^

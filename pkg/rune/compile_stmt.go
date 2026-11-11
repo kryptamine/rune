@@ -99,6 +99,19 @@ func (fs *funcState) varStmt(s *ast.VarStmt) {
 		return
 	}
 
+	if s.Local.EarlyCaptured {
+		r := fs.declare(s.Local)
+		fs.emit(ins{op: opLoadK, a: r, c: fs.constant(value.UndefinedValue)}, nil)
+		fs.emit(ins{op: opNewCell, a: r, b: r}, nil)
+
+		t := fs.alloc()
+		fs.exprOrNil(s.Initializer, t)
+		fs.emit(ins{op: opSetCell, a: r, b: t}, nil)
+		fs.free = t
+
+		return
+	}
+
 	r := fs.alloc()
 	fs.exprOrNil(s.Initializer, r)
 	fs.free = r

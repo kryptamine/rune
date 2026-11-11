@@ -1,0 +1,5 @@
+[line: 2] oops
+    2 |   throw "oops"; // expect runtime error: [line: 2] oops
+      |   ^
+  at fail (line 2)
+  at <script> (line 4)

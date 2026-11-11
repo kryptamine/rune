@@ -1,0 +1,3 @@
+[line: 2] Strings are immutable.
+    2 | s[0] = "x"; // expect runtime error: [line: 2] Strings are immutable.
+      |    ^
