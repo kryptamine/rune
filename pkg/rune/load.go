@@ -14,9 +14,15 @@ func Load(source []byte) (*Program, []error) {
 		return nil, errs
 	}
 
-	if errs := NewResolver().ResolveStmts(stmts); len(errs) > 0 {
+	r := NewResolver()
+	if errs := r.ResolveStmts(stmts); len(errs) > 0 {
 		return nil, errs
 	}
 
-	return Compile(stmts), nil
+	prog, err := compile(stmts, r.builtins)
+	if err != nil {
+		return nil, []error{err}
+	}
+
+	return prog, nil
 }

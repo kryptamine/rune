@@ -3,284 +3,291 @@ package rune
 import (
 	"fmt"
 	"rune/pkg/ast"
-	"rune/pkg/errors"
-	"rune/pkg/helpers"
 	"rune/pkg/value"
 )
 
-func compileStmts(stmts []ast.Stmt) execFn {
-	fns := make([]execFn, len(stmts))
-	for i, stmt := range stmts {
-		fns[i] = compileStmt(stmt)
-	}
-
-	switch len(fns) {
-	case 0:
-		return nop
-	case 1:
-		return fns[0]
-	case 2:
-		a, b := fns[0], fns[1]
-
-		return func(p *Interpreter) error {
-			if err := a(p); err != nil {
-				return err
-			}
-
-			return b(p)
-		}
-	}
-
-	return func(p *Interpreter) error {
-		for _, f := range fns {
-			if err := f(p); err != nil {
-				return err
-			}
-		}
-
-		return nil
+func (fs *funcState) stmts(stmts []ast.Stmt) {
+	for _, s := range stmts {
+		fs.stmt(s)
+		fs.free = fs.nactive
 	}
 }
 
-func compileStmt(stmt ast.Stmt) execFn {
+// scoped runs body and then frees the locals it declared.
+func (fs *funcState) scoped(body func()) {
+	nactive := fs.nactive
+	body()
+	fs.nactive, fs.free = nactive, nactive
+}
+
+func (fs *funcState) stmt(stmt ast.Stmt) {
 	switch s := stmt.(type) {
 	case *ast.ExprStmt:
-		e := compileExpr(s.Expr)
-
-		return func(p *Interpreter) error {
-			_, err := e(p)
-			return err
-		}
+		fs.exprStmt(s.Expr)
 	case *ast.PrintStmt:
-		return compilePrint(s)
+		fs.emit(ins{op: opPrint, a: fs.exprAny(s.Expr)}, nil)
 	case *ast.VarStmt:
-		return compileVar(s)
+		fs.varStmt(s)
 	case *ast.BlockStmt:
-		return compileScope(compileStmts(s.Stmts), s.EnvSize, s.Pooled)
+		fs.scoped(func() { fs.stmts(s.Stmts) })
 	case *ast.IfStmt:
-		return compileIf(s)
+		fs.ifStmt(s)
 	case *ast.WhileStmt:
-		return compileWhile(s)
+		fs.whileStmt(s)
 	case *ast.ForInStmt:
-		return compileForIn(s)
+		fs.forIn(s)
 	case *ast.FunctionStmt:
-		return compileFunctionStmt(s)
+		fs.functionStmt(s)
 	case *ast.ReturnStmt:
-		return compileReturn(s)
+		if s.Value == nil {
+			fs.emit(ins{op: opReturnNil}, nil)
+		} else {
+			fs.emit(ins{op: opReturn, a: fs.exprAny(s.Value)}, nil)
+		}
 	case *ast.TryStmt:
-		return compileTry(s)
+		fs.tryStmt(s)
 	case *ast.ThrowStmt:
-		return compileThrow(s)
+		fs.emit(ins{op: opThrow, a: fs.exprAny(s.Value)}, &s.Keyword)
 	case *ast.BreakStmt:
-		return func(*Interpreter) error { return errBreak }
+		l := fs.leaveLoop()
+		l.breaks = append(l.breaks, fs.emit(ins{op: opJmp}, nil))
 	case *ast.ContinueStmt:
-		return func(*Interpreter) error { return errContinue }
+		l := fs.leaveLoop()
+		l.continues = append(l.continues, fs.emit(ins{op: opJmp}, nil))
+	default:
+		panic(fmt.Sprintf("compile: unknown statement %T", stmt))
 	}
-
-	panic(fmt.Sprintf("compile: unknown statement %T", stmt))
 }
 
-func compilePrint(s *ast.PrintStmt) execFn {
-	e := compileExpr(s.Expr)
+// exprStmt drops the value, so x++ needs no copy of the old x.
+func (fs *funcState) exprStmt(e ast.Expr) {
+	if u, ok := e.(*ast.UpdateExpr); ok {
+		prefix := *u
+		prefix.Prefix = true
+		fs.update(&prefix, noReg)
 
-	return func(p *Interpreter) error {
-		v, err := e(p)
-		if err != nil {
-			return err
+		return
+	}
+
+	fs.exprAny(e)
+}
+
+// leaveLoop drops the handlers of the trys a break or continue jumps out of.
+func (fs *funcState) leaveLoop() *loop {
+	l := fs.loops[len(fs.loops)-1]
+	if n := fs.tries - l.tries; n > 0 {
+		fs.emit(ins{op: opEndTry, b: int32(n)}, nil)
+	}
+
+	return l
+}
+
+func (fs *funcState) varStmt(s *ast.VarStmt) {
+	if s.Local.TopLevel {
+		r := fs.locals[s.Local]
+
+		if s.Local.Captured {
+			t := fs.alloc()
+			fs.exprOrNil(s.Initializer, t)
+			fs.emit(ins{op: opSetCell, a: r, b: t}, nil)
+		} else {
+			fs.exprOrNil(s.Initializer, r)
 		}
 
-		p.line = append(helpers.AppendValue(p.line[:0], v), '\n')
-		p.write(p.line)
+		fs.defined[s.Local] = true
 
-		return nil
+		return
+	}
+
+	r := fs.alloc()
+	fs.exprOrNil(s.Initializer, r)
+	fs.free = r
+	fs.declare(s.Local)
+
+	if s.Local.Captured {
+		fs.emit(ins{op: opNewCell, a: r, b: r}, nil)
 	}
 }
 
-func compileVar(s *ast.VarStmt) execFn {
-	init := func(*Interpreter) (value.Value, error) { return value.NilValue, nil }
-	if s.Initializer != nil {
-		init = compileExpr(s.Initializer)
+func (fs *funcState) exprOrNil(e ast.Expr, dst int32) {
+	if e == nil {
+		fs.emit(ins{op: opLoadK, a: dst, c: fs.constant(value.NilValue)}, nil)
+		return
 	}
 
-	if s.Local {
-		slot := s.Slot
-
-		return func(p *Interpreter) error {
-			v, err := init(p)
-			if err != nil {
-				return err
-			}
-
-			p.environment.Set(slot, v)
-
-			return nil
-		}
-	}
-
-	slot := globalSlot(s.Slot, s.Name.Lexeme)
-
-	return func(p *Interpreter) error {
-		v, err := init(p)
-		if err != nil {
-			return err
-		}
-
-		p.globals.Define(slot, v)
-
-		return nil
-	}
+	fs.expr(e, dst)
 }
 
-func compileScope(body execFn, size int, pooled bool) execFn {
-	if size == 0 {
-		return body
+func (fs *funcState) functionStmt(s *ast.FunctionStmt) {
+	if s.Local.TopLevel {
+		defer func() { fs.defined[s.Local] = true }()
 	}
 
-	return func(p *Interpreter) error {
-		return p.runIn(body, p.newEnv(pooled, p.environment, size), pooled)
+	r, ok := fs.locals[s.Local]
+	if !ok {
+		r = fs.declare(s.Local)
 	}
+
+	if s.Local.TopLevel && s.Local.Captured {
+		t := fs.alloc()
+		fs.emit(ins{op: opClosure, a: t, c: fs.function(s)}, nil)
+		fs.emit(ins{op: opSetCell, a: r, b: t}, nil)
+
+		return
+	}
+
+	if !s.Local.Captured {
+		fs.emit(ins{op: opClosure, a: r, c: fs.function(s)}, nil)
+		return
+	}
+
+	// The cell exists before the closure, so the function can call itself.
+	fs.emit(ins{op: opLoadK, a: r, c: fs.constant(value.NilValue)}, nil)
+	fs.emit(ins{op: opNewCell, a: r, b: r}, nil)
+
+	t := fs.alloc()
+	fs.emit(ins{op: opClosure, a: t, c: fs.function(s)}, nil)
+	fs.emit(ins{op: opSetCell, a: r, b: t}, nil)
 }
 
-func compileIf(s *ast.IfStmt) execFn {
-	cond := compileCond(s.Condition)
-	then := compileStmt(s.Then)
+func (fs *funcState) ifStmt(s *ast.IfStmt) {
+	skip := fs.jumpIf(s.Condition, false)
+	fs.scoped(func() { fs.stmt(s.Then) })
 
 	if s.El == nil {
-		return func(p *Interpreter) error {
-			c, err := cond(p)
-			if err != nil {
-				return err
-			}
-
-			if c {
-				return then(p)
-			}
-
-			return nil
-		}
+		fs.patch(skip)
+		return
 	}
 
-	el := compileStmt(s.El)
-
-	return func(p *Interpreter) error {
-		c, err := cond(p)
-		if err != nil {
-			return err
-		}
-
-		if c {
-			return then(p)
-		}
-
-		return el(p)
-	}
+	end := fs.emit(ins{op: opJmp}, nil)
+	fs.patch(skip)
+	fs.scoped(func() { fs.stmt(s.El) })
+	fs.patch([]int{end})
 }
 
-func compileWhile(s *ast.WhileStmt) execFn {
-	cond := compileCond(s.Condition)
-	body := compileStmt(s.Body)
+// whileStmt tests at the bottom, so an iteration runs one jump.
+func (fs *funcState) whileStmt(s *ast.WhileStmt) {
+	enter := fs.emit(ins{op: opJmp}, nil)
+	body := fs.here()
 
-	return func(p *Interpreter) error {
-		for {
-			c, err := cond(p)
-			if err != nil {
-				return err
+	l := fs.loop(func() { fs.stmt(s.Body) })
+
+	fs.patch([]int{enter})
+	fs.patch(l.continues)
+
+	for _, j := range fs.jumpIf(s.Condition, true) {
+		fs.code[j].c = body
+	}
+
+	fs.patch(l.breaks)
+}
+
+func (fs *funcState) loop(body func()) *loop {
+	l := &loop{tries: fs.tries}
+	fs.loops = append(fs.loops, l)
+	fs.scoped(body)
+	fs.loops = fs.loops[:len(fs.loops)-1]
+
+	return l
+}
+
+func (fs *funcState) forIn(s *ast.ForInStmt) {
+	fs.scoped(func() {
+		var base int32
+
+		var key, val int32
+
+		next := ins{op: opForIterNext}
+
+		if r, ok := s.Iterable.(*ast.RangeExpr); ok {
+			base = fs.rangeParts(r)
+			fs.free = base + 3
+			fs.alloc()
+			fs.nactive = fs.free
+			fs.emit(ins{op: opForRange, a: base}, &r.Operator)
+
+			key, val = fs.declare(nil), fs.declare(nil)
+			next = ins{op: opForRangeNext, a: base, x: uint8(boolNum(r.Inclusive))}
+		} else {
+			base = fs.declare(nil)
+			fs.expr(s.Iterable, base)
+			fs.emit(ins{op: opForIter, a: base, x: uint8(boolNum(s.Key != nil))}, &s.Keyword)
+
+			key, val = fs.declare(nil), fs.declare(nil)
+			next.a = base
+		}
+
+		bind := func(b *ast.Binding, r int32) {
+			if b != nil {
+				fs.locals[b.Local] = r
 			}
+		}
 
-			if !c {
-				return nil
-			}
+		bind(s.Key, key)
+		bind(&s.Value, val)
 
-			if err := body(p); err != nil && err != errContinue {
-				if err == errBreak {
-					return nil
+		enter := fs.emit(ins{op: opJmp}, nil)
+		body := fs.here()
+
+		l := fs.loop(func() {
+			for _, b := range []*ast.Binding{s.Key, &s.Value} {
+				if b != nil && b.Local.Captured {
+					r := fs.locals[b.Local]
+					fs.emit(ins{op: opNewCell, a: r, b: r}, nil)
 				}
+			}
 
-				return err
+			fs.stmt(s.Body)
+		})
+
+		fs.patch([]int{enter})
+		fs.patch(l.continues)
+
+		next.c = body
+		fs.emit(next, nil)
+		fs.patch(l.breaks)
+	})
+}
+
+// rangeParts evaluates a range's start, end and step into three new registers.
+func (fs *funcState) rangeParts(r *ast.RangeExpr) int32 {
+	base := fs.alloc()
+	fs.alloc()
+	fs.alloc()
+
+	fs.expr(r.Start, base)
+	fs.expr(r.End, base+1)
+
+	if r.Step != nil {
+		fs.expr(r.Step, base+2)
+	} else {
+		fs.emit(ins{op: opLoadK, a: base + 2, c: fs.constant(value.NewNumber(1))}, nil)
+	}
+
+	return base
+}
+
+func (fs *funcState) tryStmt(s *ast.TryStmt) {
+	try := fs.emit(ins{op: opTry, a: fs.nactive, y: uint8(boolNum(s.Param != nil))}, nil)
+
+	fs.tries++
+	fs.scoped(func() { fs.stmt(s.Body) })
+	fs.tries--
+
+	fs.emit(ins{op: opEndTry, b: 1}, nil)
+	end := fs.emit(ins{op: opJmp}, nil)
+	fs.patch([]int{try})
+
+	fs.scoped(func() {
+		if s.Param != nil {
+			r := fs.declare(s.ParamLocal)
+			if s.ParamLocal.Captured {
+				fs.emit(ins{op: opNewCell, a: r, b: r}, nil)
 			}
 		}
-	}
-}
 
-func compileFunctionStmt(s *ast.FunctionStmt) execFn {
-	fn := compileFunction(s)
+		fs.stmts(s.Handler)
+	})
 
-	if s.Local {
-		slot := s.Slot
-
-		return func(p *Interpreter) error {
-			p.environment.Set(slot, value.NewFunction(&Closure{fn: fn, env: p.environment}))
-			return nil
-		}
-	}
-
-	slot := globalSlot(s.Slot, s.Name.Lexeme)
-
-	return func(p *Interpreter) error {
-		p.globals.Define(slot, value.NewFunction(&Closure{fn: fn, env: p.environment}))
-		return nil
-	}
-}
-
-func compileReturn(s *ast.ReturnStmt) execFn {
-	if s.Value == nil {
-		return func(p *Interpreter) error {
-			p.returnValue = value.NilValue
-			return errReturn
-		}
-	}
-
-	e := compileExpr(s.Value)
-
-	return func(p *Interpreter) error {
-		v, err := e(p)
-		if err != nil {
-			return err
-		}
-
-		p.returnValue = v
-
-		return errReturn
-	}
-}
-
-func compileTry(s *ast.TryStmt) execFn {
-	body := compileStmt(s.Body)
-	handler := compileStmts(s.Handler)
-	size, pooled, hasParam := s.HandlerEnvSize, s.HandlerPooled, s.Param != nil
-
-	return func(p *Interpreter) error {
-		err := body(p)
-
-		rtErr, ok := err.(errors.RuntimeError)
-		if !ok {
-			return err
-		}
-
-		if size == 0 {
-			return handler(p)
-		}
-
-		env := p.newEnv(pooled, p.environment, size)
-
-		if hasParam {
-			env.Set(0, rtErr.Value())
-		}
-
-		return p.runIn(handler, env, pooled)
-	}
-}
-
-func compileThrow(s *ast.ThrowStmt) execFn {
-	e := compileExpr(s.Value)
-	keyword := s.Keyword
-
-	return func(p *Interpreter) error {
-		v, err := e(p)
-		if err != nil {
-			return err
-		}
-
-		return errors.NewThrownError(keyword, v, helpers.Stringify(v))
-	}
+	fs.patch([]int{end})
 }

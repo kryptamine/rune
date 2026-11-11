@@ -1,0 +1,54 @@
+fun thrower(n) {
+  if (n == 0) throw "bottom";
+  return thrower(n - 1);
+}
+
+fun catcher() {
+  try {
+    thrower(50);
+  } catch (e) {
+    return "caught " + e;
+  }
+  return "no";
+}
+print catcher(); // expect: caught bottom
+
+fun loopy() {
+  let mut out = "";
+  for (i in 0..4) {
+    try {
+      if (i == 1) continue;
+      if (i == 3) break;
+      out += "t";
+      try {
+        throw "x";
+      } catch {
+        out += "c";
+      }
+    } catch {
+      out += "never";
+    }
+  }
+  return out;
+}
+print loopy(); // expect: tctc
+
+try {
+  map([1, 2], fun (x) { if (x == 2) throw "in map"; return x; });
+} catch (e) {
+  print e; // expect: in map
+}
+
+let r = map([1, 2, 3], fun (x) {
+  try {
+    if (x == 2) throw "skip";
+    return x;
+  } catch {
+    return 0;
+  }
+});
+print r; // expect: [1, 0, 3]
+
+fun deep(n) { return deep(n + 1); }
+try { deep(0); } catch (e) { print e.message; } // expect: Stack overflow.
+print map([1], fun (x) { return x + 1; }); // expect: [2]

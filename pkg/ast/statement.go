@@ -17,23 +17,20 @@ type StmtVisitor interface {
 }
 
 // Binding is a declared name; Mutable is set for names declared with "mut".
+// The resolver sets Local unless the name is a global.
 type Binding struct {
 	Name    Token
 	Mutable bool
+	Local   *Local
 }
 
-// VarStmt declares a variable. Local is set by the resolver for variables
-// declared inside a scope, together with their Slot in it; for globals Slot
-// is filled lazily by the interpreter.
 type VarStmt struct {
 	Binding
 	Initializer Expr
-	Local       bool
-	Slot        int
 }
 
 func NewVarStmt(initializer Expr, binding Binding) Stmt {
-	return &VarStmt{Initializer: initializer, Binding: binding, Slot: Unresolved}
+	return &VarStmt{Initializer: initializer, Binding: binding}
 }
 
 type ReturnStmt struct {
@@ -61,13 +58,8 @@ func NewExprStmt(expr Expr) Stmt {
 	return &ExprStmt{Expr: expr}
 }
 
-// BlockStmt is a braced block. EnvSize is the number of locals it declares;
-// a block with none runs in the enclosing environment.
-// Pooled (here and on other scopes): no closure is created inside.
 type BlockStmt struct {
-	Stmts   []Stmt
-	EnvSize int
-	Pooled  bool
+	Stmts []Stmt
 }
 
 func NewBlockStmt(stmts []Stmt) Stmt {
@@ -95,16 +87,13 @@ func NewWhileStmt(condition Expr, body Stmt) Stmt {
 
 // ForInStmt iterates over an array (elements), a string (characters) or an
 // object (keys, in sorted order). With two variables, Key gets the index
-// (or the object key) and Value the element. Each iteration gets a fresh
-// scope of EnvSize slots: Key (if any) first, then Value.
+// (or the object key) and Value the element. Each iteration binds them anew.
 type ForInStmt struct {
 	Keyword  Token
 	Key      *Binding
 	Value    Binding
 	Iterable Expr
 	Body     Stmt
-	EnvSize  int
-	Pooled   bool
 }
 
 func NewForInStmt(keyword Token, key *Binding, val Binding, iterable Expr, body Stmt) Stmt {
@@ -127,33 +116,25 @@ func NewContinueStmt(keyword Token) Stmt {
 	return &ContinueStmt{Keyword: keyword}
 }
 
-// FunctionStmt declares a function. Local and Slot describe the function's
-// own name as in VarStmt; EnvSize is the number of locals in its body scope
-// (parameters first, in order).
+// FunctionStmt declares a function; Local is its name's, as in Binding.
 type FunctionStmt struct {
 	Name       Token
 	Parameters []Binding
 	Body       []Stmt
-	Local      bool
-	Slot       int
-	EnvSize    int
-	Pooled     bool
+	Local      *Local
 }
 
 func NewFunctionStmt(name Token, parameters []Binding, body []Stmt) Stmt {
-	return &FunctionStmt{Name: name, Parameters: parameters, Body: body, Slot: Unresolved}
+	return &FunctionStmt{Name: name, Parameters: parameters, Body: body}
 }
 
 // TryStmt runs Body and, if it fails with a runtime error or a throw, runs
-// Handler. Param is the optional catch variable (nil without one); it takes
-// slot 0 of the handler's scope. HandlerEnvSize is the number of locals in
-// that scope; zero means the handler runs in the enclosing environment.
+// Handler. Param is the optional catch variable (nil without one).
 type TryStmt struct {
-	Body           Stmt
-	Param          *Token
-	Handler        []Stmt
-	HandlerEnvSize int
-	HandlerPooled  bool
+	Body       Stmt
+	Param      *Token
+	ParamLocal *Local
+	Handler    []Stmt
 }
 
 func NewTryStmt(body Stmt, param *Token, handler []Stmt) Stmt {

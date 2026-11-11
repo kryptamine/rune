@@ -9,20 +9,7 @@ type refPair struct{ l, r uintptr }
 
 // IsTruthy follows JS-like semantics: nil, false, 0 and "" are falsy,
 // everything else (including arrays, objects and functions) is truthy.
-func IsTruthy(v value.Value) bool {
-	switch v.Kind() {
-	case value.Nil:
-		return false
-	case value.Bool:
-		return v.Bool()
-	case value.String:
-		return len(v.Str()) != 0
-	case value.Number:
-		return v.Num() != 0.0
-	default:
-		return true
-	}
-}
+func IsTruthy(v value.Value) bool { return v.Truthy() }
 
 // IsEqual compares arrays and objects structurally and everything else by value
 // (functions by identity). Values of different kinds are never equal.

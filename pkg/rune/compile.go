@@ -1,81 +1,288 @@
 package rune
 
 import (
-	"fmt"
 	"rune/pkg/ast"
-	"rune/pkg/environment"
 	"rune/pkg/value"
+	"slices"
+	"unsafe"
 )
 
-type (
-	evalFn func(p *Interpreter) (value.Value, error)
-	execFn func(p *Interpreter) error
-	condFn func(p *Interpreter) (bool, error)
+// funcState compiles a function of a resolved AST into register bytecode.
+// Every local lives in a register of its function; a local some nested
+// function captures holds a cell instead, so closures share it and each
+// declaration that runs (once per loop iteration, say) makes a fresh one.
+type funcState struct {
+	parent *funcState
+	proto  *Proto
+	locals map[*ast.Local]int32
+	upvals map[*ast.Local]int32
+	consts map[constKey]int32
+	// Registers below nactive hold locals; temporaries start at free.
+	nactive int32
+	free    int32
+	code    []ins
+	loops   []*loop
+	tries   int
+	// defined holds the top-level variables whose declaration the script
+	// has passed, so reading them needs no check.
+	defined map[*ast.Local]bool
+}
+
+type loop struct {
+	breaks, continues []int
+	tries             int
+}
+
+type constKey struct {
+	kind value.Kind
+	num  float64
+	str  string
+	ptr  unsafe.Pointer
+}
+
+// compile compiles a program; builtins are the declarations the resolver
+// made for the built-ins it names.
+func compile(stmts []ast.Stmt, builtins map[string]*ast.Local) (*Program, error) {
+	return compileMain(func(fs *funcState) {
+		fs.declareTopLevel(stmts, builtins)
+		fs.stmts(stmts)
+		fs.emit(ins{op: opReturnNil}, nil)
+	})
+}
+
+// compileExpr compiles a lone expression into a program returning it.
+func compileExpr(expr ast.Expr, builtins map[string]*ast.Local) (*Program, error) {
+	return compileMain(func(fs *funcState) {
+		fs.declareTopLevel(nil, builtins)
+		r := fs.alloc()
+		fs.expr(expr, r)
+		fs.emit(ins{op: opReturn, a: r}, nil)
+	})
+}
+
+func compileMain(body func(fs *funcState)) (prog *Program, err error) {
+	defer func() {
+		switch e := recover().(type) {
+		case nil:
+		case tooLarge:
+			prog, err = nil, e
+		default:
+			panic(e)
+		}
+	}()
+
+	fs := newFunc(nil, "<script>")
+
+	body(fs)
+	fs.finish()
+
+	return &Program{main: fs.proto}, nil
+}
+
+func (fs *funcState) finish() {
+	fs.proto.code = make([]Instr, len(fs.code))
+	for i, in := range fs.code {
+		fs.proto.code[i] = in.encode(fs.proto.displayName())
+	}
+}
+
+func newFunc(parent *funcState, name string) *funcState {
+	return &funcState{
+		parent:  parent,
+		proto:   &Proto{name: name},
+		locals:  map[*ast.Local]int32{},
+		upvals:  map[*ast.Local]int32{},
+		consts:  map[constKey]int32{},
+		defined: map[*ast.Local]bool{},
+	}
+}
+
+// declareTopLevel gives every top-level variable a register of the
+// script, holding the built-in of that name until it is declared, and
+// every built-in the program names one holding it from the start.
+func (fs *funcState) declareTopLevel(stmts []ast.Stmt, builtins map[string]*ast.Local) {
+	for _, stmt := range stmts {
+		var l *ast.Local
+
+		var name string
+
+		switch s := stmt.(type) {
+		case *ast.VarStmt:
+			l, name = s.Local, s.Name.Lexeme
+		case *ast.FunctionStmt:
+			l, name = s.Local, s.Name.Lexeme
+		}
+
+		if _, done := fs.locals[l]; l != nil && !done {
+			fs.declareTopLevelVar(l, name)
+		}
+	}
+
+	names := make([]string, 0, len(builtins))
+	for name := range builtins {
+		names = append(names, name)
+	}
+
+	slices.Sort(names)
+
+	for _, name := range names {
+		fs.declareTopLevelVar(builtins[name], name)
+		fs.defined[builtins[name]] = true
+	}
+}
+
+func (fs *funcState) declareTopLevelVar(l *ast.Local, name string) {
+	r := fs.declare(l)
+
+	v, ok := builtinValues()[name]
+	if !ok {
+		v = value.UndefinedValue
+	}
+
+	fs.emit(ins{op: opLoadK, a: r, c: fs.constant(v)}, nil)
+
+	if l.Captured {
+		fs.emit(ins{op: opNewCell, a: r, b: r}, nil)
+	}
+}
+
+// checked reports whether reading l must check it is defined.
+func (fs *funcState) checked(l *ast.Local) bool {
+	return l != nil && l.TopLevel && !fs.defined[l]
+}
+
+func (fs *funcState) function(decl *ast.FunctionStmt) int32 {
+	f := newFunc(fs, decl.Name.Lexeme)
+	f.proto.arity = len(decl.Parameters)
+
+	for _, param := range decl.Parameters {
+		r := f.declare(param.Local)
+		if param.Local.Captured {
+			f.emit(ins{op: opNewCell, a: r, b: r}, nil)
+		}
+	}
+
+	f.stmts(decl.Body)
+	f.emit(ins{op: opReturnNil}, nil)
+	f.finish()
+
+	fs.proto.protos = append(fs.proto.protos, f.proto)
+
+	return int32(len(fs.proto.protos) - 1)
+}
+
+func (fs *funcState) emit(in ins, tok *ast.Token) int {
+	fs.code = append(fs.code, in)
+	fs.proto.toks = append(fs.proto.toks, tok)
+
+	return len(fs.code) - 1
+}
+
+func (fs *funcState) here() int32 { return int32(len(fs.code)) }
+
+func (fs *funcState) patch(jumps []int) {
+	for _, j := range jumps {
+		fs.code[j].c = fs.here()
+	}
+}
+
+func (fs *funcState) alloc() int32 {
+	r := fs.free
+	fs.free++
+
+	if int(fs.free) > fs.proto.nregs {
+		fs.proto.nregs = int(fs.free)
+	}
+
+	return r
+}
+
+// declare binds l to the next register; temporaries must all be free.
+func (fs *funcState) declare(l *ast.Local) int32 {
+	r := fs.alloc()
+	fs.nactive = fs.free
+
+	if l != nil {
+		fs.locals[l] = r
+	}
+
+	return r
+}
+
+func (fs *funcState) constant(v value.Value) int32 {
+	key := constKey{kind: v.Kind()}
+
+	switch v.Kind() {
+	case value.Number:
+		key.num = v.Num()
+	case value.Bool:
+		key.num = boolNum(v.Bool())
+	case value.String:
+		key.str = v.Str()
+	case value.Function:
+		key.ptr = v.Ptr()
+	}
+
+	if k, ok := fs.consts[key]; ok {
+		return k
+	}
+
+	k := int32(len(fs.proto.consts))
+	fs.proto.consts = append(fs.proto.consts, v.Detach())
+	fs.consts[key] = k
+
+	return k
+}
+
+func boolNum(b bool) float64 {
+	if b {
+		return 1
+	}
+
+	return 0
+}
+
+type varKind uint8
+
+const (
+	varUndefined varKind = iota // a name neither declared nor built in
+	varLocal                    // a plain register
+	varCell                     // a register holding a cell
+	varUpval
 )
 
-// Program holds no run state and can be run any number of times.
-type Program struct {
-	run execFn
-}
-
-func Compile(stmts []ast.Stmt) *Program {
-	return &Program{run: compileStmts(stmts)}
-}
-
-type function struct {
-	name    string
-	arity   int
-	envSize int
-	pooled  bool
-	body    execFn
-}
-
-type Closure struct {
-	fn  *function
-	env *environment.Environment
-}
-
-func (c *Closure) String() string {
-	if c.fn.name == "" {
-		return "<fn>"
+// lookup says where the variable l lives.
+func (fs *funcState) lookup(l *ast.Local) (varKind, int32) {
+	if l == nil {
+		return varUndefined, 0
 	}
 
-	return fmt.Sprintf("<fn %s>", c.fn.name)
-}
+	if r, ok := fs.locals[l]; ok {
+		if l.Captured {
+			return varCell, r
+		}
 
-func (f *function) displayName() string {
-	if f.name == "" {
-		return "<anonymous>"
+		return varLocal, r
 	}
 
-	return f.name
+	return varUpval, fs.upval(l)
 }
 
-func compileFunction(decl *ast.FunctionStmt) *function {
-	return &function{
-		name:    decl.Name.Lexeme,
-		arity:   len(decl.Parameters),
-		envSize: decl.EnvSize,
-		pooled:  decl.Pooled,
-		body:    compileStmts(decl.Body),
-	}
-}
-
-func nop(*Interpreter) error { return nil }
-
-// constant's v is shared by every interpreter running the program.
-func constant(v value.Value) evalFn {
-	v = v.Detach()
-	return func(*Interpreter) (value.Value, error) { return v, nil }
-}
-
-func literalOf(expr ast.Expr) (value.Value, bool) {
-	switch n := expr.(type) {
-	case *ast.LiteralExpr:
-		return n.Value, true
-	case *ast.GroupingExpr:
-		return literalOf(n.Expr)
+func (fs *funcState) upval(l *ast.Local) int32 {
+	if i, ok := fs.upvals[l]; ok {
+		return i
 	}
 
-	return value.NilValue, false
+	var desc upvalDesc
+	if r, ok := fs.parent.locals[l]; ok {
+		desc = upvalDesc{fromLocal: true, index: r}
+	} else {
+		desc = upvalDesc{index: fs.parent.upval(l)}
+	}
+
+	i := int32(len(fs.proto.upvals))
+	fs.proto.upvals = append(fs.proto.upvals, desc)
+	fs.upvals[l] = i
+
+	return i
 }
