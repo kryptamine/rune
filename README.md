@@ -19,8 +19,8 @@ Rune is a dynamically typed interpreted programming language inspired by [Lox](h
 - Object property access with `obj.name` as sugar for `obj["name"]`
 - Strings compare with `<`, `<=`, `>`, `>=` and index by character: `"héllo"[1]` is `"é"`
 - Error handling with `try`/`catch` and `throw`
-- `break` and `continue` in `while`, `for` and `for`-`in` loops
-- `for (x in ...)` over arrays, strings and objects
+- Two loops only: `while` and `for (x in ...)` over arrays, strings, objects and `range(...)`
+- `break` and `continue` in both
 - Anonymous functions: `fun (x) { return x * 2; }`
 - Modulo `%` and compound assignment: `+=`, `-=`, `*=`, `/=`, `%=`
 - Increment and decrement, prefix and postfix: `++i`, `i++`, `--i`, `i--` (on variables, array elements and properties)
@@ -254,6 +254,8 @@ try {
 the index, or the key and the value. Each iteration has its own variable, so
 closures capture the current element. Array elements are taken when the loop
 starts, so pushing to the array inside the loop does not extend it.
+There is no C-style `for`: count with `range`, which a `for`-`in` walks
+without building the array. Anything else is a `while`.
 
 ```javascript
 for (i, name in ["ann", "bob"]) {
@@ -266,6 +268,8 @@ for (name, age in ages) {
     if (age < 30) break;
     print name + " is 30+";
 }
+
+for (i in range(10, 0, -2)) print i; // 10 8 6 4 2
 ```
 
 ## Anonymous Functions
@@ -289,9 +293,7 @@ Here’s a simple Rune script that calculates the sum of an array:
 ```javascript
 fun sumArray(arr) {
     let mut total = 0;
-    for (let mut i = 0; i < len(arr); i = i + 1) {
-        total = total + arr[i];
-    }
+    for (x in arr) total += x;
     return total;
 }
 

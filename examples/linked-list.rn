@@ -11,8 +11,8 @@ fun createList(arr) {
     let mut head = nil;
     let mut tail = nil;
 
-    for (let mut i = 0; i < len(arr); i = i+1) {
-        let node = createNode(arr[i]);
+    for (x in arr) {
+        let node = createNode(x);
         if (head == nil) {
             head = node;
             tail = node;

@@ -138,10 +138,6 @@ func (p *Resolver) VisitWhileStmt(whileStmt *ast.WhileStmt) error {
 	p.resolveExpr(whileStmt.Condition)
 	p.resolveLoopBody(whileStmt.Body)
 
-	if whileStmt.Increment != nil {
-		p.resolveExpr(whileStmt.Increment)
-	}
-
 	return nil
 }
 

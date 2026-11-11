@@ -1,9 +1,0 @@
-fun f() {
-  for (;;) {
-    let i = "i";
-    return i;
-  }
-}
-
-print f();
-// expect: i

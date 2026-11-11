@@ -84,17 +84,13 @@ func NewIfStmt(condition Expr, then Stmt, el Stmt) Stmt {
 	return &IfStmt{Condition: condition, Then: then, El: el}
 }
 
-// WhileStmt is a while loop, or a desugared C-style for loop: Increment
-// (nil for while) runs after every iteration, including one cut short by
-// continue.
 type WhileStmt struct {
 	Condition Expr
 	Body      Stmt
-	Increment Expr
 }
 
-func NewWhileStmt(condition Expr, body Stmt, increment Expr) Stmt {
-	return &WhileStmt{Condition: condition, Body: body, Increment: increment}
+func NewWhileStmt(condition Expr, body Stmt) Stmt {
+	return &WhileStmt{Condition: condition, Body: body}
 }
 
 // ForInStmt iterates over an array (elements), a string (characters) or an

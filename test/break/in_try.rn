@@ -1,4 +1,4 @@
-for (let mut i = 0; i < 5; i += 1) {
+for (i in range(5)) {
   try {
     if (i == 2) break;
     print i;

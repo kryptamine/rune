@@ -1,5 +1,5 @@
 let mut fs = [];
-for (let mut i = 0; i < 10; i += 1) {
+for (i in range(10)) {
   let j = i;
   if (i == 2) break;
   fs = append(fs, fun () { return j; });

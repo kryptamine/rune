@@ -82,29 +82,7 @@ var arrayNatives = []*Native{
 
 		return c.args[0]
 	}},
-	{"range", 1, 3, func(c *call) value.Value {
-		start, end, step := 0.0, c.num(0), 1.0
-
-		if c.has(1) {
-			start, end = end, c.num(1)
-		}
-
-		if c.has(2) {
-			step = c.num(2)
-		}
-
-		if c.ok() && step == 0 {
-			return c.fail("step must not be zero.")
-		}
-
-		var out []value.Value
-
-		for x := start; c.ok() && (step > 0 && x < end || step < 0 && x > end); x += step {
-			out = append(out, value.NewNumber(x))
-		}
-
-		return value.NewArray(out)
-	}},
+	rangeNative,
 }
 
 // sortable reports whether items are all numbers or all strings.
