@@ -12,7 +12,7 @@ Rune is a dynamically typed interpreted programming language inspired by [Lox](h
 - Supports expressions, statements, variables, and functions
 - Variables are immutable by default (`let`); `let mut` makes them mutable
 - Built-in functions for array manipulation, JSON parsing, and timing
-- Recursive descent parser; the resolved AST is compiled into Go closures before it runs
+- Recursive descent parser; the resolved AST is compiled to register bytecode run by a VM
 - Parser recovers from syntax errors and reports all of them in one run
 - String escapes: `\n`, `\t`, `\r`, `\"`, `\\`
 - Number literals with exponents: `1e3`, `2.5E-2`
@@ -209,14 +209,15 @@ Built-ins are ordinary globals, so a program may redefine them.
 
 ## Performance
 
-Before running, the resolved AST is compiled into a tree of Go closures, so each node costs one indirect call and the decisions that depend only on the source are taken once. In particular:
+Before running, the resolved AST is compiled to bytecode for a register machine, in the style of Lua. In particular:
 
-- local variables live in slots resolved ahead of time, and calls to functions that create no closures reuse pooled environments instead of allocating;
-- conditions of `if` and loops yield a Go bool directly; constant operands and literal expressions are folded; `i = i + 1`, `i += 1` and `i++` are single nodes;
-- numbers, booleans and strings are stored inline in values and never allocate;
+- every local, top-level variables included, lives in a register of its function's frame; a variable some nested function captures is kept in a heap cell that the closures share;
+- a call pushes a frame onto one shared register stack, so it allocates nothing;
+- comparisons in `if` and loop conditions jump directly; constant operands and literal expressions are folded; loops test their condition at the bottom;
+- a value is two words: numbers, booleans and strings are stored inline and never allocate;
 - `print` output is buffered and flushed when the program ends (also on a runtime error).
 
-Benchmarks: `make bench`.
+`rune disasm file.rn` prints the bytecode. Benchmarks: `make bench`.
 
 ## Error Handling
 

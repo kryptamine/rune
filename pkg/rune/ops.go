@@ -5,23 +5,12 @@ import (
 	"fmt"
 	"math"
 	"rune/pkg/ast"
-	"rune/pkg/environment"
 	"rune/pkg/errors"
 	"rune/pkg/helpers"
 	"rune/pkg/value"
 	"strings"
 	"unicode/utf8"
 )
-
-// globalSlot returns slot, looking it up by name when the resolver has not
-// run (as for a lone expression evaluated with EvaluateExpr).
-func globalSlot(slot int, name string) int {
-	if slot == ast.Unresolved {
-		return environment.GlobalSlot(name)
-	}
-
-	return slot
-}
 
 // binaryOp applies a binary operator; operator also locates errors.
 func binaryOp(operator *ast.Token, left, right value.Value) (value.Value, error) {

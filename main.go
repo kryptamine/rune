@@ -38,6 +38,7 @@ func printUsage() {
 	fmt.Fprintf(os.Stderr, "  tokenize  - Tokenizes the input file\n")
 	fmt.Fprintf(os.Stderr, "  evaluate  - Evaluates a single expression from the input file\n")
 	fmt.Fprintf(os.Stderr, "  run       - Runs the program from the input file\n")
+	fmt.Fprintf(os.Stderr, "  disasm    - Prints the bytecode of the program in the input file\n")
 	fmt.Fprintf(os.Stderr, "  version   - Prints the version of the interpreter\n")
 	os.Exit(1)
 }
@@ -105,6 +106,18 @@ func run(fileContents []byte) int {
 	return exitCodeOk
 }
 
+func disasm(fileContents []byte) int {
+	prog, errs := rune.Load(fileContents)
+	if len(errs) > 0 {
+		printErrors(errs, fileContents)
+		return exitCodeParseError
+	}
+
+	fmt.Print(prog.Disassemble())
+
+	return exitCodeOk
+}
+
 func main() {
 	if len(os.Args) < 2 {
 		printUsage()
@@ -142,6 +155,8 @@ func main() {
 		os.Exit(evaluate(fileContents))
 	case "run":
 		os.Exit(run(fileContents))
+	case "disasm":
+		os.Exit(disasm(fileContents))
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)
 		printUsage()

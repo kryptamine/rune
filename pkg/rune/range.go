@@ -29,57 +29,33 @@ func (r numRange) at(i float64) (float64, bool) {
 	return x, remaining > 0
 }
 
-func compileRangeExpr(n *ast.RangeExpr) evalFn {
-	bounds := compileRange(n)
-
-	return func(p *Interpreter) (value.Value, error) {
-		r, err := bounds(p)
-		if err != nil {
-			return value.NilValue, err
-		}
-
-		var out []value.Value
-
-		c := cursor{mode: rangeCursor, r: r}
-
-		for _, x, ok := c.next(); ok; _, x, ok = c.next() {
-			out = append(out, x)
-		}
-
-		return value.NewArray(out), nil
-	}
-}
-
 var rangeParts = [...]string{"start", "end", "step"}
 
-func compileRange(n *ast.RangeExpr) func(*Interpreter) (numRange, error) {
-	parts := [...]evalFn{compileExpr(n.Start), compileExpr(n.End), constant(value.NewNumber(1))}
-
-	if n.Step != nil {
-		parts[2] = compileExpr(n.Step)
+// rangeOf checks the start, end and step of a range.
+func rangeOf(parts []value.Value, inclusive bool, tok *ast.Token) (numRange, error) {
+	for i, v := range parts[:3] {
+		if !v.IsNumber() {
+			return numRange{}, errors.NewRuntimeError(*tok, fmt.Sprintf(
+				"Range %s must be a number, got %s.", rangeParts[i], helpers.TypeName(v)))
+		}
 	}
 
-	return func(p *Interpreter) (numRange, error) {
-		var nums [3]float64
+	if parts[2].Num() == 0 {
+		return numRange{}, errors.NewRuntimeError(*tok, "Range step must not be zero.")
+	}
 
-		for i, part := range parts {
-			v, err := part(p)
-			if err != nil {
-				return numRange{}, err
-			}
+	return numRange{start: parts[0].Num(), end: parts[1].Num(), step: parts[2].Num(), inclusive: inclusive}, nil
+}
 
-			if !v.IsNumber() {
-				return numRange{}, errors.NewRuntimeError(n.Operator, fmt.Sprintf(
-					"Range %s must be a number, got %s.", rangeParts[i], helpers.TypeName(v)))
-			}
+func (r numRange) array() value.Value {
+	var out []value.Value
 
-			nums[i] = v.Num()
+	for i := 0.0; ; i++ {
+		x, ok := r.at(i)
+		if !ok {
+			return value.NewArray(out)
 		}
 
-		if nums[2] == 0 {
-			return numRange{}, errors.NewRuntimeError(n.Operator, "Range step must not be zero.")
-		}
-
-		return numRange{start: nums[0], end: nums[1], step: nums[2], inclusive: n.Inclusive}, nil
+		out = append(out, value.NewNumber(x))
 	}
 }

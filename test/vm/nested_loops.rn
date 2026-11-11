@@ -1,0 +1,28 @@
+let mut out = "";
+for (i in ["0", "1", "2"]) {
+  let mut j = 0;
+  while (true) {
+    j++;
+    if (j > 2) break;
+    if (j == 1) continue;
+    for (c in "ab") {
+      if (c == "b") break;
+      out += i + c;
+    }
+  }
+}
+print out; // expect: 0a1a2a
+
+for (i in 0..=2 step 0.5) {
+  if (i == 1) continue;
+  if (i > 1.5) break;
+  print i;
+}
+// expect: 0
+// expect: 0.5
+// expect: 1.5
+
+for (i in 3..0 step -1) print i;
+// expect: 3
+// expect: 2
+// expect: 1

@@ -2,7 +2,6 @@ package rune
 
 import (
 	"rune/pkg/ast"
-	"rune/pkg/environment"
 	"rune/pkg/errors"
 	"rune/pkg/helpers"
 	"rune/pkg/stdlib"
@@ -12,20 +11,18 @@ import (
 type localVar struct {
 	defined bool
 	mutable bool
-	slot    int
+	local   *ast.Local
 }
 
-// Scope maps a local's name to its slot; size is the number of slots used.
+// Scope maps a local's name to its declaration; fnDepth is the nesting
+// depth of the function the scope belongs to.
 type Scope struct {
-	vars             map[string]*localVar
-	size             int
-	functionsAtStart int
+	vars    map[string]*localVar
+	fnDepth int
 }
 
-// Resolver binds every local variable to a (depth, slot) pair stored in the
-// AST before execution, and sizes each scope's environment. Blocks that
-// declare nothing get no scope at all, matching the interpreter, which runs
-// them in the enclosing environment.
+// Resolver binds every reference to a local variable to its declaration
+// and marks the locals that nested functions capture.
 // Semantic errors do not confuse it, so it records them and keeps going;
 // the visitor methods therefore always return nil errors.
 type Resolver struct {
@@ -34,19 +31,29 @@ type Resolver struct {
 	// loopDepth counts the loops enclosing the current statement within
 	// the current function; break and continue need it to be positive.
 	loopDepth int
-	functions int
+	fnDepth   int
 	errors    []error
 	// globals tracks top-level declarations like a scope's vars; their
-	// slots are global ones and their mutability is in globalMutable, so
-	// localVar.slot and localVar.mutable are unused.
+	// mutability is in globalMutable, so localVar.mutable is unused.
 	globals map[string]*localVar
 	// globalMutable holds every top-level declaration up front, since a
 	// function may assign to a global declared after it.
 	globalMutable map[string]bool
+	// topLevel holds the declarations of every top-level name up front,
+	// for the same reason.
+	topLevel map[string]*ast.Local
+	// builtins holds a declaration for each built-in the program names
+	// without declaring it.
+	builtins map[string]*ast.Local
 }
 
 func NewResolver() *Resolver {
-	return &Resolver{globals: map[string]*localVar{}, globalMutable: map[string]bool{}}
+	return &Resolver{
+		globals:       map[string]*localVar{},
+		globalMutable: map[string]bool{},
+		topLevel:      map[string]*ast.Local{},
+		builtins:      map[string]*ast.Local{},
+	}
 }
 
 // ResolveStmts resolves a whole program and returns all errors found.
@@ -55,12 +62,21 @@ func (p *Resolver) ResolveStmts(stmts []ast.Stmt) []error {
 		switch s := stmt.(type) {
 		case *ast.VarStmt:
 			p.globalMutable[s.Name.Lexeme] = s.Mutable
+			p.topLevel[s.Name.Lexeme] = &ast.Local{TopLevel: true}
 		case *ast.FunctionStmt:
 			p.globalMutable[s.Name.Lexeme] = false
+			p.topLevel[s.Name.Lexeme] = &ast.Local{TopLevel: true}
 		}
 	}
 
 	p.resolveStmts(stmts)
+
+	return p.errors
+}
+
+// ResolveExpr resolves a lone expression.
+func (p *Resolver) ResolveExpr(expr ast.Expr) []error {
+	p.resolveExpr(expr)
 
 	return p.errors
 }
@@ -76,7 +92,7 @@ func (p *Resolver) VisitExprStmt(exprStmt *ast.ExprStmt) error {
 }
 
 func (p *Resolver) VisitVarStmt(stmt *ast.VarStmt) error {
-	stmt.Local, stmt.Slot = p.declare(stmt.Binding)
+	stmt.Local = p.declare(stmt.Binding)
 
 	if stmt.Initializer != nil {
 		p.resolveExpr(stmt.Initializer)
@@ -93,7 +109,7 @@ func (p *Resolver) VisitVarExpr(expr *ast.VarExpr) (value.Value, error) {
 		p.error(expr.Name, "Cannot read "+kind+" variable in its own initializer.")
 	}
 
-	expr.Depth, expr.Slot = p.resolveLocal(expr.Name)
+	expr.Local = p.resolveLocal(expr.Name)
 
 	return value.NilValue, nil
 }
@@ -106,7 +122,7 @@ func (p *Resolver) VisitBlockStmt(blockStmt *ast.BlockStmt) error {
 
 	p.beginScope()
 	p.resolveStmts(blockStmt.Stmts)
-	blockStmt.EnvSize, blockStmt.Pooled = p.endScope()
+	p.endScope()
 
 	return nil
 }
@@ -147,15 +163,15 @@ func (p *Resolver) VisitForInStmt(stmt *ast.ForInStmt) error {
 	p.beginScope()
 
 	if stmt.Key != nil {
-		p.declare(*stmt.Key)
+		stmt.Key.Local = p.declare(*stmt.Key)
 		p.define(stmt.Key.Name)
 	}
 
-	p.declare(stmt.Value)
+	stmt.Value.Local = p.declare(stmt.Value)
 	p.define(stmt.Value.Name)
 
 	p.resolveLoopBody(stmt.Body)
-	stmt.EnvSize, stmt.Pooled = p.endScope()
+	p.endScope()
 
 	return nil
 }
@@ -189,7 +205,7 @@ func (p *Resolver) VisitFunctionExpr(expr *ast.FunctionExpr) (value.Value, error
 }
 
 func (p *Resolver) VisitFunctionStmt(fnStmt *ast.FunctionStmt) error {
-	fnStmt.Local, fnStmt.Slot = p.declare(ast.Binding{Name: fnStmt.Name})
+	fnStmt.Local = p.declare(ast.Binding{Name: fnStmt.Name})
 	p.define(fnStmt.Name)
 	p.resolveFn(fnStmt)
 
@@ -219,12 +235,12 @@ func (p *Resolver) VisitTryStmt(tryStmt *ast.TryStmt) error {
 	p.beginScope()
 
 	if tryStmt.Param != nil {
-		p.declare(ast.Binding{Name: *tryStmt.Param})
+		tryStmt.ParamLocal = p.declare(ast.Binding{Name: *tryStmt.Param})
 		p.define(*tryStmt.Param)
 	}
 
 	p.resolveStmts(tryStmt.Handler)
-	tryStmt.HandlerEnvSize, tryStmt.HandlerPooled = p.endScope()
+	p.endScope()
 
 	return nil
 }
@@ -236,7 +252,7 @@ func (p *Resolver) VisitThrowStmt(throwStmt *ast.ThrowStmt) error {
 
 func (p *Resolver) VisitAssignExpr(expr *ast.AssignExpr) (value.Value, error) {
 	p.resolveExpr(expr.Value)
-	expr.Depth, expr.Slot = p.resolveLocal(expr.Name)
+	expr.Local = p.resolveLocal(expr.Name)
 	p.requireMutable(expr.Name, "assign to")
 
 	return value.NilValue, nil
@@ -408,16 +424,43 @@ func (p *Resolver) error(token ast.Token, msg string) {
 	p.errors = append(p.errors, errors.NewSyntaxError(token, msg))
 }
 
-// resolveLocal returns the depth and slot of name; for a global the depth
-// is Unresolved and the slot is the global one.
-func (p *Resolver) resolveLocal(name ast.Token) (int, int) {
+// resolveLocal returns the declaration name refers to, or nil for a name
+// neither declared nor built in.
+func (p *Resolver) resolveLocal(name ast.Token) *ast.Local {
 	for i := len(p.scopes) - 1; i >= 0; i-- {
 		if l, exists := p.scopes[i].vars[name.Lexeme]; exists {
-			return len(p.scopes) - 1 - i, l.slot
+			if p.scopes[i].fnDepth < p.fnDepth {
+				l.local.Captured = true
+			}
+
+			return l.local
 		}
 	}
 
-	return ast.Unresolved, environment.GlobalSlot(name.Lexeme)
+	l := p.topLevel[name.Lexeme]
+	if l == nil {
+		l = p.builtin(name.Lexeme)
+	}
+
+	if l != nil && p.fnDepth > 0 {
+		l.Captured = true
+	}
+
+	return l
+}
+
+func (p *Resolver) builtin(name string) *ast.Local {
+	if _, ok := builtinValues()[name]; !ok {
+		return nil
+	}
+
+	l, ok := p.builtins[name]
+	if !ok {
+		l = &ast.Local{TopLevel: true}
+		p.builtins[name] = l
+	}
+
+	return l
 }
 
 func (p *Resolver) resolveStmts(stmts []ast.Stmt) {
@@ -435,36 +478,32 @@ func (p *Resolver) resolveExpr(expr ast.Expr) {
 }
 
 func (p *Resolver) beginScope() {
-	p.scopes = append(p.scopes, &Scope{vars: map[string]*localVar{}, functionsAtStart: p.functions})
+	p.scopes = append(p.scopes, &Scope{vars: map[string]*localVar{}, fnDepth: p.fnDepth})
 }
 
-func (p *Resolver) endScope() (size int, pooled bool) {
-	scope := p.peekScope()
+func (p *Resolver) endScope() {
 	p.scopes = p.scopes[:len(p.scopes)-1]
-
-	return scope.size, scope.functionsAtStart == p.functions
 }
 
 func (p *Resolver) resolveFn(fn *ast.FunctionStmt) {
 	enclosingIsFunction, enclosingLoopDepth := p.isFunction, p.loopDepth
 	p.isFunction, p.loopDepth = true, 0
-	p.functions++
-	defer func() { p.isFunction, p.loopDepth = enclosingIsFunction, enclosingLoopDepth }()
+	p.fnDepth++
+	defer func() { p.isFunction, p.loopDepth = enclosingIsFunction, enclosingLoopDepth; p.fnDepth-- }()
 
 	p.beginScope()
 
-	for _, param := range fn.Parameters {
-		p.declare(param)
+	for i, param := range fn.Parameters {
+		fn.Parameters[i].Local = p.declare(param)
 		p.define(param.Name)
 	}
 
 	p.resolveStmts(fn.Body)
-	fn.EnvSize, fn.Pooled = p.endScope()
+	p.endScope()
 }
 
-// declare adds name to the innermost scope and returns its slot; at the
-// top level it returns the name's global slot and local is false.
-func (p *Resolver) declare(b ast.Binding) (local bool, slot int) {
+// declare adds name to the innermost scope and returns its declaration.
+func (p *Resolver) declare(b ast.Binding) *ast.Local {
 	name := b.Name
 
 	if _, exists := p.innermost()[name.Lexeme]; exists {
@@ -473,15 +512,13 @@ func (p *Resolver) declare(b ast.Binding) (local bool, slot int) {
 
 	if p.isScopesEmpty() {
 		p.globals[name.Lexeme] = &localVar{}
-		return false, environment.GlobalSlot(name.Lexeme)
+		return p.topLevel[name.Lexeme]
 	}
 
-	scope := p.peekScope()
-	slot = scope.size
-	scope.size++
-	scope.vars[name.Lexeme] = &localVar{slot: slot, mutable: b.Mutable}
+	l := &ast.Local{}
+	p.peekScope().vars[name.Lexeme] = &localVar{mutable: b.Mutable, local: l}
 
-	return true, slot
+	return l
 }
 
 func (p *Resolver) define(name ast.Token) {

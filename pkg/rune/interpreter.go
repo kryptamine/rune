@@ -2,58 +2,49 @@ package rune
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"os"
 	"rune/pkg/ast"
-	"rune/pkg/environment"
+	"rune/pkg/errors"
 	"rune/pkg/stdlib"
 	"rune/pkg/value"
 	"sync"
 )
 
-// maxRecursionDepth caps nested calls; 10k frames take ~40MB of memory.
+// maxRecursionDepth caps nested calls.
 const maxRecursionDepth = 10_000
 
-// returnSignal unwinds statements up to the enclosing call. The value being
-// returned travels in Interpreter.returnValue, so returning never allocates.
-type returnSignal struct{}
+// frame is a running call: its registers start at stack[base], and the
+// callee itself sits just below them, where its result goes.
+type frame struct {
+	cl   *Closure
+	pc   int
+	base int
+}
 
-func (returnSignal) Error() string { return "<fn return>" }
-
-var errReturn error = returnSignal{}
-
-// loopSignal unwinds statements up to the enclosing loop for break and
-// continue. The resolver guarantees they only appear inside loops.
-type loopSignal struct{ name string }
-
-func (s loopSignal) Error() string { return "<" + s.name + ">" }
-
-var (
-	errBreak    error = loopSignal{"break"}
-	errContinue error = loopSignal{"continue"}
-)
+// handler is an active try: an error in frames[frame] or above resumes at
+// pc there, with the caught value in register reg if bind.
+type handler struct {
+	frame int
+	pc    int
+	reg   int
+	bind  bool
+}
 
 type Interpreter struct {
-	// environment is the innermost local scope, or nil at the top level.
-	environment    *environment.Environment
-	globals        environment.Globals
-	pool           environment.Pool
-	frames         stdlib.Frames
-	returnValue    value.Value
-	recursionDepth int
-	maxRecursion   int
-	args           []value.Value
-	out            *bufio.Writer
-	dest           io.Writer
-	line           []byte
+	stack        []value.Value
+	frames       []frame
+	handlers     []handler
+	natives      stdlib.Frames
+	maxRecursion int
+	out          *bufio.Writer
+	dest         io.Writer
+	line         []byte
 }
 
 func NewInterpreter() *Interpreter {
-	return &Interpreter{
-		globals:      builtinGlobals().Clone(),
-		maxRecursion: maxRecursionDepth,
-		dest:         os.Stdout,
-	}
+	return &Interpreter{maxRecursion: maxRecursionDepth, dest: os.Stdout}
 }
 
 func (p *Interpreter) SetOutput(w io.Writer) {
@@ -75,52 +66,150 @@ func (p *Interpreter) flush() {
 	}
 }
 
-// builtinGlobals holds the builtins; each interpreter starts from a clone.
-var builtinGlobals = sync.OnceValue(func() *environment.Globals {
-	var g environment.Globals
+var builtinValues = sync.OnceValue(func() map[string]value.Value {
+	m := make(map[string]value.Value, len(stdlib.Builtins))
 	for _, b := range stdlib.Builtins {
-		g.Define(environment.GlobalSlot(b.Name), b.Value)
+		m[b.Name] = b.Value
 	}
 
-	return &g
+	return m
 })
 
 func EvaluateExpr(expr ast.Expr) (value.Value, error) {
+	r := NewResolver()
+	if errs := r.ResolveExpr(expr); len(errs) > 0 {
+		return value.NilValue, errs[0]
+	}
+
+	prog, err := compileExpr(expr, r.builtins)
+	if err != nil {
+		return value.NilValue, err
+	}
+
 	p := NewInterpreter()
 	defer p.flush()
 
-	return compileExpr(expr)(p)
-}
-
-func (p *Interpreter) EvaluateStmts(stmts []ast.Stmt) error {
-	return p.Run(Compile(stmts))
+	return p.exec(prog)
 }
 
 func (p *Interpreter) Run(prog *Program) error {
 	defer p.flush()
 
-	return prog.run(p)
-}
-
-func (p *Interpreter) newEnv(pooled bool, enclosing *environment.Environment, size int) *environment.Environment {
-	if pooled {
-		return p.pool.Get(enclosing, size)
-	}
-
-	return environment.NewEnvironment(enclosing, size)
-}
-
-func (p *Interpreter) runIn(body execFn, env *environment.Environment, pooled bool) error {
-	prev := p.environment
-	p.environment = env
-
-	err := body(p)
-
-	p.environment = prev
-
-	if pooled {
-		p.pool.Put(env)
-	}
+	_, err := p.exec(prog)
 
 	return err
+}
+
+func (p *Interpreter) exec(prog *Program) (value.Value, error) {
+	cl := &Closure{proto: prog.main}
+
+	p.grow(1 + cl.proto.nregs)
+	p.stack[0] = value.NewFunction(cl)
+	p.frames = append(p.frames[:0], frame{cl: cl, base: 1})
+	p.handlers = p.handlers[:0]
+
+	return p.run(0)
+}
+
+// grow makes the stack hold at least n registers.
+func (p *Interpreter) grow(n int) {
+	if n <= len(p.stack) {
+		return
+	}
+
+	stack := make([]value.Value, max(n, 2*len(p.stack), 256))
+	copy(stack, p.stack)
+	p.stack = stack
+}
+
+// CallValue calls fn with args from a native; fn does not keep args.
+func (p *Interpreter) CallValue(fn value.Value, args []value.Value, token *ast.Token) (value.Value, error) {
+	if fn.Kind() == value.Function {
+		switch f := fn.Fn().(type) {
+		case *Closure:
+			top := p.frames[len(p.frames)-1]
+			at := top.base + top.cl.proto.nregs
+
+			p.grow(at + 1 + len(args))
+			p.stack[at] = fn
+			copy(p.stack[at+1:], args)
+
+			if err := p.enter(f, at+1, len(args), token); err != nil {
+				return value.NilValue, err
+			}
+
+			return p.run(len(p.frames) - 1)
+		case *stdlib.Native:
+			return p.natives.Call(f, p, args, token)
+		}
+	}
+
+	return value.NilValue, errors.NewRuntimeError(*token, "Can only call functions.")
+}
+
+// enter pushes a frame calling cl with the nargs arguments at stack[base:].
+func (p *Interpreter) enter(cl *Closure, base, nargs int, tok *ast.Token) error {
+	if nargs != cl.proto.arity || len(p.frames) > p.maxRecursion {
+		return p.callError(cl, nargs, tok)
+	}
+
+	if need := base + cl.proto.nregs; need > len(p.stack) {
+		p.grow(need)
+	}
+
+	p.frames = append(p.frames, frame{cl: cl, base: base})
+
+	return nil
+}
+
+func (p *Interpreter) callError(cl *Closure, nargs int, tok *ast.Token) error {
+	if nargs != cl.proto.arity {
+		return errors.NewRuntimeError(*tok, fmt.Sprintf("Expected %d arguments but got %d.", cl.proto.arity, nargs))
+	}
+
+	return errors.NewRuntimeError(*tok, "Stack overflow.")
+}
+
+// unwind handles err raised in the top frame of a run that started at
+// frames[stop]. It resumes at the innermost handler of that run and
+// returns nil, if there is one; otherwise it drops the run's frames and
+// returns err with them traced.
+func (p *Interpreter) unwind(err error, stop int) error {
+	rt, ok := err.(errors.RuntimeError)
+
+	if n := len(p.handlers); ok && n > 0 && p.handlers[n-1].frame >= stop {
+		h := p.handlers[n-1]
+		p.handlers = p.handlers[:n-1]
+		p.frames = p.frames[:h.frame+1]
+
+		f := &p.frames[h.frame]
+		f.pc = h.pc
+
+		if h.bind {
+			p.stack[f.base+h.reg] = rt.Value()
+		}
+
+		return nil
+	}
+
+	for i := len(p.frames) - 1; i >= max(stop, 1); i-- {
+		caller := p.frames[i-1]
+		line := caller.cl.proto.toks[caller.pc-1].Line
+		err = errors.WithFrame(err, errors.Frame{Name: p.frames[i].cl.proto.displayName(), Line: line})
+	}
+
+	p.frames = p.frames[:stop]
+	p.dropHandlers(stop)
+
+	return err
+}
+
+// dropHandlers drops the handlers of frames[from] and above.
+func (p *Interpreter) dropHandlers(from int) {
+	n := len(p.handlers)
+	for n > 0 && p.handlers[n-1].frame >= from {
+		n--
+	}
+
+	p.handlers = p.handlers[:n]
 }

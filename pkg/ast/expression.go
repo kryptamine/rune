@@ -45,21 +45,23 @@ func (n *BinaryExpr) String() string {
 	return fmt.Sprintf("(%s %v %v)", n.Operator.Lexeme, n.Left, n.Right)
 }
 
-// Unresolved marks a variable reference whose slot is not known yet.
-const Unresolved = -1
+// Local is a variable's declaration, shared by every reference the
+// resolver binds to it, built-ins included. Other names have none.
+type Local struct {
+	// Captured is set when a nested function refers to the variable.
+	Captured bool
+	// TopLevel is set for a declaration outside any block or function.
+	TopLevel bool
+}
 
-// AssignExpr assigns to a variable. Depth is the number of scopes between
-// the use and the declaration, or Unresolved for a global; Slot is the
-// variable's index inside that scope (for globals it is filled lazily).
 type AssignExpr struct {
 	Name  Token
 	Value Expr
-	Depth int
-	Slot  int
+	Local *Local
 }
 
 func NewAssignExpr(name Token, value Expr) Expr {
-	return &AssignExpr{Name: name, Value: value, Depth: Unresolved, Slot: Unresolved}
+	return &AssignExpr{Name: name, Value: value}
 }
 
 type UnaryExpr struct {
@@ -81,15 +83,13 @@ func NewLiteralExpr(tokenType TokenType, v any) Expr {
 	return &LiteralExpr{TokenType: tokenType, Value: value.FromGo(v)}
 }
 
-// VarExpr reads a variable; Depth and Slot are as in AssignExpr.
 type VarExpr struct {
 	Name  Token
-	Depth int
-	Slot  int
+	Local *Local
 }
 
 func NewVarExpr(name Token) Expr {
-	return &VarExpr{Name: name, Depth: Unresolved, Slot: Unresolved}
+	return &VarExpr{Name: name}
 }
 
 type LogicalExpr struct {

@@ -1,0 +1,27 @@
+let mut x = 1;
+fun f(v) { return v + 1; }
+{
+  let mut y = 2;
+  y = f(y) + y;
+  print y; // expect: 5
+  let mut z = false;
+  z = nil or z;
+  print z; // expect: false
+  let mut w = 3;
+  w = w and w + 1;
+  print w; // expect: 4
+  let mut a = [y, w];
+  a = [a[1], a[0]];
+  print a; // expect: [4, 5]
+  let mut i = 5;
+  i = i++ + i;
+  print i; // expect: 11
+  let mut o = {v: 1};
+  o.v += o.v * 10;
+  print o.v; // expect: 11
+  let mut s = "a";
+  s = s + s + s;
+  print s; // expect: aaa
+}
+x = x++;
+print x; // expect: 1
