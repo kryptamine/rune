@@ -1,33 +1,33 @@
-for (i in range(3)) print i;
+for (i in 0..3) print i;
 // expect: 0
 // expect: 1
 // expect: 2
 
-for (i in range(2, 4)) print i;
+for (i in 2..4) print i;
 // expect: 2
 // expect: 3
 
-for (i in range(6, 0, -2)) print i;
+for (i in 6..0 step -2) print i;
 // expect: 6
 // expect: 4
 // expect: 2
 
-for (i in range(0, 1, 0.5)) print i;
+for (i in 0..1 step 0.5) print i;
 // expect: 0
 // expect: 0.5
 
-for (k, v in range(10, 13)) print k * 100 + v;
+for (k, v in 10..13) print k * 100 + v;
 // expect: 10
 // expect: 111
 // expect: 212
 
-for (i in range(0)) print "never";
+for (i in 0..0) print "never";
 
 let mut fs = [];
-for (i in range(3)) fs = append(fs, fun () { return i; });
+for (i in 0..3) fs = append(fs, fun () { return i; });
 print fs[0]() + fs[1]() + fs[2](); // expect: 3
 
-for (i in range(100)) {
+for (i in 0..100) {
   if (i == 2) break;
   print i;
 }

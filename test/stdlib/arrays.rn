@@ -12,9 +12,6 @@ print xs; // expect: [3, 1, 2]
 print contains(xs, 2); // expect: true
 print contains([[1]], [1]); // expect: true
 print indexOf(xs, 9); // expect: -1
-print range(4); // expect: [0, 1, 2, 3]
-print range(1, 4); // expect: [1, 2, 3]
-print range(5, 0, -2); // expect: [5, 3, 1]
 print sort(xs); // expect: [1, 2, 3]
 print xs; // expect: [1, 2, 3]
 print sort(["b", "c", "a"]); // expect: ["a", "b", "c"]

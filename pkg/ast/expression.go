@@ -20,6 +20,7 @@ type ExprVisitor interface {
 	VisitObjectExpr(objectExpr *ObjectExpr) (value.Value, error)
 	VisitFunctionExpr(functionExpr *FunctionExpr) (value.Value, error)
 	VisitUpdateExpr(updateExpr *UpdateExpr) (value.Value, error)
+	VisitRangeExpr(rangeExpr *RangeExpr) (value.Value, error)
 }
 
 type Expr interface {
@@ -293,4 +294,29 @@ func (n *CallExpr) Accept(v ExprVisitor) (value.Value, error) {
 
 func (n *SetIndexExpr) Accept(v ExprVisitor) (value.Value, error) {
 	return v.VisitSetIndexExpr(n)
+}
+
+// RangeExpr is start..end or start..=end, with an optional step (nil means 1).
+type RangeExpr struct {
+	Start     Expr
+	End       Expr
+	Step      Expr
+	Operator  Token
+	Inclusive bool
+}
+
+func NewRangeExpr(start Expr, end Expr, step Expr, operator Token) Expr {
+	return &RangeExpr{Start: start, End: end, Step: step, Operator: operator, Inclusive: operator.TokenType == DOT_DOT_EQUAL}
+}
+
+func (n *RangeExpr) Accept(v ExprVisitor) (value.Value, error) {
+	return v.VisitRangeExpr(n)
+}
+
+func (n *RangeExpr) String() string {
+	if n.Step != nil {
+		return fmt.Sprintf("(%s %v %v step %v)", n.Operator.Lexeme, n.Start, n.End, n.Step)
+	}
+
+	return fmt.Sprintf("(%s %v %v)", n.Operator.Lexeme, n.Start, n.End)
 }

@@ -308,6 +308,17 @@ func (p *Resolver) VisitSetIndexExpr(expr *ast.SetIndexExpr) (value.Value, error
 	return value.NilValue, nil
 }
 
+func (p *Resolver) VisitRangeExpr(expr *ast.RangeExpr) (value.Value, error) {
+	p.resolveExpr(expr.Start)
+	p.resolveExpr(expr.End)
+
+	if expr.Step != nil {
+		p.resolveExpr(expr.Step)
+	}
+
+	return value.NilValue, nil
+}
+
 func (p *Resolver) VisitUpdateExpr(expr *ast.UpdateExpr) (value.Value, error) {
 	p.resolveExpr(expr.Target)
 

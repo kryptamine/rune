@@ -36,6 +36,8 @@ func compileExpr(expr ast.Expr) evalFn {
 		return compileSetIndex(n)
 	case *ast.UpdateExpr:
 		return compileUpdate(n)
+	case *ast.RangeExpr:
+		return compileRangeExpr(n)
 	case *ast.FunctionExpr:
 		fn := compileFunction(n.Decl)
 

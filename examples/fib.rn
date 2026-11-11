@@ -8,7 +8,7 @@ fun fib(n) {
     return fib(n-1) + fib(n-2);
 }
 
-for (i in range(11)) {
+for (i in 0..11) {
   print(fib(i));
 }
 

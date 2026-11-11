@@ -1,1 +1,1 @@
-for (i in range(0, 5, 0)) print i; // expect runtime error: [line: 1] range() step must not be zero.
+for (i in 0..5 step 0) print i; // expect runtime error: [line: 1] Range step must not be zero.

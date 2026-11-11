@@ -1,7 +1,7 @@
 let mut arr = [];
 
 fun foo() {
-  for (i in range(3)) {
+  for (i in 0..3) {
     arr = append(arr, i);
   }
 

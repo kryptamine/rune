@@ -12,7 +12,7 @@ func (s *Parser) expression() (ast.Expr, error) {
 }
 
 func (s *Parser) assignment() (ast.Expr, error) {
-	expr, err := s.or()
+	expr, err := s.rangeExpr()
 
 	if err != nil {
 		return nil, err
@@ -61,6 +61,37 @@ var compoundOps = map[ast.TokenType]ast.TokenType{
 	ast.STAR_EQUAL:    ast.STAR,
 	ast.SLASH_EQUAL:   ast.SLASH,
 	ast.PERCENT_EQUAL: ast.PERCENT,
+}
+
+func (s *Parser) rangeExpr() (ast.Expr, error) {
+	expr, err := s.or()
+	if err != nil || !s.match(ast.DOT_DOT, ast.DOT_DOT_EQUAL) {
+		return expr, err
+	}
+
+	operator := s.previous()
+
+	end, err := s.or()
+	if err != nil {
+		return nil, err
+	}
+
+	var step ast.Expr
+
+	// step is contextual, so it stays usable as a name.
+	if s.check(ast.IDENTIFIER) && s.peek().Lexeme == "step" {
+		s.advance()
+
+		if step, err = s.or(); err != nil {
+			return nil, err
+		}
+	}
+
+	if s.check(ast.DOT_DOT) || s.check(ast.DOT_DOT_EQUAL) {
+		return nil, errors.NewSyntaxError(s.peek(), "Ranges cannot be chained.")
+	}
+
+	return ast.NewRangeExpr(expr, end, step, operator), nil
 }
 
 func (s *Parser) or() (ast.Expr, error) {
