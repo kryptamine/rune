@@ -29,7 +29,7 @@ func TestProgramRunsConcurrently(t *testing.T) {
 				p := NewInterpreter()
 				p.SetOutput(&out)
 
-				if err := p.Run(prog); err != nil {
+				if _, err := p.Run(prog, nil); err != nil {
 					t.Error(err)
 				}
 
@@ -65,7 +65,7 @@ func TestInterrupt(t *testing.T) {
 			p := NewInterpreter()
 			time.AfterFunc(10*time.Millisecond, p.Interrupt)
 
-			if err := p.Run(prog); err != ErrInterrupted {
+			if _, err := p.Run(prog, nil); err != ErrInterrupted {
 				t.Fatalf("got %v, want %v", err, ErrInterrupted)
 			}
 		})

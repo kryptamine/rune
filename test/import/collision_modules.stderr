@@ -2,4 +2,4 @@
   --> _lib/math_clash.rn:1:5
     1 | fun square(x) {
       |     ^
-  note: first declared at _lib/math.rn:3
+  note: first declared at _lib/math.rn:1

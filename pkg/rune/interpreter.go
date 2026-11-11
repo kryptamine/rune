@@ -5,9 +5,11 @@ import (
 	stderrors "errors"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"rune/pkg/ast"
 	"rune/pkg/errors"
+	"rune/pkg/helpers"
 	"rune/pkg/stdlib"
 	"rune/pkg/value"
 	"sync"
@@ -103,22 +105,37 @@ func EvaluateExpr(expr ast.Expr) (value.Value, error) {
 	p := NewInterpreter()
 	defer p.flush()
 
-	return p.exec(prog)
+	return p.exec(prog, nil)
 }
 
-func (p *Interpreter) Run(prog *Program) error {
+// Run runs prog with args and returns the exit code its main returns: nil
+// for 0, or an integer from 0 to 255.
+func (p *Interpreter) Run(prog *Program, args []string) (int, error) {
 	defer p.flush()
 
-	_, err := p.exec(prog)
+	result, err := p.exec(prog, args)
+	if err != nil || result.IsNil() {
+		return 0, err
+	}
 
-	return err
+	if n := result.Num(); result.IsNumber() && n == math.Trunc(n) && n >= 0 && n <= 255 {
+		return int(n), nil
+	}
+
+	return 0, errors.NewRuntimeError(errors.TypeError, *prog.main, "main must return nil or an exit code from 0 to 255, got "+helpers.Stringify(result)+".")
 }
 
-func (p *Interpreter) exec(prog *Program) (value.Value, error) {
-	cl := &Closure{proto: prog.main}
+func (p *Interpreter) exec(prog *Program, args []string) (value.Value, error) {
+	cl := &Closure{proto: prog.script}
+
+	items := make([]value.Value, len(args))
+	for i, a := range args {
+		items[i] = value.NewString(a)
+	}
 
 	p.grow(1 + cl.proto.nregs)
 	p.stack[0] = value.NewFunction(cl)
+	p.stack[1] = value.NewArray(items)
 	p.frames = append(p.frames[:0], frame{cl: cl, base: 1})
 	p.handlers = p.handlers[:0]
 

@@ -29,10 +29,11 @@ type importDecl struct {
 	name string
 }
 
-// parseFile parses a file: its imports, then its statements. On a syntax
-// error it records it, skips to the next statement boundary and keeps
-// going, so all errors are reported at once.
-func parseFile(tokens []ast.Token) ([]importDecl, []ast.Stmt, []error) {
+// parseFile parses a file: its imports, then its statements, which in a
+// module must be declarations. On a syntax error it records it, skips to
+// the next statement boundary and keeps going, so all errors are reported
+// at once.
+func parseFile(tokens []ast.Token, module bool) ([]importDecl, []ast.Stmt, []error) {
 	var imports []importDecl
 	var stmts []ast.Stmt
 
@@ -50,7 +51,12 @@ func parseFile(tokens []ast.Token) ([]importDecl, []ast.Stmt, []error) {
 	}
 
 	for !parser.isAtEnd() {
+		tok := parser.peek()
 		if stmt := parser.safeDeclaration(); stmt != nil {
+			if module && !isDeclaration(stmt) {
+				parser.errors = append(parser.errors, errors.NewSyntaxError(tok, "Only declarations can be at the top level of a module."))
+			}
+
 			stmts = append(stmts, stmt)
 		}
 	}
@@ -60,6 +66,15 @@ func parseFile(tokens []ast.Token) ([]importDecl, []ast.Stmt, []error) {
 	}
 
 	return imports, stmts, nil
+}
+
+func isDeclaration(stmt ast.Stmt) bool {
+	switch stmt.(type) {
+	case *ast.VarStmt, *ast.FunctionStmt, *ast.StructStmt:
+		return true
+	}
+
+	return false
 }
 
 // importDecl parses a.b; after "import".

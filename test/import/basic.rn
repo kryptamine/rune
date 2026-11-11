@@ -1,7 +1,6 @@
 import _lib.math;
 import _lib.nested.greet;
 
-// expect: math loaded
 print square(3); // expect: 9
 print pi; // expect: 3
 print greet("bob"); // expect: hi bob

@@ -29,7 +29,7 @@ func TestCommands(t *testing.T) {
 				}
 
 				var stdout, stderr bytes.Buffer
-				code := cmd(&stdout, &stderr, path, src)
+				code := cmd(&stdout, &stderr, path, src, nil)
 				got := fmt.Sprintf("exit: %d\n-- stdout --\n%s-- stderr --\n%s", code, stdout.String(), stderr.String())
 
 				golden.Check(t, strings.TrimSuffix(path, ".rn")+".golden", got)

@@ -173,7 +173,9 @@ func (c *Closure) String() string {
 
 // Program holds no run state and can be run any number of times.
 type Program struct {
-	main *Proto
+	script *Proto
+	// main is the name of the entry point, nil without one.
+	main *ast.Token
 }
 
 var opNames = [...]string{
@@ -210,7 +212,7 @@ func (prog *Program) Disassemble() string {
 		}
 	}
 
-	walk(prog.main)
+	walk(prog.script)
 
 	return b.String()
 }

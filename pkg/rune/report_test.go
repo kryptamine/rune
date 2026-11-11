@@ -18,7 +18,7 @@ func report(t *testing.T, src string) string {
 	p := NewInterpreter()
 	p.SetOutput(io.Discard)
 
-	err := p.Run(prog)
+	_, err := p.Run(prog, nil)
 	if err == nil {
 		t.Fatal("expected an error")
 	}

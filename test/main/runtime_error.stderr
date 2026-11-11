@@ -1,0 +1,5 @@
+[line: 2] TypeError: Cannot read property 'x' of nil.
+    2 |   return nil.x; // expect runtime error: [line: 2] TypeError: Cannot read property 'x' of nil.
+      |              ^
+  at main (line 2)
+  at <script> (line 1)

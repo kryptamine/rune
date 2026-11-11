@@ -1,0 +1,1 @@
+fun main(a, b) {} // Error at 'main': main takes at most one parameter.

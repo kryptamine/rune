@@ -13,7 +13,8 @@ import (
 // Load scans, parses and resolves the program whose entry file is name in
 // fsys, along with the files it imports, which are named from the root of
 // fsys. All files share one top level, and each runs once, after the files
-// it imports. The files come back even on error, for reporting it.
+// it imports; then main, if the entry file declares it. The files come
+// back even on error, for reporting it.
 func Load(fsys fs.FS, name string) (*Program, []errors.File, []error) {
 	l := loader{fsys: fsys, index: map[string]int{}}
 	l.visit(name, nil)
@@ -27,7 +28,7 @@ func Load(fsys fs.FS, name string) (*Program, []errors.File, []error) {
 		return nil, l.files, errs
 	}
 
-	prog, err := compile(l.stmts, r.builtins)
+	prog, err := compile(l.stmts, r.builtins, r.main)
 	if err != nil {
 		return nil, l.files, []error{err}
 	}
@@ -75,7 +76,7 @@ func (l *loader) visit(path string, from *importDecl) {
 		return
 	}
 
-	imports, stmts, parseErrors := parseFile(scanner.tokens)
+	imports, stmts, parseErrors := parseFile(scanner.tokens, from != nil)
 	l.errors = append(append(l.errors, scanner.errors...), parseErrors...)
 
 	l.stack = append(l.stack, i)
