@@ -1,0 +1,8 @@
+import _lib.math;
+
+let mut count = 0;
+
+fun bump() {
+  count += square(1);
+  return count;
+}

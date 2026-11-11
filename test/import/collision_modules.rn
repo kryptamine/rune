@@ -1,0 +1,3 @@
+import _lib.math;
+import _lib.math_clash;
+// [line: 1] Error at 'square': Variable with this name already declared in this scope.

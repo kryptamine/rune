@@ -1,0 +1,6 @@
+[line: 1] Error at ';': Expect module name.
+    1 | import _lib.; // Error at ';': Expect module name.
+      |             ^
+[line: 4] Error at 'print': Expect ';' after import.
+    4 | print 1;
+      | ^

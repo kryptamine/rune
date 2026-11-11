@@ -1,0 +1,7 @@
+print "math loaded";
+
+fun square(x) {
+  return x * x;
+}
+
+let pi = 3;

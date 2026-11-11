@@ -4,6 +4,7 @@ import (
 	"rune/pkg/ast"
 	"rune/pkg/errors"
 	"slices"
+	"strings"
 )
 
 type Parser struct {
@@ -22,14 +23,30 @@ func ParseExpr(tokens []ast.Token) (ast.Expr, error) {
 	return parser.expression()
 }
 
-// ParseStmts parses a whole program. On a syntax error it records it, skips to
-// the next statement boundary and keeps going, so all errors are reported at once.
-func ParseStmts(tokens []ast.Token) ([]ast.Stmt, []error) {
+// importDecl is `import a.b;`; tok is its first segment.
+type importDecl struct {
+	tok  ast.Token
+	name string
+}
+
+// parseFile parses a file: its imports, then its statements. On a syntax
+// error it records it, skips to the next statement boundary and keeps
+// going, so all errors are reported at once.
+func parseFile(tokens []ast.Token) ([]importDecl, []ast.Stmt, []error) {
+	var imports []importDecl
 	var stmts []ast.Stmt
 
 	parser := Parser{
 		tokens:  tokens,
 		current: 0,
+	}
+
+	for parser.match(ast.IMPORT) {
+		if imp, err := parser.importDecl(); err != nil {
+			parser.recover(err)
+		} else {
+			imports = append(imports, imp)
+		}
 	}
 
 	for !parser.isAtEnd() {
@@ -39,10 +56,38 @@ func ParseStmts(tokens []ast.Token) ([]ast.Stmt, []error) {
 	}
 
 	if len(parser.errors) > 0 {
-		return nil, parser.errors
+		return nil, nil, parser.errors
 	}
 
-	return stmts, nil
+	return imports, stmts, nil
+}
+
+// importDecl parses a.b; after "import".
+func (s *Parser) importDecl() (importDecl, error) {
+	var name strings.Builder
+
+	tok := s.peek()
+
+	for {
+		seg, err := s.consume(ast.IDENTIFIER, "Expect module name.")
+		if err != nil {
+			return importDecl{}, err
+		}
+
+		name.WriteString(seg.Lexeme)
+
+		if !s.match(ast.DOT) {
+			break
+		}
+
+		name.WriteByte('.')
+	}
+
+	if _, err := s.consume(ast.SEMICOLON, "Expect ';' after import."); err != nil {
+		return importDecl{}, err
+	}
+
+	return importDecl{tok: tok, name: name.String()}, nil
 }
 
 // safeDeclaration parses a declaration and recovers from a syntax error in it.
@@ -50,13 +95,17 @@ func ParseStmts(tokens []ast.Token) ([]ast.Stmt, []error) {
 func (s *Parser) safeDeclaration() ast.Stmt {
 	stmt, err := s.declaration()
 	if err != nil {
-		s.errors = append(s.errors, err)
-		s.synchronize()
-
+		s.recover(err)
 		return nil
 	}
 
 	return stmt
+}
+
+// recover records err and skips past the statement it is in.
+func (s *Parser) recover(err error) {
+	s.errors = append(s.errors, err)
+	s.synchronize()
 }
 
 // synchronize discards tokens until it reaches a likely start of the next statement.
@@ -70,7 +119,7 @@ func (s *Parser) synchronize() {
 
 		switch s.peek().TokenType {
 		case ast.FUN, ast.LET, ast.FOR, ast.IF, ast.WHILE, ast.PRINT, ast.RETURN, ast.TRY, ast.THROW,
-			ast.BREAK, ast.CONTINUE, ast.STRUCT:
+			ast.BREAK, ast.CONTINUE, ast.STRUCT, ast.IMPORT:
 			return
 		}
 

@@ -1,0 +1,7 @@
+import _lib.math;
+import _lib.counter;
+import _lib.math;
+
+// expect: math loaded
+print bump(); // expect: 1
+print bump(); // expect: 2

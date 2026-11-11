@@ -48,7 +48,7 @@ func (f *Frames) Call(n *Native, caller Caller, args []value.Value, token *ast.T
 	f.free = append(f.free, c)
 
 	if c.err != nil {
-		return value.NilValue, errors.WithFrame(c.err, errors.Frame{Name: n.name, Line: token.Line, Native: true})
+		return value.NilValue, errors.WithFrame(c.err, errors.Frame{Name: n.name, File: token.File, Line: token.Line, Native: true})
 	}
 
 	return v, nil

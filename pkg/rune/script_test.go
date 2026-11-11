@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"testing/fstest"
 	"time"
 )
 
@@ -60,7 +61,12 @@ func parseExpectations(src []byte) expectations {
 func scripts(t testing.TB) []string {
 	var paths []string
 
+	// Directories starting with _ hold modules the scripts import.
 	err := filepath.WalkDir(scriptsDir, func(path string, d fs.DirEntry, err error) error {
+		if err == nil && d.IsDir() && strings.HasPrefix(d.Name(), "_") {
+			return filepath.SkipDir
+		}
+
 		if err == nil && !d.IsDir() && filepath.Ext(path) == ".rn" {
 			paths = append(paths, path)
 		}
@@ -98,7 +104,7 @@ func runScript(t *testing.T, path string) {
 
 	var out bytes.Buffer
 
-	got := execute(src, &out, scriptTimeout)
+	got := execute(os.DirFS(filepath.Dir(path)), filepath.Base(path), &out, scriptTimeout)
 	if got.runtimeError == ErrInterrupted {
 		t.Fatalf("timed out after %v", scriptTimeout)
 	}
@@ -121,14 +127,22 @@ type outcome struct {
 	stderr        string
 }
 
-// execute loads and runs src as the CLI does, interrupting it after timeout.
-func execute(src []byte, out io.Writer, timeout time.Duration) outcome {
+// loadSource loads src as a program of one file.
+func loadSource(src []byte) (*Program, []error) {
+	prog, _, errs := Load(fstest.MapFS{"main.rn": {Data: src}}, "main.rn")
+	return prog, errs
+}
+
+// execute loads and runs the program at name in fsys as the CLI does,
+// interrupting it after timeout.
+func execute(fsys fs.FS, name string, out io.Writer, timeout time.Duration) outcome {
 	var o outcome
 	var stderr strings.Builder
+	var files []errors.File
 
-	o.prog, o.compileErrors = Load(src)
+	o.prog, files, o.compileErrors = Load(fsys, name)
 	for _, err := range o.compileErrors {
-		stderr.WriteString(errors.Report(err, string(src)))
+		stderr.WriteString(errors.Report(err, files))
 	}
 
 	if o.prog != nil {
@@ -140,7 +154,7 @@ func execute(src []byte, out io.Writer, timeout time.Duration) outcome {
 		timer.Stop()
 
 		if o.runtimeError != nil {
-			stderr.WriteString(errors.Report(o.runtimeError, string(src)))
+			stderr.WriteString(errors.Report(o.runtimeError, files))
 		}
 	}
 

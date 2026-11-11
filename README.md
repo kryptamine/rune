@@ -231,6 +231,18 @@ struct, so `Point { x: 1, y: 2 } == { "x": 1, "y": 2 }` is `false`.
 that does not exist is a runtime error. `object(p)` copies a struct into
 a new object, `len(p)` is its number of fields and `type(p)` its name.
 
+## Imports
+
+`import a.b;` loads `a/b.rn`, named from the directory of the file passed to `rune`. Imports come first in a file.
+
+```
+import lib.math;
+
+print square(3);
+```
+
+All files share one top level: a name declared in one file is visible in every other, and declaring it twice is an error. Each file runs once, after the files it imports; an import cycle is an error.
+
 ## Built-in Functions
 
 Rune provides several built-in functions:

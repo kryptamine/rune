@@ -1,0 +1,6 @@
+[line: 2] TypeError: Cannot read property 'y' of number.
+  --> _lib/fail.rn:2:12
+    2 |   return x.y;
+      |            ^
+  at boom (_lib/fail.rn:2)
+  at <script> (line 3)

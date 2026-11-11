@@ -1,0 +1,4 @@
+import _lib.; // Error at ';': Expect module name.
+import _lib.math
+// [line: 4] Error at 'print': Expect ';' after import.
+print 1;

@@ -1,0 +1,5 @@
+import _lib.math;
+
+fun square(x) { // Error at 'square': Variable with this name already declared in this scope.
+  return x;
+}

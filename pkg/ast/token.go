@@ -11,6 +11,8 @@ type Token struct {
 	Line      int
 	// Col is the 1-based character column of the token's start; 0 if unknown.
 	Col int
+	// File indexes the program's files; 0 is the entry file.
+	File int
 }
 
 func NewToken(tokenType TokenType, lexeme string, literal string, line int) Token {
@@ -59,6 +61,7 @@ const (
 	STRUCT
 	WITH
 	IS
+	IMPORT
 
 	// Single tokens
 	COLON
@@ -128,6 +131,7 @@ var Keywords = map[string]TokenType{
 	"struct":   STRUCT,
 	"with":     WITH,
 	"is":       IS,
+	"import":   IMPORT,
 }
 
 func (tokenType TokenType) String() string {
@@ -209,6 +213,8 @@ func (tokenType TokenType) String() string {
 		return "WITH"
 	case IS:
 		return "IS"
+	case IMPORT:
+		return "IMPORT"
 	case CONTINUE:
 		return "CONTINUE"
 	case IN:

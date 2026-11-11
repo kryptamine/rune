@@ -4,6 +4,7 @@ import (
 	"io"
 	"os"
 	"testing"
+	"testing/fstest"
 	"time"
 )
 
@@ -20,7 +21,7 @@ func FuzzRun(f *testing.F) {
 	}
 
 	f.Fuzz(func(t *testing.T, src []byte) {
-		if o := execute(src, io.Discard, 50*time.Millisecond); o.prog != nil {
+		if o := execute(fstest.MapFS{"main.rn": {Data: src}}, "main.rn", io.Discard, 50*time.Millisecond); o.prog != nil {
 			_ = o.prog.Disassemble()
 		}
 	})

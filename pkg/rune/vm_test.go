@@ -8,7 +8,7 @@ import (
 )
 
 func TestProgramRunsConcurrently(t *testing.T) {
-	prog, errs := Load([]byte(`
+	prog, errs := loadSource([]byte(`
 		let mut s = "";
 		fun f(n) { if (n < 2) return n; return f(n - 1) + f(n - 2); }
 		for (i in 0..50) { s = s + "ab"; }
@@ -57,7 +57,7 @@ func TestInterrupt(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			prog, errs := Load([]byte(src))
+			prog, errs := loadSource([]byte(src))
 			if len(errs) > 0 {
 				t.Fatal(errs)
 			}

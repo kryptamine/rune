@@ -22,6 +22,10 @@ func (s *Parser) declaration() (ast.Stmt, error) {
 		return s.structDeclaration()
 	}
 
+	if s.match(ast.IMPORT) {
+		return nil, errors.NewSyntaxError(s.previous(), "Imports must come before other statements.")
+	}
+
 	return s.statement()
 }
 
