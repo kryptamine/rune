@@ -7,5 +7,5 @@ try {
 try {
   len(nil);
 } catch (e) {
-  print e.message; // expect: len() expects a string, an array or an object as argument 1, got nil.
+  print e.message; // expect: len() expects a string, an array, an object or a struct as argument 1, got nil.
 }

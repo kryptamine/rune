@@ -1,0 +1,4 @@
+struct Point { x, y }
+
+let p = Point { x: 1, y: 2 };
+print p with { z: 3 }; // expect runtime error: [line: 4] Point has no field 'z'.

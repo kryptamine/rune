@@ -1,5 +1,5 @@
-[line: 1] len() expects a string, an array or an object as argument 1, got number.
-    1 | len(1); // expect runtime error: [line: 1] len() expects a string, an array or an object as argument 1, got number.
+[line: 1] len() expects a string, an array, an object or a struct as argument 1, got number.
+    1 | len(1); // expect runtime error: [line: 1] len() expects a string, an array, an object or a struct as argument 1, got number.
       |      ^
   at len (native)
   at <script> (line 1)

@@ -271,6 +271,16 @@ func (p *Resolver) VisitStructExpr(expr *ast.StructExpr) (value.Value, error) {
 	return value.NilValue, nil
 }
 
+func (p *Resolver) VisitWithExpr(expr *ast.WithExpr) (value.Value, error) {
+	p.resolveExpr(expr.Target)
+
+	for _, pair := range expr.Pairs {
+		p.resolveExpr(pair.Value)
+	}
+
+	return value.NilValue, nil
+}
+
 func (p *Resolver) VisitReturnStmt(returnStmt *ast.ReturnStmt) error {
 	if !p.isFunction {
 		p.error(returnStmt.Keyword, "Cannot return from top-level code.")

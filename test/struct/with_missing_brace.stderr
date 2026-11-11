@@ -1,0 +1,3 @@
+[line: 4] Error at 'x': Expect '{' after 'with'.
+    4 | print p with x; // Error at 'x': Expect '{' after 'with'.
+      |              ^

@@ -88,13 +88,9 @@ func assigns(e ast.Expr) bool {
 
 		return false
 	case *ast.StructExpr:
-		for _, p := range n.Pairs {
-			if assigns(p.Value) {
-				return true
-			}
-		}
-
-		return false
+		return pairsAssign(n.Pairs)
+	case *ast.WithExpr:
+		return assigns(n.Target) || pairsAssign(n.Pairs)
 	case *ast.IndexExpr:
 		return assigns(n.Array) || assigns(n.Index)
 	case *ast.SetIndexExpr:
@@ -104,6 +100,16 @@ func assigns(e ast.Expr) bool {
 	}
 
 	return true
+}
+
+func pairsAssign(pairs []ast.StructPair) bool {
+	for _, p := range pairs {
+		if assigns(p.Value) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func anyAssigns(es []ast.Expr) bool {
@@ -193,6 +199,8 @@ func (fs *funcState) expr(e ast.Expr, dst int32) {
 		})
 	case *ast.StructExpr:
 		fs.structLiteral(n, dst)
+	case *ast.WithExpr:
+		fs.with(n, dst)
 	case *ast.IndexExpr:
 		fs.index(n, dst)
 	case *ast.SetIndexExpr:
@@ -258,6 +266,21 @@ func (fs *funcState) structLiteral(n *ast.StructExpr, dst int32) {
 	}
 
 	fs.emit(ins{op: opStruct, a: dst, b: base, c: fs.constant(value.NewType(fs.unit.shapes[n.Decl]))}, nil)
+}
+
+// with evaluates the target and then the new fields into consecutive registers.
+func (fs *funcState) with(n *ast.WithExpr, dst int32) {
+	base := fs.alloc()
+	fs.expr(n.Target, base)
+
+	keys := make([]string, len(n.Pairs))
+	for i, pair := range n.Pairs {
+		keys[i] = pair.Key.Lexeme
+		fs.expr(pair.Value, fs.alloc())
+	}
+
+	fs.proto.keys = append(fs.proto.keys, keys)
+	fs.emit(ins{op: opWith, a: dst, b: base, c: int32(len(fs.proto.keys) - 1)}, &n.Keyword)
 }
 
 // writesEarly reports whether compiling e into a register writes it
@@ -345,6 +368,13 @@ func (fs *funcState) assign(n *ast.AssignExpr) int32 {
 
 func (fs *funcState) binary(n *ast.BinaryExpr, dst int32) {
 	op := &n.Operator
+
+	if op.TokenType == ast.IS {
+		l := fs.operand(n.Left, n.Right)
+		fs.emit(ins{op: opIs, a: dst, b: l, c: fs.exprAny(n.Right)}, op)
+
+		return
+	}
 
 	lc, lConst := literalOf(n.Left)
 	rc, rConst := literalOf(n.Right)

@@ -210,6 +210,15 @@ reload:
 
 			goto slow
 
+		case opIs:
+			t := regs[in.c()]
+			if t.Kind() != value.Type {
+				goto slow
+			}
+
+			v := regs[in.b()]
+			regs[in.a()] = value.NewBool(v.Kind() == value.Struct && v.Shape() == t.TypeShape())
+
 		case opNeg:
 			if v := regs[in.b()]; v.IsNumber() {
 				regs[in.a()] = value.NewNumber(-v.Num())
@@ -465,6 +474,10 @@ func (p *Interpreter) slow(in Instr) error {
 	case opNeg, opIncr:
 		return errors.NewRuntimeError(*tok, "Operand must be a number.")
 
+	case opIs:
+		return errors.NewRuntimeError(*tok, fmt.Sprintf(
+			"Right operand of 'is' must be a struct, got %s.", helpers.TypeName(regs[in.c()])))
+
 	case opJmpCmp, opJmpCmpK:
 		var r value.Value
 		if in.op() == opJmpCmp {
@@ -516,6 +529,14 @@ func (p *Interpreter) slow(in Instr) error {
 		v, fields := value.NewStruct(consts[in.c()].TypeShape())
 		copy(fields, regs[in.b():])
 		regs[in.a()] = v
+
+	case opWith:
+		v, err := with(tok, regs[in.b()], f.keys[in.c()], regs[in.b()+1:])
+		if err == nil {
+			regs[in.a()] = v
+		}
+
+		return err
 
 	case opGetProp:
 		switch t := regs[in.b()]; t.Kind() {
@@ -572,6 +593,15 @@ func (p *Interpreter) slow(in Instr) error {
 
 	case opCall:
 		fn := regs[in.a()]
+		if fn.Kind() == value.Type {
+			v, err := convert(tok, fn.TypeShape(), regs[in.a()+1:in.a()+1+in.b()])
+			if err == nil {
+				regs[in.a()] = v
+			}
+
+			return err
+		}
+
 		if fn.Kind() != value.Function {
 			return errors.NewRuntimeError(*tok, "Can only call functions.")
 		}

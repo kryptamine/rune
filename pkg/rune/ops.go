@@ -8,6 +8,7 @@ import (
 	"rune/pkg/errors"
 	"rune/pkg/helpers"
 	"rune/pkg/value"
+	"slices"
 	"strings"
 	"unicode/utf8"
 )
@@ -107,6 +108,81 @@ func undefinedField(token *ast.Token, target value.Value, key string) error {
 func immutableField(token *ast.Token, target value.Value, key string) error {
 	return errors.NewRuntimeError(*token, fmt.Sprintf(
 		"Cannot set field '%s' of %s: structs are immutable.", key, target.Shape().Name))
+}
+
+// with copies target, a struct, setting the fields keys to vals.
+func with(token *ast.Token, target value.Value, keys []string, vals []value.Value) (value.Value, error) {
+	if target.Kind() != value.Struct {
+		return value.NilValue, errors.NewRuntimeError(*token, fmt.Sprintf(
+			"Can only use 'with' on structs, got %s.", helpers.TypeName(target)))
+	}
+
+	shape := target.Shape()
+	v, fields := value.NewStruct(shape)
+	copy(fields, target.Fields())
+
+	for i, k := range keys {
+		slot := shape.Index(k)
+		if slot < 0 {
+			return value.NilValue, undefinedField(token, target, k)
+		}
+
+		fields[slot] = vals[i]
+	}
+
+	return v, nil
+}
+
+// convert is Shape(v): v itself if already of that shape, or a struct
+// built from an object holding every required field and no other.
+func convert(token *ast.Token, shape *value.Shape, args []value.Value) (value.Value, error) {
+	if len(args) != 1 {
+		return value.NilValue, errors.NewRuntimeError(*token, fmt.Sprintf(
+			"%s() expects 1 argument, got %d.", shape.Name, len(args)))
+	}
+
+	switch v := args[0]; v.Kind() {
+	case value.Struct:
+		if v.Shape() == shape {
+			return v, nil
+		}
+	case value.Object:
+		return structOf(token, shape, v.Obj())
+	}
+
+	return value.NilValue, errors.NewRuntimeError(*token, fmt.Sprintf(
+		"Cannot convert %s to %s.", helpers.TypeName(args[0]), shape.Name))
+}
+
+func structOf(token *ast.Token, shape *value.Shape, obj map[string]value.Value) (value.Value, error) {
+	v, fields := value.NewStruct(shape)
+	found := 0
+
+	for i, name := range shape.Fields {
+		switch f, ok := obj[name]; {
+		case ok:
+			fields[i] = f
+			found++
+		case shape.Required(i):
+			return value.NilValue, errors.NewRuntimeError(*token, fmt.Sprintf(
+				"Missing field '%s' of %s.", name, shape.Name))
+		default:
+			fields[i] = shape.Defaults[i]
+		}
+	}
+
+	if found < len(obj) {
+		var extra []string
+		for k := range obj {
+			if shape.Index(k) < 0 {
+				extra = append(extra, k)
+			}
+		}
+
+		return value.NilValue, undefinedField(token, v, slices.Min(extra))
+	}
+
+	return v, nil
 }
 
 // propertyTarget fails unless target can have a property set, as only

@@ -18,6 +18,7 @@ var benchSources = map[string]string{
 	"objects": `let mut o = {x: 0, y: 0}; for (i in 0..20000) { o.x = o.x + 1; o["y"] += o.x; }`,
 	"structs": `struct P { x, y, z } let mut s = 0; let mut p = P { x: 1, y: 2, z: 3 }; for (i in 0..20000) { p = P { x: p.x + 1, y: p.y, z: p.z }; s += p.z + p.y; }`,
 	"fields":  `let p = {x: 1, y: 2, z: 3}; let mut s = 0; for (i in 0..50000) { s += p.x + p.y + p.z; }`,
+	"with":    `struct P { x, y, z } let mut s = 0; let mut p = P { x: 1, y: 2, z: 3 }; for (i in 0..20000) { p = p with { x: p.x + 1 }; s += p.z + p.y; }`,
 	"sfields": `struct P { x, y, z } let p = P { x: 1, y: 2, z: 3 }; let mut s = 0; for (i in 0..50000) { s += p.x + p.y + p.z; }`,
 }
 

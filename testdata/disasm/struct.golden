@@ -1,12 +1,23 @@
 exit: 0
 -- stdout --
-<script>: arity 0, 4 registers, 0 upvalues
+<script>: arity 0, 6 registers, 0 upvalues
     0  LOADK         0 0 0
     1  LOADK         1 0 1
-    2  LOADK         3 0 2
-    3  LOADK         2 0 3
-    4  STRUCT        1 2 0
-    5  GETPROP       2 1 4
-    6  PRINT         2 0 0
-    7  RETURNNIL     0 0 0
+    2  LOADK         2 0 1
+    3  LOADK         4 0 2
+    4  LOADK         3 0 3
+    5  STRUCT        1 3 0
+    6  GETPROP       3 1 4
+    7  PRINT         3 0 0
+    8  MOVE          3 1 0
+    9  LOADK         4 0 2
+   10  WITH          2 3 0
+   11  IS            3 2 0
+   12  PRINT         3 0 0
+   13  MOVE          3 0 0
+   14  LOADK         5 0 5
+   15  OBJECT        4 5 1
+   16  CALL          3 1 0
+   17  PRINT         3 0 0
+   18  RETURNNIL     0 0 0
 -- stderr --

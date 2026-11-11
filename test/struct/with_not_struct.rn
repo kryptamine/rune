@@ -1,0 +1,2 @@
+let o = {x: 1};
+print o with { x: 2 }; // expect runtime error: [line: 2] Can only use 'with' on structs, got object.

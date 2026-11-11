@@ -3,6 +3,7 @@ package stdlib
 import (
 	"encoding/json"
 	"net/http"
+	"rune/pkg/helpers"
 	"rune/pkg/value"
 	"slices"
 	"time"
@@ -23,9 +24,29 @@ var coreNatives = []*Native{
 			return count(len(v.Obj()))
 		case value.String:
 			return count(utf8.RuneCountInString(v.Str()))
+		case value.Struct:
+			return count(len(v.Shape().Fields))
 		}
 
-		return c.typeError(0, "a string, an array or an object")
+		return c.typeError(0, "a string, an array, an object or a struct")
+	}},
+	{"type", 1, 1, func(c *call) value.Value {
+		return value.NewString(helpers.TypeName(c.args[0]))
+	}},
+	{"object", 1, 1, func(c *call) value.Value {
+		v := c.args[0]
+		if v.Kind() != value.Struct {
+			return c.typeError(0, "a struct")
+		}
+
+		names := v.Shape().Fields
+		obj := make(map[string]value.Value, len(names))
+
+		for i, f := range v.Fields() {
+			obj[names[i]] = f
+		}
+
+		return value.NewObject(obj)
 	}},
 	// append copies, so the result never shares a backing array with the input.
 	{"append", 2, -1, func(c *call) value.Value {

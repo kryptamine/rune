@@ -139,7 +139,7 @@ func (s *Parser) equality() (ast.Expr, error) {
 		return nil, err
 	}
 
-	for s.match(ast.BANG_EQUAL, ast.EQUAL_EQUAL) {
+	for s.match(ast.BANG_EQUAL, ast.EQUAL_EQUAL, ast.IS) {
 		operator := s.previous()
 		right, err := s.comparison()
 
@@ -246,6 +246,21 @@ func (s *Parser) postfix() (ast.Expr, error) {
 
 	if err != nil {
 		return nil, err
+	}
+
+	for s.match(ast.WITH) {
+		keyword := s.previous()
+
+		if _, err := s.consume(ast.LEFT_BRACE, "Expect '{' after 'with'."); err != nil {
+			return nil, err
+		}
+
+		pairs, err := s.structPairs()
+		if err != nil {
+			return nil, err
+		}
+
+		expr = ast.NewWithExpr(expr, keyword, pairs)
 	}
 
 	if s.match(ast.PLUS_PLUS, ast.MINUS_MINUS) {
@@ -466,6 +481,16 @@ func (s *Parser) objectLiteral() (ast.Expr, error) {
 
 // structLiteral parses Name { field: value, ... }; "Name {" has already been consumed.
 func (s *Parser) structLiteral(name ast.Token) (ast.Expr, error) {
+	pairs, err := s.structPairs()
+	if err != nil {
+		return nil, err
+	}
+
+	return ast.NewStructExpr(name, pairs), nil
+}
+
+// structPairs parses field: value, ... up to "}"; the "{" has already been consumed.
+func (s *Parser) structPairs() ([]ast.StructPair, error) {
 	var pairs []ast.StructPair
 
 	err := s.braceList("Duplicate field name.", "Expect '}' after struct fields.", func() (string, ast.Token, error) {
@@ -483,11 +508,8 @@ func (s *Parser) structLiteral(name ast.Token) (ast.Expr, error) {
 
 		return key.Lexeme, key, err
 	})
-	if err != nil {
-		return nil, err
-	}
 
-	return ast.NewStructExpr(name, pairs), nil
+	return pairs, err
 }
 
 // isStructLiteralStart reports whether a name is followed by "{ }" or "{ field :".

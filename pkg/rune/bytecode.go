@@ -38,6 +38,7 @@ const (
 	opModK
 	opCmp  // R[A] = R[B] <X> R[C]
 	opCmpK // R[A] = R[B] <X> K[C]
+	opIs   // R[A] = R[B] is R[C]
 	opNeg  // R[A] = -R[B]
 	opNot  // R[A] = !R[B]
 	opIncr // R[A] = R[B] + 1, or - 1 if X
@@ -50,6 +51,7 @@ const (
 	opArray     // R[A] = [R[B], ..., R[B+C-1]]
 	opObject    // R[A] = {keys[C][i]: R[B+i]}
 	opStruct    // R[A] = struct of type K[C] with fields R[B...]
+	opWith      // R[A] = R[B] with {keys[C][i]: R[B+1+i]}
 	opGetIndex  // R[A] = R[B][R[C]]
 	opGetProp   // R[A] = R[B].K[C]
 	opSetIndex  // R[A][R[B]] = R[C]
@@ -176,9 +178,9 @@ type Program struct {
 var opNames = [...]string{
 	"MOVE", "LOADK", "NEWCELL", "GETCELL", "SETCELL", "GETUPVAL", "SETUPVAL",
 	"CHECKDEFINED", "SETCELL!", "SETUPVAL!", "UNDEFINED",
-	"ADD", "SUB", "MUL", "DIV", "MOD", "ADDK", "SUBK", "MULK", "DIVK", "MODK", "CMP", "CMPK", "NEG", "NOT", "INCR",
+	"ADD", "SUB", "MUL", "DIV", "MOD", "ADDK", "SUBK", "MULK", "DIVK", "MODK", "CMP", "CMPK", "IS", "NEG", "NOT", "INCR",
 	"JMP", "JMPIF", "JMPCMP", "JMPCMPK",
-	"ARRAY", "OBJECT", "STRUCT", "GETINDEX", "GETPROP", "SETINDEX", "SETPROP", "CHECKPROP", "RANGE",
+	"ARRAY", "OBJECT", "STRUCT", "WITH", "GETINDEX", "GETPROP", "SETINDEX", "SETPROP", "CHECKPROP", "RANGE",
 	"CLOSURE", "CALL", "RETURN", "RETURNNIL", "PRINT", "THROW", "TRY", "ENDTRY",
 	"FORRANGE", "FORRANGENEXT", "FORITER", "FORITERNEXT",
 }
