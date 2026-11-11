@@ -14,6 +14,7 @@ type StmtVisitor interface {
 	VisitBreakStmt(breakStmt *BreakStmt) error
 	VisitContinueStmt(continueStmt *ContinueStmt) error
 	VisitForInStmt(forInStmt *ForInStmt) error
+	VisitStructStmt(structStmt *StructStmt) error
 }
 
 // Binding is a declared name; Mutable is set for names declared with "mut".
@@ -150,6 +151,35 @@ func NewThrowStmt(value Expr, keyword Token) Stmt {
 	return &ThrowStmt{Value: value, Keyword: keyword}
 }
 
+// StructField is a field of a struct declaration; Default is a literal,
+// or nil for a required field.
+type StructField struct {
+	Name    Token
+	Default Expr
+}
+
+// StructStmt declares a struct type; the resolver sets Local.
+type StructStmt struct {
+	Name   Token
+	Fields []StructField
+	Local  *Local
+}
+
+func NewStructStmt(name Token, fields []StructField) Stmt {
+	return &StructStmt{Name: name, Fields: fields}
+}
+
+// Slot returns the index of field name, or -1.
+func (n *StructStmt) Slot(name string) int {
+	for i, f := range n.Fields {
+		if f.Name.Lexeme == name {
+			return i
+		}
+	}
+
+	return -1
+}
+
 type Stmt interface {
 	Accept(v StmtVisitor) error
 }
@@ -204,4 +234,8 @@ func (n *ContinueStmt) Accept(v StmtVisitor) error {
 
 func (n *ForInStmt) Accept(v StmtVisitor) error {
 	return v.VisitForInStmt(n)
+}
+
+func (n *StructStmt) Accept(v StmtVisitor) error {
+	return v.VisitStructStmt(n)
 }

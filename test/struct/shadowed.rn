@@ -1,0 +1,5 @@
+struct Point { x, y }
+
+fun f(Point) {
+  return Point { x: 1, y: 2 }; // [line: 4] Error at 'Point': 'Point' is not a struct.
+}

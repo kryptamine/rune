@@ -16,16 +16,19 @@ const (
 	arrayCursor cursorMode = iota
 	stringCursor
 	objectCursor
+	structCursor
 )
 
 // cursor walks what a for-in iterates: (index or key, element) pairs. An
-// object cursor walks the keys in arr, reading each value from obj.
+// object cursor walks the keys in arr, reading each value from obj; a
+// struct cursor reads it from vals.
 type cursor struct {
 	mode cursorMode
 	i    int
 	arr  []value.Value
 	str  string
 	obj  map[string]value.Value
+	vals []value.Value
 }
 
 func (c *cursor) next() (key, val value.Value, ok bool) {
@@ -48,13 +51,18 @@ func (c *cursor) next() (key, val value.Value, ok bool) {
 		if i < len(c.arr) {
 			return c.arr[i], c.obj[c.arr[i].Str()], true
 		}
+	case structCursor:
+		if i < len(c.arr) {
+			return c.arr[i], c.vals[i], true
+		}
 	}
 
 	return key, val, false
 }
 
-// cursorOf snapshots arrays. Objects yield their keys in sorted order; a
-// loop that binds only one variable walks them like an array of keys.
+// cursorOf snapshots arrays. Objects yield their keys in sorted order and
+// structs in declaration order; a loop that binds only one variable walks
+// them like an array of keys.
 func cursorOf(v value.Value, hasKey bool, keyword *ast.Token) (*cursor, error) {
 	switch v.Kind() {
 	case value.Array:
@@ -70,10 +78,18 @@ func cursorOf(v value.Value, hasKey bool, keyword *ast.Token) (*cursor, error) {
 		}
 
 		return &cursor{mode: objectCursor, arr: keys, obj: obj}, nil
+	case value.Struct:
+		// Keys and fields never change, so the cursor shares them.
+		keys := v.Shape().Keys
+		if !hasKey {
+			return &cursor{mode: arrayCursor, arr: keys}, nil
+		}
+
+		return &cursor{mode: structCursor, arr: keys, vals: v.Fields()}, nil
 	}
 
 	return nil, errors.NewRuntimeError(*keyword, fmt.Sprintf(
-		"Can only iterate over arrays, strings and objects, got %s.", helpers.TypeName(v)))
+		"Can only iterate over arrays, strings, objects and structs, got %s.", helpers.TypeName(v)))
 }
 
 func sortedKeys(obj map[string]value.Value) []value.Value {

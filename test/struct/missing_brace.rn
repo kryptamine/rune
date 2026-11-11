@@ -1,0 +1,2 @@
+struct Point x, y }; // [line: 1] Error at 'x': Expect '{' after struct name.
+print "after";

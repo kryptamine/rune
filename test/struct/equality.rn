@@ -1,0 +1,11 @@
+struct Point { x, y }
+struct Vec { x, y }
+
+print Point { x: 1, y: 2 } == Point { x: 1, y: 2 }; // expect: true
+print Point { x: 1, y: 2 } == Point { x: 1, y: 3 }; // expect: false
+print Point { x: 1, y: 2 } == Vec { x: 1, y: 2 }; // expect: false
+print Point { x: 1, y: 2 } == { "x": 1, "y": 2 }; // expect: false
+print Point { x: [1], y: { "a": 1 } } == Point { x: [1], y: { "a": 1 } }; // expect: true
+print contains([Point { x: 1, y: 2 }], Point { x: 1, y: 2 }); // expect: true
+print Point == Point; // expect: true
+print Point == Vec; // expect: false

@@ -87,6 +87,14 @@ func assigns(e ast.Expr) bool {
 		}
 
 		return false
+	case *ast.StructExpr:
+		for _, p := range n.Pairs {
+			if assigns(p.Value) {
+				return true
+			}
+		}
+
+		return false
 	case *ast.IndexExpr:
 		return assigns(n.Array) || assigns(n.Index)
 	case *ast.SetIndexExpr:
@@ -119,9 +127,15 @@ func unwrap(e ast.Expr) ast.Expr {
 	}
 }
 
+// literalOf returns the value of a literal, a negated number included.
 func literalOf(e ast.Expr) (value.Value, bool) {
-	if l, ok := unwrap(e).(*ast.LiteralExpr); ok {
-		return l.Value, true
+	switch n := unwrap(e).(type) {
+	case *ast.LiteralExpr:
+		return n.Value, true
+	case *ast.UnaryExpr:
+		if v, ok := literalOf(n.Right); ok && n.Operator.TokenType == ast.MINUS && v.IsNumber() {
+			return value.NewNumber(-v.Num()), true
+		}
 	}
 
 	return value.NilValue, false
@@ -177,6 +191,8 @@ func (fs *funcState) expr(e ast.Expr, dst int32) {
 
 			return ins{op: opObject, b: base, c: int32(len(fs.proto.keys) - 1)}
 		})
+	case *ast.StructExpr:
+		fs.structLiteral(n, dst)
 	case *ast.IndexExpr:
 		fs.index(n, dst)
 	case *ast.SetIndexExpr:
@@ -218,6 +234,30 @@ func (fs *funcState) literal(dst int32, n int, item func(i int) ast.Expr, build 
 	}
 
 	fs.move(dst, target)
+}
+
+// structLiteral evaluates the fields in source order into registers in
+// slot order, defaults filling the rest.
+func (fs *funcState) structLiteral(n *ast.StructExpr, dst int32) {
+	base := fs.free
+	given := make([]bool, len(n.Decl.Fields))
+
+	for range n.Decl.Fields {
+		fs.alloc()
+	}
+
+	for _, pair := range n.Pairs {
+		given[pair.Slot] = true
+		fs.expr(pair.Value, base+int32(pair.Slot))
+	}
+
+	for i, f := range n.Decl.Fields {
+		if !given[i] {
+			fs.expr(f.Default, base+int32(i))
+		}
+	}
+
+	fs.emit(ins{op: opStruct, a: dst, b: base, c: fs.constant(value.NewType(fs.unit.shapes[n.Decl]))}, nil)
 }
 
 // writesEarly reports whether compiling e into a register writes it
@@ -357,15 +397,14 @@ func (fs *funcState) operandConst(v value.Value, isConst bool, limit int32) (int
 func (fs *funcState) unary(n *ast.UnaryExpr, dst int32) {
 	op := &n.Operator
 
-	if c, ok := literalOf(n.Right); ok {
-		switch {
-		case op.TokenType == ast.MINUS && c.IsNumber():
-			fs.emit(ins{op: opLoadK, a: dst, c: fs.constant(value.NewNumber(-c.Num()))}, nil)
-			return
-		case op.TokenType == ast.BANG:
-			fs.emit(ins{op: opLoadK, a: dst, c: fs.constant(value.NewBool(!helpers.IsTruthy(c)))}, nil)
-			return
-		}
+	if v, ok := literalOf(n); ok {
+		fs.emit(ins{op: opLoadK, a: dst, c: fs.constant(v)}, nil)
+		return
+	}
+
+	if c, ok := literalOf(n.Right); ok && op.TokenType == ast.BANG {
+		fs.emit(ins{op: opLoadK, a: dst, c: fs.constant(value.NewBool(!helpers.IsTruthy(c)))}, nil)
+		return
 	}
 
 	r := fs.exprAny(n.Right)

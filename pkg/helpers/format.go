@@ -28,6 +28,10 @@ func TypeName(v value.Value) string {
 		return "array"
 	case value.Object:
 		return "object"
+	case value.Struct:
+		return v.Shape().Name
+	case value.Type:
+		return "struct"
 	default:
 		return "function"
 	}
@@ -136,6 +140,28 @@ func stringify(v value.Value, seen map[uintptr]bool) string {
 		}
 
 		return "{" + strings.Join(pairs, ", ") + "}"
+	case value.Struct:
+		shape := v.Shape()
+		ptr := uintptr(v.Ptr())
+		if seen[ptr] {
+			return shape.Name + " {...}"
+		}
+
+		if seen == nil {
+			seen = map[uintptr]bool{}
+		}
+
+		seen[ptr] = true
+		defer delete(seen, ptr)
+
+		pairs := make([]string, len(shape.Fields))
+		for i, f := range v.Fields() {
+			pairs[i] = shape.Fields[i] + ": " + element(f, seen)
+		}
+
+		return shape.Name + " {" + strings.Join(pairs, ", ") + "}"
+	case value.Type:
+		return "<struct " + v.TypeShape().Name + ">"
 	default:
 		return fmt.Sprint(v.Fn())
 	}

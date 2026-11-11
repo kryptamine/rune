@@ -18,7 +18,61 @@ func (s *Parser) declaration() (ast.Stmt, error) {
 		return s.varDeclaration()
 	}
 
+	if s.match(ast.STRUCT) {
+		return s.structDeclaration()
+	}
+
 	return s.statement()
+}
+
+const maxFields = 255
+
+// structDeclaration parses struct Name { a, b = 1 }; "struct" has already been consumed.
+func (s *Parser) structDeclaration() (ast.Stmt, error) {
+	name, err := s.consume(ast.IDENTIFIER, "Expect struct name.")
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := s.consume(ast.LEFT_BRACE, "Expect '{' after struct name."); err != nil {
+		return nil, err
+	}
+
+	var fields []ast.StructField
+
+	err = s.braceList("Duplicate field name.", "Expect '}' after struct fields.", func() (string, ast.Token, error) {
+		field, err := s.consume(ast.IDENTIFIER, "Expect field name.")
+		if err != nil {
+			return "", field, err
+		}
+
+		if len(fields) == maxFields {
+			s.errors = append(s.errors, errors.NewSyntaxError(field, fmt.Sprintf("Cannot have more than %d fields.", maxFields)))
+		}
+
+		var def ast.Expr
+
+		if s.match(ast.EQUAL) {
+			at := s.peek()
+
+			if def, err = s.expression(); err != nil {
+				return "", field, err
+			}
+
+			if _, ok := literalOf(def); !ok {
+				s.errors = append(s.errors, errors.NewSyntaxError(at, "Field default must be a literal."))
+			}
+		}
+
+		fields = append(fields, ast.StructField{Name: field, Default: def})
+
+		return field.Lexeme, field, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return ast.NewStructStmt(name, fields), nil
 }
 
 func (s *Parser) function(kind string) (ast.Stmt, error) {

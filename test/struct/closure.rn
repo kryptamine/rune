@@ -1,0 +1,11 @@
+struct Point { x, y }
+
+fun maker(x) {
+  return fun (y) { return Point { x: x, y: y }; };
+}
+
+print maker(1)(2); // expect: Point {x: 1, y: 2}
+
+let p = Point { x: 1, y: 2 };
+fun getX() { return p.x; }
+print getX(); // expect: 1

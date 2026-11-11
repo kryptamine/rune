@@ -1,0 +1,5 @@
+struct Unit {}
+
+let u = Unit {};
+print u; // expect: Unit {}
+print u == Unit {}; // expect: true

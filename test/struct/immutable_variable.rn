@@ -1,0 +1,4 @@
+struct Point { x, y }
+
+let p = Point { x: 1, y: 2 };
+p.x = 3; // [line: 4] Error at 'p': Cannot mutate immutable variable 'p'.

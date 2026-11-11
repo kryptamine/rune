@@ -1,0 +1,6 @@
+fun origin() { return Point { x: 0, y: 0 }; }
+
+print origin(); // expect: Point {x: 0, y: 0}
+print Point { x: 1, y: 1 }; // expect: Point {x: 1, y: 1}
+
+struct Point { x, y }

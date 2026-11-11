@@ -1,0 +1,3 @@
+[line: 1] Error at 'x': Expect '{' after struct name.
+    1 | struct Point x, y }; // [line: 1] Error at 'x': Expect '{' after struct name.
+      |              ^

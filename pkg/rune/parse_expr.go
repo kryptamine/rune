@@ -375,6 +375,11 @@ func (s *Parser) primary() (ast.Expr, error) {
 	if s.match(ast.IDENTIFIER) {
 		prev := s.previous()
 
+		if s.isStructLiteralStart() {
+			s.advance()
+			return s.structLiteral(prev)
+		}
+
 		return ast.NewVarExpr(prev), nil
 	}
 
@@ -396,12 +401,40 @@ func (s *Parser) primary() (ast.Expr, error) {
 	return nil, errors.NewSyntaxError(s.peek(), "Expect expression.")
 }
 
-// objectLiteral parses { key: value, ... }; the "{" has already been consumed.
-func (s *Parser) objectLiteral() (ast.Expr, error) {
-	var pairs []ast.ObjectPair
+// braceList parses comma-separated items up to "}", a trailing comma
+// allowed; the "{" has already been consumed. item parses one and returns
+// the name it gives, reported as dup when it repeats.
+func (s *Parser) braceList(dup, closeMsg string, item func() (string, ast.Token, error)) error {
 	seen := map[string]bool{}
 
 	for !s.check(ast.RIGHT_BRACE) && !s.isAtEnd() {
+		name, tok, err := item()
+		if err != nil {
+			return err
+		}
+
+		// Report but keep parsing: the parser is not in a confused state.
+		if seen[name] {
+			s.errors = append(s.errors, errors.NewSyntaxError(tok, dup))
+		}
+
+		seen[name] = true
+
+		if !s.match(ast.COMMA) {
+			break
+		}
+	}
+
+	_, err := s.consume(ast.RIGHT_BRACE, closeMsg)
+
+	return err
+}
+
+// objectLiteral parses { key: value, ... }; the "{" has already been consumed.
+func (s *Parser) objectLiteral() (ast.Expr, error) {
+	var pairs []ast.ObjectPair
+
+	err := s.braceList("Duplicate property name.", "Expect '}' after object properties.", func() (string, ast.Token, error) {
 		var key string
 
 		switch {
@@ -410,38 +443,62 @@ func (s *Parser) objectLiteral() (ast.Expr, error) {
 		case s.match(ast.STRING):
 			key = s.previous().Literal
 		default:
-			return nil, errors.NewSyntaxError(s.peek(), "Expect property name.")
+			return "", ast.Token{}, errors.NewSyntaxError(s.peek(), "Expect property name.")
 		}
 
-		// Report but keep parsing: the parser is not in a confused state.
-		if seen[key] {
-			s.errors = append(s.errors, errors.NewSyntaxError(s.previous(), "Duplicate property name."))
-		}
-
-		seen[key] = true
+		tok := s.previous()
 
 		if _, err := s.consume(ast.COLON, "Expect ':' after property name."); err != nil {
-			return nil, err
+			return "", tok, err
 		}
 
-		value, err := s.expression()
-		if err != nil {
-			return nil, err
-		}
+		v, err := s.expression()
+		pairs = append(pairs, ast.ObjectPair{Key: key, Value: v})
 
-		pairs = append(pairs, ast.ObjectPair{Key: key, Value: value})
-
-		// A trailing comma is allowed.
-		if !s.match(ast.COMMA) {
-			break
-		}
-	}
-
-	if _, err := s.consume(ast.RIGHT_BRACE, "Expect '}' after object properties."); err != nil {
+		return key, tok, err
+	})
+	if err != nil {
 		return nil, err
 	}
 
 	return ast.NewObjectExpr(ast.OBJECT, pairs), nil
+}
+
+// structLiteral parses Name { field: value, ... }; "Name {" has already been consumed.
+func (s *Parser) structLiteral(name ast.Token) (ast.Expr, error) {
+	var pairs []ast.StructPair
+
+	err := s.braceList("Duplicate field name.", "Expect '}' after struct fields.", func() (string, ast.Token, error) {
+		key, err := s.consume(ast.IDENTIFIER, "Expect field name.")
+		if err != nil {
+			return "", key, err
+		}
+
+		if _, err := s.consume(ast.COLON, "Expect ':' after field name."); err != nil {
+			return "", key, err
+		}
+
+		v, err := s.expression()
+		pairs = append(pairs, ast.StructPair{Key: key, Value: v})
+
+		return key.Lexeme, key, err
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return ast.NewStructExpr(name, pairs), nil
+}
+
+// isStructLiteralStart reports whether a name is followed by "{ }" or "{ field :".
+func (s *Parser) isStructLiteralStart() bool {
+	if !s.check(ast.LEFT_BRACE) {
+		return false
+	}
+
+	next := s.peekAt(1)
+
+	return next == ast.RIGHT_BRACE || next == ast.IDENTIFIER && s.peekAt(2) == ast.COLON
 }
 
 // arrayLiteral parses [a, b, ...]; the "[" has already been consumed.

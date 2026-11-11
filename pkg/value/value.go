@@ -22,6 +22,9 @@ const (
 	Undefined
 	// Internal carries interpreter state (cells, iterators) in a register.
 	Internal
+	Struct
+	// Type is a struct type, the value of its name.
+	Type
 )
 
 // Value is a Rune runtime value in two words; the zero Value is nil.
@@ -87,6 +90,45 @@ func NewObject(fields map[string]Value) Value {
 
 	return Value{p: *(*unsafe.Pointer)(unsafe.Pointer(&fields)), n: uint64(Object) << kindShift}
 }
+
+// Shape describes a struct type: its name and fields in declaration order.
+type Shape struct {
+	Name   string
+	Fields []string
+	// Keys holds Fields as values, for iteration.
+	Keys []Value
+}
+
+func NewShape(name string, fields []string) *Shape {
+	keys := make([]Value, len(fields))
+	for i, f := range fields {
+		keys[i] = NewString(f)
+	}
+
+	return &Shape{Name: name, Fields: fields, Keys: keys}
+}
+
+// Index returns the slot of field name, or -1.
+func (s *Shape) Index(name string) int {
+	for i, f := range s.Fields {
+		if f == name {
+			return i
+		}
+	}
+
+	return -1
+}
+
+// NewStruct allocates an instance of s and returns it with its fields to
+// fill. Slot 0 of the allocation holds the shape, the fields follow it.
+func NewStruct(s *Shape) (Value, []Value) {
+	slots := make([]Value, 1+len(s.Fields))
+	slots[0].p = unsafe.Pointer(s)
+
+	return Value{p: unsafe.Pointer(&slots[0]), n: uint64(Struct) << kindShift}, slots[1:]
+}
+
+func NewType(s *Shape) Value { return Value{p: unsafe.Pointer(s), n: uint64(Type) << kindShift} }
 
 // NewFunction wraps a callable; fn must print via fmt.Stringer.
 func NewFunction(fn any) Value { return boxed(Function, fn) }
@@ -198,6 +240,35 @@ func (v Value) ArrRef() *[]Value { return (*[]Value)(v.p) }
 
 // Obj returns the object payload; only meaningful when Kind() == Object.
 func (v Value) Obj() map[string]Value { return *(*map[string]Value)(unsafe.Pointer(&v.p)) }
+
+// Shape returns a struct's shape; only meaningful when Kind() == Struct.
+func (v Value) Shape() *Shape { return (*Shape)((*Value)(v.p).p) }
+
+// Fields returns a struct's fields in declaration order.
+func (v Value) Fields() []Value {
+	n := len(v.Shape().Fields)
+	if n == 0 {
+		return nil
+	}
+
+	return unsafe.Slice((*Value)(unsafe.Add(v.p, unsafe.Sizeof(Value{}))), n)
+}
+
+// InternedField returns the field named by key, matching the string data
+// pointer: it finds the field only if key shares the name's storage, as
+// the compiler arranges, so a miss does not mean there is no such field.
+func (v Value) InternedField(key Value) (Value, bool) {
+	for i, f := range v.Shape().Fields {
+		if unsafe.Pointer(unsafe.StringData(f)) == key.p {
+			return v.Fields()[i], true
+		}
+	}
+
+	return NilValue, false
+}
+
+// TypeShape returns the shape a struct type describes; only meaningful when Kind() == Type.
+func (v Value) TypeShape() *Shape { return (*Shape)(v.p) }
 
 // Fn returns the function payload; only meaningful when Kind() == Function.
 func (v Value) Fn() any { return v.unbox() }

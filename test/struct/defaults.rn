@@ -1,0 +1,7 @@
+struct Opts { name, retries = 3, verbose = false, ratio = -0.5, tag = nil }
+
+let o = Opts { name: "a" };
+print o; // expect: Opts {name: "a", retries: 3, verbose: false, ratio: -0.5, tag: nil}
+
+let p = Opts { name: "b", retries: 5 };
+print p.retries; // expect: 5

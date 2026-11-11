@@ -56,6 +56,7 @@ const (
 	BREAK
 	CONTINUE
 	IN
+	STRUCT
 
 	// Single tokens
 	COLON
@@ -122,6 +123,7 @@ var Keywords = map[string]TokenType{
 	"break":    BREAK,
 	"continue": CONTINUE,
 	"in":       IN,
+	"struct":   STRUCT,
 }
 
 func (tokenType TokenType) String() string {
@@ -197,6 +199,8 @@ func (tokenType TokenType) String() string {
 		return "THROW"
 	case BREAK:
 		return "BREAK"
+	case STRUCT:
+		return "STRUCT"
 	case CONTINUE:
 		return "CONTINUE"
 	case IN:

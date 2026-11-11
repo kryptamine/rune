@@ -1,0 +1,9 @@
+struct Point { x, y }
+
+fun side() {
+  print "not reached";
+  return 1;
+}
+
+let mut p = Point { x: 1, y: 2 };
+p.x += side(); // expect runtime error: [line: 9] Cannot set field 'x' of Point: structs are immutable.

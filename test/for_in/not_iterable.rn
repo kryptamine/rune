@@ -1,1 +1,1 @@
-for (x in 123) print x; // expect runtime error: [line: 1] Can only iterate over arrays, strings and objects, got number.
+for (x in 123) print x; // expect runtime error: [line: 1] Can only iterate over arrays, strings, objects and structs, got number.
