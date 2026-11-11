@@ -266,100 +266,16 @@ func (s *Parser) finishCall(expr ast.Expr) (ast.Expr, error) {
 }
 
 func (s *Parser) primary() (ast.Expr, error) {
-	// Parse object literal
 	if s.match(ast.LEFT_BRACE) {
-		var pairs []ast.ObjectPair
-		seen := map[string]bool{}
-
-		for !s.check(ast.RIGHT_BRACE) && !s.isAtEnd() {
-			// Parse key (an identifier or a string)
-			var key string
-
-			switch {
-			case s.match(ast.IDENTIFIER):
-				key = s.previous().Lexeme
-			case s.match(ast.STRING):
-				key = s.previous().Literal
-			default:
-				return nil, errors.NewSyntaxError(s.peek(), "Expect property name.")
-			}
-
-			// Report but keep parsing: the parser is not in a confused state.
-			if seen[key] {
-				s.errors = append(s.errors, errors.NewSyntaxError(s.previous(), "Duplicate property name."))
-			}
-
-			seen[key] = true
-
-			// Expect ':' after key
-			_, err := s.consume(ast.COLON, "Expect ':' after property name.")
-			if err != nil {
-				return nil, err
-			}
-
-			value, err := s.expression()
-			if err != nil {
-				return nil, err
-			}
-
-			pairs = append(pairs, ast.ObjectPair{Key: key, Value: value})
-
-			// Allow optional commas but not required before closing `}`
-			if !s.match(ast.COMMA) {
-				break
-			}
-		}
-
-		// Expect closing `}`
-		_, err := s.consume(ast.RIGHT_BRACE, "Expect '}' after object properties.")
-		if err != nil {
-			return nil, err
-		}
-
-		return ast.NewObjectExpr(ast.OBJECT, pairs), nil
+		return s.objectLiteral()
 	}
 
-	// Parse array literal
 	if s.match(ast.LEFT_BRACKET) {
-		var items []ast.Expr
-
-		if !s.check(ast.RIGHT_BRACKET) {
-			for {
-				elem, err := s.expression()
-				if err != nil {
-					return nil, err
-				}
-				items = append(items, elem)
-
-				// Allow a trailing comma, as in object literals.
-				if !s.match(ast.COMMA) || s.check(ast.RIGHT_BRACKET) {
-					break
-				}
-			}
-		}
-
-		_, err := s.consume(ast.RIGHT_BRACKET, "Expect ']' after array elements.")
-		if err != nil {
-			return nil, err
-		}
-
-		return ast.NewArrayExpr(ast.ARRAY, items), nil
+		return s.arrayLiteral()
 	}
 
-	// Anonymous function: fun (params) { body }.
 	if s.check(ast.FUN) && s.peekAt(1) == ast.LEFT_PAREN {
-		keyword := s.advance()
-		s.advance()
-
-		name := ast.NewToken(ast.FUN, "", "", keyword.Line)
-		name.Col = keyword.Col
-
-		decl, err := s.functionRest(name)
-		if err != nil {
-			return nil, err
-		}
-
-		return ast.NewFunctionExpr(decl), nil
+		return s.functionExpr()
 	}
 
 	if s.match(ast.TRUE) {
@@ -413,6 +329,97 @@ func (s *Parser) primary() (ast.Expr, error) {
 	}
 
 	return nil, errors.NewSyntaxError(s.peek(), "Expect expression.")
+}
+
+// objectLiteral parses { key: value, ... }; the "{" has already been consumed.
+func (s *Parser) objectLiteral() (ast.Expr, error) {
+	var pairs []ast.ObjectPair
+	seen := map[string]bool{}
+
+	for !s.check(ast.RIGHT_BRACE) && !s.isAtEnd() {
+		var key string
+
+		switch {
+		case s.match(ast.IDENTIFIER):
+			key = s.previous().Lexeme
+		case s.match(ast.STRING):
+			key = s.previous().Literal
+		default:
+			return nil, errors.NewSyntaxError(s.peek(), "Expect property name.")
+		}
+
+		// Report but keep parsing: the parser is not in a confused state.
+		if seen[key] {
+			s.errors = append(s.errors, errors.NewSyntaxError(s.previous(), "Duplicate property name."))
+		}
+
+		seen[key] = true
+
+		if _, err := s.consume(ast.COLON, "Expect ':' after property name."); err != nil {
+			return nil, err
+		}
+
+		value, err := s.expression()
+		if err != nil {
+			return nil, err
+		}
+
+		pairs = append(pairs, ast.ObjectPair{Key: key, Value: value})
+
+		// A trailing comma is allowed.
+		if !s.match(ast.COMMA) {
+			break
+		}
+	}
+
+	if _, err := s.consume(ast.RIGHT_BRACE, "Expect '}' after object properties."); err != nil {
+		return nil, err
+	}
+
+	return ast.NewObjectExpr(ast.OBJECT, pairs), nil
+}
+
+// arrayLiteral parses [a, b, ...]; the "[" has already been consumed.
+func (s *Parser) arrayLiteral() (ast.Expr, error) {
+	var items []ast.Expr
+
+	if !s.check(ast.RIGHT_BRACKET) {
+		for {
+			elem, err := s.expression()
+			if err != nil {
+				return nil, err
+			}
+
+			items = append(items, elem)
+
+			// Allow a trailing comma, as in object literals.
+			if !s.match(ast.COMMA) || s.check(ast.RIGHT_BRACKET) {
+				break
+			}
+		}
+	}
+
+	if _, err := s.consume(ast.RIGHT_BRACKET, "Expect ']' after array elements."); err != nil {
+		return nil, err
+	}
+
+	return ast.NewArrayExpr(ast.ARRAY, items), nil
+}
+
+// functionExpr parses an anonymous function: fun (params) { body }.
+func (s *Parser) functionExpr() (ast.Expr, error) {
+	keyword := s.advance()
+	s.advance()
+
+	name := ast.NewToken(ast.FUN, "", "", keyword.Line)
+	name.Col = keyword.Col
+
+	decl, err := s.functionRest(name)
+	if err != nil {
+		return nil, err
+	}
+
+	return ast.NewFunctionExpr(decl), nil
 }
 
 // isObjectLiteralStart reports whether the upcoming tokens are "{", a property name and ":".
