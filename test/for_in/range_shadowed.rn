@@ -1,0 +1,4 @@
+fun range(n) { return ["a", "b"]; }
+for (x in range(5)) print x;
+// expect: a
+// expect: b

@@ -2,13 +2,10 @@ package rune
 
 import (
 	"fmt"
-	"maps"
 	"rune/pkg/ast"
-	"rune/pkg/environment"
 	"rune/pkg/errors"
 	"rune/pkg/helpers"
 	"rune/pkg/value"
-	"slices"
 )
 
 func compileStmts(stmts []ast.Stmt) execFn {
@@ -183,11 +180,6 @@ func compileWhile(s *ast.WhileStmt) execFn {
 	cond := compileCond(s.Condition)
 	body := compileStmt(s.Body)
 
-	var incr evalFn
-	if s.Increment != nil {
-		incr = compileExpr(s.Increment)
-	}
-
 	return func(p *Interpreter) error {
 		for {
 			c, err := cond(p)
@@ -206,99 +198,7 @@ func compileWhile(s *ast.WhileStmt) execFn {
 
 				return err
 			}
-
-			if incr != nil {
-				if _, err := incr(p); err != nil {
-					return err
-				}
-			}
 		}
-	}
-}
-
-// Elements are snapshotted when the loop starts.
-func compileForIn(s *ast.ForInStmt) execFn {
-	iterable := compileExpr(s.Iterable)
-	body := compileStmt(s.Body)
-	size, pooled, hasKey, keyword := s.EnvSize, s.Pooled, s.Key != nil, s.Keyword
-
-	visit := func(p *Interpreter, env *environment.Environment, key, val value.Value) (bool, error) {
-		if hasKey {
-			env.Set(0, key)
-			env.Set(1, val)
-		} else {
-			env.Set(0, val)
-		}
-
-		prev := p.environment
-		p.environment = env
-		err := body(p)
-		p.environment = prev
-
-		switch err {
-		case nil, errContinue:
-			return false, nil
-		case errBreak:
-			return true, nil
-		}
-
-		return true, err
-	}
-
-	return func(p *Interpreter) error {
-		it, err := iterable(p)
-		if err != nil {
-			return err
-		}
-
-		var shared *environment.Environment
-		if pooled {
-			shared = p.pool.Get(p.environment, size)
-			defer p.pool.Put(shared)
-		}
-
-		scope := func() *environment.Environment {
-			if shared != nil {
-				return shared
-			}
-
-			return environment.NewEnvironment(p.environment, size)
-		}
-
-		switch it.Kind() {
-		case value.Array:
-			for i, v := range slices.Clone(it.Arr()) {
-				if stop, err := visit(p, scope(), value.NewNumber(float64(i)), v); stop {
-					return err
-				}
-			}
-		case value.String:
-			for i, ch := range helpers.Chars(it.Str()) {
-				if stop, err := visit(p, scope(), value.NewNumber(float64(i)), value.NewString(ch)); stop {
-					return err
-				}
-			}
-		case value.Object:
-			obj := it.Obj()
-
-			for _, k := range slices.Sorted(maps.Keys(obj)) {
-				key := value.NewString(k)
-
-				val := key
-				if hasKey {
-					val = obj[k]
-				}
-
-				if stop, err := visit(p, scope(), key, val); stop {
-					return err
-				}
-			}
-		default:
-			return errors.NewRuntimeError(keyword, fmt.Sprintf(
-				"Can only iterate over arrays, strings and objects, got %s.", helpers.TypeName(it)))
-		}
-
-		return nil
 	}
 }
 

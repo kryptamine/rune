@@ -1,8 +1,8 @@
 let arr = [1, 2, 3];
 
 let mut sum = 0;
-for (let mut i = 0; i < len(arr); i = i + 1) {
-    sum = sum + arr[i];
+for (x in arr) {
+    sum = sum + x;
 }
 
 print(sum); // expect: 6

@@ -305,7 +305,7 @@ func (s *Parser) whileStatement() (ast.Stmt, error) {
 		return nil, err
 	}
 
-	return ast.NewWhileStmt(condition, body, nil), nil
+	return ast.NewWhileStmt(condition, body), nil
 }
 
 func (s *Parser) forStatement() (ast.Stmt, error) {
@@ -316,73 +316,31 @@ func (s *Parser) forStatement() (ast.Stmt, error) {
 		return nil, err
 	}
 
-	if s.isForInStart() {
-		return s.forInStatement(keyword)
-	}
+	if !s.isForInStart() {
+		err := errors.NewSyntaxError(s.peek(), "Expect 'name in' after 'for ('.")
+		s.skipToCloseParen()
 
-	var initializer ast.Stmt
-
-	if s.match(ast.SEMICOLON) {
-		initializer = nil
-	} else if s.match(ast.LET) {
-		initializer, err = s.varDeclaration()
-
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		initializer, err = s.expressionStatement()
-
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	var condition ast.Expr
-
-	if !s.check(ast.SEMICOLON) {
-		condition, err = s.expression()
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	_, err = s.consume(ast.SEMICOLON, "Expect ';' after condition.")
-	if err != nil {
 		return nil, err
 	}
 
-	var increment ast.Expr
+	return s.forInStatement(keyword)
+}
 
-	if !s.check(ast.RIGHT_PAREN) {
-		increment, err = s.expression()
+// skipToCloseParen moves to the ')' closing the current header, so one bad
+// header reports one error.
+func (s *Parser) skipToCloseParen() {
+	for depth := 0; !s.isAtEnd(); s.advance() {
+		switch s.peek().TokenType {
+		case ast.LEFT_PAREN:
+			depth++
+		case ast.RIGHT_PAREN:
+			if depth == 0 {
+				return
+			}
 
-		if err != nil {
-			return nil, err
+			depth--
 		}
 	}
-
-	_, err = s.consume(ast.RIGHT_PAREN, "Expect ')' after clauses.")
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := s.statement()
-	if err != nil {
-		return nil, err
-	}
-
-	if condition == nil {
-		condition = ast.NewLiteralExpr(ast.TRUE, true)
-	}
-
-	body = ast.NewWhileStmt(condition, body, increment)
-
-	if initializer != nil {
-		body = ast.NewBlockStmt([]ast.Stmt{initializer, body})
-	}
-
-	return body, nil
 }
 
 // isForInStart reports whether the tokens after "for (" are "name in" or

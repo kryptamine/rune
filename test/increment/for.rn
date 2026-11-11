@@ -1,7 +1,0 @@
-for (let mut i = 0; i < 3; ++i) print i;
-// expect: 0
-// expect: 1
-// expect: 2
-for (let mut j = 2; j > 0; j--) print j;
-// expect: 2
-// expect: 1
