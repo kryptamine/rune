@@ -214,6 +214,13 @@ func (n *LiteralExpr) String() string {
 		}
 	}
 
+	switch n.Value.Kind() {
+	case value.String:
+		return n.Value.Str()
+	case value.Bool:
+		return fmt.Sprint(n.Value.Bool())
+	}
+
 	return fmt.Sprintf("%v", n.Value.Fn())
 }
 

@@ -1,0 +1,13 @@
+// Pooled frames of a recursive function must not share slots.
+fun sum(n) {
+  if (n == 0) return 0;
+  var here = n;
+  var rest = sum(n - 1);
+  return here + rest;
+}
+
+print sum(100); // expect: 5050
+
+fun pair(a, b) { return [a, b]; }
+fun id(x) { var y = x; return y; }
+print pair(id(1), id(2)); // expect: [1, 2]

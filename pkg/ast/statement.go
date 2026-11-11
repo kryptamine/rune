@@ -57,9 +57,11 @@ func NewExprStmt(expr Expr) Stmt {
 
 // BlockStmt is a braced block. EnvSize is the number of locals it declares;
 // a block with none runs in the enclosing environment.
+// Pooled (here and on other scopes): no closure is created inside.
 type BlockStmt struct {
 	Stmts   []Stmt
 	EnvSize int
+	Pooled  bool
 }
 
 func NewBlockStmt(stmts []Stmt) Stmt {
@@ -100,6 +102,7 @@ type ForInStmt struct {
 	Iterable Expr
 	Body     Stmt
 	EnvSize  int
+	Pooled   bool
 }
 
 func NewForInStmt(keyword Token, key *Token, val Token, iterable Expr, body Stmt) Stmt {
@@ -132,6 +135,7 @@ type FunctionStmt struct {
 	Local      bool
 	Slot       int
 	EnvSize    int
+	Pooled     bool
 }
 
 func NewFunctionStmt(name Token, parameters []Token, body []Stmt) Stmt {
@@ -147,6 +151,7 @@ type TryStmt struct {
 	Param          *Token
 	Handler        []Stmt
 	HandlerEnvSize int
+	HandlerPooled  bool
 }
 
 func NewTryStmt(body Stmt, param *Token, handler []Stmt) Stmt {

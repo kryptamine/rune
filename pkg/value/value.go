@@ -4,7 +4,10 @@
 // booleans live inline and never allocate when produced or copied.
 package value
 
-import "fmt"
+import (
+	"fmt"
+	"unsafe"
+)
 
 type Kind uint8
 
@@ -20,8 +23,9 @@ const (
 
 // Value is a Rune runtime value. The zero Value is nil.
 //
-// Numbers and booleans are stored in num (booleans as 0/1); strings,
-// arrays ([]Value), objects (map[string]Value) and functions are stored in obj.
+// Numbers and booleans are stored in num (booleans as 0/1). A string is its
+// data pointer in obj (unsafe.Pointer boxes without allocating) and its
+// length in num.
 type Value struct {
 	kind Kind
 	num  float64
@@ -43,9 +47,11 @@ func NewBool(b bool) Value {
 	return False
 }
 
-func NewString(s string) Value { return Value{kind: String, obj: s} }
+func NewString(s string) Value {
+	return Value{kind: String, num: float64(len(s)), obj: unsafe.Pointer(unsafe.StringData(s))}
+}
 
-func NewArray(items []Value) Value { return Value{kind: Array, obj: items} }
+func NewArray(items []Value) Value { return Value{kind: Array, obj: &items} }
 
 func NewObject(fields map[string]Value) Value { return Value{kind: Object, obj: fields} }
 
@@ -65,10 +71,15 @@ func (v Value) Num() float64 { return v.num }
 func (v Value) Bool() bool { return v.num != 0 }
 
 // Str returns the string payload; only meaningful when Kind() == String.
-func (v Value) Str() string { return v.obj.(string) }
+func (v Value) Str() string {
+	return unsafe.String((*byte)(v.obj.(unsafe.Pointer)), int(v.num))
+}
+
 
 // Arr returns the array payload; only meaningful when Kind() == Array.
-func (v Value) Arr() []Value { return v.obj.([]Value) }
+func (v Value) Arr() []Value { return *v.obj.(*[]Value) }
+
+func (v Value) ArrRef() *[]Value { return v.obj.(*[]Value) }
 
 // Obj returns the object payload; only meaningful when Kind() == Object.
 func (v Value) Obj() map[string]Value { return v.obj.(map[string]Value) }

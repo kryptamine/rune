@@ -14,8 +14,9 @@ type localVar struct {
 
 // Scope maps a local's name to its slot; size is the number of slots used.
 type Scope struct {
-	vars map[string]*localVar
-	size int
+	vars             map[string]*localVar
+	size             int
+	functionsAtStart int
 }
 
 // Resolver binds every local variable to a (depth, slot) pair stored in the
@@ -30,6 +31,7 @@ type Resolver struct {
 	// loopDepth counts the loops enclosing the current statement within
 	// the current function; break and continue need it to be positive.
 	loopDepth int
+	functions int
 	errors    []error
 }
 
@@ -86,7 +88,7 @@ func (p *Resolver) VisitBlockStmt(blockStmt *ast.BlockStmt) error {
 
 	p.beginScope()
 	p.resolveStmts(blockStmt.Stmts)
-	blockStmt.EnvSize = p.endScope()
+	blockStmt.EnvSize, blockStmt.Pooled = p.endScope()
 
 	return nil
 }
@@ -139,7 +141,7 @@ func (p *Resolver) VisitForInStmt(stmt *ast.ForInStmt) error {
 	p.define(stmt.Value)
 
 	p.resolveLoopBody(stmt.Body)
-	stmt.EnvSize = p.endScope()
+	stmt.EnvSize, stmt.Pooled = p.endScope()
 
 	return nil
 }
@@ -208,7 +210,7 @@ func (p *Resolver) VisitTryStmt(tryStmt *ast.TryStmt) error {
 	}
 
 	p.resolveStmts(tryStmt.Handler)
-	tryStmt.HandlerEnvSize = p.endScope()
+	tryStmt.HandlerEnvSize, tryStmt.HandlerPooled = p.endScope()
 
 	return nil
 }
@@ -327,20 +329,20 @@ func (p *Resolver) resolveExpr(expr ast.Expr) {
 }
 
 func (p *Resolver) beginScope() {
-	p.scopes = append(p.scopes, &Scope{vars: map[string]*localVar{}})
+	p.scopes = append(p.scopes, &Scope{vars: map[string]*localVar{}, functionsAtStart: p.functions})
 }
 
-// endScope pops the innermost scope and returns its size.
-func (p *Resolver) endScope() int {
-	size := p.peekScope().size
+func (p *Resolver) endScope() (size int, pooled bool) {
+	scope := p.peekScope()
 	p.scopes = p.scopes[:len(p.scopes)-1]
 
-	return size
+	return scope.size, scope.functionsAtStart == p.functions
 }
 
 func (p *Resolver) resolveFn(fn *ast.FunctionStmt) {
 	enclosingIsFunction, enclosingLoopDepth := p.isFunction, p.loopDepth
 	p.isFunction, p.loopDepth = true, 0
+	p.functions++
 	defer func() { p.isFunction, p.loopDepth = enclosingIsFunction, enclosingLoopDepth }()
 
 	p.beginScope()
@@ -351,7 +353,7 @@ func (p *Resolver) resolveFn(fn *ast.FunctionStmt) {
 	}
 
 	p.resolveStmts(fn.Body)
-	fn.EnvSize = p.endScope()
+	fn.EnvSize, fn.Pooled = p.endScope()
 }
 
 // declare adds name to the innermost scope and returns its slot; at the

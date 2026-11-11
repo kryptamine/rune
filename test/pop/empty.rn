@@ -1,0 +1,1 @@
+pop([]); // expect runtime error: [line: 1] Can't pop from an empty array.
