@@ -119,8 +119,9 @@ type Globals struct {
 	defined []bool
 }
 
-func NewGlobals() *Globals {
-	return &Globals{}
+// NewGlobals reserves room for size globals.
+func NewGlobals(size int) *Globals {
+	return &Globals{values: make([]value.Value, 0, size), defined: make([]bool, 0, size)}
 }
 
 func (g *Globals) Define(slot int, v value.Value) {

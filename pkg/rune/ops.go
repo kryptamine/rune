@@ -172,10 +172,6 @@ func arrayIndex(token *ast.Token, v value.Value, length int) (int, error) {
 	return int(f), nil
 }
 
-func arityError(token *ast.Token, arity, got int) error {
-	return errors.NewRuntimeError(*token, fmt.Sprintf("Expected %d arguments but got %d.", arity, got))
-}
-
 const maxExactInt = 1 << 53
 
 // mod matches math.Mod, including the sign of zero results.

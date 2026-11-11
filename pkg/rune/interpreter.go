@@ -5,9 +5,10 @@ import (
 	"io"
 	"os"
 	"rune/pkg/ast"
-	"rune/pkg/callable"
 	"rune/pkg/environment"
+	"rune/pkg/stdlib"
 	"rune/pkg/value"
+	"sync"
 )
 
 // maxRecursionDepth caps nested calls; 10k frames take ~40MB of memory.
@@ -37,6 +38,7 @@ type Interpreter struct {
 	environment    *environment.Environment
 	globals        *environment.Globals
 	pool           environment.Pool
+	frames         stdlib.Frames
 	returnValue    value.Value
 	recursionDepth int
 	maxRecursion   int
@@ -48,18 +50,14 @@ type Interpreter struct {
 
 func NewInterpreter() *Interpreter {
 	p := &Interpreter{
-		globals:      environment.NewGlobals(),
+		globals:      environment.NewGlobals(len(builtinSlots())),
 		maxRecursion: maxRecursionDepth,
 		dest:         os.Stdout,
 	}
 
-	// Global functions.
-	p.registerGlobalCallable("clock", callable.NewClockCallable())
-	p.registerGlobalCallable("len", callable.NewLenCallable())
-	p.registerGlobalCallable("append", callable.NewAppendCallable())
-	p.registerGlobalCallable("push", callable.NewPushCallable())
-	p.registerGlobalCallable("pop", callable.NewPopCallable())
-	p.registerGlobalCallable("json", callable.NewJsonCallable())
+	for i, slot := range builtinSlots() {
+		p.globals.Define(slot, stdlib.Builtins[i].Value)
+	}
 
 	return p
 }
@@ -83,9 +81,15 @@ func (p *Interpreter) flush() {
 	}
 }
 
-func (p *Interpreter) registerGlobalCallable(name string, fn callable.Callable) {
-	p.globals.Define(environment.GlobalSlot(name), value.NewFunction(fn))
-}
+// builtinSlots[i] is the global slot of stdlib.Builtins[i].
+var builtinSlots = sync.OnceValue(func() []int {
+	slots := make([]int, len(stdlib.Builtins))
+	for i, b := range stdlib.Builtins {
+		slots[i] = environment.GlobalSlot(b.Name)
+	}
+
+	return slots
+})
 
 func EvaluateExpr(expr ast.Expr) (value.Value, error) {
 	p := NewInterpreter()

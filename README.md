@@ -103,6 +103,29 @@ Rune provides several built-in functions:
 - **`json(url)`** — Fetches and parses JSON from a URL (object, array or primitive); network, HTTP status and parse errors are reported as runtime errors.
 - **`clock()`** — Returns the current time in seconds (with sub-second precision).
 
+### Math
+
+`floor(x)`, `ceil(x)`, `round(x)`, `abs(x)`, `sqrt(x)`, `pow(x, y)`, `min(a, ...)`, `max(a, ...)`, `random()` (in `[0, 1)`), constants `PI` and `INF`.
+
+### Strings
+
+`split(s, sep)` (`""` splits into characters), `join(arr, sep)`, `upper(s)`, `lower(s)`, `trim(s)`, `startsWith(s, p)`, `endsWith(s, p)`, `replace(s, old, new)` (all occurrences), `repeat(s, n)`.
+
+### Arrays and strings
+
+- `map(arr, f)`, `filter(arr, f)`, `reduce(arr, f[, init])` — return new values; `f` may be any function, built-ins included.
+- `sort(arr[, cmp])` — sorts **in place** and returns `arr`; stable. Without `cmp` the elements must be all numbers or all strings; `cmp(a, b) < 0` puts `a` first.
+- `range(end)`, `range(start, end[, step])` — array of numbers.
+- `slice(x, start[, end])`, `reverse(x)`, `contains(x, item)`, `indexOf(x, item)` — work on arrays and strings; string indices count characters, negative slice bounds count from the end.
+
+```javascript
+var people = [{name: "bob", age: 25}, {name: "ann", age: 31}];
+sort(people, fun (a, b) { return a.age - b.age; });
+print join(map(people, fun (p) { return p.name; }), ", "); // bob, ann
+```
+
+Built-ins are ordinary globals, so a program may redefine them.
+
 ## Performance
 
 Before running, the resolved AST is compiled into a tree of Go closures, so each node costs one indirect call and the decisions that depend only on the source are taken once. In particular:
