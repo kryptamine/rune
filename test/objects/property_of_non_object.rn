@@ -1,0 +1,2 @@
+var n = 1;
+print n.size; // expect runtime error: [line: 2] Cannot read property 'size' of number.

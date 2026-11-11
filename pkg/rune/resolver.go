@@ -33,10 +33,13 @@ type Resolver struct {
 	loopDepth int
 	functions int
 	errors    []error
+	// globals records the top-level declarations seen so far; false while
+	// the declaration's initializer is being resolved.
+	globals map[string]bool
 }
 
 func NewResolver() *Resolver {
-	return &Resolver{}
+	return &Resolver{globals: map[string]bool{}}
 }
 
 // ResolveStmts resolves a whole program and returns all errors found.
@@ -73,6 +76,8 @@ func (p *Resolver) VisitVarExpr(expr *ast.VarExpr) (value.Value, error) {
 		if l, exists := p.peekScope().vars[expr.Name.Lexeme]; exists && !l.defined {
 			p.error(expr.Name, "Cannot read local variable in its own initializer.")
 		}
+	} else if defined, exists := p.globals[expr.Name.Lexeme]; exists && !defined {
+		p.error(expr.Name, "Cannot read global variable in its own initializer.")
 	}
 
 	expr.Depth, expr.Slot = p.resolveLocal(expr.Name)
@@ -360,6 +365,12 @@ func (p *Resolver) resolveFn(fn *ast.FunctionStmt) {
 // top level it returns the name's global slot and local is false.
 func (p *Resolver) declare(name ast.Token) (local bool, slot int) {
 	if p.isScopesEmpty() {
+		if _, exists := p.globals[name.Lexeme]; exists {
+			p.error(name, "Variable with this name already declared in this scope.")
+		}
+
+		p.globals[name.Lexeme] = false
+
 		return false, environment.GlobalSlot(name.Lexeme)
 	}
 
@@ -378,6 +389,7 @@ func (p *Resolver) declare(name ast.Token) (local bool, slot int) {
 
 func (p *Resolver) define(name ast.Token) {
 	if p.isScopesEmpty() {
+		p.globals[name.Lexeme] = true
 		return
 	}
 

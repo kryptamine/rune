@@ -1,0 +1,4 @@
+print 1;
+print "starts here // [line: 2] Error: Unterminated string.
+and never
+ends

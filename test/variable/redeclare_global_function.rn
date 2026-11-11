@@ -1,0 +1,2 @@
+fun f() {}
+fun f() {} // [line: 2] Error at 'f': Variable with this name already declared in this scope.

@@ -1,8 +1,10 @@
 package main
 
 import (
+	stderrors "errors"
 	"fmt"
 	"os"
+	"rune/pkg/errors"
 	"rune/pkg/helpers"
 	"rune/pkg/rune"
 	"strings"
@@ -65,13 +67,13 @@ func evaluate(fileContents []byte) int {
 
 	expr, err := rune.ParseExpr(tokens)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+		printError(err)
 		return exitCodeParseError
 	}
 
 	result, err := rune.EvaluateExpr(expr)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+		printError(err)
 		return exitCodeEvalError
 	}
 
@@ -79,16 +81,30 @@ func evaluate(fileContents []byte) int {
 	return exitCodeOk
 }
 
+var source string
+
 func printErrors(errs []error) {
 	for _, err := range errs {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+		printError(err)
 	}
+}
+
+func printError(err error) {
+	fmt.Fprint(os.Stderr, errors.Report(err, source))
 }
 
 func run(fileContents []byte) int {
 	// The scanner skips bad characters, so the parser can still run and
 	// report its own errors alongside the scanner's.
 	tokens, scanErrors := rune.Scan(fileContents)
+
+	for _, err := range scanErrors {
+		if stderrors.Is(err, rune.ErrUnterminatedString) {
+			printErrors(scanErrors)
+			return exitCodeParseError
+		}
+	}
+
 	stmts, parseErrors := rune.ParseStmts(tokens)
 
 	if len(scanErrors) > 0 || len(parseErrors) > 0 {
@@ -107,7 +123,7 @@ func run(fileContents []byte) int {
 	}
 
 	if err := interpreter.EvaluateStmts(stmts); err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+		printError(err)
 		return exitCodeEvalError
 	}
 
@@ -143,6 +159,8 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error reading file: %v\n", err)
 		os.Exit(exitCodeError)
 	}
+
+	source = string(fileContents)
 
 	switch command {
 	case "tokenize":

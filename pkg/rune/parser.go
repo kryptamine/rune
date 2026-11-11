@@ -815,6 +815,7 @@ func (s *Parser) primary() (ast.Expr, error) {
 	// Parse object literal
 	if s.match(ast.LEFT_BRACE) {
 		var pairs []ast.ObjectPair
+		seen := map[string]bool{}
 
 		for !s.check(ast.RIGHT_BRACE) && !s.isAtEnd() {
 			// Parse key (an identifier or a string)
@@ -828,6 +829,13 @@ func (s *Parser) primary() (ast.Expr, error) {
 			default:
 				return nil, errors.NewSyntaxError(s.peek(), "Expect property name.")
 			}
+
+			// Report but keep parsing: the parser is not in a confused state.
+			if seen[key] {
+				s.errors = append(s.errors, errors.NewSyntaxError(s.previous(), "Duplicate property name."))
+			}
+
+			seen[key] = true
 
 			// Expect ':' after key
 			_, err := s.consume(ast.COLON, "Expect ':' after property name.")
@@ -889,7 +897,10 @@ func (s *Parser) primary() (ast.Expr, error) {
 		keyword := s.advance()
 		s.advance()
 
-		decl, err := s.functionRest(ast.NewToken(ast.FUN, "", "", keyword.Line))
+		name := ast.NewToken(ast.FUN, "", "", keyword.Line)
+		name.Col = keyword.Col
+
+		decl, err := s.functionRest(name)
 		if err != nil {
 			return nil, err
 		}

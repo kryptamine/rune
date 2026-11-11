@@ -167,7 +167,7 @@ class Test:
                         self.fail("Unexpected error:")
                         self.fail(line)
                     num_unexpected += 1
-            elif line != "":
+            elif line != "" and not line.startswith(" "):
                 if num_unexpected < 10:
                     self.fail("Unexpected output on stderr:")
                     self.fail(line)

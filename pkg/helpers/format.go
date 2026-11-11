@@ -33,9 +33,42 @@ func TypeName(v value.Value) string {
 }
 
 // Stringify renders a runtime value the way the language prints it.
+// Strings inside containers are quoted, so ["1", 1] and [1, 1] differ.
 // A container that contains itself is printed as [...] or {...}.
 func Stringify(v value.Value) string {
 	return stringify(v, nil)
+}
+
+func formatNumber(buf []byte, n float64) []byte {
+	if n == 0 {
+		n = 0 // -0 prints as 0
+	}
+
+	return strconv.AppendFloat(buf, n, 'f', -1, 64)
+}
+
+var quoter = strings.NewReplacer(`\`, `\\`, `"`, `\"`, "\n", `\n`, "\t", `\t`, "\r", `\r`)
+
+// quote writes s as a string literal the scanner accepts.
+func quote(s string) string { return `"` + quoter.Replace(s) + `"` }
+
+func isIdentifier(s string) bool {
+	for i, r := range s {
+		if !IsAlpha(r) && (i == 0 || !IsDigit(r)) {
+			return false
+		}
+	}
+
+	return s != ""
+}
+
+// element renders a value nested in a container.
+func element(v value.Value, seen map[uintptr]bool) string {
+	if v.IsString() {
+		return quote(v.Str())
+	}
+
+	return stringify(v, seen)
 }
 
 // stringify tracks the containers on the current path in seen, so shared
@@ -47,7 +80,7 @@ func stringify(v value.Value, seen map[uintptr]bool) string {
 	case value.Bool:
 		return strconv.FormatBool(v.Bool())
 	case value.Number:
-		return strconv.FormatFloat(v.Num(), 'f', -1, 64)
+		return string(formatNumber(nil, v.Num()))
 	case value.String:
 		return v.Str()
 	case value.Array:
@@ -70,7 +103,7 @@ func stringify(v value.Value, seen map[uintptr]bool) string {
 
 		items := make([]string, len(arr))
 		for i, item := range arr {
-			items[i] = stringify(item, seen)
+			items[i] = element(item, seen)
 		}
 
 		return "[" + strings.Join(items, ", ") + "]"
@@ -90,7 +123,12 @@ func stringify(v value.Value, seen map[uintptr]bool) string {
 
 		pairs := make([]string, 0, len(obj))
 		for _, key := range slices.Sorted(maps.Keys(obj)) {
-			pairs = append(pairs, key+": "+stringify(obj[key], seen))
+			name := key
+			if !isIdentifier(key) {
+				name = quote(key)
+			}
+
+			pairs = append(pairs, name+": "+element(obj[key], seen))
 		}
 
 		return "{" + strings.Join(pairs, ", ") + "}"
@@ -102,7 +140,7 @@ func stringify(v value.Value, seen map[uintptr]bool) string {
 func AppendValue(buf []byte, v value.Value) []byte {
 	switch v.Kind() {
 	case value.Number:
-		return strconv.AppendFloat(buf, v.Num(), 'f', -1, 64)
+		return formatNumber(buf, v.Num())
 	case value.String:
 		return append(buf, v.Str()...)
 	case value.Bool:

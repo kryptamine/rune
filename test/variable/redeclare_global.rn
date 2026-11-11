@@ -1,3 +1,2 @@
 var a = "1";
-var a;
-print a; // expect: nil
+var a; // [line: 2] Error at 'a': Variable with this name already declared in this scope.

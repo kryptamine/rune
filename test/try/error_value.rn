@@ -1,0 +1,12 @@
+try {
+  [][0];
+} catch (e) {
+  print e.message; // expect: Index out of bounds: 0 of 0
+  print e.line; // expect: 2
+}
+
+try {
+  throw "custom";
+} catch (e) {
+  print e; // expect: custom
+}

@@ -1,5 +1,5 @@
-print split("a,b,c", ","); // expect: [a, b, c]
-print split("héj", ""); // expect: [h, é, j]
+print split("a,b,c", ","); // expect: ["a", "b", "c"]
+print split("héj", ""); // expect: ["h", "é", "j"]
 print join([1, "b", true], "-"); // expect: 1-b-true
 print join([], ","); // expect: 
 print upper("abc"); // expect: ABC

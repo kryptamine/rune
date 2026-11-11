@@ -3,6 +3,7 @@ try {
   print 1 + "a";
   print "not reached";
 } catch (err) {
-  print err; // expect: Operands must be two numbers or two strings.
+  print err.message; // expect: Operands must be two numbers or two strings.
+  print err.line; // expect: 3
 }
 print "after"; // expect: after

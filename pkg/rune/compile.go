@@ -48,6 +48,14 @@ func (c *Closure) String() string {
 	return fmt.Sprintf("<fn %s>", c.fn.name)
 }
 
+func (f *function) displayName() string {
+	if f.name == "" {
+		return "<anonymous>"
+	}
+
+	return f.name
+}
+
 func compileFunction(decl *ast.FunctionStmt) *function {
 	return &function{
 		name:    decl.Name.Lexeme,
@@ -771,9 +779,9 @@ func compileCond(expr ast.Expr) condFn {
 					return compareNumbers(opType, l.Num(), r), nil
 				}
 
-				_, err = binaryOp(op, l, rc)
+				v, err := binaryOp(op, l, rc)
 
-				return false, err
+				return v.Bool(), err
 			}
 		}
 
@@ -794,9 +802,9 @@ func compileCond(expr ast.Expr) condFn {
 				return compareNumbers(opType, l.Num(), r.Num()), nil
 			}
 
-			_, err = binaryOp(op, l, r)
+			v, err := binaryOp(op, l, r)
 
-			return false, err
+			return v.Bool(), err
 		}
 
 	case *ast.LogicalExpr:

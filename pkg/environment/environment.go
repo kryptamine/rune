@@ -156,6 +156,9 @@ func (g *Globals) Assign(slot int, token *ast.Token, v value.Value) error {
 	return nil
 }
 
+// Kept out of line so Get and Assign stay cheap enough to inline.
+//
+//go:noinline
 func undefined(token ast.Token) error {
 	return errors.NewRuntimeError(token, fmt.Sprintf("Undefined variable '%s'.", token.Lexeme))
 }
