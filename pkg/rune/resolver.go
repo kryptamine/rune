@@ -45,6 +45,8 @@ type Resolver struct {
 	// builtins holds a declaration for each built-in the program names
 	// without declaring it.
 	builtins map[string]*ast.Local
+	// structs holds every struct declaration up front, by its name's declaration.
+	structs map[*ast.Local]*ast.StructStmt
 }
 
 func NewResolver() *Resolver {
@@ -53,6 +55,7 @@ func NewResolver() *Resolver {
 		globalMutable: map[string]bool{},
 		topLevel:      map[string]*ast.Local{},
 		builtins:      map[string]*ast.Local{},
+		structs:       map[*ast.Local]*ast.StructStmt{},
 	}
 }
 
@@ -66,6 +69,11 @@ func (p *Resolver) ResolveStmts(stmts []ast.Stmt) []error {
 		case *ast.FunctionStmt:
 			p.globalMutable[s.Name.Lexeme] = false
 			p.topLevel[s.Name.Lexeme] = &ast.Local{TopLevel: true}
+		case *ast.StructStmt:
+			p.globalMutable[s.Name.Lexeme] = false
+			l := &ast.Local{TopLevel: true}
+			p.topLevel[s.Name.Lexeme] = l
+			p.structs[l] = s
 		}
 	}
 
@@ -213,6 +221,54 @@ func (p *Resolver) VisitFunctionStmt(fnStmt *ast.FunctionStmt) error {
 	p.resolveFn(fnStmt)
 
 	return nil
+}
+
+func (p *Resolver) VisitStructStmt(stmt *ast.StructStmt) error {
+	if !p.isScopesEmpty() {
+		p.error(stmt.Name, "Structs must be declared at the top level.")
+		return nil
+	}
+
+	stmt.Local = p.declare(ast.Binding{Name: stmt.Name})
+	p.define(stmt.Name)
+
+	return nil
+}
+
+func (p *Resolver) VisitStructExpr(expr *ast.StructExpr) (value.Value, error) {
+	for _, pair := range expr.Pairs {
+		p.resolveExpr(pair.Value)
+	}
+
+	expr.Local = p.resolveLocal(expr.Name)
+
+	decl := p.structs[expr.Local]
+	if decl == nil {
+		p.error(expr.Name, "'"+expr.Name.Lexeme+"' is not a struct.")
+		return value.NilValue, nil
+	}
+
+	expr.Decl = decl
+	given := make([]bool, len(decl.Fields))
+
+	for i, pair := range expr.Pairs {
+		slot := decl.Slot(pair.Key.Lexeme)
+		if slot < 0 {
+			p.error(pair.Key, decl.Name.Lexeme+" has no field '"+pair.Key.Lexeme+"'.")
+			continue
+		}
+
+		expr.Pairs[i].Slot = slot
+		given[slot] = true
+	}
+
+	for i, f := range decl.Fields {
+		if !given[i] && f.Default == nil {
+			p.error(expr.Name, "Missing field '"+f.Name.Lexeme+"' of "+decl.Name.Lexeme+".")
+		}
+	}
+
+	return value.NilValue, nil
 }
 
 func (p *Resolver) VisitReturnStmt(returnStmt *ast.ReturnStmt) error {

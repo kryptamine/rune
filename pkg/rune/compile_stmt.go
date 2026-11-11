@@ -48,6 +48,7 @@ func (fs *funcState) stmt(stmt ast.Stmt) {
 		fs.tryStmt(s)
 	case *ast.ThrowStmt:
 		fs.emit(ins{op: opThrow, a: fs.exprAny(s.Value)}, &s.Keyword)
+	case *ast.StructStmt:
 	case *ast.BreakStmt:
 		l := fs.leaveLoop()
 		l.breaks = append(l.breaks, fs.emit(ins{op: opJmp}, nil))

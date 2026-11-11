@@ -1,0 +1,3 @@
+[line: 1] Error at 'x': Duplicate field name.
+    1 | struct Point { x, y, x } // [line: 1] Error at 'x': Duplicate field name.
+      |                      ^

@@ -1,0 +1,3 @@
+[line: 4] Error at 'p': Cannot mutate immutable variable 'p'.
+    4 | p.x = 3; // [line: 4] Error at 'p': Cannot mutate immutable variable 'p'.
+      | ^

@@ -1,0 +1,12 @@
+exit: 0
+-- stdout --
+<script>: arity 0, 4 registers, 0 upvalues
+    0  LOADK         0 0 0
+    1  LOADK         1 0 1
+    2  LOADK         3 0 2
+    3  LOADK         2 0 3
+    4  STRUCT        1 2 0
+    5  GETPROP       2 1 4
+    6  PRINT         2 0 0
+    7  RETURNNIL     0 0 0
+-- stderr --

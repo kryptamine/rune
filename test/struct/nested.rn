@@ -1,0 +1,12 @@
+struct Point { x, y }
+struct Line { from, to }
+
+let l = Line { from: Point { x: 0, y: 0 }, to: Point { x: 3, y: 4 } };
+print l; // expect: Line {from: Point {x: 0, y: 0}, to: Point {x: 3, y: 4}}
+print l.to.y; // expect: 4
+
+let ps = [Point { x: 1, y: 1 }, Point { x: 2, y: 2 }];
+print ps[1].x; // expect: 2
+
+let o = { "p": Point { x: 5, y: 6 } };
+print o.p.y; // expect: 6

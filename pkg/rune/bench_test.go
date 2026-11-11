@@ -16,6 +16,9 @@ var benchSources = map[string]string{
 	"locals":  `fun run() { let mut s = 0; for (i in 0..100000) { s = s + i % 7; } return s; } run();`,
 	"strings": `let mut s = ""; for (i in 0..1000) { s = s + "ab"; } let mut n = 0; for (c in s) { if (c == "a") n += 1; }`,
 	"objects": `let mut o = {x: 0, y: 0}; for (i in 0..20000) { o.x = o.x + 1; o["y"] += o.x; }`,
+	"structs": `struct P { x, y, z } let mut s = 0; let mut p = P { x: 1, y: 2, z: 3 }; for (i in 0..20000) { p = P { x: p.x + 1, y: p.y, z: p.z }; s += p.z + p.y; }`,
+	"fields":  `let p = {x: 1, y: 2, z: 3}; let mut s = 0; for (i in 0..50000) { s += p.x + p.y + p.z; }`,
+	"sfields": `struct P { x, y, z } let p = P { x: 1, y: 2, z: 3 }; let mut s = 0; for (i in 0..50000) { s += p.x + p.y + p.z; }`,
 }
 
 func BenchmarkPrograms(b *testing.B) {

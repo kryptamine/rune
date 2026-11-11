@@ -1,0 +1,10 @@
+struct A { x, y }
+struct B { y, x, z = 0 }
+
+let a = A { x: 1, y: 2 };
+let b = B { x: 3, y: 4 };
+
+fun sum(s) { return s.x * 10 + s.y; }
+print sum(a); // expect: 12
+print sum(b); // expect: 34
+print b.z; // expect: 0

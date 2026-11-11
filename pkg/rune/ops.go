@@ -100,6 +100,28 @@ func undefinedProperty(token *ast.Token, key string) error {
 	return errors.NewRuntimeError(*token, fmt.Sprintf("Undefined property '%s'.", key))
 }
 
+func undefinedField(token *ast.Token, target value.Value, key string) error {
+	return errors.NewRuntimeError(*token, fmt.Sprintf("%s has no field '%s'.", target.Shape().Name, key))
+}
+
+func immutableField(token *ast.Token, target value.Value, key string) error {
+	return errors.NewRuntimeError(*token, fmt.Sprintf(
+		"Cannot set field '%s' of %s: structs are immutable.", key, target.Shape().Name))
+}
+
+// propertyTarget fails unless target can have a property set, as only
+// an object can.
+func propertyTarget(token *ast.Token, target value.Value) error {
+	switch target.Kind() {
+	case value.Object:
+		return nil
+	case value.Struct:
+		return immutableField(token, target, token.Lexeme)
+	default:
+		return propertyError("set", token, target)
+	}
+}
+
 // propertyError is the error of obj.name (verb "read") or obj.name = v
 // ("set") on a target that is not an object.
 func propertyError(verb string, token *ast.Token, target value.Value) error {
@@ -139,10 +161,22 @@ func getIndex(token *ast.Token, target, index value.Value) (value.Value, error) 
 		}
 
 		return v, nil
+
+	case value.Struct:
+		if !index.IsString() {
+			return value.NilValue, errors.NewRuntimeError(*token, "Struct fields must be accessed with string keys.")
+		}
+
+		i := target.Shape().Index(index.Str())
+		if i < 0 {
+			return value.NilValue, undefinedField(token, target, index.Str())
+		}
+
+		return target.Fields()[i], nil
 	}
 
 	return value.NilValue, errors.NewRuntimeError(*token, fmt.Sprintf(
-		"Can only index arrays, strings and objects, got %s.", helpers.TypeName(target)))
+		"Can only index arrays, strings, objects and structs, got %s.", helpers.TypeName(target)))
 }
 
 func setIndex(token *ast.Token, target, index, v value.Value) error {
@@ -169,9 +203,16 @@ func setIndex(token *ast.Token, target, index, v value.Value) error {
 	case value.String:
 		return errors.NewRuntimeError(*token, "Strings are immutable.")
 
+	case value.Struct:
+		if !index.IsString() {
+			return errors.NewRuntimeError(*token, "Struct fields must be accessed with string keys.")
+		}
+
+		return immutableField(token, target, index.Str())
+
 	default:
 		return errors.NewRuntimeError(*token, fmt.Sprintf(
-			"Can only index arrays, strings and objects, got %s.", helpers.TypeName(target)))
+			"Can only index arrays, strings, objects and structs, got %s.", helpers.TypeName(target)))
 	}
 }
 

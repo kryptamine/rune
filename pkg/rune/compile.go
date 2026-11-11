@@ -26,6 +26,15 @@ type funcState struct {
 	// defined holds the top-level variables whose declaration the script
 	// has passed, so reading them needs no check.
 	defined map[*ast.Local]bool
+	unit    *unit
+}
+
+// unit is what the functions of a program share: the struct types, and
+// each field name's one string, which constants equal to it reuse so the
+// VM can match a field by pointer.
+type unit struct {
+	shapes map[*ast.StructStmt]*value.Shape
+	names  map[string]string
 }
 
 type loop struct {
@@ -44,6 +53,7 @@ type constKey struct {
 // made for the built-ins it names.
 func compile(stmts []ast.Stmt, builtins map[string]*ast.Local) (*Program, error) {
 	return compileMain(func(fs *funcState) {
+		fs.declareStructs(stmts)
 		fs.declareTopLevel(stmts, builtins)
 		fs.stmts(stmts)
 		fs.emit(ins{op: opReturnNil}, nil)
@@ -87,13 +97,48 @@ func (fs *funcState) finish() {
 }
 
 func newFunc(parent *funcState, name string) *funcState {
-	return &funcState{
+	fs := &funcState{
 		parent:  parent,
 		proto:   &Proto{name: name},
 		locals:  map[*ast.Local]int32{},
 		upvals:  map[*ast.Local]int32{},
 		consts:  map[constKey]int32{},
 		defined: map[*ast.Local]bool{},
+	}
+
+	if parent != nil {
+		fs.unit = parent.unit
+	} else {
+		fs.unit = &unit{shapes: map[*ast.StructStmt]*value.Shape{}, names: map[string]string{}}
+	}
+
+	return fs
+}
+
+// declareStructs makes the struct types and binds their names, before any
+// constant is made.
+func (fs *funcState) declareStructs(stmts []ast.Stmt) {
+	for _, stmt := range stmts {
+		s, ok := stmt.(*ast.StructStmt)
+		if !ok {
+			continue
+		}
+
+		fields := make([]string, len(s.Fields))
+		for i, f := range s.Fields {
+			name, ok := fs.unit.names[f.Name.Lexeme]
+			if !ok {
+				name = f.Name.Lexeme
+				fs.unit.names[name] = name
+			}
+
+			fields[i] = name
+		}
+
+		shape := value.NewShape(s.Name.Lexeme, fields)
+		fs.unit.shapes[s] = shape
+		fs.declareAs(s.Local, value.NewType(shape))
+		fs.defined[s.Local] = true
 	}
 }
 
@@ -223,7 +268,10 @@ func (fs *funcState) constant(v value.Value) int32 {
 		key.num = boolNum(v.Bool())
 	case value.String:
 		key.str = v.Str()
-	case value.Function:
+		if name, ok := fs.unit.names[key.str]; ok {
+			v = value.NewString(name)
+		}
+	case value.Function, value.Type:
 		key.ptr = v.Ptr()
 	}
 

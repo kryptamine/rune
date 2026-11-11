@@ -17,6 +17,7 @@ Rune is a dynamically typed interpreted programming language inspired by [Lox](h
 - String escapes: `\n`, `\t`, `\r`, `\"`, `\\`
 - Number literals with exponents: `1e3`, `2.5E-2`
 - Object property access with `obj.name` as sugar for `obj["name"]`
+- Immutable structs with required and default fields: `struct Point { x, y = 0 }`
 - Strings compare with `<`, `<=`, `>`, `>=` and index by character: `"héllo"[1]` is `"é"`
 - Error handling with `try`/`catch` and `throw`
 - Two loops only: `while` and `for (x in ...)` over arrays, strings, objects and ranges (`a..b`)
@@ -173,6 +174,39 @@ push(b, 3);
 print a; // [1, 2, 3]
 ```
 
+## Structs
+
+A struct is a named record with a fixed set of fields. Fields without a
+default are required; a default must be a literal. Structs are declared at
+the top level only and can be used before their declaration.
+
+```javascript
+struct Point { x, y = 0 }
+
+let p = Point { x: 1 };
+print p;      // Point {x: 1, y: 0}
+print p.x;    // 1
+print p["y"]; // 0
+
+Point { x: 1, z: 2 }; // Error at 'z': Point has no field 'z'.
+Point { y: 2 };       // Error at 'Point': Missing field 'x' of Point.
+```
+
+Fields are immutable, whatever the variable: `p.x = 2` is a runtime error.
+To change a field, build a new struct; `let mut` only lets the variable be
+rebound to it. An array or object held in a field stays mutable.
+
+```javascript
+let mut q = Point { x: 1, y: 2 };
+q = Point { x: q.x + 1, y: q.y };
+q.x = 5; // Cannot set field 'x' of Point: structs are immutable.
+```
+
+`==` compares structs field by field and only if they are of the same
+struct, so `Point { x: 1, y: 2 } == { "x": 1, "y": 2 }` is `false`.
+`for (k, v in p)` walks the fields in declaration order. Reading a field
+that does not exist is a runtime error.
+
 ## Built-in Functions
 
 Rune provides several built-in functions:
@@ -214,6 +248,7 @@ Before running, the resolved AST is compiled to bytecode for a register machine,
 - a call pushes a frame onto one shared register stack, so it allocates nothing;
 - comparisons in `if` and loop conditions jump directly; constant operands and literal expressions are folded; loops test their condition at the bottom;
 - a value is two words: numbers, booleans and strings are stored inline and never allocate;
+- a struct is one allocation of its fields; the compiler interns field names, so `p.x` finds the field by pointer, with no hashing or string comparison;
 - `print` output is buffered and flushed when the program ends (also on a runtime error).
 
 `rune disasm file.rn` prints the bytecode. Benchmarks: `make bench`.

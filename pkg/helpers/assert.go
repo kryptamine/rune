@@ -11,7 +11,7 @@ type refPair struct{ l, r uintptr }
 // everything else (including arrays, objects and functions) is truthy.
 func IsTruthy(v value.Value) bool { return v.Truthy() }
 
-// IsEqual compares arrays and objects structurally and everything else by value
+// IsEqual compares arrays, objects and structs structurally and everything else by value
 // (functions by identity). Values of different kinds are never equal.
 func IsEqual(left, right value.Value) bool {
 	return isEqual(left, right, nil)
@@ -86,6 +86,33 @@ func isEqual(left, right value.Value, seen map[refPair]bool) bool {
 		}
 
 		return true
+	case value.Struct:
+		if left.Shape() != right.Shape() {
+			return false
+		}
+
+		pair := refPair{uintptr(left.Ptr()), uintptr(right.Ptr())}
+		if pair.l == pair.r || seen[pair] {
+			return true
+		}
+
+		if seen == nil {
+			seen = map[refPair]bool{}
+		}
+
+		seen[pair] = true
+		defer delete(seen, pair)
+
+		r := right.Fields()
+		for i, lv := range left.Fields() {
+			if !isEqual(lv, r[i], seen) {
+				return false
+			}
+		}
+
+		return true
+	case value.Type:
+		return left.Ptr() == right.Ptr()
 	default:
 		return left.Fn() == right.Fn()
 	}

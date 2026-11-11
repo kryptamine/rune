@@ -1,0 +1,3 @@
+struct T { a = -1, b = (2), c = "s" }
+
+print T {}; // expect: T {a: -1, b: 2, c: "s"}

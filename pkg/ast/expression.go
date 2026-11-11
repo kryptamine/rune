@@ -21,6 +21,7 @@ type ExprVisitor interface {
 	VisitFunctionExpr(functionExpr *FunctionExpr) (value.Value, error)
 	VisitUpdateExpr(updateExpr *UpdateExpr) (value.Value, error)
 	VisitRangeExpr(rangeExpr *RangeExpr) (value.Value, error)
+	VisitStructExpr(structExpr *StructExpr) (value.Value, error)
 }
 
 type Expr interface {
@@ -196,6 +197,31 @@ func NewFunctionExpr(decl *FunctionStmt) Expr {
 
 func (n *FunctionExpr) Accept(v ExprVisitor) (value.Value, error) {
 	return v.VisitFunctionExpr(n)
+}
+
+// StructPair is a "field: value" entry of a struct literal; the resolver
+// sets Slot, the field's index in the declaration.
+type StructPair struct {
+	Key   Token
+	Value Expr
+	Slot  int
+}
+
+// StructExpr is a struct literal, Point { x: 1 }; the resolver sets Local
+// and Decl.
+type StructExpr struct {
+	Name  Token
+	Pairs []StructPair
+	Local *Local
+	Decl  *StructStmt
+}
+
+func NewStructExpr(name Token, pairs []StructPair) Expr {
+	return &StructExpr{Name: name, Pairs: pairs}
+}
+
+func (n *StructExpr) Accept(v ExprVisitor) (value.Value, error) {
+	return v.VisitStructExpr(n)
 }
 
 // ObjectPair is a single "key: value" entry of an object literal.

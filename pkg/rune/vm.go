@@ -294,7 +294,13 @@ reload:
 			goto slow
 
 		case opGetProp:
-			if t := regs[in.b()]; t.Kind() == value.Object {
+			t := regs[in.b()]
+			if k := t.Kind(); k == value.Struct {
+				if v, ok := t.InternedField(consts[in.c()]); ok {
+					regs[in.a()] = v
+					continue
+				}
+			} else if k == value.Object {
 				fr.pc = pc
 				dst := &regs[in.a()]
 
@@ -506,23 +512,32 @@ func (p *Interpreter) slow(in Instr) error {
 
 		return err
 
+	case opStruct:
+		v, fields := value.NewStruct(consts[in.c()].TypeShape())
+		copy(fields, regs[in.b():])
+		regs[in.a()] = v
+
 	case opGetProp:
-		if t := regs[in.b()]; t.Kind() != value.Object {
+		switch t := regs[in.b()]; t.Kind() {
+		case value.Object:
+			return undefinedProperty(tok, consts[in.c()].Str())
+		case value.Struct:
+			v, err := getIndex(tok, t, consts[in.c()])
+			if err == nil {
+				regs[in.a()] = v
+			}
+
+			return err
+		default:
 			return propertyError("read", tok, t)
 		}
-
-		return undefinedProperty(tok, consts[in.c()].Str())
 
 	case opSetIndex:
 		return setIndex(tok, regs[in.a()], regs[in.b()], regs[in.c()])
 
-	case opSetProp:
-		return propertyError("set", tok, regs[in.a()])
-
-	case opCheckProp:
-		if t := regs[in.a()]; t.Kind() != value.Object {
-			return propertyError("set", tok, t)
-		}
+	case opSetProp, opCheckProp:
+		// SetProp gets here only for a target that is not an object.
+		return propertyTarget(tok, regs[in.a()])
 
 	case opRange:
 		r, err := rangeOf(regs[in.b():], in.x() != 0, tok)

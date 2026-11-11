@@ -1,0 +1,9 @@
+struct Point { x, y }
+
+let p = Point { x: 1, y: 2 };
+print p; // expect: Point {x: 1, y: 2}
+print p.x; // expect: 1
+print p["y"]; // expect: 2
+
+let q = Point { y: "b", x: "a" };
+print q; // expect: Point {x: "a", y: "b"}

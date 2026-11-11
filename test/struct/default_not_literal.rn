@@ -1,0 +1,1 @@
+struct Point { x = 1 + 2, y } // [line: 1] Error at '1': Field default must be a literal.

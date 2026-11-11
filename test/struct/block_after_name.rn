@@ -1,0 +1,4 @@
+let mut x = 0;
+while (x < 1) { x = x + 1; }
+if (x) { print "block"; } // expect: block
+for (k in [1]) { print k; } // expect: 1

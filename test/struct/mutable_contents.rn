@@ -1,0 +1,5 @@
+struct Box { items }
+
+let mut b = Box { items: [1] };
+push(b.items, 2);
+print b; // expect: Box {items: [1, 2]}
