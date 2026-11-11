@@ -1,0 +1,4 @@
+[line: 1] Error at '_lib': Import cycle: _lib/cycle_a.rn -> _lib/cycle_b.rn -> _lib/cycle_a.rn.
+  --> _lib/cycle_b.rn:1:8
+    1 | import _lib.cycle_a;
+      |        ^

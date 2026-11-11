@@ -6,10 +6,11 @@ import (
 	"rune/pkg/value"
 )
 
-// Frame is a call the error unwound through: the function and the line it
-// was called from.
+// Frame is a call the error unwound through: the function and the place
+// it was called from.
 type Frame struct {
 	Name   string
+	File   int
 	Line   int
 	Native bool
 }
@@ -36,7 +37,9 @@ func (e RuntimeError) Error() string {
 
 func (e RuntimeError) Fatal() bool { return e.kind == nil && !e.thrown }
 
-func (e RuntimeError) Pos() (line, col int) { return e.token.Line, e.token.Col }
+func (e RuntimeError) Pos() (file, line, col int) {
+	return e.token.File, e.token.Line, e.token.Col
+}
 
 // Value is what a catch clause binds: the thrown value for a throw, or a
 // struct of the error's kind for an error raised by the language.
@@ -52,7 +55,7 @@ func (e RuntimeError) Value() value.Value {
 	return v
 }
 
-// WithFrame records that the error left fn, called from line.
+// WithFrame records that the error left a call.
 func (e RuntimeError) WithFrame(f Frame) RuntimeError {
 	e.frames = append(e.frames, f)
 	return e

@@ -4,14 +4,15 @@ import (
 	"io"
 	"rune/pkg/errors"
 	"testing"
+	"testing/fstest"
 )
 
 func report(t *testing.T, src string) string {
 	t.Helper()
 
-	prog, errs := Load([]byte(src))
+	prog, files, errs := Load(fstest.MapFS{"main.rn": {Data: []byte(src)}}, "main.rn")
 	if len(errs) > 0 {
-		return errors.Report(errs[0], src)
+		return errors.Report(errs[0], files)
 	}
 
 	p := NewInterpreter()
@@ -22,7 +23,7 @@ func report(t *testing.T, src string) string {
 		t.Fatal("expected an error")
 	}
 
-	return errors.Report(err, src)
+	return errors.Report(err, files)
 }
 
 func TestReport(t *testing.T) {

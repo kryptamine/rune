@@ -12,6 +12,7 @@ type localVar struct {
 	defined bool
 	mutable bool
 	local   *ast.Local
+	name    ast.Token
 }
 
 // Scope maps a local's name to its declaration; fnDepth is the nesting
@@ -646,17 +647,17 @@ func (p *Resolver) resolveFn(fn *ast.FunctionStmt) {
 func (p *Resolver) declare(b ast.Binding) *ast.Local {
 	name := b.Name
 
-	if _, exists := p.innermost()[name.Lexeme]; exists {
-		p.error(name, "Variable with this name already declared in this scope.")
+	if prev, exists := p.innermost()[name.Lexeme]; exists {
+		p.errors = append(p.errors, errors.NewRedeclaredError(name, prev.name))
 	}
 
 	if p.isScopesEmpty() {
-		p.globals[name.Lexeme] = &localVar{}
+		p.globals[name.Lexeme] = &localVar{name: name}
 		return p.topLevel[name.Lexeme]
 	}
 
 	l := &ast.Local{}
-	p.peekScope().vars[name.Lexeme] = &localVar{mutable: b.Mutable, local: l}
+	p.peekScope().vars[name.Lexeme] = &localVar{mutable: b.Mutable, local: l, name: name}
 
 	return l
 }

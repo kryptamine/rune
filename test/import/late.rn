@@ -1,0 +1,2 @@
+print 1;
+import _lib.math; // Error at 'import': Imports must come before other statements.

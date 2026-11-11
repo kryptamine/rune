@@ -14,6 +14,7 @@ import (
 
 type Scanner struct {
 	source string
+	file   int
 	tokens []ast.Token
 	errors []error
 
@@ -30,14 +31,15 @@ type Scanner struct {
 }
 
 func Scan(source []byte) ([]ast.Token, []error) {
-	s := scan(source)
+	s := scan(source, 0)
 
 	return s.tokens, s.errors
 }
 
-func scan(source []byte) *Scanner {
+func scan(source []byte, file int) *Scanner {
 	scanner := &Scanner{
 		source:  string(source),
+		file:    file,
 		tokens:  []ast.Token{},
 		errors:  []error{},
 		current: 0,
@@ -58,7 +60,7 @@ func (s *Scanner) scanTokens() {
 	}
 
 	eof := ast.NewToken(ast.EOF, "", "", s.line)
-	eof.Col = s.col(s.current)
+	eof.Col, eof.File = s.col(s.current), s.file
 	s.tokens = append(s.tokens, eof)
 }
 
@@ -72,7 +74,7 @@ func (s *Scanner) newline() {
 }
 
 func (s *Scanner) errorAt(msg string) {
-	s.errors = append(s.errors, rerrors.NewScanError(s.startLine, s.startCol, msg))
+	s.errors = append(s.errors, rerrors.NewScanError(s.file, s.startLine, s.startCol, msg))
 }
 
 func (s *Scanner) isAtEnd() bool {
@@ -211,7 +213,7 @@ func (s *Scanner) addTokenWithLiteral(tokenType ast.TokenType, literal string) {
 	lexeme := s.source[s.start:s.current]
 
 	token := ast.NewToken(tokenType, lexeme, literal, s.startLine)
-	token.Col = s.startCol
+	token.Col, token.File = s.startCol, s.file
 	s.tokens = append(s.tokens, token)
 }
 

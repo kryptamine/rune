@@ -1,0 +1,1 @@
+import _lib.nope; // Error at '_lib': Cannot find module '_lib.nope'.

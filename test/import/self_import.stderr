@@ -1,0 +1,3 @@
+[line: 1] Error at 'self_import': Import cycle: self_import.rn -> self_import.rn.
+    1 | import self_import; // Error at 'self_import': Import cycle: self_import.rn -> self_import.rn.
+      |        ^

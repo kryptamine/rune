@@ -25,7 +25,7 @@ var benchSources = map[string]string{
 func BenchmarkPrograms(b *testing.B) {
 	for name, src := range benchSources {
 		b.Run(name, func(b *testing.B) {
-			prog, errs := Load([]byte(src))
+			prog, errs := loadSource([]byte(src))
 			if len(errs) > 0 {
 				b.Fatal(errs)
 			}

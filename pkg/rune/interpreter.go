@@ -226,8 +226,8 @@ func (p *Interpreter) unwind(err error, stop int) error {
 func (p *Interpreter) trace(rt errors.RuntimeError, from int) errors.RuntimeError {
 	for i := len(p.frames) - 1; i >= from; i-- {
 		caller := p.frames[i-1]
-		line := caller.cl.proto.toks[caller.pc-1].Line
-		rt = rt.WithFrame(errors.Frame{Name: p.frames[i].cl.proto.displayName(), Line: line})
+		tok := caller.cl.proto.toks[caller.pc-1]
+		rt = rt.WithFrame(errors.Frame{Name: p.frames[i].cl.proto.displayName(), File: tok.File, Line: tok.Line})
 	}
 
 	return rt

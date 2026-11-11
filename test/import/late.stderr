@@ -1,0 +1,3 @@
+[line: 2] Error at 'import': Imports must come before other statements.
+    2 | import _lib.math; // Error at 'import': Imports must come before other statements.
+      | ^

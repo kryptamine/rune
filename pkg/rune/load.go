@@ -1,28 +1,113 @@
 package rune
 
-// Load scans, parses and resolves a program. The scanner skips bad
-// characters, so parse errors are reported alongside its own, unless a
-// string ran to the end of the file and left nothing worth parsing.
-func Load(source []byte) (*Program, []error) {
-	scanner := scan(source)
-	if scanner.truncated {
-		return nil, scanner.errors
-	}
+import (
+	stderrors "errors"
+	"fmt"
+	"io/fs"
+	"rune/pkg/ast"
+	"rune/pkg/errors"
+	"slices"
+	"strings"
+)
 
-	stmts, parseErrors := ParseStmts(scanner.tokens)
-	if errs := append(scanner.errors, parseErrors...); len(errs) > 0 {
-		return nil, errs
+// Load scans, parses and resolves the program whose entry file is name in
+// fsys, along with the files it imports, which are named from the root of
+// fsys. All files share one top level, and each runs once, after the files
+// it imports. The files come back even on error, for reporting it.
+func Load(fsys fs.FS, name string) (*Program, []errors.File, []error) {
+	l := loader{fsys: fsys, index: map[string]int{}}
+	l.visit(name, nil)
+
+	if len(l.errors) > 0 {
+		return nil, l.files, l.errors
 	}
 
 	r := NewResolver()
-	if errs := r.ResolveStmts(stmts); len(errs) > 0 {
-		return nil, errs
+	if errs := r.ResolveStmts(l.stmts); len(errs) > 0 {
+		return nil, l.files, errs
 	}
 
-	prog, err := compile(stmts, r.builtins)
+	prog, err := compile(l.stmts, r.builtins)
 	if err != nil {
-		return nil, []error{err}
+		return nil, l.files, []error{err}
 	}
 
-	return prog, nil
+	return prog, l.files, nil
+}
+
+// loader walks the imports depth first; stack holds the files still
+// loading, the importers of the one being loaded.
+type loader struct {
+	fsys   fs.FS
+	files  []errors.File
+	index  map[string]int
+	stack  []int
+	stmts  []ast.Stmt
+	errors []error
+}
+
+// visit loads the file at path and, before it, the files it imports. The
+// scanner skips bad characters, so parse errors are reported alongside its
+// own, unless a string ran to the end of the file and left nothing worth
+// parsing.
+func (l *loader) visit(path string, from *importDecl) {
+	if i, ok := l.index[path]; ok {
+		if j := slices.Index(l.stack, i); j >= 0 {
+			l.cycle(l.stack[j:], from)
+		}
+
+		return
+	}
+
+	src, err := fs.ReadFile(l.fsys, path)
+	if err != nil {
+		l.errors = append(l.errors, readError(err, from))
+		return
+	}
+
+	i := len(l.files)
+	l.files = append(l.files, errors.File{Path: path, Source: string(src)})
+	l.index[path] = i
+
+	scanner := scan(src, i)
+	if scanner.truncated {
+		l.errors = append(l.errors, scanner.errors...)
+		return
+	}
+
+	imports, stmts, parseErrors := parseFile(scanner.tokens)
+	l.errors = append(append(l.errors, scanner.errors...), parseErrors...)
+
+	l.stack = append(l.stack, i)
+	for _, imp := range imports {
+		l.visit(strings.ReplaceAll(imp.name, ".", "/")+".rn", &imp)
+	}
+	l.stack = l.stack[:len(l.stack)-1]
+
+	l.stmts = append(l.stmts, stmts...)
+}
+
+func readError(err error, from *importDecl) error {
+	if from == nil {
+		return err
+	}
+
+	if stderrors.Is(err, fs.ErrNotExist) {
+		return errors.NewSyntaxError(from.tok, fmt.Sprintf("Cannot find module '%s'.", from.name))
+	}
+
+	return errors.NewSyntaxError(from.tok, fmt.Sprintf("Cannot read module '%s': %v.", from.name, err))
+}
+
+// cycle reports that from imports loop[0], which imports the rest of
+// loop in turn, back to from.
+func (l *loader) cycle(loop []int, from *importDecl) {
+	chain := make([]string, 0, len(loop)+1)
+	for _, f := range loop {
+		chain = append(chain, l.files[f].Path)
+	}
+
+	chain = append(chain, chain[0])
+
+	l.errors = append(l.errors, errors.NewSyntaxError(from.tok, "Import cycle: "+strings.Join(chain, " -> ")+"."))
 }

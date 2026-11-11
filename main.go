@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"rune/pkg/errors"
 	"rune/pkg/helpers"
 	"rune/pkg/rune"
@@ -44,14 +45,19 @@ func printUsage() {
 	os.Exit(1)
 }
 
-var commands = map[string]func(stdout, stderr io.Writer, src []byte) int{
+var commands = map[string]func(stdout, stderr io.Writer, path string, src []byte) int{
 	"tokenize": tokenize,
 	"evaluate": evaluate,
 	"run":      run,
 	"disasm":   disasm,
 }
 
-func tokenize(stdout, stderr io.Writer, src []byte) int {
+// soleFile is src as the one file of a program.
+func soleFile(path string, src []byte) []errors.File {
+	return []errors.File{{Path: filepath.Base(path), Source: string(src)}}
+}
+
+func tokenize(stdout, stderr io.Writer, path string, src []byte) int {
 	tokens, errs := rune.Scan(src)
 	for _, token := range tokens {
 		fmt.Fprintln(stdout, token)
@@ -61,27 +67,29 @@ func tokenize(stdout, stderr io.Writer, src []byte) int {
 		return exitCodeOk
 	}
 
-	printErrors(stderr, errs, src)
+	printErrors(stderr, errs, soleFile(path, src))
 
 	return exitCodeParseError
 }
 
-func evaluate(stdout, stderr io.Writer, src []byte) int {
+func evaluate(stdout, stderr io.Writer, path string, src []byte) int {
+	files := soleFile(path, src)
+
 	tokens, errs := rune.Scan(src)
 	if len(errs) > 0 {
-		printErrors(stderr, errs, src)
+		printErrors(stderr, errs, files)
 		return exitCodeParseError
 	}
 
 	expr, err := rune.ParseExpr(tokens)
 	if err != nil {
-		printError(stderr, err, src)
+		printError(stderr, err, files)
 		return exitCodeParseError
 	}
 
 	result, err := rune.EvaluateExpr(expr)
 	if err != nil {
-		printError(stderr, err, src)
+		printError(stderr, err, files)
 		return exitCodeEvalError
 	}
 
@@ -90,20 +98,27 @@ func evaluate(stdout, stderr io.Writer, src []byte) int {
 	return exitCodeOk
 }
 
-func printErrors(w io.Writer, errs []error, src []byte) {
+func printErrors(w io.Writer, errs []error, files []errors.File) {
 	for _, err := range errs {
-		printError(w, err, src)
+		printError(w, err, files)
 	}
 }
 
-func printError(w io.Writer, err error, src []byte) {
-	fmt.Fprint(w, errors.Report(err, string(src)))
+func printError(w io.Writer, err error, files []errors.File) {
+	fmt.Fprint(w, errors.Report(err, files))
 }
 
-func run(stdout, stderr io.Writer, src []byte) int {
-	prog, errs := rune.Load(src)
-	if len(errs) > 0 {
-		printErrors(stderr, errs, src)
+// load loads the program at path; its imports are named from its directory.
+func load(stderr io.Writer, path string) (*rune.Program, []errors.File) {
+	prog, files, errs := rune.Load(os.DirFS(filepath.Dir(path)), filepath.Base(path))
+	printErrors(stderr, errs, files)
+
+	return prog, files
+}
+
+func run(stdout, stderr io.Writer, path string, _ []byte) int {
+	prog, files := load(stderr, path)
+	if prog == nil {
 		return exitCodeParseError
 	}
 
@@ -111,17 +126,16 @@ func run(stdout, stderr io.Writer, src []byte) int {
 	p.SetOutput(stdout)
 
 	if err := p.Run(prog); err != nil {
-		printError(stderr, err, src)
+		printError(stderr, err, files)
 		return exitCodeEvalError
 	}
 
 	return exitCodeOk
 }
 
-func disasm(stdout, stderr io.Writer, src []byte) int {
-	prog, errs := rune.Load(src)
-	if len(errs) > 0 {
-		printErrors(stderr, errs, src)
+func disasm(stdout, stderr io.Writer, path string, _ []byte) int {
+	prog, _ := load(stderr, path)
+	if prog == nil {
 		return exitCodeParseError
 	}
 
@@ -166,5 +180,5 @@ func main() {
 		printUsage()
 	}
 
-	os.Exit(cmd(os.Stdout, os.Stderr, fileContents))
+	os.Exit(cmd(os.Stdout, os.Stderr, fileName, fileContents))
 }
