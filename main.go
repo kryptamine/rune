@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"rune/pkg/errors"
 	"rune/pkg/helpers"
 	"rune/pkg/rune"
 	"strings"
@@ -42,36 +43,36 @@ func printUsage() {
 }
 
 func tokenize(fileContents []byte) int {
-	tokens, errors := rune.Scan(fileContents)
+	tokens, errs := rune.Scan(fileContents)
 	for _, token := range tokens {
 		fmt.Println(token)
 	}
 
-	if len(errors) == 0 {
+	if len(errs) == 0 {
 		return exitCodeOk
 	}
 
-	printErrors(errors)
+	printErrors(errs, fileContents)
 
 	return exitCodeParseError
 }
 
 func evaluate(fileContents []byte) int {
-	tokens, errors := rune.Scan(fileContents)
-	if len(errors) > 0 {
-		printErrors(errors)
+	tokens, errs := rune.Scan(fileContents)
+	if len(errs) > 0 {
+		printErrors(errs, fileContents)
 		return exitCodeParseError
 	}
 
 	expr, err := rune.ParseExpr(tokens)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+		printError(err, fileContents)
 		return exitCodeParseError
 	}
 
 	result, err := rune.EvaluateExpr(expr)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+		printError(err, fileContents)
 		return exitCodeEvalError
 	}
 
@@ -79,35 +80,25 @@ func evaluate(fileContents []byte) int {
 	return exitCodeOk
 }
 
-func printErrors(errs []error) {
+func printErrors(errs []error, source []byte) {
 	for _, err := range errs {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+		printError(err, source)
 	}
 }
 
+func printError(err error, source []byte) {
+	fmt.Fprint(os.Stderr, errors.Report(err, string(source)))
+}
+
 func run(fileContents []byte) int {
-	// The scanner skips bad characters, so the parser can still run and
-	// report its own errors alongside the scanner's.
-	tokens, scanErrors := rune.Scan(fileContents)
-	stmts, parseErrors := rune.ParseStmts(tokens)
-
-	if len(scanErrors) > 0 || len(parseErrors) > 0 {
-		printErrors(scanErrors)
-		printErrors(parseErrors)
-
+	prog, errs := rune.Load(fileContents)
+	if len(errs) > 0 {
+		printErrors(errs, fileContents)
 		return exitCodeParseError
 	}
 
-	interpreter := rune.NewInterpreter()
-	resolver := rune.NewResolver()
-
-	if resolveErrors := resolver.ResolveStmts(stmts); len(resolveErrors) > 0 {
-		printErrors(resolveErrors)
-		return exitCodeParseError
-	}
-
-	if err := interpreter.EvaluateStmts(stmts); err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+	if err := rune.NewInterpreter().Run(prog); err != nil {
+		printError(err, fileContents)
 		return exitCodeEvalError
 	}
 

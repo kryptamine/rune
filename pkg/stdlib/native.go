@@ -45,7 +45,7 @@ func (f *Frames) Call(n *Native, caller Caller, args []value.Value, token *ast.T
 	f.free = append(f.free, c)
 
 	if c.err != nil {
-		return value.NilValue, c.err
+		return value.NilValue, errors.WithFrame(c.err, errors.Frame{Name: n.name, Line: token.Line, Native: true})
 	}
 
 	return v, nil
@@ -82,7 +82,7 @@ func plural(n int, word string) string {
 	return fmt.Sprintf("%d %ss", n, word)
 }
 
-func (n *Native) String() string { return "<native fn>" }
+func (n *Native) String() string { return "<native fn " + n.name + ">" }
 
 // call is one invocation of a native. The first failure sticks: later
 // accessors return zero values and the native's result is discarded.

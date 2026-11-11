@@ -1,0 +1,1 @@
+"abc"[0.5]; // expect runtime error: [line: 1] String index must be an integer.

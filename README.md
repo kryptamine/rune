@@ -16,6 +16,7 @@ Rune is a dynamically typed interpreted programming language inspired by [Lox](h
 - String escapes: `\n`, `\t`, `\r`, `\"`, `\\`
 - Number literals with exponents: `1e3`, `2.5E-2`
 - Object property access with `obj.name` as sugar for `obj["name"]`
+- Strings compare with `<`, `<=`, `>`, `>=` and index by character: `"héllo"[1]` is `"é"`
 - Error handling with `try`/`catch` and `throw`
 - `break` and `continue` in `while`, `for` and `for`-`in` loops
 - `for (x in ...)` over arrays, strings and objects
@@ -61,6 +62,23 @@ Example usage:
 ./rune run program.rn
 ```
 
+## Errors and Exit Codes
+
+Errors show the offending source line with a caret under the column;
+runtime errors also list the calls they unwound through:
+
+```
+[line: 2] Cannot read property 'y' of number.
+    2 |   return x.y;
+      |            ^
+  at g (line 2)
+  at map (native)
+  at <script> (line 5)
+```
+
+`run` exits with `65` on a syntax error and `70` on an uncaught runtime error.
+`&&` and `||` are reported with a hint to use `and` / `or`.
+
 ## Running Tests
 
 Test Framework with tests suites is stolen from [Ben Hoyt](https://github.com/benhoyt/loxlox) and patched.
@@ -80,6 +98,22 @@ For example, to run only the `arrays` tests:
 ```sh
 python3 test.py arrays
 ```
+
+## Values
+
+Falsy values are `nil`, `false`, `0` and `""`; everything else, including empty
+arrays and objects, is truthy.
+
+`==` compares numbers, strings, booleans and `nil` by value, functions by identity,
+and arrays and objects structurally (element by element, cycles included), so
+`[1, 2] == [1, 2]` is `true`. `contains` and `indexOf` use the same equality.
+Values of different types are never equal: `1 == "1"` is `false`.
+
+`print` shows strings inside arrays and objects quoted, so `["1", 1]` and `[1, 1]`
+look different; a string printed on its own is written as is.
+
+Redeclaring a variable in the same scope is an error, at the top level too.
+Built-ins are not declarations, so a program may still redefine them.
 
 ## Arrays
 
@@ -139,18 +173,18 @@ Benchmarks: `make bench`.
 
 ## Error Handling
 
-Runtime errors (including those from built-ins like `json()`) can be caught with `try`/`catch`. The catch variable holds the error message as a string; it is optional (`catch { ... }`).
+Runtime errors (including those from built-ins like `json()`) can be caught with `try`/`catch`. The catch variable is optional (`catch { ... }`); for an error raised by the language it holds an object `{message, line}`.
 
 ```javascript
 try {
     var todos = json("https://dummyjson.com/todos");
     print len(todos.todos);
 } catch (err) {
-    print "request failed: " + err;
+    print "request failed: " + err.message;
 }
 ```
 
-`throw` raises any value; `catch` receives it unchanged. An uncaught throw stops the program like any runtime error.
+`throw` raises any value; `catch` receives it unchanged, so a thrown value is never confused with a language error. An uncaught throw stops the program like any runtime error.
 
 ```javascript
 fun parseAge(v) {
@@ -170,7 +204,8 @@ try {
 `for (x in arr)` visits array elements, string characters or object keys
 (objects are iterated in sorted key order). With two variables you also get
 the index, or the key and the value. Each iteration has its own variable, so
-closures capture the current element.
+closures capture the current element. Array elements are taken when the loop
+starts, so pushing to the array inside the loop does not extend it.
 
 ```javascript
 for (i, name in ["ann", "bob"]) {

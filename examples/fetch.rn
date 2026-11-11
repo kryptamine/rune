@@ -4,5 +4,5 @@ try {
     var res = json("https://dummyjson.com/todos");
     print(res);
 } catch (err) {
-    print "Failed to fetch todos: " + err;
+    print "Failed to fetch todos: " + err.message;
 }

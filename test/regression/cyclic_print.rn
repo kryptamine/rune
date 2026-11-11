@@ -4,7 +4,7 @@ print a; // expect: [[...]]
 
 var o = {name: "o"};
 o["self"] = o;
-print o; // expect: {name: o, self: {...}}
+print o; // expect: {name: "o", self: {...}}
 
 // A value shared without a cycle is printed in full every time.
 var shared = [1, 2];

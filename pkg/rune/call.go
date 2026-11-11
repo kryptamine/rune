@@ -99,6 +99,10 @@ func (p *Interpreter) enter(fn *function, env *environment.Environment, token *a
 	p.recursionDepth--
 
 	if err != errReturn {
+		if err != nil {
+			err = errors.WithFrame(err, errors.Frame{Name: fn.displayName(), Line: token.Line})
+		}
+
 		return value.NilValue, err
 	}
 

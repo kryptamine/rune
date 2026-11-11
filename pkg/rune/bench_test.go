@@ -20,17 +20,10 @@ var benchSources = map[string]string{
 func BenchmarkPrograms(b *testing.B) {
 	for name, src := range benchSources {
 		b.Run(name, func(b *testing.B) {
-			tokens, scanErrs := Scan([]byte(src))
-			stmts, parseErrs := ParseStmts(tokens)
-			if len(scanErrs) > 0 || len(parseErrs) > 0 {
-				b.Fatal(scanErrs, parseErrs)
-			}
-
-			if errs := NewResolver().ResolveStmts(stmts); len(errs) > 0 {
+			prog, errs := Load([]byte(src))
+			if len(errs) > 0 {
 				b.Fatal(errs)
 			}
-
-			prog := Compile(stmts)
 
 			b.ReportAllocs()
 

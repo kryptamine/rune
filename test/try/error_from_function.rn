@@ -9,5 +9,5 @@ fun outer() {
 try {
   outer();
 } catch (err) {
-  print err; // expect: Index out of bounds: 5 of 2
+  print err.message; // expect: Index out of bounds: 5 of 2
 }

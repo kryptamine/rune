@@ -1,0 +1,2 @@
+var s = "abc";
+s[0] = "x"; // expect runtime error: [line: 2] Strings are immutable.

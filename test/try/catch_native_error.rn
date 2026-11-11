@@ -1,11 +1,11 @@
 try {
   json(123);
 } catch (err) {
-  print err; // expect: json() expects a string as argument 1, got number.
+  print err.message; // expect: json() expects a string as argument 1, got number.
 }
 
 try {
   len(nil);
 } catch (e) {
-  print e; // expect: len() expects a string, an array or an object as argument 1, got nil.
+  print e.message; // expect: len() expects a string, an array or an object as argument 1, got nil.
 }

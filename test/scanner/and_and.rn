@@ -1,0 +1,2 @@
+print true && false; // [line: 1] Error: Unexpected '&&'; use 'and'.
+print true || false; // [line: 2] Error: Unexpected '||'; use 'or'.

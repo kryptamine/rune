@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"rune/pkg/ast"
+	rerrors "rune/pkg/errors"
 	"rune/pkg/helpers"
 	"strconv"
 	"strings"
@@ -19,9 +20,22 @@ type Scanner struct {
 	start   int
 	current int
 	line    int
+
+	lineStart int
+	startLine int
+	startCol  int
+
+	// truncated is set when an unterminated string swallowed the rest of the source.
+	truncated bool
 }
 
 func Scan(source []byte) ([]ast.Token, []error) {
+	s := scan(source)
+
+	return s.tokens, s.errors
+}
+
+func scan(source []byte) *Scanner {
 	scanner := &Scanner{
 		source:  string(source),
 		tokens:  []ast.Token{},
@@ -31,21 +45,34 @@ func Scan(source []byte) ([]ast.Token, []error) {
 		start:   0,
 	}
 
-	return scanner.scanTokens(), scanner.errors
+	scanner.scanTokens()
+
+	return scanner
 }
 
-func (s *Scanner) scanTokens() []ast.Token {
+func (s *Scanner) scanTokens() {
 	for !s.isAtEnd() {
 		s.start = s.current
+		s.startLine, s.startCol = s.line, s.col(s.current)
 		s.scanToken()
 	}
 
-	s.tokens = append(
-		s.tokens,
-		ast.NewToken(ast.EOF, "", "", s.line),
-	)
+	eof := ast.NewToken(ast.EOF, "", "", s.line)
+	eof.Col = s.col(s.current)
+	s.tokens = append(s.tokens, eof)
+}
 
-	return s.tokens
+func (s *Scanner) col(offset int) int {
+	return utf8.RuneCountInString(s.source[s.lineStart:offset]) + 1
+}
+
+func (s *Scanner) newline() {
+	s.line++
+	s.lineStart = s.current
+}
+
+func (s *Scanner) errorAt(msg string) {
+	s.errors = append(s.errors, rerrors.NewScanError(s.startLine, s.startCol, msg))
 }
 
 func (s *Scanner) isAtEnd() bool {
@@ -118,7 +145,7 @@ func (s *Scanner) scanToken() {
 		}
 	case '"':
 		if err := s.string(); err != nil {
-			s.errors = append(s.errors, fmt.Errorf("[line: %d] Error: %w", s.line, err))
+			s.errorAt(err.Error())
 		}
 
 		break
@@ -128,8 +155,20 @@ func (s *Scanner) scanToken() {
 	case '\t':
 		break
 	case '\n':
-		s.line++
+		s.newline()
 		break
+	case '&', '|':
+		// A doubled one is most likely meant as "and"/"or": say so, and
+		// emit that operator so the parser has nothing to trip over.
+		if s.match(char) {
+			word := helpers.If(char == '&', "and", "or")
+			s.errorAt(fmt.Sprintf("Unexpected '%c%c'; use '%s'.", char, char, word))
+			s.addToken(helpers.If(char == '&', ast.AND, ast.OR))
+
+			break
+		}
+
+		s.errorAt(fmt.Sprintf("Unexpected character: %c", char))
 	default:
 		if helpers.IsAlpha(char) {
 			s.identifier()
@@ -139,27 +178,21 @@ func (s *Scanner) scanToken() {
 			// Report the whole (possibly multi-byte) character, not a single byte of it.
 			r, size := utf8.DecodeRuneInString(s.source[s.start:])
 			s.current = s.start + size
-			s.errors = append(s.errors, fmt.Errorf("[line: %d] Error: Unexpected character: %c", s.line, r))
+			s.errorAt(fmt.Sprintf("Unexpected character: %c", r))
 		}
 	}
 }
 
 func (s *Scanner) addToken(tokenType ast.TokenType) {
-	lexeme := s.source[s.start:s.current]
-
-	s.tokens = append(
-		s.tokens,
-		ast.NewToken(tokenType, lexeme, "", s.line),
-	)
+	s.addTokenWithLiteral(tokenType, "")
 }
 
 func (s *Scanner) addTokenWithLiteral(tokenType ast.TokenType, literal string) {
 	lexeme := s.source[s.start:s.current]
 
-	s.tokens = append(
-		s.tokens,
-		ast.NewToken(tokenType, lexeme, literal, s.line),
-	)
+	token := ast.NewToken(tokenType, lexeme, literal, s.startLine)
+	token.Col = s.startCol
+	s.tokens = append(s.tokens, token)
 }
 
 func (s *Scanner) currentChar() rune {
@@ -183,7 +216,7 @@ func (s *Scanner) string() error {
 		s.current++
 
 		if c == '\n' {
-			s.line++
+			s.newline()
 		}
 
 		if c != '\\' {
@@ -206,11 +239,12 @@ func (s *Scanner) string() error {
 		}
 
 		if r == '\n' {
-			s.line++
+			s.newline()
 		}
 	}
 
 	if s.isAtEnd() {
+		s.truncated = true
 		return errors.New("Unterminated string.")
 	}
 

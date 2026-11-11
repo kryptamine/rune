@@ -9,6 +9,8 @@ type Token struct {
 	Lexeme    string
 	Literal   string
 	Line      int
+	// Col is the 1-based character column of the token's start; 0 if unknown.
+	Col int
 }
 
 func NewToken(tokenType TokenType, lexeme string, literal string, line int) Token {

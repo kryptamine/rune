@@ -127,29 +127,36 @@ func NewArrayExpr(tokenType TokenType, items []Expr) Expr {
 	return &ArrayExpr{TokenType: tokenType, Items: items}
 }
 
+// IndexExpr is arr[i], or obj.name when Property is set.
 type IndexExpr struct {
-	Token Token
-	Array Expr
-	Index Expr
+	Token    Token
+	Array    Expr
+	Index    Expr
+	Property bool
 }
 
 func NewIndexExpr(array Expr, index Expr, token Token) Expr {
 	return &IndexExpr{Array: array, Index: index, Token: token}
 }
 
+func NewPropertyExpr(object Expr, name Token) Expr {
+	return &IndexExpr{Array: object, Index: NewLiteralExpr(STRING, name.Lexeme), Token: name, Property: true}
+}
+
 // SetIndexExpr assigns to an array element or object property. For a
 // compound assignment (arr[i] += v) Op is the binary operator to apply to
 // the old value; otherwise it is nil. Array and Index are evaluated once.
 type SetIndexExpr struct {
-	Token Token
-	Array Expr
-	Index Expr
-	Value Expr
-	Op    *Token
+	Token    Token
+	Array    Expr
+	Index    Expr
+	Value    Expr
+	Op       *Token
+	Property bool
 }
 
-func NewSetIndexExpr(token Token, array Expr, index Expr, value Expr, op *Token) Expr {
-	return &SetIndexExpr{Array: array, Index: index, Value: value, Token: token, Op: op}
+func NewSetIndexExpr(target *IndexExpr, value Expr, op *Token) Expr {
+	return &SetIndexExpr{Array: target.Array, Index: target.Index, Value: value, Token: target.Token, Op: op, Property: target.Property}
 }
 
 // FunctionExpr is an anonymous function: fun (a, b) { ... }. Its Decl has
