@@ -1,0 +1,427 @@
+package rune
+
+import (
+	"strconv"
+
+	"rune/pkg/ast"
+	"rune/pkg/errors"
+)
+
+func (s *Parser) expression() (ast.Expr, error) {
+	return s.assignment()
+}
+
+func (s *Parser) assignment() (ast.Expr, error) {
+	expr, err := s.or()
+
+	if err != nil {
+		return nil, err
+	}
+
+	if s.match(ast.EQUAL, ast.PLUS_EQUAL, ast.MINUS_EQUAL, ast.STAR_EQUAL, ast.SLASH_EQUAL, ast.PERCENT_EQUAL) {
+		equals := s.previous()
+		value, err := s.assignment()
+
+		if err != nil {
+			return nil, err
+		}
+
+		// For "a op= b", op is the binary operator, keeping the "op=" lexeme
+		// and line for error messages.
+		var op *ast.Token
+		if opType, ok := compoundOps[equals.TokenType]; ok {
+			t := equals
+			t.TokenType = opType
+			op = &t
+		}
+
+		switch target := expr.(type) {
+		case *ast.IndexExpr:
+			return ast.NewSetIndexExpr(target, value, op), nil
+		case *ast.VarExpr:
+			// Reading a variable has no side effects, so "a += b" is just
+			// "a = a + b".
+			if op != nil {
+				value = ast.NewBinaryExpr(ast.NewVarExpr(target.Name), value, *op)
+			}
+
+			return ast.NewAssignExpr(target.Name, value), nil
+		}
+
+		return nil, errors.NewSyntaxError(equals, "Invalid assignment target.")
+	}
+
+	return expr, nil
+}
+
+// compoundOps maps each compound assignment operator to its binary operator.
+var compoundOps = map[ast.TokenType]ast.TokenType{
+	ast.PLUS_EQUAL:    ast.PLUS,
+	ast.MINUS_EQUAL:   ast.MINUS,
+	ast.STAR_EQUAL:    ast.STAR,
+	ast.SLASH_EQUAL:   ast.SLASH,
+	ast.PERCENT_EQUAL: ast.PERCENT,
+}
+
+func (s *Parser) or() (ast.Expr, error) {
+	expr, err := s.and()
+	if err != nil {
+		return nil, err
+	}
+
+	for s.match(ast.OR) {
+		operator := s.previous()
+		right, err := s.and()
+		if err != nil {
+			return nil, err
+		}
+
+		expr = ast.NewLogicalExpr(expr, right, operator)
+	}
+
+	return expr, nil
+}
+
+func (s *Parser) and() (ast.Expr, error) {
+	expr, err := s.equality()
+	if err != nil {
+		return nil, err
+	}
+
+	for s.match(ast.AND) {
+		operator := s.previous()
+		right, err := s.equality()
+		if err != nil {
+			return nil, err
+		}
+
+		expr = ast.NewLogicalExpr(expr, right, operator)
+	}
+
+	return expr, nil
+}
+
+func (s *Parser) equality() (ast.Expr, error) {
+	expr, err := s.comparison()
+
+	if err != nil {
+		return nil, err
+	}
+
+	for s.match(ast.BANG_EQUAL, ast.EQUAL_EQUAL) {
+		operator := s.previous()
+		right, err := s.comparison()
+
+		if err != nil {
+			return nil, err
+		}
+
+		expr = ast.NewBinaryExpr(expr, right, operator)
+	}
+
+	return expr, nil
+}
+
+func (s *Parser) comparison() (ast.Expr, error) {
+	expr, err := s.term()
+
+	if err != nil {
+		return nil, err
+	}
+
+	for s.match(ast.GREATER, ast.GREATER_EQUAL, ast.LESS, ast.LESS_EQUAL) {
+		operator := s.previous()
+		right, err := s.term()
+
+		if err != nil {
+			return nil, err
+		}
+
+		expr = ast.NewBinaryExpr(expr, right, operator)
+	}
+
+	return expr, nil
+}
+
+func (s *Parser) term() (ast.Expr, error) {
+	expr, err := s.factor()
+
+	if err != nil {
+		return nil, err
+	}
+
+	for s.match(ast.PLUS, ast.MINUS) {
+		operator := s.previous()
+		right, err := s.factor()
+		if err != nil {
+			return nil, err
+		}
+
+		expr = ast.NewBinaryExpr(expr, right, operator)
+	}
+
+	return expr, nil
+}
+
+func (s *Parser) factor() (ast.Expr, error) {
+	expr, err := s.unary()
+
+	if err != nil {
+		return nil, err
+	}
+
+	for s.match(ast.SLASH, ast.STAR, ast.PERCENT) {
+		operator := s.previous()
+		right, err := s.unary()
+
+		if err != nil {
+			return nil, err
+		}
+
+		expr = ast.NewBinaryExpr(expr, right, operator)
+	}
+
+	return expr, nil
+}
+
+func (s *Parser) unary() (ast.Expr, error) {
+	if s.match(ast.BANG, ast.MINUS) {
+		operator := s.previous()
+		right, err := s.unary()
+
+		if err != nil {
+			return nil, err
+		}
+
+		return ast.NewUnaryExpr(right, operator), nil
+	}
+
+	return s.call()
+}
+
+func (s *Parser) call() (ast.Expr, error) {
+	expr, err := s.primary()
+	if err != nil {
+		return nil, err
+	}
+
+	for {
+		if s.match(ast.LEFT_PAREN) {
+			expr, err = s.finishCall(expr)
+
+			if err != nil {
+				return nil, err
+			}
+		} else if s.match(ast.LEFT_BRACKET) {
+			index, err := s.expression()
+			if err != nil {
+				return nil, err
+			}
+
+			_, err = s.consume(ast.RIGHT_BRACKET, "Expect ']' after index.")
+			if err != nil {
+				return nil, err
+			}
+
+			expr = ast.NewIndexExpr(expr, index, s.previous())
+		} else if s.match(ast.DOT) {
+			// obj.name is sugar for obj["name"].
+			name, err := s.consume(ast.IDENTIFIER, "Expect property name after '.'.")
+			if err != nil {
+				return nil, err
+			}
+
+			expr = ast.NewPropertyExpr(expr, name)
+		} else {
+			break
+		}
+	}
+
+	return expr, nil
+}
+
+func (s *Parser) finishCall(expr ast.Expr) (ast.Expr, error) {
+	args := []ast.Expr{}
+
+	if !s.check(ast.RIGHT_PAREN) {
+		for {
+			arg, err := s.expression()
+			if err != nil {
+				return nil, err
+			}
+			args = append(args, arg)
+
+			if !s.match(ast.COMMA) {
+				break
+			}
+		}
+	}
+
+	_, err := s.consume(ast.RIGHT_PAREN, "Expect ')' after arguments.")
+	if err != nil {
+		return nil, err
+	}
+
+	return ast.NewCallExpr(s.previous(), expr, args), nil
+}
+
+func (s *Parser) primary() (ast.Expr, error) {
+	// Parse object literal
+	if s.match(ast.LEFT_BRACE) {
+		var pairs []ast.ObjectPair
+		seen := map[string]bool{}
+
+		for !s.check(ast.RIGHT_BRACE) && !s.isAtEnd() {
+			// Parse key (an identifier or a string)
+			var key string
+
+			switch {
+			case s.match(ast.IDENTIFIER):
+				key = s.previous().Lexeme
+			case s.match(ast.STRING):
+				key = s.previous().Literal
+			default:
+				return nil, errors.NewSyntaxError(s.peek(), "Expect property name.")
+			}
+
+			// Report but keep parsing: the parser is not in a confused state.
+			if seen[key] {
+				s.errors = append(s.errors, errors.NewSyntaxError(s.previous(), "Duplicate property name."))
+			}
+
+			seen[key] = true
+
+			// Expect ':' after key
+			_, err := s.consume(ast.COLON, "Expect ':' after property name.")
+			if err != nil {
+				return nil, err
+			}
+
+			value, err := s.expression()
+			if err != nil {
+				return nil, err
+			}
+
+			pairs = append(pairs, ast.ObjectPair{Key: key, Value: value})
+
+			// Allow optional commas but not required before closing `}`
+			if !s.match(ast.COMMA) {
+				break
+			}
+		}
+
+		// Expect closing `}`
+		_, err := s.consume(ast.RIGHT_BRACE, "Expect '}' after object properties.")
+		if err != nil {
+			return nil, err
+		}
+
+		return ast.NewObjectExpr(ast.OBJECT, pairs), nil
+	}
+
+	// Parse array literal
+	if s.match(ast.LEFT_BRACKET) {
+		var items []ast.Expr
+
+		if !s.check(ast.RIGHT_BRACKET) {
+			for {
+				elem, err := s.expression()
+				if err != nil {
+					return nil, err
+				}
+				items = append(items, elem)
+
+				// Allow a trailing comma, as in object literals.
+				if !s.match(ast.COMMA) || s.check(ast.RIGHT_BRACKET) {
+					break
+				}
+			}
+		}
+
+		_, err := s.consume(ast.RIGHT_BRACKET, "Expect ']' after array elements.")
+		if err != nil {
+			return nil, err
+		}
+
+		return ast.NewArrayExpr(ast.ARRAY, items), nil
+	}
+
+	// Anonymous function: fun (params) { body }.
+	if s.check(ast.FUN) && s.peekAt(1) == ast.LEFT_PAREN {
+		keyword := s.advance()
+		s.advance()
+
+		name := ast.NewToken(ast.FUN, "", "", keyword.Line)
+		name.Col = keyword.Col
+
+		decl, err := s.functionRest(name)
+		if err != nil {
+			return nil, err
+		}
+
+		return ast.NewFunctionExpr(decl), nil
+	}
+
+	if s.match(ast.TRUE) {
+		return ast.NewLiteralExpr(ast.TRUE, true), nil
+	}
+
+	if s.match(ast.FALSE) {
+		return ast.NewLiteralExpr(ast.FALSE, false), nil
+	}
+
+	if s.match(ast.NIL) {
+		return ast.NewLiteralExpr(ast.NIL, nil), nil
+	}
+
+	if s.match(ast.NUMBER) {
+		prev := s.previous()
+		value, err := strconv.ParseFloat(prev.Lexeme, 64)
+
+		if err != nil {
+			return nil, errors.NewSyntaxError(prev, "Invalid number.")
+		}
+
+		return ast.NewLiteralExpr(ast.NUMBER, value), nil
+	}
+
+	if s.match(ast.STRING) {
+		prev := s.previous()
+
+		return ast.NewLiteralExpr(ast.STRING, prev.Literal), nil
+	}
+
+	if s.match(ast.IDENTIFIER) {
+		prev := s.previous()
+
+		return ast.NewVarExpr(prev), nil
+	}
+
+	if s.match(ast.LEFT_PAREN) {
+		expr, err := s.expression()
+
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = s.consume(ast.RIGHT_PAREN, "Expect ')' after expression.")
+		if err != nil {
+			return nil, err
+		}
+
+		return ast.NewGroupingExpr(expr), nil
+	}
+
+	return nil, errors.NewSyntaxError(s.peek(), "Expect expression.")
+}
+
+// isObjectLiteralStart reports whether the upcoming tokens are "{", a property name and ":".
+func (s *Parser) isObjectLiteralStart() bool {
+	if !s.check(ast.LEFT_BRACE) || s.current+2 >= len(s.tokens) {
+		return false
+	}
+
+	key := s.tokens[s.current+1].TokenType
+
+	return (key == ast.IDENTIFIER || key == ast.STRING) && s.tokens[s.current+2].TokenType == ast.COLON
+}
