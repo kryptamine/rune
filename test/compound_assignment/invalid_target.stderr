@@ -1,0 +1,3 @@
+[line: 2] Error at '+=': Invalid assignment target.
+    2 | (a) += 1; // [line: 2] Error at '+=': Invalid assignment target.
+      |     ^

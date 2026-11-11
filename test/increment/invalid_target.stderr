@@ -1,0 +1,3 @@
+[line: 2] Error at '++': Invalid increment target.
+    2 | (a)++; // [line: 2] Error at '++': Invalid increment target.
+      |    ^

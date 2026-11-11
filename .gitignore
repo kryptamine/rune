@@ -3,3 +3,6 @@
 
 # Test program.
 program.rn
+
+# Coverage.
+cover.out

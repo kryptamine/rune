@@ -1,5 +1,6 @@
-BINARY = rune 
+BINARY = rune
 RUN_FILE = program.rn
+FUZZTIME ?= 30s
 
 .PHONY: all
 all: build test
@@ -9,8 +10,21 @@ build:
 	go build -o $(BINARY)
 
 .PHONY: test
-test: build
-	python3 test.py $(filter)
+test:
+	go test . ./pkg/... $(if $(filter),-run 'TestScripts/$(filter)')
+
+.PHONY: update
+update:
+	go test ./... -update
+
+.PHONY: cover
+cover:
+	go test . ./pkg/... -coverpkg ./... -coverprofile cover.out
+	go tool cover -func cover.out | tail -1
+
+.PHONY: fuzz
+fuzz:
+	go test ./pkg/rune -run '^$$' -fuzz FuzzRun -fuzztime $(FUZZTIME)
 
 .PHONY: run
 run: build
@@ -18,7 +32,7 @@ run: build
 
 .PHONY: clean
 clean:
-	rm -f $(BINARY)
+	rm -f $(BINARY) cover.out
 
 .PHONY: bench
 bench:

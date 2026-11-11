@@ -12,6 +12,9 @@ import (
 
 var closureID = value.TypeIDOf((*Closure)(nil))
 
+// haltCheckInterval is how many jumps run takes between checks for Interrupt.
+const haltCheckInterval = 1024
+
 // run executes from the top frame until frames[stop] returns.
 //
 // Go keeps a variable that lives across a call on the stack, which the
@@ -26,6 +29,7 @@ func (p *Interpreter) run(stop int) (value.Value, error) {
 		regs   []value.Value
 		pc     int
 		err    error
+		ticks  = haltCheckInterval
 	)
 
 reload:
@@ -34,6 +38,11 @@ reload:
 	consts = fr.cl.proto.consts
 	regs = p.stack[fr.base : fr.base+fr.cl.proto.nregs]
 	pc = fr.pc
+
+	// Counting ticks here as well measured ~10% slower on loops.
+	if p.halted.Load() {
+		return value.NilValue, p.unwind(ErrInterrupted, stop)
+	}
 
 	for {
 		in := code[pc]
@@ -226,10 +235,16 @@ reload:
 
 		case opJmp:
 			pc = in.c()
+			if ticks--; ticks == 0 {
+				goto tick
+			}
 
 		case opJmpIf:
 			if regs[in.a()].Truthy() == in.y() {
 				pc = in.c()
+				if ticks--; ticks == 0 {
+					goto tick
+				}
 			}
 
 		case opJmpCmp:
@@ -240,6 +255,9 @@ reload:
 
 			if compareNumbers(in.x(), l.Num(), r.Num()) == in.y() {
 				pc = in.c()
+				if ticks--; ticks == 0 {
+					goto tick
+				}
 			}
 
 		case opJmpCmpK:
@@ -259,6 +277,9 @@ reload:
 
 			if compareNumbers(in.x(), l.Num(), k.Num()) == in.y() {
 				pc = in.c()
+				if ticks--; ticks == 0 {
+					goto tick
+				}
 			}
 
 		case opGetIndex:
@@ -358,6 +379,9 @@ reload:
 				s[4] = value.NewNumber(i)
 				s[5] = value.NewNumber(x)
 				pc = in.c()
+				if ticks--; ticks == 0 {
+					goto tick
+				}
 			}
 
 		case opForIterNext:
@@ -371,6 +395,9 @@ reload:
 				regs[in.a()+1] = value.NewNumber(float64(i))
 				regs[in.a()+2] = c.arr[i]
 				pc = in.c()
+				if ticks--; ticks == 0 {
+					goto tick
+				}
 			}
 
 		default:
@@ -382,6 +409,17 @@ reload:
 	undefined:
 		fr.pc = pc
 		err = undefinedVariable(fr.cl.proto, pc)
+
+		goto fail
+
+	tick:
+		ticks = haltCheckInterval
+		if !p.halted.Load() {
+			continue
+		}
+
+		fr.pc = pc
+		err = ErrInterrupted
 
 		goto fail
 
@@ -488,8 +526,13 @@ func (p *Interpreter) slow(in Instr) error {
 
 	case opRange:
 		r, err := rangeOf(regs[in.b():], in.x() != 0, tok)
+		if err != nil {
+			return err
+		}
+
+		v, err := r.array(tok)
 		if err == nil {
-			regs[in.a()] = r.array()
+			regs[in.a()] = v
 		}
 
 		return err

@@ -1,0 +1,10 @@
+[line: 2] Error at ';': Expect expression.
+    2 |   let mut x = 1 +; // [line: 2] Error at ';': Expect expression.
+      |                  ^
+[line: 4] Error at ';': Expect expression.
+    4 |   x = ; // [line: 4] Error at ';': Expect expression.
+      |       ^
+[line: 7] Error at '{': Expect parameter name.
+    7 | fun g( { } // [line: 7] Error at '{': Expect parameter name.
+      |        ^
+[line: 9] Error at end: Expect ';' after value.

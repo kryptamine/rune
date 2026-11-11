@@ -1,0 +1,6 @@
+[line: 2] boom
+    2 |   throw "boom"; // expect runtime error: [line: 2] boom
+      |   ^
+  at <anonymous> (line 2)
+  at map (native)
+  at <script> (line 3)

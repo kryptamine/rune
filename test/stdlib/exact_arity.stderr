@@ -1,0 +1,5 @@
+[line: 1] floor() expects 1 argument, got 2.
+    1 | floor(1, 2); // expect runtime error: [line: 1] floor() expects 1 argument, got 2.
+      |           ^
+  at floor (native)
+  at <script> (line 1)

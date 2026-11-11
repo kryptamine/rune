@@ -1,0 +1,3 @@
+[line: 2] Error at 'arg': Variable with this name already declared in this scope.
+    2 |         arg) { // Error at 'arg': Variable with this name already declared in this scope.
+      |         ^

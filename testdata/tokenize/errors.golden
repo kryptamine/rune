@@ -1,0 +1,17 @@
+exit: 65
+-- stdout --
+PRINT print null
+NUMBER 1 1.0
+NUMBER 2 2.0
+SEMICOLON ; null
+LET let null
+IDENTIFIER s null
+EQUAL = null
+EOF  null
+-- stderr --
+[line: 1] Error: Unexpected character: #
+    1 | print 1 # 2;
+      |         ^
+[line: 2] Error: Unterminated string.
+    2 | let s = "unterminated
+      |         ^

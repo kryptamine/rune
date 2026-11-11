@@ -82,31 +82,35 @@ func (fs *funcState) leaveLoop() *loop {
 	return l
 }
 
+// varStmt binds a captured variable's cell before its initializer runs,
+// since a closure there may capture it.
 func (fs *funcState) varStmt(s *ast.VarStmt) {
-	if s.Local.TopLevel {
-		r := fs.locals[s.Local]
+	l := s.Local
 
-		if s.Local.Captured {
-			t := fs.alloc()
-			fs.exprOrNil(s.Initializer, t)
-			fs.emit(ins{op: opSetCell, a: r, b: t}, nil)
-		} else {
-			fs.exprOrNil(s.Initializer, r)
-		}
-
-		fs.defined[s.Local] = true
+	switch {
+	case !l.TopLevel && !l.Captured:
+		r := fs.alloc()
+		fs.exprOrNil(s.Initializer, r)
+		fs.free = r
+		fs.declare(l)
 
 		return
+	case !l.TopLevel:
+		fs.declareAs(l, value.UndefinedValue)
 	}
 
-	r := fs.alloc()
-	fs.exprOrNil(s.Initializer, r)
-	fs.free = r
-	fs.declare(s.Local)
+	r := fs.locals[l]
 
-	if s.Local.Captured {
-		fs.emit(ins{op: opNewCell, a: r, b: r}, nil)
+	if l.Captured {
+		t := fs.alloc()
+		fs.exprOrNil(s.Initializer, t)
+		fs.emit(ins{op: opSetCell, a: r, b: t}, nil)
+		fs.free = t
+	} else {
+		fs.exprOrNil(s.Initializer, r)
 	}
+
+	fs.defined[l] = true
 }
 
 func (fs *funcState) exprOrNil(e ast.Expr, dst int32) {

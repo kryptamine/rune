@@ -1,0 +1,3 @@
+[line: 2] Error at 'fun': Expect expression.
+    2 | for (x in []) fun foo() {}
+      |               ^

@@ -1,0 +1,3 @@
+[line: 1] Undefined variable 'range'.
+    1 | print range(3); // expect runtime error: [line: 1] Undefined variable 'range'.
+      |       ^

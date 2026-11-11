@@ -1,0 +1,3 @@
+[line: 2] Error at 'g': Cannot mutate immutable variable 'g'.
+    2 |   g.x = 1; // [line: 2] Error at 'g': Cannot mutate immutable variable 'g'.
+      |   ^

@@ -1,0 +1,5 @@
+fun f(x) {
+  return x.y;
+}
+print "before";
+f(1);

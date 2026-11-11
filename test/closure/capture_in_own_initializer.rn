@@ -1,0 +1,14 @@
+{
+  let f = fun () { return f; };
+  print f() == f; // expect: true
+}
+
+fun outer() {
+  let g = fun (n) { if (n == 0) return "done"; return g(n - 1); };
+  return g(3);
+}
+print outer(); // expect: done
+
+{
+  let h = [fun () { return h; }()]; // expect runtime error: [line: 13] Undefined variable 'h'.
+}

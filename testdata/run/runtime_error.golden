@@ -1,0 +1,9 @@
+exit: 70
+-- stdout --
+before
+-- stderr --
+[line: 2] Cannot read property 'y' of number.
+    2 |   return x.y;
+      |            ^
+  at f (line 2)
+  at <script> (line 5)

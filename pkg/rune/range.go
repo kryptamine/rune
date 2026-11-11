@@ -47,13 +47,32 @@ func rangeOf(parts []value.Value, inclusive bool, tok *ast.Token) (numRange, err
 	return numRange{start: parts[0].Num(), end: parts[1].Num(), step: parts[2].Num(), inclusive: inclusive}, nil
 }
 
-func (r numRange) array() value.Value {
-	var out []value.Value
+// maxRangeArray caps the length of a range made into an array.
+const maxRangeArray = 1 << 24
+
+// size bounds how many numbers the range has: at most one more than the
+// steps from start to end, and 0 for one that is empty or NaN.
+func (r numRange) size() float64 {
+	n := (r.end - r.start) / r.step
+	if !(n >= 0) {
+		return 0
+	}
+
+	return math.Floor(n) + 1
+}
+
+func (r numRange) array(tok *ast.Token) (value.Value, error) {
+	n := r.size()
+	if n > maxRangeArray {
+		return value.NilValue, errors.NewRuntimeError(*tok, "Range is too large to make an array.")
+	}
+
+	out := make([]value.Value, 0, int(n))
 
 	for i := 0.0; ; i++ {
 		x, ok := r.at(i)
 		if !ok {
-			return value.NewArray(out)
+			return value.NewArray(out), nil
 		}
 
 		out = append(out, value.NewNumber(x))

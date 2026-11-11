@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"sync"
 	"testing"
+	"time"
 )
 
 func TestProgramRunsConcurrently(t *testing.T) {
@@ -40,4 +41,33 @@ func TestProgramRunsConcurrently(t *testing.T) {
 	}
 
 	wg.Wait()
+}
+
+func TestInterrupt(t *testing.T) {
+	srcs := map[string]string{
+		"while":     `while (true) {}`,
+		"for":       `for (i in 0..1e18) {}`,
+		"object":    `let o = {a: 1}; while (true) { for (k in o) {} }`,
+		"recursion": `fun f(n) { if (n < 2) return n; return f(n - 1) + f(n - 2); } f(100);`,
+		"try":       `while (true) { try { while (true) {} } catch (e) {} }`,
+		"native":    `map([1], fun (x) { while (true) {} });`,
+	}
+
+	for name, src := range srcs {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			prog, errs := Load([]byte(src))
+			if len(errs) > 0 {
+				t.Fatal(errs)
+			}
+
+			p := NewInterpreter()
+			time.AfterFunc(10*time.Millisecond, p.Interrupt)
+
+			if err := p.Run(prog); err != ErrInterrupted {
+				t.Fatalf("got %v, want %v", err, ErrInterrupted)
+			}
+		})
+	}
 }

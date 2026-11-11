@@ -1,0 +1,3 @@
+[line: 2] Error at 'nil': Expect variable name.
+    2 | let nil = "value";
+      |     ^

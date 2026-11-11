@@ -1,0 +1,6 @@
+exit: 65
+-- stdout --
+-- stderr --
+[line: 5] Error at 'a': Cannot mutate immutable variable 'a'.
+    5 | a[1]++;
+      | ^

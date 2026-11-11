@@ -1,0 +1,3 @@
+[line: 2] Error at 'a': Variable with this name already declared in this scope.
+    2 | let a = "2"; // [line: 2] Error at 'a': Variable with this name already declared in this scope.
+      |     ^

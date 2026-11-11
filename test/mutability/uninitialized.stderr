@@ -1,0 +1,3 @@
+[line: 1] Error at 'a': Immutable variable must be initialized.
+    1 | let a; // [line: 1] Error at 'a': Immutable variable must be initialized.
+      |     ^

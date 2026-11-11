@@ -2,6 +2,7 @@ package rune
 
 import (
 	"bufio"
+	stderrors "errors"
 	"fmt"
 	"io"
 	"os"
@@ -10,7 +11,11 @@ import (
 	"rune/pkg/stdlib"
 	"rune/pkg/value"
 	"sync"
+	"sync/atomic"
 )
+
+// ErrInterrupted is what Run returns after Interrupt; try does not catch it.
+var ErrInterrupted = stderrors.New("Interrupted.")
 
 // maxRecursionDepth caps nested calls.
 const maxRecursionDepth = 10_000
@@ -41,10 +46,17 @@ type Interpreter struct {
 	out          *bufio.Writer
 	dest         io.Writer
 	line         []byte
+	halted       atomic.Bool
 }
 
 func NewInterpreter() *Interpreter {
 	return &Interpreter{maxRecursion: maxRecursionDepth, dest: os.Stdout}
+}
+
+// Interrupt stops Run at the next call or loop iteration, from any
+// goroutine. The interpreter stays interrupted.
+func (p *Interpreter) Interrupt() {
+	p.halted.Store(true)
 }
 
 func (p *Interpreter) SetOutput(w io.Writer) {
@@ -175,6 +187,7 @@ func (p *Interpreter) callError(cl *Closure, nargs int, tok *ast.Token) error {
 // returns nil, if there is one; otherwise it drops the run's frames and
 // returns err with them traced.
 func (p *Interpreter) unwind(err error, stop int) error {
+	// Only a RuntimeError is catchable, so ErrInterrupted always unwinds.
 	rt, ok := err.(errors.RuntimeError)
 
 	if n := len(p.handlers); ok && n > 0 && p.handlers[n-1].frame >= stop {

@@ -1,0 +1,3 @@
+[line: 2] Operand must be a number.
+    2 | s++; // expect runtime error: [line: 2] Operand must be a number.
+      |  ^

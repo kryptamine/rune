@@ -83,23 +83,22 @@ runtime errors also list the calls they unwound through:
 
 ## Running Tests
 
-Test Framework with tests suites is stolen from [Ben Hoyt](https://github.com/benhoyt/loxlox) and patched.
-
 ```sh
-make test
+make test                # all tests
+make test filter=arrays  # scripts under test/arrays
+make update              # rewrite golden files after an intended change
+make cover               # coverage
+make fuzz FUZZTIME=1m    # fuzz the whole pipeline
 ```
 
-To run a specific test or filter tests by category:
+Each `test/**/*.rn` script runs in-process, in parallel, with a 5s timeout. Directives in comments:
 
-```sh
-python3 test.py <filter>
-```
+- `// expect: <line>` — next line of stdout;
+- `// [line: N] Error...` — compile error, in order; without `[line: N]` it is the comment's line;
+- `// expect runtime error: [line: N] <message>` — uncaught runtime error.
 
-For example, to run only the `arrays` tests:
-
-```sh
-python3 test.py arrays
-```
+`foo.stderr` next to `foo.rn` holds the full error report (snippet, caret, trace); a missing file means empty stderr.
+`testdata/<command>/*.rn` are run through the CLI command (`tokenize`, `evaluate`, `run`, `disasm`) and compared with `.golden` files: exit code, stdout and stderr.
 
 ## Values
 
@@ -311,4 +310,3 @@ This project is open-source and follows the MIT license.
 
 - [Crafting Interpreters](https://craftinginterpreters.com/) by Robert Nystrom
 - [Lox Programming Language](https://github.com/munificent/craftinginterpreters)
-- [Test Framework](https://github.com/benhoyt/loxlox)

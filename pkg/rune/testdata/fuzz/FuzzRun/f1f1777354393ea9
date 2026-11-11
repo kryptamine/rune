@@ -1,0 +1,2 @@
+go test fuzz v1
+[]byte("let mut000=[];for(A in 0000){let j=0(fun(){j;});}")

@@ -1,0 +1,3 @@
+[line: 2] Error at 'false': Expect variable name.
+    2 | let false = "value";
+      |     ^
