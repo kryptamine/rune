@@ -1,1 +1,1 @@
-push("abc", 1); // expect runtime error: [line: 1] push() expects an array as argument 1, got string.
+push("abc", 1); // expect runtime error: [line: 1] TypeError: push() expects an array as argument 1, got string.

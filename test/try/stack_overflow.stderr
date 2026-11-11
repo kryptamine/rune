@@ -1,0 +1,6 @@
+[line: 1] Stack overflow.
+    1 | fun rec() { rec(); }
+      |                 ^
+  at rec (line 1)
+  ... repeated 9999 more times
+  at <script> (line 4)

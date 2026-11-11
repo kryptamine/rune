@@ -12,4 +12,4 @@ print s == nil; // expect: false
 
 fun missing() { return nope; }
 try { missing(); } catch (e) { print e.message; } // expect: Undefined variable 'nope'.
-nope = 1; // expect runtime error: [line: 15] Undefined variable 'nope'.
+nope = 1; // expect runtime error: [line: 15] NameError: Undefined variable 'nope'.

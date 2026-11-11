@@ -4,3 +4,17 @@ try {
   print e;
 }
 try { print 1; } catch {}
+
+try {
+  [][0];
+} catch (e: IndexError, KeyError) {
+  print e;
+} catch {
+  print 0;
+}
+
+try {
+  [][0];
+} catch (e: IndexError) {
+  print e;
+}

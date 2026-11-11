@@ -1,3 +1,3 @@
-[line: 4] Right operand of 'is' must be a struct, got Point.
-    4 | print p is p; // expect runtime error: [line: 4] Right operand of 'is' must be a struct, got Point.
+[line: 4] TypeError: Right operand of 'is' must be a struct, got Point.
+    4 | print p is p; // expect runtime error: [line: 4] TypeError: Right operand of 'is' must be a struct, got Point.
       |         ^

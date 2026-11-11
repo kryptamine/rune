@@ -1,1 +1,1 @@
-sort([1, "a"]); // expect runtime error: [line: 1] sort() without a comparator needs all numbers or all strings.
+sort([1, "a"]); // expect runtime error: [line: 1] TypeError: sort() without a comparator needs all numbers or all strings.

@@ -1,2 +1,2 @@
 let mut o = {};
-o.n += 1; // expect runtime error: [line: 2] Undefined property 'n'.
+o.n += 1; // expect runtime error: [line: 2] KeyError: Undefined property 'n'.

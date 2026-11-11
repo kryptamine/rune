@@ -1,0 +1,13 @@
+fun inner() {
+  return [][0]; // expect runtime error: [line: 2] IndexError: Index out of bounds: 0 of 0
+}
+
+fun outer() {
+  try {
+    inner();
+  } catch (e: TypeError) {
+    print "unreachable";
+  }
+}
+
+outer();

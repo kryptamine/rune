@@ -1,0 +1,6 @@
+[line: 2] IndexError: Index out of bounds: 0 of 0
+    2 |   return [][0]; // expect runtime error: [line: 2] IndexError: Index out of bounds: 0 of 0
+      |              ^
+  at inner (line 2)
+  at outer (line 7)
+  at <script> (line 13)

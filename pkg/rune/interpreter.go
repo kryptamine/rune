@@ -29,12 +29,14 @@ type frame struct {
 }
 
 // handler is an active try: an error in frames[frame] or above resumes at
-// pc there, with the caught value in register reg if bind.
+// pc there, with the caught value in register reg if bind, and if keep
+// the error itself, traced up to there, in the register after it.
 type handler struct {
 	frame int
 	pc    int
 	reg   int
 	bind  bool
+	keep  bool
 }
 
 type Interpreter struct {
@@ -156,7 +158,7 @@ func (p *Interpreter) CallValue(fn value.Value, args []value.Value, token *ast.T
 		}
 	}
 
-	return value.NilValue, errors.NewRuntimeError(*token, "Can only call functions.")
+	return value.NilValue, errors.NewRuntimeError(errors.TypeError, *token, "Can only call functions.")
 }
 
 // enter pushes a frame calling cl with the nargs arguments at stack[base:].
@@ -176,10 +178,10 @@ func (p *Interpreter) enter(cl *Closure, base, nargs int, tok *ast.Token) error 
 
 func (p *Interpreter) callError(cl *Closure, nargs int, tok *ast.Token) error {
 	if nargs != cl.proto.arity {
-		return errors.NewRuntimeError(*tok, fmt.Sprintf("Expected %d arguments but got %d.", cl.proto.arity, nargs))
+		return errors.NewRuntimeError(errors.ArgumentError, *tok, fmt.Sprintf("Expected %d arguments but got %d.", cl.proto.arity, nargs))
 	}
 
-	return errors.NewRuntimeError(*tok, "Stack overflow.")
+	return errors.NewFatalError(*tok, "Stack overflow.")
 }
 
 // unwind handles err raised in the top frame of a run that started at
@@ -190,31 +192,45 @@ func (p *Interpreter) unwind(err error, stop int) error {
 	// Only a RuntimeError is catchable, so ErrInterrupted always unwinds.
 	rt, ok := err.(errors.RuntimeError)
 
-	if n := len(p.handlers); ok && n > 0 && p.handlers[n-1].frame >= stop {
+	if n := len(p.handlers); ok && !rt.Fatal() && n > 0 && p.handlers[n-1].frame >= stop {
 		h := p.handlers[n-1]
 		p.handlers = p.handlers[:n-1]
-		p.frames = p.frames[:h.frame+1]
-
 		f := &p.frames[h.frame]
-		f.pc = h.pc
+
+		if h.keep {
+			rt = p.trace(rt, h.frame+1)
+			p.stack[f.base+h.reg+1] = value.NewInternal(&rt)
+		}
 
 		if h.bind {
 			p.stack[f.base+h.reg] = rt.Value()
 		}
 
+		p.frames = p.frames[:h.frame+1]
+		f.pc = h.pc
+
 		return nil
 	}
 
-	for i := len(p.frames) - 1; i >= max(stop, 1); i-- {
-		caller := p.frames[i-1]
-		line := caller.cl.proto.toks[caller.pc-1].Line
-		err = errors.WithFrame(err, errors.Frame{Name: p.frames[i].cl.proto.displayName(), Line: line})
+	if ok {
+		err = p.trace(rt, max(stop, 1))
 	}
 
 	p.frames = p.frames[:stop]
 	p.dropHandlers(stop)
 
 	return err
+}
+
+// trace records in rt the frames from the top down to frames[from].
+func (p *Interpreter) trace(rt errors.RuntimeError, from int) errors.RuntimeError {
+	for i := len(p.frames) - 1; i >= from; i-- {
+		caller := p.frames[i-1]
+		line := caller.cl.proto.toks[caller.pc-1].Line
+		rt = rt.WithFrame(errors.Frame{Name: p.frames[i].cl.proto.displayName(), Line: line})
+	}
+
+	return rt
 }
 
 // dropHandlers drops the handlers of frames[from] and above.

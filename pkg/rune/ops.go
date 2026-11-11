@@ -34,11 +34,11 @@ func binaryOp(operator *ast.Token, left, right value.Value) (value.Value, error)
 		}
 
 		if !bothNumbers {
-			return value.NilValue, errors.NewRuntimeError(*operator, "Operands must be two numbers or two strings.")
+			return value.NilValue, errors.NewRuntimeError(errors.TypeError, *operator, "Operands must be two numbers or two strings.")
 		}
 	default:
 		if !bothNumbers {
-			return value.NilValue, errors.NewRuntimeError(*operator, "Operands must be numbers.")
+			return value.NilValue, errors.NewRuntimeError(errors.TypeError, *operator, "Operands must be numbers.")
 		}
 	}
 
@@ -98,7 +98,7 @@ func compare[T cmp.Ordered](op ast.TokenType, l, r T) bool {
 }
 
 func undefinedProperty(token *ast.Token, key string) error {
-	return errors.NewRuntimeError(*token, fmt.Sprintf("Undefined property '%s'.", key))
+	return errors.NewRuntimeError(errors.KeyError, *token, fmt.Sprintf("Undefined property '%s'.", key))
 }
 
 func noField(structName, key string) string {
@@ -110,18 +110,18 @@ func missingField(structName, field string) string {
 }
 
 func undefinedField(token *ast.Token, shape *value.Shape, key string) error {
-	return errors.NewRuntimeError(*token, noField(shape.Name, key))
+	return errors.NewRuntimeError(errors.KeyError, *token, noField(shape.Name, key))
 }
 
 func immutableField(token *ast.Token, shape *value.Shape, key string) error {
-	return errors.NewRuntimeError(*token, fmt.Sprintf(
+	return errors.NewRuntimeError(errors.TypeError, *token, fmt.Sprintf(
 		"Cannot set field '%s' of %s: structs are immutable.", key, shape.Name))
 }
 
 // with copies target, a struct, setting the fields keys to vals.
 func with(token *ast.Token, target value.Value, keys []string, vals []value.Value) (value.Value, error) {
 	if target.Kind() != value.Struct {
-		return value.NilValue, errors.NewRuntimeError(*token, fmt.Sprintf(
+		return value.NilValue, errors.NewRuntimeError(errors.TypeError, *token, fmt.Sprintf(
 			"Can only use 'with' on structs, got %s.", helpers.TypeName(target)))
 	}
 
@@ -145,7 +145,7 @@ func with(token *ast.Token, target value.Value, keys []string, vals []value.Valu
 // built from an object holding every required field and no other.
 func convert(token *ast.Token, shape *value.Shape, args []value.Value) (value.Value, error) {
 	if len(args) != 1 {
-		return value.NilValue, errors.NewRuntimeError(*token, fmt.Sprintf(
+		return value.NilValue, errors.NewRuntimeError(errors.ArgumentError, *token, fmt.Sprintf(
 			"%s() expects 1 argument, got %d.", shape.Name, len(args)))
 	}
 
@@ -158,7 +158,7 @@ func convert(token *ast.Token, shape *value.Shape, args []value.Value) (value.Va
 		return structOf(token, shape, v.Obj())
 	}
 
-	return value.NilValue, errors.NewRuntimeError(*token, fmt.Sprintf(
+	return value.NilValue, errors.NewRuntimeError(errors.TypeError, *token, fmt.Sprintf(
 		"Cannot convert %s to %s.", helpers.TypeName(args[0]), shape.Name))
 }
 
@@ -173,7 +173,7 @@ func structOf(token *ast.Token, shape *value.Shape, obj map[string]value.Value) 
 			fields[i] = f
 			given++
 		} else if fields[i], ok = shape.Default(i); !ok {
-			return value.NilValue, errors.NewRuntimeError(*token, missingField(shape.Name, name))
+			return value.NilValue, errors.NewRuntimeError(errors.KeyError, *token, missingField(shape.Name, name))
 		}
 	}
 
@@ -207,7 +207,7 @@ func propertyTarget(token *ast.Token, target value.Value) error {
 // propertyError is the error of obj.name (verb "read") or obj.name = v
 // ("set") on a target that is not an object.
 func propertyError(verb string, token *ast.Token, target value.Value) error {
-	return errors.NewRuntimeError(*token, fmt.Sprintf(
+	return errors.NewRuntimeError(errors.TypeError, *token, fmt.Sprintf(
 		"Cannot %s property '%s' of %s.", verb, token.Lexeme, helpers.TypeName(target)))
 }
 
@@ -232,7 +232,7 @@ func getIndex(token *ast.Token, target, index value.Value) (value.Value, error) 
 
 	case value.Object:
 		if !index.IsString() {
-			return value.NilValue, errors.NewRuntimeError(*token, "Object keys must be strings.")
+			return value.NilValue, errors.NewRuntimeError(errors.TypeError, *token, "Object keys must be strings.")
 		}
 
 		key := index.Str()
@@ -246,7 +246,7 @@ func getIndex(token *ast.Token, target, index value.Value) (value.Value, error) 
 
 	case value.Struct:
 		if !index.IsString() {
-			return value.NilValue, errors.NewRuntimeError(*token, "Struct fields must be accessed with string keys.")
+			return value.NilValue, errors.NewRuntimeError(errors.TypeError, *token, "Struct fields must be accessed with string keys.")
 		}
 
 		i := target.Shape().Index(index.Str())
@@ -257,7 +257,7 @@ func getIndex(token *ast.Token, target, index value.Value) (value.Value, error) 
 		return target.Fields()[i], nil
 	}
 
-	return value.NilValue, errors.NewRuntimeError(*token, fmt.Sprintf(
+	return value.NilValue, errors.NewRuntimeError(errors.TypeError, *token, fmt.Sprintf(
 		"Can only index arrays, strings, objects and structs, got %s.", helpers.TypeName(target)))
 }
 
@@ -275,7 +275,7 @@ func setIndex(token *ast.Token, target, index, v value.Value) error {
 
 	case value.Object:
 		if !index.IsString() {
-			return errors.NewRuntimeError(*token, "Object properties must be accessed with string keys.")
+			return errors.NewRuntimeError(errors.TypeError, *token, "Object properties must be accessed with string keys.")
 		}
 
 		target.Obj()[index.Str()] = v
@@ -283,17 +283,17 @@ func setIndex(token *ast.Token, target, index, v value.Value) error {
 		return nil
 
 	case value.String:
-		return errors.NewRuntimeError(*token, "Strings are immutable.")
+		return errors.NewRuntimeError(errors.TypeError, *token, "Strings are immutable.")
 
 	case value.Struct:
 		if !index.IsString() {
-			return errors.NewRuntimeError(*token, "Struct fields must be accessed with string keys.")
+			return errors.NewRuntimeError(errors.TypeError, *token, "Struct fields must be accessed with string keys.")
 		}
 
 		return immutableField(token, target.Shape(), index.Str())
 
 	default:
-		return errors.NewRuntimeError(*token, fmt.Sprintf(
+		return errors.NewRuntimeError(errors.TypeError, *token, fmt.Sprintf(
 			"Can only index arrays, strings, objects and structs, got %s.", helpers.TypeName(target)))
 	}
 }
@@ -302,7 +302,7 @@ func setIndex(token *ast.Token, target, index, v value.Value) error {
 func checkIndex(token *ast.Token, target, v value.Value) (int, error) {
 	if !v.IsNumber() || v.Num() != math.Trunc(v.Num()) {
 		kind := helpers.TypeName(target)
-		return 0, errors.NewRuntimeError(*token, strings.ToUpper(kind[:1])+kind[1:]+" index must be an integer.")
+		return 0, errors.NewRuntimeError(errors.TypeError, *token, strings.ToUpper(kind[:1])+kind[1:]+" index must be an integer.")
 	}
 
 	var length int
@@ -314,7 +314,7 @@ func checkIndex(token *ast.Token, target, v value.Value) (int, error) {
 
 	f := v.Num()
 	if f < 0 || f >= float64(length) {
-		return 0, errors.NewRuntimeError(*token, fmt.Sprintf("Index out of bounds: %v of %v", f, length))
+		return 0, errors.NewRuntimeError(errors.IndexError, *token, fmt.Sprintf("Index out of bounds: %v of %v", f, length))
 	}
 
 	return int(f), nil

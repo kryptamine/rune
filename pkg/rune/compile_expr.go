@@ -252,7 +252,7 @@ func (fs *funcState) literal(dst int32, n int, item func(i int) ast.Expr, build 
 // structLiteral evaluates the fields in source order into registers in
 // slot order, defaults filling the rest.
 func (fs *funcState) structLiteral(n *ast.StructExpr, dst int32) {
-	shape := fs.unit.shapes[n.Decl]
+	shape := n.Shape
 	base := fs.free
 	given := make([]bool, len(shape.Fields))
 

@@ -1,1 +1,1 @@
-nope++; // expect runtime error: [line: 1] Undefined variable 'nope'.
+nope++; // expect runtime error: [line: 1] NameError: Undefined variable 'nope'.

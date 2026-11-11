@@ -1,2 +1,2 @@
-nil(); // expect runtime error: [line: 1] Can only call functions.
+nil(); // expect runtime error: [line: 1] TypeError: Can only call functions.
  

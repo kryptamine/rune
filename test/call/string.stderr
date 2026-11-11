@@ -1,3 +1,3 @@
-[line: 1] Can only call functions.
-    1 | "str"(); // expect runtime error: [line: 1] Can only call functions.
+[line: 1] TypeError: Can only call functions.
+    1 | "str"(); // expect runtime error: [line: 1] TypeError: Can only call functions.
       |       ^

@@ -1,0 +1,8 @@
+struct P { x }
+let notType = 1;
+
+try {} catch (e: notType) {} // [line: 4] Error at 'notType': 'notType' is not a struct.
+try {} catch (e: Missing) {} // [line: 5] Error at 'Missing': 'Missing' is not a struct.
+try {} catch (e: P, P) {} // [line: 6] Error at 'P': 'P' is already caught.
+try {} catch (e: P) {} catch (e: TypeError, P) {} // [line: 7] Error at 'P': 'P' is already caught.
+try {} catch (e) {} catch (e: P) {} // [line: 8] Error at 'catch': Catch-all must be the last catch clause.

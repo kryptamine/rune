@@ -1,1 +1,1 @@
-len(1); // expect runtime error: [line: 1] len() expects a string, an array, an object or a struct as argument 1, got number.
+len(1); // expect runtime error: [line: 1] TypeError: len() expects a string, an array, an object or a struct as argument 1, got number.

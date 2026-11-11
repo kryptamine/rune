@@ -2,6 +2,7 @@ package stdlib
 
 import (
 	"cmp"
+	"rune/pkg/errors"
 	"rune/pkg/helpers"
 	"rune/pkg/value"
 	"slices"
@@ -47,7 +48,7 @@ var arrayNatives = []*Native{
 		case c.has(2):
 			acc = c.args[2]
 		case len(items) == 0:
-			return c.fail("of an empty array needs an initial value.")
+			return c.fail(errors.ValueError, "of an empty array needs an initial value.")
 		default:
 			acc, items = items[0], items[1:]
 		}
@@ -75,7 +76,7 @@ var arrayNatives = []*Native{
 		}
 
 		if !c.has(1) && !sortable(items) {
-			return c.fail("without a comparator needs all numbers or all strings.")
+			return c.fail(errors.TypeError, "without a comparator needs all numbers or all strings.")
 		}
 
 		slices.SortStableFunc(items, compare)
@@ -117,7 +118,7 @@ func comparator(c *call, f value.Value) func(a, b value.Value) int {
 		}
 
 		if !r.IsNumber() {
-			c.fail("comparator must return a number.")
+			c.fail(errors.TypeError, "comparator must return a number.")
 			return 0
 		}
 

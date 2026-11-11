@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"rune/pkg/ast"
 	"rune/pkg/value"
+	"slices"
 )
 
 func (fs *funcState) stmts(stmts []ast.Stmt) {
@@ -273,26 +274,73 @@ func (fs *funcState) rangeParts(r *ast.RangeExpr) int32 {
 }
 
 func (fs *funcState) tryStmt(s *ast.TryStmt) {
-	try := fs.emit(ins{op: opTry, a: fs.nactive, y: uint8(boolNum(s.Param != nil))}, nil)
+	rethrows := len(s.Catches[len(s.Catches)-1].Types) > 0
+	bind := slices.ContainsFunc(s.Catches, func(c ast.CatchClause) bool { return c.Param != nil || len(c.Types) > 0 })
+	try := fs.emit(ins{op: opTry, a: fs.nactive, x: uint8(boolNum(rethrows)), y: uint8(boolNum(bind))}, nil)
 
 	fs.tries++
 	fs.scoped(func() { fs.stmt(s.Body) })
 	fs.tries--
 
 	fs.emit(ins{op: opEndTry, b: 1}, nil)
-	end := fs.emit(ins{op: opJmp}, nil)
+	ends := []int{fs.emit(ins{op: opJmp}, nil)}
 	fs.patch([]int{try})
 
 	fs.scoped(func() {
-		if s.Param != nil {
-			r := fs.declare(s.ParamLocal)
-			if s.ParamLocal.Captured {
-				fs.emit(ins{op: opNewCell, a: r, b: r}, nil)
-			}
+		r := fs.nactive
+		if bind {
+			fs.declare(nil)
 		}
 
-		fs.stmts(s.Handler)
+		if rethrows {
+			fs.declare(nil) // the caught error
+		}
+
+		for i := range s.Catches {
+			c := &s.Catches[i]
+			if len(c.Types) == 0 {
+				fs.scoped(func() { fs.catchBody(c, r) })
+				break
+			}
+
+			hits := fs.isAny(r, c.Types)
+			miss := fs.emit(ins{op: opJmp}, nil)
+			fs.patch(hits)
+			fs.scoped(func() { fs.catchBody(c, r) })
+			ends = append(ends, fs.emit(ins{op: opJmp}, nil))
+			fs.patch([]int{miss})
+		}
+
+		if rethrows {
+			fs.emit(ins{op: opRethrow, a: r + 1}, nil)
+		}
 	})
 
-	fs.patch([]int{end})
+	fs.patch(ends)
+}
+
+// isAny emits a jump, for each of types, taken if R[r] is of it.
+func (fs *funcState) isAny(r int32, types []*ast.VarExpr) []int {
+	hits := make([]int, len(types))
+
+	for i, t := range types {
+		tmp := fs.alloc()
+		fs.emit(ins{op: opIs, a: tmp, b: r, c: fs.exprAny(t)}, &t.Name)
+		hits[i] = fs.emit(ins{op: opJmpIf, a: tmp, y: 1}, nil)
+		fs.free = fs.nactive
+	}
+
+	return hits
+}
+
+// catchBody compiles c with the caught value in register r.
+func (fs *funcState) catchBody(c *ast.CatchClause, r int32) {
+	if c.Param != nil {
+		fs.locals[c.ParamLocal] = r
+		if c.ParamLocal.Captured {
+			fs.emit(ins{op: opNewCell, a: r, b: r}, nil)
+		}
+	}
+
+	fs.stmts(c.Body)
 }

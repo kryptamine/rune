@@ -1,3 +1,3 @@
-[line: 4] Cannot convert Vec to Point.
-    4 | print Point(Vec { x: 1, y: 2 }); // expect runtime error: [line: 4] Cannot convert Vec to Point.
+[line: 4] TypeError: Cannot convert Vec to Point.
+    4 | print Point(Vec { x: 1, y: 2 }); // expect runtime error: [line: 4] TypeError: Cannot convert Vec to Point.
       |                               ^

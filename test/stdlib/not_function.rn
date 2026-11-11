@@ -1,1 +1,1 @@
-filter([1], 1); // expect runtime error: [line: 1] filter() expects a function as argument 2, got number.
+filter([1], 1); // expect runtime error: [line: 1] TypeError: filter() expects a function as argument 2, got number.

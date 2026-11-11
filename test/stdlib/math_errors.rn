@@ -1,1 +1,1 @@
-floor("x"); // expect runtime error: [line: 1] floor() expects a number as argument 1, got string.
+floor("x"); // expect runtime error: [line: 1] TypeError: floor() expects a number as argument 1, got string.

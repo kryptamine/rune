@@ -48,7 +48,4 @@ let r = map([1, 2, 3], fun (x) {
   }
 });
 print r; // expect: [1, 0, 3]
-
-fun deep(n) { return deep(n + 1); }
-try { deep(0); } catch (e) { print e.message; } // expect: Stack overflow.
 print map([1], fun (x) { return x + 1; }); // expect: [2]
