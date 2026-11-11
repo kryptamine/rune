@@ -5,6 +5,7 @@ import (
 	"rune/pkg/ast"
 	"rune/pkg/errors"
 	"rune/pkg/value"
+	"slices"
 	"sync"
 )
 
@@ -119,23 +120,31 @@ type Globals struct {
 	defined []bool
 }
 
-// NewGlobals reserves room for size globals.
-func NewGlobals(size int) *Globals {
-	return &Globals{values: make([]value.Value, 0, size), defined: make([]bool, 0, size)}
+// Clone copies g with room for every global interned so far.
+func (g *Globals) Clone() Globals {
+	globalSlotsMu.Lock()
+	n := max(len(globalSlots), len(g.values))
+	globalSlotsMu.Unlock()
+
+	c := Globals{values: make([]value.Value, n), defined: make([]bool, n)}
+	copy(c.values, g.values)
+	copy(c.defined, g.defined)
+
+	return c
 }
 
 func (g *Globals) Define(slot int, v value.Value) {
 	if slot >= len(g.values) {
-		g.values = append(g.values, make([]value.Value, slot+1-len(g.values))...)
-		g.defined = append(g.defined, make([]bool, slot+1-len(g.defined))...)
+		g.grow(slot + 1)
 	}
 
 	g.values[slot] = v
 	g.defined[slot] = true
 }
 
-func (g *Globals) isDefined(slot int) bool {
-	return slot < len(g.defined) && g.defined[slot]
+func (g *Globals) grow(n int) {
+	g.values = slices.Grow(g.values, n-len(g.values))[:n]
+	g.defined = slices.Grow(g.defined, n-len(g.defined))[:n]
 }
 
 func (g *Globals) Get(slot int, token *ast.Token) (value.Value, error) {
@@ -143,22 +152,21 @@ func (g *Globals) Get(slot int, token *ast.Token) (value.Value, error) {
 		return g.values[slot], nil
 	}
 
-	return value.NilValue, undefined(*token)
+	return value.NilValue, undefined(token)
 }
 
 func (g *Globals) Assign(slot int, token *ast.Token, v value.Value) error {
-	if !g.isDefined(slot) {
-		return undefined(*token)
+	if slot < len(g.defined) && g.defined[slot] {
+		g.values[slot] = v
+		return nil
 	}
 
-	g.values[slot] = v
-
-	return nil
+	return undefined(token)
 }
 
 // Kept out of line so Get and Assign stay cheap enough to inline.
 //
 //go:noinline
-func undefined(token ast.Token) error {
-	return errors.NewRuntimeError(token, fmt.Sprintf("Undefined variable '%s'.", token.Lexeme))
+func undefined(token *ast.Token) error {
+	return errors.NewRuntimeError(*token, fmt.Sprintf("Undefined variable '%s'.", token.Lexeme))
 }

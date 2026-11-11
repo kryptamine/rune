@@ -24,8 +24,8 @@ const (
 // Value is a Rune runtime value. The zero Value is nil.
 //
 // Numbers and booleans are stored in num (booleans as 0/1). A string is its
-// data pointer in obj (unsafe.Pointer boxes without allocating) and its
-// length in num.
+// length in num and, in obj, its data pointer (unsafe.Pointer boxes without
+// allocating) or the *strBuf it was concatenated into.
 type Value struct {
 	kind Kind
 	num  float64
@@ -72,7 +72,51 @@ func (v Value) Bool() bool { return v.num != 0 }
 
 // Str returns the string payload; only meaningful when Kind() == String.
 func (v Value) Str() string {
+	if b, ok := v.obj.(*strBuf); ok {
+		return unsafe.String(unsafe.SliceData(b.data), int(v.num))
+	}
+
 	return unsafe.String((*byte)(v.obj.(unsafe.Pointer)), int(v.num))
+}
+
+// strBuf backs strings built by concatenation. Bytes below any string's
+// length never change, so a string ending at len(data) may append in place.
+type strBuf struct {
+	data []byte
+}
+
+// minBuffered is the shortest concatenation result that gets a strBuf.
+const minBuffered = 64
+
+// Concat joins two strings, appending in place when l ends its buffer, so
+// building a string in a loop is linear instead of quadratic.
+func Concat(l, r Value) Value {
+	ls, rs := l.Str(), r.Str()
+	n := len(ls) + len(rs)
+
+	if b, ok := l.obj.(*strBuf); ok && len(b.data) == len(ls) {
+		b.data = append(b.data, rs...)
+		return Value{kind: String, num: float64(n), obj: b}
+	}
+
+	if n < minBuffered {
+		return NewString(ls + rs)
+	}
+
+	b := &strBuf{data: make([]byte, 0, 2*n)}
+	b.data = append(append(b.data, ls...), rs...)
+
+	return Value{kind: String, num: float64(n), obj: b}
+}
+
+// Detach returns v without a concat buffer, so it is safe to share
+// between interpreters.
+func (v Value) Detach() Value {
+	if _, ok := v.obj.(*strBuf); ok {
+		return NewString(v.Str())
+	}
+
+	return v
 }
 
 // Arr returns the array payload; only meaningful when Kind() == Array.

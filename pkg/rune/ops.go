@@ -36,7 +36,11 @@ func binaryOp(operator *ast.Token, left, right value.Value) (value.Value, error)
 		return value.NewBool(!helpers.IsEqual(left, right)), nil
 	case ast.PLUS, ast.LESS, ast.LESS_EQUAL, ast.GREATER, ast.GREATER_EQUAL:
 		if left.IsString() && right.IsString() {
-			return stringOp(op, left.Str(), right.Str()), nil
+			if op == ast.PLUS {
+				return value.Concat(left, right), nil
+			}
+
+			return value.NewBool(compare(op, left.Str(), right.Str())), nil
 		}
 
 		if !bothNumbers {
@@ -49,15 +53,6 @@ func binaryOp(operator *ast.Token, left, right value.Value) (value.Value, error)
 	}
 
 	return numberOp(op, left.Num(), right.Num()), nil
-}
-
-// stringOp applies + or a comparison to two strings.
-func stringOp(op ast.TokenType, l, r string) value.Value {
-	if op == ast.PLUS {
-		return value.NewString(l + r)
-	}
-
-	return value.NewBool(compare(op, l, r))
 }
 
 func numberOp(op ast.TokenType, l, r float64) value.Value {
