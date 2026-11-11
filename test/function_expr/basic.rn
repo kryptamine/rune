@@ -1,4 +1,4 @@
-var add = fun (a, b) { return a + b; };
+let add = fun (a, b) { return a + b; };
 print add(1, 2); // expect: 3
 print add;       // expect: <fn>
 

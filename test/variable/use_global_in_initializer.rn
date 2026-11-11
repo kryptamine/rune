@@ -1,2 +1,2 @@
-var a = a; // [line: 1] Error at 'a': Cannot read global variable in its own initializer.
-var f = fun () { return f; };
+let a = a; // [line: 1] Error at 'a': Cannot read global variable in its own initializer.
+let f = fun () { return f; };

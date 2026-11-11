@@ -1,4 +1,4 @@
-var xs = [3, 1, 2];
+let mut xs = [3, 1, 2];
 print map(xs, fun (x) { return x * 2; }); // expect: [6, 2, 4]
 print filter(xs, fun (x) { return x > 1; }); // expect: [3, 2]
 print reduce(xs, fun (a, b) { return a + b; }); // expect: 6
@@ -20,7 +20,7 @@ print xs; // expect: [1, 2, 3]
 print sort(["b", "c", "a"]); // expect: ["a", "b", "c"]
 print sort(xs, fun (a, b) { return b - a; }); // expect: [3, 2, 1]
 
-var people = [{name: "bob", age: 25}, {name: "ann", age: 31}, {name: "cid", age: 25}];
+let mut people = [{name: "bob", age: 25}, {name: "ann", age: 31}, {name: "cid", age: 25}];
 sort(people, fun (a, b) { return a.age - b.age; });
 print map(people, fun (p) { return p.name; }); // expect: ["bob", "cid", "ann"]
 

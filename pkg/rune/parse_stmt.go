@@ -14,7 +14,7 @@ func (s *Parser) declaration() (ast.Stmt, error) {
 		return s.function("function")
 	}
 
-	if s.match(ast.VAR) {
+	if s.match(ast.LET) {
 		return s.varDeclaration()
 	}
 
@@ -45,7 +45,7 @@ const maxArity = 8
 // functionRest parses a function's parameter list and body; the opening
 // "(" has already been consumed.
 func (s *Parser) functionRest(name ast.Token) (*ast.FunctionStmt, error) {
-	parameters := []ast.Token{}
+	parameters := []ast.Binding{}
 
 	if !s.check(ast.RIGHT_PAREN) {
 		for {
@@ -57,7 +57,7 @@ func (s *Parser) functionRest(name ast.Token) (*ast.FunctionStmt, error) {
 				))
 			}
 
-			param, err := s.consume(ast.IDENTIFIER, "Expect parameter name.")
+			param, err := s.binding("Expect parameter name.")
 			if err != nil {
 				return nil, err
 			}
@@ -88,8 +88,30 @@ func (s *Parser) functionRest(name ast.Token) (*ast.FunctionStmt, error) {
 	return ast.NewFunctionStmt(name, parameters, body).(*ast.FunctionStmt), nil
 }
 
+// binding parses "name" or "mut name".
+func (s *Parser) binding(msg string) (ast.Binding, error) {
+	mutable := s.match(ast.MUT)
+	name, err := s.consume(ast.IDENTIFIER, msg)
+
+	return ast.Binding{Name: name, Mutable: mutable}, err
+}
+
+// bindingEnd returns the index of the token after a binding starting i
+// tokens ahead, or -1 if there is none.
+func (s *Parser) bindingEnd(i int) int {
+	if s.peekAt(i) == ast.MUT {
+		i++
+	}
+
+	if s.peekAt(i) != ast.IDENTIFIER {
+		return -1
+	}
+
+	return i + 1
+}
+
 func (s *Parser) varDeclaration() (ast.Stmt, error) {
-	name, err := s.consume(ast.IDENTIFIER, "Expect variable name.")
+	binding, err := s.binding("Expect variable name.")
 	if err != nil {
 		return nil, err
 	}
@@ -102,6 +124,8 @@ func (s *Parser) varDeclaration() (ast.Stmt, error) {
 		if err != nil {
 			return nil, err
 		}
+	} else if !binding.Mutable {
+		s.errors = append(s.errors, errors.NewSyntaxError(binding.Name, "Immutable variable must be initialized."))
 	}
 
 	_, err = s.consume(ast.SEMICOLON, "Expect ';' after variable declaration.")
@@ -109,7 +133,7 @@ func (s *Parser) varDeclaration() (ast.Stmt, error) {
 		return nil, err
 	}
 
-	return ast.NewVarStmt(initializer, name), nil
+	return ast.NewVarStmt(initializer, binding), nil
 }
 
 func (s *Parser) statement() (ast.Stmt, error) {
@@ -300,7 +324,7 @@ func (s *Parser) forStatement() (ast.Stmt, error) {
 
 	if s.match(ast.SEMICOLON) {
 		initializer = nil
-	} else if s.match(ast.VAR) {
+	} else if s.match(ast.LET) {
 		initializer, err = s.varDeclaration()
 
 		if err != nil {
@@ -362,30 +386,29 @@ func (s *Parser) forStatement() (ast.Stmt, error) {
 }
 
 // isForInStart reports whether the tokens after "for (" are "name in" or
-// "name, name in".
+// "name, name in", each name optionally preceded by "mut".
 func (s *Parser) isForInStart() bool {
-	if s.peekAt(0) != ast.IDENTIFIER {
-		return false
+	i := s.bindingEnd(0)
+
+	if i >= 0 && s.peekAt(i) == ast.COMMA {
+		i = s.bindingEnd(i + 1)
 	}
 
-	if s.peekAt(1) == ast.IN {
-		return true
-	}
-
-	return s.peekAt(1) == ast.COMMA && s.peekAt(2) == ast.IDENTIFIER && s.peekAt(3) == ast.IN
+	return i >= 0 && s.peekAt(i) == ast.IN
 }
 
 // forInStatement parses the rest of `for (x in expr) body` or
 // `for (k, v in expr) body` after "for (".
 func (s *Parser) forInStatement(keyword ast.Token) (ast.Stmt, error) {
-	var key *ast.Token
+	// The bindings were checked by isForInStart, so they cannot fail.
+	var key *ast.Binding
 
-	val := s.advance()
+	val, _ := s.binding("")
 
 	if s.match(ast.COMMA) {
 		k := val
 		key = &k
-		val = s.advance()
+		val, _ = s.binding("")
 	}
 
 	s.advance() // "in", checked by isForInStart

@@ -1,2 +1,2 @@
 // [line: 3] Error at '*': Expect expression.
-for (var a = 1; * a = a + 1) {}
+for (let mut a = 1; * a = a + 1) {}

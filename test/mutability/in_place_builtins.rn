@@ -1,0 +1,6 @@
+let a = [2, 1];
+push(a, 3); // [line: 2] Error at 'a': Cannot mutate immutable variable 'a'.
+pop(a); // [line: 3] Error at 'a': Cannot mutate immutable variable 'a'.
+sort(a); // [line: 4] Error at 'a': Cannot mutate immutable variable 'a'.
+let o = {xs: []};
+push(o.xs, 1); // [line: 6] Error at 'o': Cannot mutate immutable variable 'o'.

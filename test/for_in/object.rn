@@ -1,4 +1,4 @@
-var o = {"b": 2, "a": 1, "c": 3};
+let o = {"b": 2, "a": 1, "c": 3};
 
 for (k in o) print k;
 // expect: a

@@ -1,0 +1,4 @@
+fun f() {
+  g.x = 1; // [line: 2] Error at 'g': Cannot mutate immutable variable 'g'.
+}
+let g = {};

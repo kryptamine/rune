@@ -36,7 +36,8 @@ const (
 	IDENTIFIER TokenType = iota
 
 	// Keywords
-	VAR
+	LET
+	MUT
 	AND
 	OR
 	ELSE
@@ -99,7 +100,8 @@ const (
 )
 
 var Keywords = map[string]TokenType{
-	"var":      VAR,
+	"let":      LET,
+	"mut":      MUT,
 	"and":      AND,
 	"or":       OR,
 	"else":     ELSE,
@@ -154,8 +156,10 @@ func (tokenType TokenType) String() string {
 		return "OBJECT"
 
 		// keywords
-	case VAR:
-		return "VAR"
+	case LET:
+		return "LET"
+	case MUT:
+		return "MUT"
 	case AND:
 		return "AND"
 

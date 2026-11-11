@@ -1,0 +1,7 @@
+fun push(a, x) { return x; }
+let a = [];
+print push(a, 1); // expect: 1
+{
+  let sort = fun (xs) { return xs; };
+  print sort(a); // expect: []
+}

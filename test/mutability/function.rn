@@ -1,0 +1,2 @@
+fun f() {}
+f = 1; // [line: 2] Error at 'f': Cannot assign to immutable variable 'f'.

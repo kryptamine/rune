@@ -1,5 +1,5 @@
 fun fail(n) {
-  var local = n;
+  let local = n;
   if (n == 0) throw "boom";
   return fail(n - 1) + local;
 }
@@ -10,5 +10,5 @@ try {
   print e; // expect: boom
 }
 
-fun ok(a) { var b = a + 1; return b; }
+fun ok(a) { let b = a + 1; return b; }
 print ok(1); // expect: 2

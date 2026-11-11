@@ -1,20 +1,20 @@
 fun foo() {
-  var a1;
-  var a2;
-  var a3;
-  var a4;
-  var a5;
-  var a6;
-  var a7;
-  var a8;
-  var a9;
-  var a10;
-  var a11;
-  var a12;
-  var a13;
-  var a14;
-  var a15;
-  var a16;
+  let mut a1;
+  let mut a2;
+  let mut a3;
+  let mut a4;
+  let mut a5;
+  let mut a6;
+  let mut a7;
+  let mut a8;
+  let mut a9;
+  let mut a10;
+  let mut a11;
+  let mut a12;
+  let mut a13;
+  let mut a14;
+  let mut a15;
+  let mut a16;
   foo(); // expect runtime error: [line: 18] Stack overflow.
 }
 

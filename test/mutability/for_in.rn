@@ -1,0 +1,4 @@
+for (i, x in [1]) {
+  i = 1; // [line: 2] Error at 'i': Cannot assign to immutable variable 'i'.
+  x = 1; // [line: 3] Error at 'x': Cannot assign to immutable variable 'x'.
+}

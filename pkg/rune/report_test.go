@@ -31,7 +31,7 @@ func TestReport(t *testing.T) {
 	}{
 		{
 			"syntax error points at the token",
-			"var x = 1;\nprint x +;\n",
+			"let x = 1;\nprint x +;\n",
 			"[line: 2] Error at ';': Expect expression.\n" +
 				"    2 | print x +;\n" +
 				"      |          ^\n",
@@ -45,7 +45,7 @@ func TestReport(t *testing.T) {
 		},
 		{
 			"runtime error unwinds through closures and natives",
-			"fun g(x) {\n  return x.y;\n}\nvar a = fun (f) { return map([1], f); };\na(g);\n",
+			"fun g(x) {\n  return x.y;\n}\nlet a = fun (f) { return map([1], f); };\na(g);\n",
 			"[line: 2] Cannot read property 'y' of number.\n" +
 				"    2 |   return x.y;\n" +
 				"      |            ^\n" +

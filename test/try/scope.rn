@@ -1,11 +1,11 @@
-var err = "global";
+let err = "global";
 {
-  var a = "local";
+  let a = "local";
   try {
-    var b = "in try";
+    let b = "in try";
     throw a;
   } catch (err) {
-    var c = "in catch";
+    let c = "in catch";
     print err; // expect: local
     print c; // expect: in catch
   }

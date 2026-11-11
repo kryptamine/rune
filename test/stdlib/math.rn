@@ -8,5 +8,5 @@ print min(3, 1, 2); // expect: 1
 print max(3, 1, 2); // expect: 3
 print floor(PI); // expect: 3
 print INF > 1e308; // expect: true
-var r = random();
+let r = random();
 print r >= 0 and r < 1; // expect: true

@@ -1,2 +1,2 @@
 fun a() {}
-var a = "2"; // [line: 2] Error at 'a': Variable with this name already declared in this scope.
+let a = "2"; // [line: 2] Error at 'a': Variable with this name already declared in this scope.

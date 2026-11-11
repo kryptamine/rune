@@ -1,7 +1,7 @@
-var arr = [];
+let mut arr = [];
 
 fun foo() {
-  for (var i = 0; i < 3; i = i + 1) {
+  for (let mut i = 0; i < 3; i = i + 1) {
     arr = append(arr, i);
   }
 

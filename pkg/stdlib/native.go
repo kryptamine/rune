@@ -16,6 +16,9 @@ type Caller interface {
 	CallValue(fn value.Value, args []value.Value, token *ast.Token) (value.Value, error)
 }
 
+// InPlace names the built-ins that mutate their first argument.
+var InPlace = map[string]bool{"push": true, "pop": true, "sort": true}
+
 // Native is a built-in taking between min and max arguments (max -1: no limit).
 type Native struct {
 	name     string

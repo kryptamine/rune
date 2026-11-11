@@ -1,5 +1,5 @@
 {
-  var a = "before";
+  let mut a = "before";
   print a; // expect: before
 
   a = "after";

@@ -1,6 +1,6 @@
-var items = [1, "x", 3];
-var sum = 0;
-for (var i = 0; i < len(items); i = i + 1) {
+let items = [1, "x", 3];
+let mut sum = 0;
+for (let mut i = 0; i < len(items); i = i + 1) {
   try {
     sum = sum + items[i];
   } catch (err) {

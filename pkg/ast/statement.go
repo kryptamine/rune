@@ -16,18 +16,24 @@ type StmtVisitor interface {
 	VisitForInStmt(forInStmt *ForInStmt) error
 }
 
+// Binding is a declared name; Mutable is set for names declared with "mut".
+type Binding struct {
+	Name    Token
+	Mutable bool
+}
+
 // VarStmt declares a variable. Local is set by the resolver for variables
 // declared inside a scope, together with their Slot in it; for globals Slot
 // is filled lazily by the interpreter.
 type VarStmt struct {
+	Binding
 	Initializer Expr
-	Name        Token
 	Local       bool
 	Slot        int
 }
 
-func NewVarStmt(initializer Expr, name Token) Stmt {
-	return &VarStmt{Initializer: initializer, Name: name, Slot: Unresolved}
+func NewVarStmt(initializer Expr, binding Binding) Stmt {
+	return &VarStmt{Initializer: initializer, Binding: binding, Slot: Unresolved}
 }
 
 type ReturnStmt struct {
@@ -97,15 +103,15 @@ func NewWhileStmt(condition Expr, body Stmt, increment Expr) Stmt {
 // scope of EnvSize slots: Key (if any) first, then Value.
 type ForInStmt struct {
 	Keyword  Token
-	Key      *Token
-	Value    Token
+	Key      *Binding
+	Value    Binding
 	Iterable Expr
 	Body     Stmt
 	EnvSize  int
 	Pooled   bool
 }
 
-func NewForInStmt(keyword Token, key *Token, val Token, iterable Expr, body Stmt) Stmt {
+func NewForInStmt(keyword Token, key *Binding, val Binding, iterable Expr, body Stmt) Stmt {
 	return &ForInStmt{Keyword: keyword, Key: key, Value: val, Iterable: iterable, Body: body}
 }
 
@@ -130,7 +136,7 @@ func NewContinueStmt(keyword Token) Stmt {
 // (parameters first, in order).
 type FunctionStmt struct {
 	Name       Token
-	Parameters []Token
+	Parameters []Binding
 	Body       []Stmt
 	Local      bool
 	Slot       int
@@ -138,7 +144,7 @@ type FunctionStmt struct {
 	Pooled     bool
 }
 
-func NewFunctionStmt(name Token, parameters []Token, body []Stmt) Stmt {
+func NewFunctionStmt(name Token, parameters []Binding, body []Stmt) Stmt {
 	return &FunctionStmt{Name: name, Parameters: parameters, Body: body, Slot: Unresolved}
 }
 

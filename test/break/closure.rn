@@ -1,6 +1,6 @@
-var fs = [];
-for (var i = 0; i < 10; i += 1) {
-  var j = i;
+let mut fs = [];
+for (let mut i = 0; i < 10; i += 1) {
+  let j = i;
   if (i == 2) break;
   fs = append(fs, fun () { return j; });
 }
