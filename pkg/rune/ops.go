@@ -101,13 +101,21 @@ func undefinedProperty(token *ast.Token, key string) error {
 	return errors.NewRuntimeError(*token, fmt.Sprintf("Undefined property '%s'.", key))
 }
 
-func undefinedField(token *ast.Token, target value.Value, key string) error {
-	return errors.NewRuntimeError(*token, fmt.Sprintf("%s has no field '%s'.", target.Shape().Name, key))
+func noField(structName, key string) string {
+	return fmt.Sprintf("%s has no field '%s'.", structName, key)
 }
 
-func immutableField(token *ast.Token, target value.Value, key string) error {
+func missingField(structName, field string) string {
+	return fmt.Sprintf("Missing field '%s' of %s.", field, structName)
+}
+
+func undefinedField(token *ast.Token, shape *value.Shape, key string) error {
+	return errors.NewRuntimeError(*token, noField(shape.Name, key))
+}
+
+func immutableField(token *ast.Token, shape *value.Shape, key string) error {
 	return errors.NewRuntimeError(*token, fmt.Sprintf(
-		"Cannot set field '%s' of %s: structs are immutable.", key, target.Shape().Name))
+		"Cannot set field '%s' of %s: structs are immutable.", key, shape.Name))
 }
 
 // with copies target, a struct, setting the fields keys to vals.
@@ -124,7 +132,7 @@ func with(token *ast.Token, target value.Value, keys []string, vals []value.Valu
 	for i, k := range keys {
 		slot := shape.Index(k)
 		if slot < 0 {
-			return value.NilValue, undefinedField(token, target, k)
+			return value.NilValue, undefinedField(token, shape, k)
 		}
 
 		fields[slot] = vals[i]
@@ -154,35 +162,33 @@ func convert(token *ast.Token, shape *value.Shape, args []value.Value) (value.Va
 		"Cannot convert %s to %s.", helpers.TypeName(args[0]), shape.Name))
 }
 
+// structOf walks the fields, not the keys, so no map order shows; the
+// least extra key is the one reported.
 func structOf(token *ast.Token, shape *value.Shape, obj map[string]value.Value) (value.Value, error) {
 	v, fields := value.NewStruct(shape)
-	found := 0
+	given := 0
 
 	for i, name := range shape.Fields {
-		switch f, ok := obj[name]; {
-		case ok:
+		if f, ok := obj[name]; ok {
 			fields[i] = f
-			found++
-		case shape.Required(i):
-			return value.NilValue, errors.NewRuntimeError(*token, fmt.Sprintf(
-				"Missing field '%s' of %s.", name, shape.Name))
-		default:
-			fields[i] = shape.Defaults[i]
+			given++
+		} else if fields[i], ok = shape.Default(i); !ok {
+			return value.NilValue, errors.NewRuntimeError(*token, missingField(shape.Name, name))
 		}
 	}
 
-	if found < len(obj) {
-		var extra []string
-		for k := range obj {
-			if shape.Index(k) < 0 {
-				extra = append(extra, k)
-			}
-		}
-
-		return value.NilValue, undefinedField(token, v, slices.Min(extra))
+	if given == len(obj) {
+		return v, nil
 	}
 
-	return v, nil
+	var extra []string
+	for k := range obj {
+		if shape.Index(k) < 0 {
+			extra = append(extra, k)
+		}
+	}
+
+	return value.NilValue, undefinedField(token, shape, slices.Min(extra))
 }
 
 // propertyTarget fails unless target can have a property set, as only
@@ -192,7 +198,7 @@ func propertyTarget(token *ast.Token, target value.Value) error {
 	case value.Object:
 		return nil
 	case value.Struct:
-		return immutableField(token, target, token.Lexeme)
+		return immutableField(token, target.Shape(), token.Lexeme)
 	default:
 		return propertyError("set", token, target)
 	}
@@ -245,7 +251,7 @@ func getIndex(token *ast.Token, target, index value.Value) (value.Value, error) 
 
 		i := target.Shape().Index(index.Str())
 		if i < 0 {
-			return value.NilValue, undefinedField(token, target, index.Str())
+			return value.NilValue, undefinedField(token, target.Shape(), index.Str())
 		}
 
 		return target.Fields()[i], nil
@@ -284,7 +290,7 @@ func setIndex(token *ast.Token, target, index, v value.Value) error {
 			return errors.NewRuntimeError(*token, "Struct fields must be accessed with string keys.")
 		}
 
-		return immutableField(token, target, index.Str())
+		return immutableField(token, target.Shape(), index.Str())
 
 	default:
 		return errors.NewRuntimeError(*token, fmt.Sprintf(

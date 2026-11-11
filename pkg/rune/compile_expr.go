@@ -91,6 +91,8 @@ func assigns(e ast.Expr) bool {
 		return pairsAssign(n.Pairs)
 	case *ast.WithExpr:
 		return assigns(n.Target) || pairsAssign(n.Pairs)
+	case *ast.IsExpr:
+		return assigns(n.Value) || assigns(n.Type)
 	case *ast.IndexExpr:
 		return assigns(n.Array) || assigns(n.Index)
 	case *ast.SetIndexExpr:
@@ -201,6 +203,9 @@ func (fs *funcState) expr(e ast.Expr, dst int32) {
 		fs.structLiteral(n, dst)
 	case *ast.WithExpr:
 		fs.with(n, dst)
+	case *ast.IsExpr:
+		v := fs.operand(n.Value, n.Type)
+		fs.emit(ins{op: opIs, a: dst, b: v, c: fs.exprAny(n.Type)}, &n.Token)
 	case *ast.IndexExpr:
 		fs.index(n, dst)
 	case *ast.SetIndexExpr:
@@ -247,10 +252,11 @@ func (fs *funcState) literal(dst int32, n int, item func(i int) ast.Expr, build 
 // structLiteral evaluates the fields in source order into registers in
 // slot order, defaults filling the rest.
 func (fs *funcState) structLiteral(n *ast.StructExpr, dst int32) {
+	shape := fs.unit.shapes[n.Decl]
 	base := fs.free
-	given := make([]bool, len(n.Decl.Fields))
+	given := make([]bool, len(shape.Fields))
 
-	for range n.Decl.Fields {
+	for range shape.Fields {
 		fs.alloc()
 	}
 
@@ -259,13 +265,14 @@ func (fs *funcState) structLiteral(n *ast.StructExpr, dst int32) {
 		fs.expr(pair.Value, base+int32(pair.Slot))
 	}
 
-	for i, f := range n.Decl.Fields {
+	for i := range shape.Fields {
 		if !given[i] {
-			fs.expr(f.Default, base+int32(i))
+			def, _ := shape.Default(i)
+			fs.emit(ins{op: opLoadK, a: base + int32(i), c: fs.constant(def)}, nil)
 		}
 	}
 
-	fs.emit(ins{op: opStruct, a: dst, b: base, c: fs.constant(value.NewType(fs.unit.shapes[n.Decl]))}, nil)
+	fs.emit(ins{op: opStruct, a: dst, b: base, c: fs.constant(value.NewType(shape))}, nil)
 }
 
 // with evaluates the target and then the new fields into consecutive registers.
@@ -368,13 +375,6 @@ func (fs *funcState) assign(n *ast.AssignExpr) int32 {
 
 func (fs *funcState) binary(n *ast.BinaryExpr, dst int32) {
 	op := &n.Operator
-
-	if op.TokenType == ast.IS {
-		l := fs.operand(n.Left, n.Right)
-		fs.emit(ins{op: opIs, a: dst, b: l, c: fs.exprAny(n.Right)}, op)
-
-		return
-	}
 
 	lc, lConst := literalOf(n.Left)
 	rc, rConst := literalOf(n.Right)
