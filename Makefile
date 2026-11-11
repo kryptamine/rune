@@ -15,7 +15,7 @@ test:
 
 .PHONY: update
 update:
-	go test . ./pkg/rune -update
+	go test ./... -update
 
 .PHONY: cover
 cover:

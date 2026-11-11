@@ -2,20 +2,18 @@ package rune
 
 import (
 	"bytes"
-	stderrors "errors"
-	"flag"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
 	"rune/pkg/errors"
+	"rune/pkg/golden"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
 )
-
-var updateGolden = flag.Bool("update", false, "rewrite golden files")
 
 const (
 	scriptsDir    = "../../test"
@@ -99,42 +97,73 @@ func runScript(t *testing.T, path string) {
 	}
 
 	var out bytes.Buffer
-	var stderr strings.Builder
-	var gotErrors []string
-	var gotRuntime string
 
-	prog, errs := Load(src)
-	for _, err := range errs {
-		gotErrors = append(gotErrors, err.Error())
-		stderr.WriteString(errors.Report(err, string(src)))
+	got := execute(src, &out, scriptTimeout)
+	if got.runtimeError == ErrInterrupted {
+		t.Fatalf("timed out after %v", scriptTimeout)
 	}
 
-	if prog != nil {
-		p := NewInterpreter()
-		p.SetOutput(&out)
+	compareLines(t, "compile errors", errorStrings(got.compileErrors), want.errors)
 
-		timer := time.AfterFunc(scriptTimeout, p.Interrupt)
-		err := p.Run(prog)
-		timer.Stop()
-
-		if stderrors.Is(err, ErrInterrupted) {
-			t.Fatalf("timed out after %v", scriptTimeout)
-		}
-
-		if err != nil {
-			gotRuntime = err.Error()
-			stderr.WriteString(errors.Report(err, string(src)))
-		}
-	}
-
-	compareLines(t, "compile errors", gotErrors, want.errors)
-
-	if gotRuntime != want.runtimeError {
-		t.Errorf("runtime error:\n got: %q\nwant: %q", gotRuntime, want.runtimeError)
+	if msg := errorString(got.runtimeError); msg != want.runtimeError {
+		t.Errorf("runtime error:\n got: %q\nwant: %q", msg, want.runtimeError)
 	}
 
 	compareLines(t, "output", splitLines(out.String()), want.out)
-	golden(t, strings.TrimSuffix(path, ".rn")+".stderr", stderr.String())
+	golden.Check(t, strings.TrimSuffix(path, ".rn")+".stderr", got.stderr)
+}
+
+// outcome is what running a script produced besides its output.
+type outcome struct {
+	prog          *Program
+	compileErrors []error
+	runtimeError  error
+	stderr        string
+}
+
+// execute loads and runs src as the CLI does, interrupting it after timeout.
+func execute(src []byte, out io.Writer, timeout time.Duration) outcome {
+	var o outcome
+	var stderr strings.Builder
+
+	o.prog, o.compileErrors = Load(src)
+	for _, err := range o.compileErrors {
+		stderr.WriteString(errors.Report(err, string(src)))
+	}
+
+	if o.prog != nil {
+		p := NewInterpreter()
+		p.SetOutput(out)
+
+		timer := time.AfterFunc(timeout, p.Interrupt)
+		o.runtimeError = p.Run(o.prog)
+		timer.Stop()
+
+		if o.runtimeError != nil {
+			stderr.WriteString(errors.Report(o.runtimeError, string(src)))
+		}
+	}
+
+	o.stderr = stderr.String()
+
+	return o
+}
+
+func errorString(err error) string {
+	if err == nil {
+		return ""
+	}
+
+	return err.Error()
+}
+
+func errorStrings(errs []error) []string {
+	out := make([]string, len(errs))
+	for i, err := range errs {
+		out[i] = err.Error()
+	}
+
+	return out
 }
 
 func splitLines(s string) []string {
@@ -157,37 +186,5 @@ func compareLines(t *testing.T, what string, got, want []string) {
 		case got[i] != want[i]:
 			t.Errorf("%s %d:\n got: %q\nwant: %q", what, i+1, got[i], want[i])
 		}
-	}
-}
-
-// golden compares got with the file at path, where a missing file means
-// empty; -update rewrites it instead.
-func golden(t *testing.T, path, got string) {
-	t.Helper()
-
-	if *updateGolden {
-		if got == "" {
-			err := os.Remove(path)
-			if err != nil && !stderrors.Is(err, fs.ErrNotExist) {
-				t.Fatal(err)
-			}
-
-			return
-		}
-
-		if err := os.WriteFile(path, []byte(got), 0o644); err != nil {
-			t.Fatal(err)
-		}
-
-		return
-	}
-
-	want, err := os.ReadFile(path)
-	if err != nil && !stderrors.Is(err, fs.ErrNotExist) {
-		t.Fatal(err)
-	}
-
-	if got != string(want) {
-		t.Errorf("%s mismatch (run with -update to accept):\n got:\n%s\nwant:\n%s", filepath.Base(path), got, want)
 	}
 }

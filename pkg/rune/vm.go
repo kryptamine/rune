@@ -39,6 +39,7 @@ reload:
 	regs = p.stack[fr.base : fr.base+fr.cl.proto.nregs]
 	pc = fr.pc
 
+	// Counting ticks here as well measured ~10% slower on loops.
 	if p.halted.Load() {
 		return value.NilValue, p.unwind(ErrInterrupted, stop)
 	}

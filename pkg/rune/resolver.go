@@ -435,7 +435,6 @@ func (p *Resolver) resolveLocal(name ast.Token) *ast.Local {
 		if l, exists := p.scopes[i].vars[name.Lexeme]; exists {
 			if p.scopes[i].fnDepth < p.fnDepth {
 				l.local.Captured = true
-				l.local.EarlyCaptured = l.local.EarlyCaptured || !l.defined
 			}
 
 			return l.local

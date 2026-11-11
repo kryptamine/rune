@@ -3,7 +3,6 @@ package rune
 import (
 	"io"
 	"os"
-	"rune/pkg/errors"
 	"testing"
 	"time"
 )
@@ -21,25 +20,8 @@ func FuzzRun(f *testing.F) {
 	}
 
 	f.Fuzz(func(t *testing.T, src []byte) {
-		prog, errs := Load(src)
-		for _, err := range errs {
-			errors.Report(err, string(src))
-		}
-
-		if prog == nil {
-			return
-		}
-
-		_ = prog.Disassemble()
-
-		p := NewInterpreter()
-		p.SetOutput(io.Discard)
-
-		timer := time.AfterFunc(50*time.Millisecond, p.Interrupt)
-		defer timer.Stop()
-
-		if err := p.Run(prog); err != nil {
-			errors.Report(err, string(src))
+		if o := execute(src, io.Discard, 50*time.Millisecond); o.prog != nil {
+			_ = o.prog.Disassemble()
 		}
 	})
 }

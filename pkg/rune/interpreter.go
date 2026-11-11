@@ -187,6 +187,7 @@ func (p *Interpreter) callError(cl *Closure, nargs int, tok *ast.Token) error {
 // returns nil, if there is one; otherwise it drops the run's frames and
 // returns err with them traced.
 func (p *Interpreter) unwind(err error, stop int) error {
+	// Only a RuntimeError is catchable, so ErrInterrupted always unwinds.
 	rt, ok := err.(errors.RuntimeError)
 
 	if n := len(p.handlers); ok && n > 0 && p.handlers[n-1].frame >= stop {

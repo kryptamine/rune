@@ -75,13 +75,13 @@ func evaluate(stdout, stderr io.Writer, src []byte) int {
 
 	expr, err := rune.ParseExpr(tokens)
 	if err != nil {
-		printErrors(stderr, []error{err}, src)
+		printError(stderr, err, src)
 		return exitCodeParseError
 	}
 
 	result, err := rune.EvaluateExpr(expr)
 	if err != nil {
-		printErrors(stderr, []error{err}, src)
+		printError(stderr, err, src)
 		return exitCodeEvalError
 	}
 
@@ -92,8 +92,12 @@ func evaluate(stdout, stderr io.Writer, src []byte) int {
 
 func printErrors(w io.Writer, errs []error, src []byte) {
 	for _, err := range errs {
-		fmt.Fprint(w, errors.Report(err, string(src)))
+		printError(w, err, src)
 	}
+}
+
+func printError(w io.Writer, err error, src []byte) {
+	fmt.Fprint(w, errors.Report(err, string(src)))
 }
 
 func run(stdout, stderr io.Writer, src []byte) int {
@@ -107,7 +111,7 @@ func run(stdout, stderr io.Writer, src []byte) int {
 	p.SetOutput(stdout)
 
 	if err := p.Run(prog); err != nil {
-		printErrors(stderr, []error{err}, src)
+		printError(stderr, err, src)
 		return exitCodeEvalError
 	}
 

@@ -132,13 +132,17 @@ func (fs *funcState) declareTopLevel(stmts []ast.Stmt, builtins map[string]*ast.
 }
 
 func (fs *funcState) declareTopLevelVar(l *ast.Local, name string) {
-	r := fs.declare(l)
-
 	v, ok := builtinValues()[name]
 	if !ok {
 		v = value.UndefinedValue
 	}
 
+	fs.declareAs(l, v)
+}
+
+// declareAs binds l to a register holding v, in a cell if l is captured.
+func (fs *funcState) declareAs(l *ast.Local, v value.Value) {
+	r := fs.declare(l)
 	fs.emit(ins{op: opLoadK, a: r, c: fs.constant(v)}, nil)
 
 	if l.Captured {

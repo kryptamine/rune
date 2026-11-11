@@ -22,9 +22,11 @@ exit: 0
 counter: arity 0, 2 registers, 0 upvalues
     0  LOADK         0 0 0
     1  NEWCELL       0 0 0
-    2  CLOSURE       1 0 0
-    3  RETURN        1 0 0
-    4  RETURNNIL     0 0 0
+    2  LOADK         1 0 1
+    3  SETCELL       0 1 0
+    4  CLOSURE       1 0 0
+    5  RETURN        1 0 0
+    6  RETURNNIL     0 0 0
 
 inc: arity 0, 2 registers, 1 upvalues
     0  GETUPVAL      1 0 0

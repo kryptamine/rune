@@ -50,9 +50,6 @@ func (n *BinaryExpr) String() string {
 type Local struct {
 	// Captured is set when a nested function refers to the variable.
 	Captured bool
-	// EarlyCaptured is set when a nested function in its own initializer
-	// refers to it, so its cell must exist before the initializer runs.
-	EarlyCaptured bool
 	// TopLevel is set for a declaration outside any block or function.
 	TopLevel bool
 }
