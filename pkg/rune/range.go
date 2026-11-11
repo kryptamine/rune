@@ -35,13 +35,13 @@ var rangeParts = [...]string{"start", "end", "step"}
 func rangeOf(parts []value.Value, inclusive bool, tok *ast.Token) (numRange, error) {
 	for i, v := range parts[:3] {
 		if !v.IsNumber() {
-			return numRange{}, errors.NewRuntimeError(*tok, fmt.Sprintf(
+			return numRange{}, errors.NewRuntimeError(errors.TypeError, *tok, fmt.Sprintf(
 				"Range %s must be a number, got %s.", rangeParts[i], helpers.TypeName(v)))
 		}
 	}
 
 	if parts[2].Num() == 0 {
-		return numRange{}, errors.NewRuntimeError(*tok, "Range step must not be zero.")
+		return numRange{}, errors.NewRuntimeError(errors.ValueError, *tok, "Range step must not be zero.")
 	}
 
 	return numRange{start: parts[0].Num(), end: parts[1].Num(), step: parts[2].Num(), inclusive: inclusive}, nil
@@ -64,7 +64,7 @@ func (r numRange) size() float64 {
 func (r numRange) array(tok *ast.Token) (value.Value, error) {
 	n := r.size()
 	if n > maxRangeArray {
-		return value.NilValue, errors.NewRuntimeError(*tok, "Range is too large to make an array.")
+		return value.NilValue, errors.NewRuntimeError(errors.ValueError, *tok, "Range is too large to make an array.")
 	}
 
 	out := make([]value.Value, 0, int(n))

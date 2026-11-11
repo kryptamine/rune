@@ -1,4 +1,4 @@
 struct Point { x, y }
 struct Vec { x, y }
 
-print Point(Vec { x: 1, y: 2 }); // expect runtime error: [line: 4] Cannot convert Vec to Point.
+print Point(Vec { x: 1, y: 2 }); // expect runtime error: [line: 4] TypeError: Cannot convert Vec to Point.

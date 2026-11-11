@@ -46,7 +46,7 @@ func TestReport(t *testing.T) {
 		{
 			"runtime error unwinds through closures and natives",
 			"fun g(x) {\n  return x.y;\n}\nlet a = fun (f) { return map([1], f); };\na(g);\n",
-			"[line: 2] Cannot read property 'y' of number.\n" +
+			"[line: 2] TypeError: Cannot read property 'y' of number.\n" +
 				"    2 |   return x.y;\n" +
 				"      |            ^\n" +
 				"  at g (line 2)\n" +
@@ -67,7 +67,7 @@ func TestReport(t *testing.T) {
 		{
 			"top-level error has no trace",
 			"print nope;\n",
-			"[line: 1] Undefined variable 'nope'.\n" +
+			"[line: 1] NameError: Undefined variable 'nope'.\n" +
 				"    1 | print nope;\n" +
 				"      |       ^\n",
 		},

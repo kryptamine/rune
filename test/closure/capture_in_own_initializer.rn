@@ -10,5 +10,5 @@ fun outer() {
 print outer(); // expect: done
 
 {
-  let h = [fun () { return h; }()]; // expect runtime error: [line: 13] Undefined variable 'h'.
+  let h = [fun () { return h; }()]; // expect runtime error: [line: 13] NameError: Undefined variable 'h'.
 }

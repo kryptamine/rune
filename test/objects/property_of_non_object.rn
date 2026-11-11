@@ -1,2 +1,2 @@
 let n = 1;
-print n.size; // expect runtime error: [line: 2] Cannot read property 'size' of number.
+print n.size; // expect runtime error: [line: 2] TypeError: Cannot read property 'size' of number.

@@ -39,7 +39,7 @@ func (f *Frames) Call(n *Native, caller Caller, args []value.Value, token *ast.T
 	var v value.Value
 
 	if len(args) < n.min || (n.max >= 0 && len(args) > n.max) {
-		c.fail("expects %s, got %d.", n.arityText(), len(args))
+		c.fail(errors.ArgumentError, "expects %s, got %d.", n.arityText(), len(args))
 	} else {
 		v = n.fn(c)
 	}
@@ -101,16 +101,16 @@ func (c *call) ok() bool { return c.err == nil }
 
 func (c *call) has(i int) bool { return i < len(c.args) }
 
-func (c *call) fail(format string, a ...any) value.Value {
+func (c *call) fail(kind *value.Shape, format string, a ...any) value.Value {
 	if c.err == nil {
-		c.err = errors.NewRuntimeError(*c.token, c.name+"() "+fmt.Sprintf(format, a...))
+		c.err = errors.NewRuntimeError(kind, *c.token, c.name+"() "+fmt.Sprintf(format, a...))
 	}
 
 	return value.NilValue
 }
 
 func (c *call) typeError(i int, want string) value.Value {
-	return c.fail("expects %s as argument %d, got %s.", want, i+1, helpers.TypeName(c.args[i]))
+	return c.fail(errors.TypeError, "expects %s as argument %d, got %s.", want, i+1, helpers.TypeName(c.args[i]))
 }
 
 func (c *call) num(i int) float64 {
@@ -190,6 +190,10 @@ func builtins() []Builtin {
 
 	for _, n := range slices.Concat(coreNatives, mathNatives, stringNatives, arrayNatives, sequenceNatives) {
 		out = append(out, Builtin{n.name, value.NewFunction(n)})
+	}
+
+	for _, k := range errors.Kinds {
+		out = append(out, Builtin{k.Name, value.NewType(k)})
 	}
 
 	return out

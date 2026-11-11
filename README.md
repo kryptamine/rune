@@ -71,7 +71,7 @@ Errors show the offending source line with a caret under the column;
 runtime errors also list the calls they unwound through:
 
 ```
-[line: 2] Cannot read property 'y' of number.
+[line: 2] TypeError: Cannot read property 'y' of number.
     2 |   return x.y;
       |            ^
   at g (line 2)
@@ -281,7 +281,17 @@ Before running, the resolved AST is compiled to bytecode for a register machine,
 
 ## Error Handling
 
-Runtime errors (including those from built-ins like `json()`) can be caught with `try`/`catch`. The catch variable is optional (`catch { ... }`); for an error raised by the language it holds an object `{message, line}`.
+Runtime errors (including those from built-ins like `json()`) can be caught with `try`/`catch`. The catch variable is optional (`catch { ... }`). An error raised by the language is a struct of one of the built-in error types, each with fields `{ message, line = nil, cause = nil }`:
+
+- `TypeError` — a value of the wrong type (`1 + nil`, calling a number)
+- `ArgumentError` — the wrong number of arguments
+- `ValueError` — the right type but a bad value (`step 0`, `pop([])`)
+- `IndexError` — an index out of bounds
+- `KeyError` — a missing property or struct field
+- `NameError` — an undefined variable
+- `IOError` — `json()` failing to fetch or parse
+
+A stack overflow is fatal and cannot be caught.
 
 ```javascript
 try {
@@ -289,6 +299,20 @@ try {
     print len(todos.todos);
 } catch (err) {
     print "request failed: " + err.message;
+}
+```
+
+A catch clause can name the struct types it catches; clauses are tried in
+order, and an error none of them catches goes on up with its trace intact.
+A clause without types catches everything and must come last.
+
+```javascript
+try {
+    parse(s);
+} catch (e: IndexError, KeyError) {
+    print "lookup failed: " + e.message;
+} catch (e: ParseError) {
+    print "at " + e.pos;
 }
 ```
 

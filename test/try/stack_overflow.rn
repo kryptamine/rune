@@ -1,10 +1,7 @@
 fun rec() { rec(); }
 
 try {
-  rec();
+  rec(); // expect runtime error: [line: 1] Stack overflow.
 } catch (err) {
-  print err.message; // expect: Stack overflow.
+  print "unreachable";
 }
-
-fun ok() { return "still works"; }
-print ok(); // expect: still works

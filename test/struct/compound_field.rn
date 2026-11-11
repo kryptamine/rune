@@ -6,4 +6,4 @@ fun side() {
 }
 
 let mut p = Point { x: 1, y: 2 };
-p.x += side(); // expect runtime error: [line: 9] Cannot set field 'x' of Point: structs are immutable.
+p.x += side(); // expect runtime error: [line: 9] TypeError: Cannot set field 'x' of Point: structs are immutable.

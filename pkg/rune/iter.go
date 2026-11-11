@@ -88,7 +88,7 @@ func cursorOf(v value.Value, hasKey bool, keyword *ast.Token) (*cursor, error) {
 		return &cursor{mode: structCursor, arr: keys, vals: v.Fields()}, nil
 	}
 
-	return nil, errors.NewRuntimeError(*keyword, fmt.Sprintf(
+	return nil, errors.NewRuntimeError(errors.TypeError, *keyword, fmt.Sprintf(
 		"Can only iterate over arrays, strings, objects and structs, got %s.", helpers.TypeName(v)))
 }
 

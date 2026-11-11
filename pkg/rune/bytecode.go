@@ -65,7 +65,8 @@ const (
 	opReturnNil // return nil
 	opPrint     // print R[A]
 	opThrow     // throw R[A]
-	opTry       // catch errors at C, into R[A] if Y
+	opRethrow   // throw the caught error in R[A] again
+	opTry       // catch errors at C, into R[A] if Y, and the error into R[A+1] if X
 	opEndTry    // drop B handlers
 
 	// A for-in over a range keeps start, end, step and the step count in
@@ -181,7 +182,7 @@ var opNames = [...]string{
 	"ADD", "SUB", "MUL", "DIV", "MOD", "ADDK", "SUBK", "MULK", "DIVK", "MODK", "CMP", "CMPK", "IS", "NEG", "NOT", "INCR",
 	"JMP", "JMPIF", "JMPCMP", "JMPCMPK",
 	"ARRAY", "OBJECT", "STRUCT", "WITH", "GETINDEX", "GETPROP", "SETINDEX", "SETPROP", "CHECKPROP", "RANGE",
-	"CLOSURE", "CALL", "RETURN", "RETURNNIL", "PRINT", "THROW", "TRY", "ENDTRY",
+	"CLOSURE", "CALL", "RETURN", "RETURNNIL", "PRINT", "THROW", "RETHROW", "TRY", "ENDTRY",
 	"FORRANGE", "FORRANGENEXT", "FORITER", "FORITERNEXT",
 }
 

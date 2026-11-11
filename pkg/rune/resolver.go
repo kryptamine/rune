@@ -45,8 +45,11 @@ type Resolver struct {
 	// builtins holds a declaration for each built-in the program names
 	// without declaring it.
 	builtins map[string]*ast.Local
-	// structs holds every struct declaration up front, by its name's declaration.
-	structs map[*ast.Local]*ast.StructStmt
+	// structs holds every struct type up front, by its name's declaration.
+	structs map[*ast.Local]*value.Shape
+	// fieldNames holds each field name's one string, shared by every struct
+	// type that has the field.
+	fieldNames map[string]string
 }
 
 func NewResolver() *Resolver {
@@ -55,8 +58,20 @@ func NewResolver() *Resolver {
 		globalMutable: map[string]bool{},
 		topLevel:      map[string]*ast.Local{},
 		builtins:      map[string]*ast.Local{},
-		structs:       map[*ast.Local]*ast.StructStmt{},
+		structs:       map[*ast.Local]*value.Shape{},
+		fieldNames:    errorFieldNames(),
 	}
+}
+
+func errorFieldNames() map[string]string {
+	names := map[string]string{}
+	for _, k := range errors.Kinds {
+		for _, f := range k.Fields {
+			names[f] = f
+		}
+	}
+
+	return names
 }
 
 // ResolveStmts resolves a whole program and returns all errors found.
@@ -73,7 +88,8 @@ func (p *Resolver) ResolveStmts(stmts []ast.Stmt) []error {
 			p.globalMutable[s.Name.Lexeme] = false
 			l := &ast.Local{TopLevel: true}
 			p.topLevel[s.Name.Lexeme] = l
-			p.structs[l] = s
+			s.Shape = p.shape(s)
+			p.structs[l] = s.Shape
 		}
 	}
 
@@ -235,6 +251,23 @@ func (p *Resolver) VisitStructStmt(stmt *ast.StructStmt) error {
 	return nil
 }
 
+func (p *Resolver) shape(s *ast.StructStmt) *value.Shape {
+	fields := make([]value.Field, len(s.Fields))
+
+	for i, f := range s.Fields {
+		name, ok := p.fieldNames[f.Name.Lexeme]
+		if !ok {
+			name = f.Name.Lexeme
+			p.fieldNames[name] = name
+		}
+
+		def, _ := literalOf(f.Default)
+		fields[i] = value.Field{Name: name, Default: def, Required: f.Default == nil}
+	}
+
+	return value.NewShape(s.Name.Lexeme, fields)
+}
+
 func (p *Resolver) VisitStructExpr(expr *ast.StructExpr) (value.Value, error) {
 	for _, pair := range expr.Pairs {
 		p.resolveExpr(pair.Value)
@@ -242,19 +275,19 @@ func (p *Resolver) VisitStructExpr(expr *ast.StructExpr) (value.Value, error) {
 
 	expr.Local = p.resolveLocal(expr.Name)
 
-	decl := p.structs[expr.Local]
-	if decl == nil {
+	shape := p.structs[expr.Local]
+	if shape == nil {
 		p.error(expr.Name, "'"+expr.Name.Lexeme+"' is not a struct.")
 		return value.NilValue, nil
 	}
 
-	expr.Decl = decl
-	given := make([]bool, len(decl.Fields))
+	expr.Shape = shape
+	given := make([]bool, len(shape.Fields))
 
 	for i, pair := range expr.Pairs {
-		slot := decl.Slot(pair.Key.Lexeme)
+		slot := shape.Index(pair.Key.Lexeme)
 		if slot < 0 {
-			p.error(pair.Key, noField(decl.Name.Lexeme, pair.Key.Lexeme))
+			p.error(pair.Key, noField(shape.Name, pair.Key.Lexeme))
 			continue
 		}
 
@@ -262,9 +295,9 @@ func (p *Resolver) VisitStructExpr(expr *ast.StructExpr) (value.Value, error) {
 		given[slot] = true
 	}
 
-	for i, f := range decl.Fields {
-		if !given[i] && f.Default == nil {
-			p.error(expr.Name, missingField(decl.Name.Lexeme, f.Name.Lexeme))
+	for i, f := range shape.Fields {
+		if _, optional := shape.Default(i); !given[i] && !optional {
+			p.error(expr.Name, missingField(shape.Name, f))
 		}
 	}
 
@@ -303,22 +336,48 @@ func (p *Resolver) VisitReturnStmt(returnStmt *ast.ReturnStmt) error {
 func (p *Resolver) VisitTryStmt(tryStmt *ast.TryStmt) error {
 	p.resolveStmt(tryStmt.Body)
 
-	if tryStmt.Param == nil && !declaresLocals(tryStmt.Handler) {
-		p.resolveStmts(tryStmt.Handler)
-		return nil
+	caught := map[string]bool{}
+
+	for i := range tryStmt.Catches {
+		c := &tryStmt.Catches[i]
+
+		if len(c.Types) == 0 && i < len(tryStmt.Catches)-1 {
+			p.error(c.Keyword, "Catch-all must be the last catch clause.")
+		}
+
+		for _, t := range c.Types {
+			p.resolveExpr(t)
+
+			if p.structs[t.Local] == nil {
+				p.error(t.Name, "'"+t.Name.Lexeme+"' is not a struct.")
+			} else if caught[t.Name.Lexeme] {
+				p.error(t.Name, "'"+t.Name.Lexeme+"' is already caught.")
+			}
+
+			caught[t.Name.Lexeme] = true
+		}
+
+		p.resolveCatch(c)
+	}
+
+	return nil
+}
+
+func (p *Resolver) resolveCatch(c *ast.CatchClause) {
+	if c.Param == nil && !declaresLocals(c.Body) {
+		p.resolveStmts(c.Body)
+		return
 	}
 
 	p.beginScope()
 
-	if tryStmt.Param != nil {
-		tryStmt.ParamLocal = p.declare(ast.Binding{Name: *tryStmt.Param})
-		p.define(*tryStmt.Param)
+	if c.Param != nil {
+		c.ParamLocal = p.declare(ast.Binding{Name: *c.Param})
+		p.define(*c.Param)
 	}
 
-	p.resolveStmts(tryStmt.Handler)
+	p.resolveStmts(c.Body)
 	p.endScope()
-
-	return nil
 }
 
 func (p *Resolver) VisitThrowStmt(throwStmt *ast.ThrowStmt) error {
@@ -535,6 +594,10 @@ func (p *Resolver) builtin(name string) *ast.Local {
 	if !ok {
 		l = &ast.Local{TopLevel: true}
 		p.builtins[name] = l
+
+		if v := builtinValues()[name]; v.Kind() == value.Type {
+			p.structs[l] = v.TypeShape()
+		}
 	}
 
 	return l

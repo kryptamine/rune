@@ -1,0 +1,1 @@
+try {} catch (e: ) {} // [line: 1] Error at ')': Expect error type name.

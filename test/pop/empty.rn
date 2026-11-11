@@ -1,1 +1,1 @@
-pop([]); // expect runtime error: [line: 1] pop() got an empty array.
+pop([]); // expect runtime error: [line: 1] ValueError: pop() got an empty array.

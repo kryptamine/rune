@@ -1,16 +1,45 @@
 exit: 0
 -- stdout --
-<script>: arity 0, 1 registers, 0 upvalues
-    0  TRY           0 0 5  x=0 y=true
-    1  LOADK         0 0 0
-    2  THROW         0 0 0
-    3  ENDTRY        0 1 0
-    4  JMP           0 0 6
-    5  PRINT         0 0 0
-    6  TRY           0 0 11
-    7  LOADK         0 0 1
-    8  PRINT         0 0 0
-    9  ENDTRY        0 1 0
-   10  JMP           0 0 11
-   11  RETURNNIL     0 0 0
+<script>: arity 0, 5 registers, 0 upvalues
+    0  LOADK         0 0 0
+    1  LOADK         1 0 1
+    2  TRY           2 0 7  x=0 y=true
+    3  LOADK         2 0 2
+    4  THROW         2 0 0
+    5  ENDTRY        0 1 0
+    6  JMP           0 0 8
+    7  PRINT         2 0 0
+    8  TRY           2 0 13
+    9  LOADK         2 0 3
+   10  PRINT         2 0 0
+   11  ENDTRY        0 1 0
+   12  JMP           0 0 13
+   13  TRY           2 0 19  x=0 y=true
+   14  ARRAY         3 4 0
+   15  LOADK         4 0 4
+   16  GETINDEX      2 3 4
+   17  ENDTRY        0 1 0
+   18  JMP           0 0 28
+   19  IS            3 2 0
+   20  JMPIF         3 0 24  x=0 y=true
+   21  IS            3 2 1
+   22  JMPIF         3 0 24  x=0 y=true
+   23  JMP           0 0 26
+   24  PRINT         2 0 0
+   25  JMP           0 0 28
+   26  LOADK         3 0 4
+   27  PRINT         3 0 0
+   28  TRY           2 0 34  x=1 y=true
+   29  ARRAY         3 4 0
+   30  LOADK         4 0 4
+   31  GETINDEX      2 3 4
+   32  ENDTRY        0 1 0
+   33  JMP           0 0 40
+   34  IS            4 2 0
+   35  JMPIF         4 0 37  x=0 y=true
+   36  JMP           0 0 39
+   37  PRINT         2 0 0
+   38  JMP           0 0 40
+   39  RETHROW       3 0 0
+   40  RETURNNIL     0 0 0
 -- stderr --

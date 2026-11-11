@@ -1,2 +1,2 @@
 let mut a = [];
-a.size = 1; // expect runtime error: [line: 2] Cannot set property 'size' of array.
+a.size = 1; // expect runtime error: [line: 2] TypeError: Cannot set property 'size' of array.

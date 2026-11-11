@@ -472,10 +472,10 @@ func (p *Interpreter) slow(in Instr) error {
 		return binaryInto(&regs[in.a()], in, tok, regs[in.b()], consts[in.c()])
 
 	case opNeg, opIncr:
-		return errors.NewRuntimeError(*tok, "Operand must be a number.")
+		return errors.NewRuntimeError(errors.TypeError, *tok, "Operand must be a number.")
 
 	case opIs:
-		return errors.NewRuntimeError(*tok, fmt.Sprintf(
+		return errors.NewRuntimeError(errors.TypeError, *tok, fmt.Sprintf(
 			"Right operand of 'is' must be a struct, got %s.", helpers.TypeName(regs[in.c()])))
 
 	case opJmpCmp, opJmpCmpK:
@@ -603,7 +603,7 @@ func (p *Interpreter) slow(in Instr) error {
 		}
 
 		if fn.Kind() != value.Function {
-			return errors.NewRuntimeError(*tok, "Can only call functions.")
+			return errors.NewRuntimeError(errors.TypeError, *tok, "Can only call functions.")
 		}
 
 		if cl, ok := fn.Fn().(*Closure); ok {
@@ -628,8 +628,11 @@ func (p *Interpreter) slow(in Instr) error {
 		v := regs[in.a()]
 		return errors.NewThrownError(*tok, v, helpers.Stringify(v))
 
+	case opRethrow:
+		return *regs[in.a()].Internal().(*errors.RuntimeError)
+
 	case opTry:
-		p.handlers = append(p.handlers, handler{frame: len(p.frames) - 1, pc: in.c(), reg: in.a(), bind: in.y()})
+		p.handlers = append(p.handlers, handler{frame: len(p.frames) - 1, pc: in.c(), reg: in.a(), bind: in.y(), keep: in.x() != 0})
 
 	case opForRange:
 		if _, err := rangeOf(regs[in.a():], false, tok); err != nil {
@@ -695,7 +698,7 @@ func intMod(l, r float64) (float64, bool) {
 
 func undefinedVariable(f *Proto, pc int) error {
 	tok := f.toks[pc-1]
-	return errors.NewRuntimeError(*tok, fmt.Sprintf("Undefined variable '%s'.", tok.Lexeme))
+	return errors.NewRuntimeError(errors.NameError, *tok, fmt.Sprintf("Undefined variable '%s'.", tok.Lexeme))
 }
 
 func compareNumbers(op uint8, l, r float64) bool {

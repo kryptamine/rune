@@ -1,5 +1,5 @@
-[line: 13] Undefined variable 'h'.
-   13 |   let h = [fun () { return h; }()]; // expect runtime error: [line: 13] Undefined variable 'h'.
+[line: 13] NameError: Undefined variable 'h'.
+   13 |   let h = [fun () { return h; }()]; // expect runtime error: [line: 13] NameError: Undefined variable 'h'.
       |                            ^
   at <anonymous> (line 13)
   at <script> (line 13)

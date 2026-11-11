@@ -1,2 +1,2 @@
 let mut s = "x";
-s++; // expect runtime error: [line: 2] Operand must be a number.
+s++; // expect runtime error: [line: 2] TypeError: Operand must be a number.

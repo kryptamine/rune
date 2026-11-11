@@ -1,5 +1,7 @@
 package ast
 
+import "rune/pkg/value"
+
 type StmtVisitor interface {
 	VisitPrintStmt(printStmt *PrintStmt) error
 	VisitExprStmt(exprStmt *ExprStmt) error
@@ -130,16 +132,24 @@ func NewFunctionStmt(name Token, parameters []Binding, body []Stmt) Stmt {
 }
 
 // TryStmt runs Body and, if it fails with a runtime error or a throw, runs
-// Handler. Param is the optional catch variable (nil without one).
+// the first catch clause that matches.
 type TryStmt struct {
-	Body       Stmt
-	Param      *Token
-	ParamLocal *Local
-	Handler    []Stmt
+	Body    Stmt
+	Catches []CatchClause
 }
 
-func NewTryStmt(body Stmt, param *Token, handler []Stmt) Stmt {
-	return &TryStmt{Body: body, Param: param, Handler: handler}
+// CatchClause catches errors that are one of Types, or any without Types.
+// Param is the optional catch variable (nil without one).
+type CatchClause struct {
+	Keyword    Token
+	Param      *Token
+	ParamLocal *Local
+	Types      []*VarExpr
+	Body       []Stmt
+}
+
+func NewTryStmt(body Stmt, catches []CatchClause) Stmt {
+	return &TryStmt{Body: body, Catches: catches}
 }
 
 type ThrowStmt struct {
@@ -158,26 +168,16 @@ type StructField struct {
 	Default Expr
 }
 
-// StructStmt declares a struct type; the resolver sets Local.
+// StructStmt declares a struct type; the resolver sets Local and Shape.
 type StructStmt struct {
 	Name   Token
 	Fields []StructField
 	Local  *Local
+	Shape  *value.Shape
 }
 
 func NewStructStmt(name Token, fields []StructField) Stmt {
 	return &StructStmt{Name: name, Fields: fields}
-}
-
-// Slot returns the index of field name, or -1.
-func (n *StructStmt) Slot(name string) int {
-	for i, f := range n.Fields {
-		if f.Name.Lexeme == name {
-			return i
-		}
-	}
-
-	return -1
 }
 
 type Stmt interface {

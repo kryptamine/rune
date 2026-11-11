@@ -1,0 +1,3 @@
+[line: 1] Error at ')': Expect error type name.
+    1 | try {} catch (e: ) {} // [line: 1] Error at ')': Expect error type name.
+      |                  ^

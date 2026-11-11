@@ -1,1 +1,1 @@
-print range(3); // expect runtime error: [line: 1] Undefined variable 'range'.
+print range(3); // expect runtime error: [line: 1] NameError: Undefined variable 'range'.

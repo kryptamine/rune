@@ -457,7 +457,8 @@ func (s *Parser) loopJumpStatement() (ast.Stmt, error) {
 	return ast.NewContinueStmt(keyword), nil
 }
 
-// tryStatement parses `try { ... } catch (name) { ... }`; "(name)" is optional.
+// tryStatement parses `try { ... }` and its catch clauses: `catch { ... }`,
+// `catch (name) { ... }` or `catch (name: Type, ...) { ... }`.
 func (s *Parser) tryStatement() (ast.Stmt, error) {
 	if _, err := s.consume(ast.LEFT_BRACE, "Expect '{' after 'try'."); err != nil {
 		return nil, err
@@ -472,31 +473,63 @@ func (s *Parser) tryStatement() (ast.Stmt, error) {
 		return nil, err
 	}
 
-	var param *ast.Token
+	var catches []ast.CatchClause
 
-	if s.match(ast.LEFT_PAREN) {
-		name, err := s.consume(ast.IDENTIFIER, "Expect error variable name.")
+	for {
+		c, err := s.catchClause()
 		if err != nil {
 			return nil, err
 		}
 
-		param = &name
+		catches = append(catches, c)
+
+		if !s.match(ast.CATCH) {
+			break
+		}
+	}
+
+	return ast.NewTryStmt(ast.NewBlockStmt(body), catches), nil
+}
+
+func (s *Parser) catchClause() (ast.CatchClause, error) {
+	c := ast.CatchClause{Keyword: s.previous()}
+
+	if s.match(ast.LEFT_PAREN) {
+		name, err := s.consume(ast.IDENTIFIER, "Expect error variable name.")
+		if err != nil {
+			return c, err
+		}
+
+		c.Param = &name
+
+		if s.match(ast.COLON) {
+			for {
+				t, err := s.consume(ast.IDENTIFIER, "Expect error type name.")
+				if err != nil {
+					return c, err
+				}
+
+				c.Types = append(c.Types, &ast.VarExpr{Name: t})
+
+				if !s.match(ast.COMMA) {
+					break
+				}
+			}
+		}
 
 		if _, err := s.consume(ast.RIGHT_PAREN, "Expect ')' after catch variable."); err != nil {
-			return nil, err
+			return c, err
 		}
 	}
 
 	if _, err := s.consume(ast.LEFT_BRACE, "Expect '{' after 'catch'."); err != nil {
-		return nil, err
+		return c, err
 	}
 
 	handler, err := s.block()
-	if err != nil {
-		return nil, err
-	}
+	c.Body = handler
 
-	return ast.NewTryStmt(ast.NewBlockStmt(body), param, handler), nil
+	return c, err
 }
 
 func (s *Parser) throwStatement() (ast.Stmt, error) {

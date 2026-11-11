@@ -2,6 +2,7 @@ package stdlib
 
 import (
 	"math"
+	"rune/pkg/errors"
 	"rune/pkg/helpers"
 	"rune/pkg/value"
 	"strings"
@@ -60,9 +61,9 @@ var stringNatives = []*Native{
 		case !c.ok():
 			return value.NilValue
 		case n < 0:
-			return c.fail("count must not be negative.")
+			return c.fail(errors.ValueError, "count must not be negative.")
 		case len(s) > 0 && n > math.MaxInt32/len(s):
-			return c.fail("result is too large.")
+			return c.fail(errors.ValueError, "result is too large.")
 		}
 
 		return value.NewString(strings.Repeat(s, n))

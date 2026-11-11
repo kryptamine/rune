@@ -1,6 +1,6 @@
 exit: 70
 -- stdout --
 -- stderr --
-[line: 1] Operands must be two numbers or two strings.
+[line: 1] TypeError: Operands must be two numbers or two strings.
     1 | 1 + nil
       |   ^

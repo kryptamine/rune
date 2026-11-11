@@ -29,12 +29,11 @@ type funcState struct {
 	unit    *unit
 }
 
-// unit is what the functions of a program share: the struct types, and
-// each field name's one string, which constants equal to it reuse so the
-// VM can match a field by pointer.
+// unit is what the functions of a program share: each field name's one
+// string, which constants equal to it reuse so the VM can match a field by
+// pointer.
 type unit struct {
-	shapes map[*ast.StructStmt]*value.Shape
-	names  map[string]string
+	names map[string]string
 }
 
 type loop struct {
@@ -109,14 +108,14 @@ func newFunc(parent *funcState, name string) *funcState {
 	if parent != nil {
 		fs.unit = parent.unit
 	} else {
-		fs.unit = &unit{shapes: map[*ast.StructStmt]*value.Shape{}, names: map[string]string{}}
+		fs.unit = &unit{names: errorFieldNames()}
 	}
 
 	return fs
 }
 
-// declareStructs makes the struct types and binds their names, before any
-// constant is made.
+// declareStructs binds the struct types' names and collects their field
+// names, before any constant is made.
 func (fs *funcState) declareStructs(stmts []ast.Stmt) {
 	for _, stmt := range stmts {
 		s, ok := stmt.(*ast.StructStmt)
@@ -124,22 +123,11 @@ func (fs *funcState) declareStructs(stmts []ast.Stmt) {
 			continue
 		}
 
-		fields := make([]value.Field, len(s.Fields))
-
-		for i, f := range s.Fields {
-			name, ok := fs.unit.names[f.Name.Lexeme]
-			if !ok {
-				name = f.Name.Lexeme
-				fs.unit.names[name] = name
-			}
-
-			def, _ := literalOf(f.Default)
-			fields[i] = value.Field{Name: name, Default: def, Required: f.Default == nil}
+		for _, f := range s.Shape.Fields {
+			fs.unit.names[f] = f
 		}
 
-		shape := value.NewShape(s.Name.Lexeme, fields)
-		fs.unit.shapes[s] = shape
-		fs.declareAs(s.Local, value.NewType(shape))
+		fs.declareAs(s.Local, value.NewType(s.Shape))
 		fs.defined[s.Local] = true
 	}
 }

@@ -1,0 +1,9 @@
+fun f(x) {
+  return x.y; // expect runtime error: [line: 2] TypeError: Cannot read property 'y' of number.
+}
+
+try {
+  map([1], f);
+} catch (e: KeyError) {
+  print "unreachable";
+}

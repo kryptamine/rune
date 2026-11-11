@@ -210,12 +210,12 @@ type StructPair struct {
 }
 
 // StructExpr is a struct literal, Point { x: 1 }; the resolver sets Local
-// and Decl.
+// and Shape.
 type StructExpr struct {
 	Name  Token
 	Pairs []StructPair
 	Local *Local
-	Decl  *StructStmt
+	Shape *value.Shape
 }
 
 func NewStructExpr(name Token, pairs []StructPair) Expr {
