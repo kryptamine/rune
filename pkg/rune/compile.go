@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"maps"
 	"rune/pkg/ast"
-	"rune/pkg/callable"
 	"rune/pkg/environment"
 	"rune/pkg/errors"
 	"rune/pkg/helpers"
@@ -844,122 +843,6 @@ func compileCond(expr ast.Expr) condFn {
 
 		return helpers.IsTruthy(v), nil
 	}
-}
-
-func compileCall(n *ast.CallExpr) evalFn {
-	callee := compileExpr(n.Callee)
-	args := make([]evalFn, len(n.Args))
-
-	for i, arg := range n.Args {
-		args[i] = compileExpr(arg)
-	}
-
-	token := &n.Token
-
-	return func(p *Interpreter) (value.Value, error) {
-		if p.recursionDepth >= p.maxRecursion {
-			return value.NilValue, errors.NewRuntimeError(*token, "Stack overflow.")
-		}
-
-		p.recursionDepth++
-		v, err := p.call(callee, args, token)
-		p.recursionDepth--
-
-		return v, err
-	}
-}
-
-func (p *Interpreter) call(callee evalFn, args []evalFn, token *ast.Token) (value.Value, error) {
-	c, err := callee(p)
-	if err != nil {
-		return value.NilValue, err
-	}
-
-	if c.Kind() == value.Function {
-		switch fn := c.Fn().(type) {
-		case *Closure:
-			return p.callClosure(fn, args, token)
-		case callable.Callable:
-			return p.callNative(fn, args, token)
-		}
-	}
-
-	if err := p.evalForEffect(args); err != nil {
-		return value.NilValue, err
-	}
-
-	return value.NilValue, errors.NewRuntimeError(*token, "Can only call functions.")
-}
-
-func (p *Interpreter) callClosure(c *Closure, args []evalFn, token *ast.Token) (value.Value, error) {
-	fn := c.fn
-
-	if len(args) != fn.arity {
-		if err := p.evalForEffect(args); err != nil {
-			return value.NilValue, err
-		}
-
-		return value.NilValue, arityError(token, fn.arity, len(args))
-	}
-
-	env := p.newEnv(fn.pooled, c.env, fn.envSize)
-
-	for i, arg := range args {
-		v, err := arg(p)
-		if err != nil {
-			if fn.pooled {
-				p.pool.Put(env)
-			}
-
-			return value.NilValue, err
-		}
-
-		env.Set(i, v)
-	}
-
-	if err := p.runIn(fn.body, env, fn.pooled); err != errReturn {
-		return value.NilValue, err
-	}
-
-	result := p.returnValue
-	p.returnValue = value.NilValue
-
-	return result, nil
-}
-
-// Natives must not keep the args slice.
-func (p *Interpreter) callNative(fn callable.Callable, args []evalFn, token *ast.Token) (value.Value, error) {
-	base := len(p.args)
-
-	defer func() {
-		clear(p.args[base:])
-		p.args = p.args[:base]
-	}()
-
-	for _, arg := range args {
-		v, err := arg(p)
-		if err != nil {
-			return value.NilValue, err
-		}
-
-		p.args = append(p.args, v)
-	}
-
-	if arity := fn.Arity(); arity != -1 && len(args) != arity {
-		return value.NilValue, arityError(token, arity, len(args))
-	}
-
-	return fn.Call(p.args[base:len(p.args):len(p.args)], *token)
-}
-
-func (p *Interpreter) evalForEffect(args []evalFn) error {
-	for _, arg := range args {
-		if _, err := arg(p); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func compileArray(n *ast.ArrayExpr) evalFn {

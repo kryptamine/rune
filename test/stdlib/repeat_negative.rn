@@ -1,0 +1,1 @@
+repeat("a", -1); // expect runtime error: [line: 1] repeat() count must not be negative.

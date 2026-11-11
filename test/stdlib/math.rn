@@ -1,0 +1,12 @@
+print floor(3.7); // expect: 3
+print ceil(3.2); // expect: 4
+print round(2.5); // expect: 3
+print abs(-4); // expect: 4
+print sqrt(16); // expect: 4
+print pow(2, 10); // expect: 1024
+print min(3, 1, 2); // expect: 1
+print max(3, 1, 2); // expect: 3
+print floor(PI); // expect: 3
+print INF > 1e308; // expect: true
+var r = random();
+print r >= 0 and r < 1; // expect: true

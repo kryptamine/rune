@@ -1,0 +1,1 @@
+min(); // expect runtime error: [line: 1] min() expects at least 1 argument, got 0.

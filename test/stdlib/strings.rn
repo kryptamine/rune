@@ -1,0 +1,17 @@
+print split("a,b,c", ","); // expect: [a, b, c]
+print split("héj", ""); // expect: [h, é, j]
+print join([1, "b", true], "-"); // expect: 1-b-true
+print join([], ","); // expect: 
+print upper("abc"); // expect: ABC
+print lower("ABC"); // expect: abc
+print trim("  hi  ") + "|"; // expect: hi|
+print startsWith("rune", "ru"); // expect: true
+print endsWith("rune", "ne"); // expect: true
+print replace("a-b-c", "-", "+"); // expect: a+b+c
+print repeat("ab", 3); // expect: ababab
+print contains("héllo", "llo"); // expect: true
+print indexOf("héllo", "llo"); // expect: 2
+print indexOf("abc", "z"); // expect: -1
+print slice("héllo", 1, 3); // expect: él
+print slice("héllo", -3); // expect: llo
+print reverse("héj"); // expect: jéh

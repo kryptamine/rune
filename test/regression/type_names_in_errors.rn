@@ -1,1 +1,1 @@
-len(1); // expect runtime error: [line: 1] len() can only be called on strings, arrays and objects, got number
+len(1); // expect runtime error: [line: 1] len() expects a string, an array or an object as argument 1, got number.

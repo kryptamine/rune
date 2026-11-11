@@ -1,0 +1,6 @@
+try {
+  sort([2, 1], fun (a, b) { throw "nope"; });
+} catch (e) {
+  print e; // expect: nope
+}
+print reduce([1, 2], fun (a, b) { return a + b; }, 0); // expect: 3

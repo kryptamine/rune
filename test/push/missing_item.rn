@@ -1,1 +1,1 @@
-push([1]); // expect runtime error: [line: 1] push() expects an array and at least one item. Example: push(arr, 4)
+push([1]); // expect runtime error: [line: 1] push() expects at least 2 arguments, got 1.

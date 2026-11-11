@@ -5,10 +5,11 @@ import (
 	"strconv"
 
 	"rune/pkg/ast"
-	"rune/pkg/callable"
 	"rune/pkg/errors"
 	"slices"
 )
+
+const maxArity = 8
 
 type Parser struct {
 	tokens  []ast.Token
@@ -491,10 +492,10 @@ func (s *Parser) functionRest(name ast.Token) (*ast.FunctionStmt, error) {
 	if !s.check(ast.RIGHT_PAREN) {
 		for {
 			// Report but keep parsing: the parser is not in a confused state.
-			if len(parameters) == callable.MaxArity {
+			if len(parameters) == maxArity {
 				s.errors = append(s.errors, errors.NewSyntaxError(
 					s.peek(),
-					fmt.Sprintf("Cannot have more than %d parameters.", callable.MaxArity),
+					fmt.Sprintf("Cannot have more than %d parameters.", maxArity),
 				))
 			}
 
