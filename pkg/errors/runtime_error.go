@@ -7,7 +7,7 @@ import (
 )
 
 // Frame is a call the error unwound through: the function and the line it
-// was called from (Line is 0 for a native's callback, which has no source).
+// was called from.
 type Frame struct {
 	Name   string
 	Line   int
@@ -41,9 +41,6 @@ func (e RuntimeError) Value() value.Value {
 		"line":    value.NewNumber(float64(e.token.Line)),
 	})
 }
-
-// Frames lists the calls unwound, innermost first.
-func (e RuntimeError) Frames() []Frame { return e.frames }
 
 // WithFrame records that the error left fn, called from line.
 func WithFrame(err error, f Frame) error {

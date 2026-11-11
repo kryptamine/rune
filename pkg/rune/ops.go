@@ -1,6 +1,7 @@
 package rune
 
 import (
+	"cmp"
 	"fmt"
 	"math"
 	"rune/pkg/ast"
@@ -8,6 +9,7 @@ import (
 	"rune/pkg/errors"
 	"rune/pkg/helpers"
 	"rune/pkg/value"
+	"strings"
 	"unicode/utf8"
 )
 
@@ -25,36 +27,37 @@ func globalSlot(slot int, name string) int {
 func binaryOp(operator *ast.Token, left, right value.Value) (value.Value, error) {
 	op := operator.TokenType
 
+	bothNumbers := left.IsNumber() && right.IsNumber()
+
 	switch op {
 	case ast.EQUAL_EQUAL:
 		return value.NewBool(helpers.IsEqual(left, right)), nil
 	case ast.BANG_EQUAL:
 		return value.NewBool(!helpers.IsEqual(left, right)), nil
-	case ast.PLUS:
-		if left.IsNumber() && right.IsNumber() {
-			return value.NewNumber(left.Num() + right.Num()), nil
-		}
-
+	case ast.PLUS, ast.LESS, ast.LESS_EQUAL, ast.GREATER, ast.GREATER_EQUAL:
 		if left.IsString() && right.IsString() {
-			return value.NewString(left.Str() + right.Str()), nil
+			return stringOp(op, left.Str(), right.Str()), nil
 		}
 
-		return value.NilValue, errors.NewRuntimeError(*operator, "Operands must be two numbers or two strings.")
-	}
-
-	if isComparison(op) && left.IsString() && right.IsString() {
-		return value.NewBool(compareStrings(op, left.Str(), right.Str())), nil
-	}
-
-	if isComparison(op) && (!left.IsNumber() || !right.IsNumber()) {
-		return value.NilValue, errors.NewRuntimeError(*operator, "Operands must be two numbers or two strings.")
-	}
-
-	if !left.IsNumber() || !right.IsNumber() {
-		return value.NilValue, errors.NewRuntimeError(*operator, "Operands must be numbers.")
+		if !bothNumbers {
+			return value.NilValue, errors.NewRuntimeError(*operator, "Operands must be two numbers or two strings.")
+		}
+	default:
+		if !bothNumbers {
+			return value.NilValue, errors.NewRuntimeError(*operator, "Operands must be numbers.")
+		}
 	}
 
 	return numberOp(op, left.Num(), right.Num()), nil
+}
+
+// stringOp applies + or a comparison to two strings.
+func stringOp(op ast.TokenType, l, r string) value.Value {
+	if op == ast.PLUS {
+		return value.NewString(l + r)
+	}
+
+	return value.NewBool(compare(op, l, r))
 }
 
 func numberOp(op ast.TokenType, l, r float64) value.Value {
@@ -95,7 +98,8 @@ func isComparison(op ast.TokenType) bool {
 	return false
 }
 
-func compareNumbers(op ast.TokenType, l, r float64) bool {
+// compare applies one of < <= > >=.
+func compare[T cmp.Ordered](op ast.TokenType, l, r T) bool {
 	switch op {
 	case ast.LESS:
 		return l < r
@@ -108,49 +112,35 @@ func compareNumbers(op ast.TokenType, l, r float64) bool {
 	}
 }
 
-func compareStrings(op ast.TokenType, l, r string) bool {
-	switch op {
-	case ast.LESS:
-		return l < r
-	case ast.LESS_EQUAL:
-		return l <= r
-	case ast.GREATER:
-		return l > r
-	default:
-		return l >= r
-	}
+func undefinedProperty(token *ast.Token, key string) error {
+	return errors.NewRuntimeError(*token, fmt.Sprintf("Undefined property '%s'.", key))
 }
 
-// isProperty reports whether token comes from obj.name rather than obj[i].
-func isProperty(token *ast.Token) bool { return token.TokenType == ast.IDENTIFIER }
+// propertyError is the error of obj.name (verb "read") or obj.name = v
+// ("set") on a target that is not an object.
+func propertyError(verb string, token *ast.Token, target value.Value) error {
+	return errors.NewRuntimeError(*token, fmt.Sprintf(
+		"Cannot %s property '%s' of %s.", verb, token.Lexeme, helpers.TypeName(target)))
+}
 
 // getIndex reads target[index] for an array, string or object target.
 func getIndex(token *ast.Token, target, index value.Value) (value.Value, error) {
-	if isProperty(token) && target.Kind() != value.Object {
-		return value.NilValue, errors.NewRuntimeError(*token, fmt.Sprintf(
-			"Cannot read property '%s' of %s.", token.Lexeme, helpers.TypeName(target)))
-	}
-
 	switch target.Kind() {
 	case value.Array:
-		arr := target.Arr()
-
-		idx, err := arrayIndex(token, value.Array, index, len(arr))
+		idx, err := checkIndex(token, target, index)
 		if err != nil {
 			return value.NilValue, err
 		}
 
-		return arr[idx], nil
+		return target.Arr()[idx], nil
 
 	case value.String:
-		str := target.Str()
-
-		idx, err := arrayIndex(token, value.String, index, utf8.RuneCountInString(str))
+		idx, err := checkIndex(token, target, index)
 		if err != nil {
 			return value.NilValue, err
 		}
 
-		return value.NewString(charAt(str, idx)), nil
+		return value.NewString(helpers.CharAt(target.Str(), idx)), nil
 
 	case value.Object:
 		if !index.IsString() {
@@ -161,7 +151,7 @@ func getIndex(token *ast.Token, target, index value.Value) (value.Value, error) 
 
 		v, exists := target.Obj()[key]
 		if !exists {
-			return value.NilValue, errors.NewRuntimeError(*token, fmt.Sprintf("Undefined property '%s'.", key))
+			return value.NilValue, undefinedProperty(token, key)
 		}
 
 		return v, nil
@@ -171,40 +161,15 @@ func getIndex(token *ast.Token, target, index value.Value) (value.Value, error) 
 		"Can only index arrays, strings and objects, got %s.", helpers.TypeName(target)))
 }
 
-// charAt returns the idx-th character of s; idx is in range.
-func charAt(s string, idx int) string {
-	for off := range s {
-		if idx == 0 {
-			r, n := utf8.DecodeRuneInString(s[off:])
-			if r == utf8.RuneError && n == 1 {
-				return string(utf8.RuneError)
-			}
-
-			return s[off : off+n]
-		}
-
-		idx--
-	}
-
-	return ""
-}
-
 func setIndex(token *ast.Token, target, index, v value.Value) error {
-	if isProperty(token) && target.Kind() != value.Object {
-		return errors.NewRuntimeError(*token, fmt.Sprintf(
-			"Cannot set property '%s' of %s.", token.Lexeme, helpers.TypeName(target)))
-	}
-
 	switch target.Kind() {
 	case value.Array:
-		arr := target.Arr()
-
-		idx, err := arrayIndex(token, value.Array, index, len(arr))
+		idx, err := checkIndex(token, target, index)
 		if err != nil {
 			return err
 		}
 
-		arr[idx] = v
+		target.Arr()[idx] = v
 
 		return nil
 
@@ -226,10 +191,18 @@ func setIndex(token *ast.Token, target, index, v value.Value) error {
 	}
 }
 
-// arrayIndex validates that v is an integer index within [0, length).
-func arrayIndex(token *ast.Token, kind value.Kind, v value.Value, length int) (int, error) {
+// checkIndex validates that v is an integer index into the array or string target.
+func checkIndex(token *ast.Token, target, v value.Value) (int, error) {
 	if !v.IsNumber() || v.Num() != math.Trunc(v.Num()) {
-		return 0, errors.NewRuntimeError(*token, helpers.If(kind == value.String, "String", "Array")+" index must be an integer.")
+		kind := helpers.TypeName(target)
+		return 0, errors.NewRuntimeError(*token, strings.ToUpper(kind[:1])+kind[1:]+" index must be an integer.")
+	}
+
+	var length int
+	if target.IsString() {
+		length = utf8.RuneCountInString(target.Str())
+	} else {
+		length = len(target.Arr())
 	}
 
 	f := v.Num()

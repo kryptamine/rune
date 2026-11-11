@@ -4,6 +4,7 @@ import (
 	"rune/pkg/ast"
 	"rune/pkg/environment"
 	"rune/pkg/errors"
+	"rune/pkg/helpers"
 	"rune/pkg/value"
 )
 
@@ -33,13 +34,13 @@ type Resolver struct {
 	loopDepth int
 	functions int
 	errors    []error
-	// globals records the top-level declarations seen so far; false while
-	// the declaration's initializer is being resolved.
-	globals map[string]bool
+	// globals tracks top-level declarations like a scope's vars; their
+	// slots are global ones, so localVar.slot is unused.
+	globals map[string]*localVar
 }
 
 func NewResolver() *Resolver {
-	return &Resolver{globals: map[string]bool{}}
+	return &Resolver{globals: map[string]*localVar{}}
 }
 
 // ResolveStmts resolves a whole program and returns all errors found.
@@ -72,12 +73,9 @@ func (p *Resolver) VisitVarStmt(stmt *ast.VarStmt) error {
 }
 
 func (p *Resolver) VisitVarExpr(expr *ast.VarExpr) (value.Value, error) {
-	if !p.isScopesEmpty() {
-		if l, exists := p.peekScope().vars[expr.Name.Lexeme]; exists && !l.defined {
-			p.error(expr.Name, "Cannot read local variable in its own initializer.")
-		}
-	} else if defined, exists := p.globals[expr.Name.Lexeme]; exists && !defined {
-		p.error(expr.Name, "Cannot read global variable in its own initializer.")
+	if l, exists := p.innermost()[expr.Name.Lexeme]; exists && !l.defined {
+		kind := helpers.If(p.isScopesEmpty(), "global", "local")
+		p.error(expr.Name, "Cannot read "+kind+" variable in its own initializer.")
 	}
 
 	expr.Depth, expr.Slot = p.resolveLocal(expr.Name)
@@ -364,22 +362,16 @@ func (p *Resolver) resolveFn(fn *ast.FunctionStmt) {
 // declare adds name to the innermost scope and returns its slot; at the
 // top level it returns the name's global slot and local is false.
 func (p *Resolver) declare(name ast.Token) (local bool, slot int) {
+	if _, exists := p.innermost()[name.Lexeme]; exists {
+		p.error(name, "Variable with this name already declared in this scope.")
+	}
+
 	if p.isScopesEmpty() {
-		if _, exists := p.globals[name.Lexeme]; exists {
-			p.error(name, "Variable with this name already declared in this scope.")
-		}
-
-		p.globals[name.Lexeme] = false
-
+		p.globals[name.Lexeme] = &localVar{}
 		return false, environment.GlobalSlot(name.Lexeme)
 	}
 
 	scope := p.peekScope()
-
-	if _, exists := scope.vars[name.Lexeme]; exists {
-		p.error(name, "Variable with this name already declared in this scope.")
-	}
-
 	slot = scope.size
 	scope.size++
 	scope.vars[name.Lexeme] = &localVar{slot: slot}
@@ -388,12 +380,16 @@ func (p *Resolver) declare(name ast.Token) (local bool, slot int) {
 }
 
 func (p *Resolver) define(name ast.Token) {
+	p.innermost()[name.Lexeme].defined = true
+}
+
+// innermost returns the declarations of the current scope, the top level included.
+func (p *Resolver) innermost() map[string]*localVar {
 	if p.isScopesEmpty() {
-		p.globals[name.Lexeme] = true
-		return
+		return p.globals
 	}
 
-	p.peekScope().vars[name.Lexeme].defined = true
+	return p.peekScope().vars
 }
 
 func (p *Resolver) isScopesEmpty() bool {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"maps"
 	"reflect"
+	"rune/pkg/ast"
 	"rune/pkg/value"
 	"slices"
 	"strconv"
@@ -52,6 +53,7 @@ var quoter = strings.NewReplacer(`\`, `\\`, `"`, `\"`, "\n", `\n`, "\t", `\t`, "
 // quote writes s as a string literal the scanner accepts.
 func quote(s string) string { return `"` + quoter.Replace(s) + `"` }
 
+// isIdentifier reports whether s can be an unquoted key in an object literal.
 func isIdentifier(s string) bool {
 	for i, r := range s {
 		if !IsAlpha(r) && (i == 0 || !IsDigit(r)) {
@@ -59,7 +61,9 @@ func isIdentifier(s string) bool {
 		}
 	}
 
-	return s != ""
+	_, keyword := ast.Keywords[s]
+
+	return s != "" && !keyword
 }
 
 // element renders a value nested in a container.

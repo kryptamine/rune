@@ -9,24 +9,15 @@ import (
 func report(t *testing.T, src string) string {
 	t.Helper()
 
-	tokens, errs := Scan([]byte(src))
+	prog, errs := Load([]byte(src))
 	if len(errs) > 0 {
-		return errors.Report(errs[0], src)
-	}
-
-	stmts, errs := ParseStmts(tokens)
-	if len(errs) > 0 {
-		return errors.Report(errs[0], src)
-	}
-
-	if errs := NewResolver().ResolveStmts(stmts); len(errs) > 0 {
 		return errors.Report(errs[0], src)
 	}
 
 	p := NewInterpreter()
 	p.SetOutput(io.Discard)
 
-	err := p.EvaluateStmts(stmts)
+	err := p.Run(prog)
 	if err == nil {
 		t.Fatal("expected an error")
 	}

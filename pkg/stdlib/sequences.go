@@ -19,7 +19,7 @@ var sequenceNatives = []*Native{
 			s := v.Str()
 			start, end := sliceBounds(c, utf8.RuneCountInString(s))
 
-			return value.NewString(s[byteOffset(s, start):byteOffset(s, end)])
+			return value.NewString(s[helpers.ByteOffset(s, start):helpers.ByteOffset(s, end)])
 		}
 
 		return c.typeError(0, "an array or a string")
@@ -66,18 +66,6 @@ func clampIndex(i, n int) int {
 	}
 
 	return max(0, min(i, n))
-}
-
-// byteOffset returns the byte offset of the n-th character of s.
-func byteOffset(s string, n int) int {
-	off := 0
-
-	for ; n > 0 && off < len(s); n-- {
-		_, size := utf8.DecodeRuneInString(s[off:])
-		off += size
-	}
-
-	return off
 }
 
 // indexOf finds args[1] in args[0]; -1 if absent.

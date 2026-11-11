@@ -1,3 +1,4 @@
 print ["1", 1, "nil", nil, "a, b"]; // expect: ["1", 1, "nil", nil, "a, b"]
 print {"a b": "x", ok: "\"q\"\n"}; // expect: {"a b": "x", ok: "\"q\"\n"}
 print "top level is raw"; // expect: top level is raw
+print {"nil": 1, "for": 2}; // expect: {"for": 2, "nil": 1}

@@ -16,7 +16,7 @@ func Report(err error, source string) string {
 	b.WriteString(err.Error())
 	b.WriteByte('\n')
 
-	if p, ok := err.(interface{ Pos() (int, int) }); ok {
+	if p, ok := err.(Positioned); ok {
 		line, col := p.Pos()
 		writeSnippet(&b, source, line, col)
 	}

@@ -9,7 +9,6 @@ import (
 	"rune/pkg/helpers"
 	"rune/pkg/value"
 	"slices"
-	"unicode/utf8"
 )
 
 type (
@@ -330,18 +329,7 @@ func compileForIn(s *ast.ForInStmt) execFn {
 				}
 			}
 		case value.String:
-			str := it.Str()
-
-			for i, off := 0, 0; off < len(str); i++ {
-				r, n := utf8.DecodeRuneInString(str[off:])
-
-				ch := str[off : off+n]
-				if r == utf8.RuneError && n == 1 {
-					ch = string(utf8.RuneError)
-				}
-
-				off += n
-
+			for i, ch := range helpers.Chars(it.Str()) {
 				if stop, err := visit(p, scope(), value.NewNumber(float64(i)), value.NewString(ch)); stop {
 					return err
 				}
@@ -776,7 +764,7 @@ func compileCond(expr ast.Expr) condFn {
 				}
 
 				if l.IsNumber() {
-					return compareNumbers(opType, l.Num(), r), nil
+					return compare(opType, l.Num(), r), nil
 				}
 
 				v, err := binaryOp(op, l, rc)
@@ -799,7 +787,7 @@ func compileCond(expr ast.Expr) condFn {
 			}
 
 			if l.IsNumber() && r.IsNumber() {
-				return compareNumbers(opType, l.Num(), r.Num()), nil
+				return compare(opType, l.Num(), r.Num()), nil
 			}
 
 			v, err := binaryOp(op, l, r)
@@ -900,7 +888,34 @@ func compileObject(n *ast.ObjectExpr) evalFn {
 	}
 }
 
+// compileProperty compiles obj.name, whose key is known up front.
+func compileProperty(n *ast.IndexExpr) evalFn {
+	target := compileExpr(n.Array)
+	token, key := &n.Token, n.Token.Lexeme
+
+	return func(p *Interpreter) (value.Value, error) {
+		t, err := target(p)
+		if err != nil {
+			return value.NilValue, err
+		}
+
+		if t.Kind() != value.Object {
+			return value.NilValue, propertyError("read", token, t)
+		}
+
+		if v, ok := t.Obj()[key]; ok {
+			return v, nil
+		}
+
+		return value.NilValue, undefinedProperty(token, key)
+	}
+}
+
 func compileIndex(n *ast.IndexExpr) evalFn {
+	if n.Property {
+		return compileProperty(n)
+	}
+
 	target := compileExpr(n.Array)
 	index := compileExpr(n.Index)
 	token := &n.Token
@@ -931,12 +946,16 @@ func compileSetIndex(n *ast.SetIndexExpr) evalFn {
 	target := compileExpr(n.Array)
 	index := compileExpr(n.Index)
 	val := compileExpr(n.Value)
-	token, op := &n.Token, n.Op
+	token, op, property := &n.Token, n.Op, n.Property
 
 	return func(p *Interpreter) (value.Value, error) {
 		t, err := target(p)
 		if err != nil {
 			return value.NilValue, err
+		}
+
+		if property && t.Kind() != value.Object {
+			return value.NilValue, propertyError("set", token, t)
 		}
 
 		i, err := index(p)

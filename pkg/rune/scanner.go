@@ -24,13 +24,18 @@ type Scanner struct {
 	lineStart int
 	startLine int
 	startCol  int
+
+	// truncated is set when an unterminated string swallowed the rest of the source.
+	truncated bool
 }
 
-// ErrUnterminatedString is matched by errors.Is: such a string swallows the
-// rest of the file, so parse errors after it are noise.
-var ErrUnterminatedString = errors.New("Unterminated string.")
-
 func Scan(source []byte) ([]ast.Token, []error) {
+	s := scan(source)
+
+	return s.tokens, s.errors
+}
+
+func scan(source []byte) *Scanner {
 	scanner := &Scanner{
 		source:  string(source),
 		tokens:  []ast.Token{},
@@ -40,10 +45,12 @@ func Scan(source []byte) ([]ast.Token, []error) {
 		start:   0,
 	}
 
-	return scanner.scanTokens(), scanner.errors
+	scanner.scanTokens()
+
+	return scanner
 }
 
-func (s *Scanner) scanTokens() []ast.Token {
+func (s *Scanner) scanTokens() {
 	for !s.isAtEnd() {
 		s.start = s.current
 		s.startLine, s.startCol = s.line, s.col(s.current)
@@ -53,8 +60,6 @@ func (s *Scanner) scanTokens() []ast.Token {
 	eof := ast.NewToken(ast.EOF, "", "", s.line)
 	eof.Col = s.col(s.current)
 	s.tokens = append(s.tokens, eof)
-
-	return s.tokens
 }
 
 func (s *Scanner) col(offset int) int {
@@ -66,8 +71,8 @@ func (s *Scanner) newline() {
 	s.lineStart = s.current
 }
 
-func (s *Scanner) errorAt(msg string, cause error) {
-	s.errors = append(s.errors, rerrors.NewScanError(s.startLine, s.startCol, msg, cause))
+func (s *Scanner) errorAt(msg string) {
+	s.errors = append(s.errors, rerrors.NewScanError(s.startLine, s.startCol, msg))
 }
 
 func (s *Scanner) isAtEnd() bool {
@@ -140,7 +145,7 @@ func (s *Scanner) scanToken() {
 		}
 	case '"':
 		if err := s.string(); err != nil {
-			s.errorAt(err.Error(), err)
+			s.errorAt(err.Error())
 		}
 
 		break
@@ -157,13 +162,13 @@ func (s *Scanner) scanToken() {
 		// emit that operator so the parser has nothing to trip over.
 		if s.match(char) {
 			word := helpers.If(char == '&', "and", "or")
-			s.errorAt(fmt.Sprintf("Unexpected '%c%c'; use '%s'.", char, char, word), nil)
+			s.errorAt(fmt.Sprintf("Unexpected '%c%c'; use '%s'.", char, char, word))
 			s.addToken(helpers.If(char == '&', ast.AND, ast.OR))
 
 			break
 		}
 
-		s.errorAt(fmt.Sprintf("Unexpected character: %c", char), nil)
+		s.errorAt(fmt.Sprintf("Unexpected character: %c", char))
 	default:
 		if helpers.IsAlpha(char) {
 			s.identifier()
@@ -173,7 +178,7 @@ func (s *Scanner) scanToken() {
 			// Report the whole (possibly multi-byte) character, not a single byte of it.
 			r, size := utf8.DecodeRuneInString(s.source[s.start:])
 			s.current = s.start + size
-			s.errorAt(fmt.Sprintf("Unexpected character: %c", r), nil)
+			s.errorAt(fmt.Sprintf("Unexpected character: %c", r))
 		}
 	}
 }
@@ -239,7 +244,8 @@ func (s *Scanner) string() error {
 	}
 
 	if s.isAtEnd() {
-		return ErrUnterminatedString
+		s.truncated = true
+		return errors.New("Unterminated string.")
 	}
 
 	s.advance()
