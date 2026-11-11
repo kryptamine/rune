@@ -293,6 +293,12 @@ func (p *Resolver) VisitSetIndexExpr(expr *ast.SetIndexExpr) (value.Value, error
 	return value.NilValue, nil
 }
 
+func (p *Resolver) VisitUpdateExpr(expr *ast.UpdateExpr) (value.Value, error) {
+	p.resolveExpr(expr.Target)
+
+	return value.NilValue, nil
+}
+
 func (p *Resolver) VisitObjectExpr(expr *ast.ObjectExpr) (value.Value, error) {
 	for _, pair := range expr.Pairs {
 		p.resolveExpr(pair.Value)

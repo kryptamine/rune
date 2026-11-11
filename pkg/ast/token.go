@@ -88,6 +88,8 @@ const (
 	STAR_EQUAL
 	SLASH_EQUAL
 	PERCENT_EQUAL
+	PLUS_PLUS
+	MINUS_MINUS
 
 	// Types
 	OBJECT
@@ -231,6 +233,10 @@ func (tokenType TokenType) String() string {
 		return "SLASH_EQUAL"
 	case PERCENT_EQUAL:
 		return "PERCENT_EQUAL"
+	case PLUS_PLUS:
+		return "PLUS_PLUS"
+	case MINUS_MINUS:
+		return "MINUS_MINUS"
 	default:
 		return "Undefined token."
 	}

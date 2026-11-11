@@ -34,6 +34,8 @@ func compileExpr(expr ast.Expr) evalFn {
 		return compileIndex(n)
 	case *ast.SetIndexExpr:
 		return compileSetIndex(n)
+	case *ast.UpdateExpr:
+		return compileUpdate(n)
 	case *ast.FunctionExpr:
 		fn := compileFunction(n.Decl)
 
@@ -117,72 +119,6 @@ func compileAssign(n *ast.AssignExpr) evalFn {
 
 		return v, nil
 	}
-}
-
-// compileIncrement handles x = x ± c (and x += c); nil otherwise.
-func compileIncrement(n *ast.AssignExpr) evalFn {
-	bin, ok := n.Value.(*ast.BinaryExpr)
-	if !ok || (bin.Operator.TokenType != ast.PLUS && bin.Operator.TokenType != ast.MINUS) {
-		return nil
-	}
-
-	target, ok := bin.Left.(*ast.VarExpr)
-	if !ok || target.Name.Lexeme != n.Name.Lexeme || target.Depth != n.Depth || target.Slot != n.Slot {
-		return nil
-	}
-
-	c, ok := literalOf(bin.Right)
-	if !ok || !c.IsNumber() {
-		return nil
-	}
-
-	delta := c.Num()
-	if bin.Operator.TokenType == ast.MINUS {
-		delta = -delta
-	}
-
-	op := &bin.Operator
-
-	switch n.Depth {
-	case ast.Unresolved:
-		slot := globalSlot(n.Slot, n.Name.Lexeme)
-		name := &n.Name
-
-		return func(p *Interpreter) (value.Value, error) {
-			old, err := p.globals.Get(slot, name)
-			if err != nil {
-				return value.NilValue, err
-			}
-
-			if !old.IsNumber() {
-				_, err := binaryOp(op, old, c)
-				return value.NilValue, err
-			}
-
-			v := value.NewNumber(old.Num() + delta)
-
-			return v, p.globals.Assign(slot, name, v)
-		}
-	case 0:
-		slot := n.Slot
-
-		return func(p *Interpreter) (value.Value, error) {
-			env := p.environment
-
-			old := env.Get(slot)
-			if !old.IsNumber() {
-				_, err := binaryOp(op, old, c)
-				return value.NilValue, err
-			}
-
-			v := value.NewNumber(old.Num() + delta)
-			env.Set(slot, v)
-
-			return v, nil
-		}
-	}
-
-	return nil
 }
 
 func compileBinary(n *ast.BinaryExpr) evalFn {

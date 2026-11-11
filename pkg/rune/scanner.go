@@ -114,9 +114,23 @@ func (s *Scanner) scanToken() {
 		s.addToken(ast.DOT)
 		break
 	case '-':
-		s.addToken(helpers.If(s.match('='), ast.MINUS_EQUAL, ast.MINUS))
+		switch {
+		case s.match('-'):
+			s.addToken(ast.MINUS_MINUS)
+		case s.match('='):
+			s.addToken(ast.MINUS_EQUAL)
+		default:
+			s.addToken(ast.MINUS)
+		}
 	case '+':
-		s.addToken(helpers.If(s.match('='), ast.PLUS_EQUAL, ast.PLUS))
+		switch {
+		case s.match('+'):
+			s.addToken(ast.PLUS_PLUS)
+		case s.match('='):
+			s.addToken(ast.PLUS_EQUAL)
+		default:
+			s.addToken(ast.PLUS)
+		}
 	case '*':
 		s.addToken(helpers.If(s.match('='), ast.STAR_EQUAL, ast.STAR))
 	case '%':
