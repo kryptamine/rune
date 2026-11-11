@@ -19,7 +19,7 @@ Rune is a dynamically typed interpreted programming language inspired by [Lox](h
 - Object property access with `obj.name` as sugar for `obj["name"]`
 - Strings compare with `<`, `<=`, `>`, `>=` and index by character: `"héllo"[1]` is `"é"`
 - Error handling with `try`/`catch` and `throw`
-- Two loops only: `while` and `for (x in ...)` over arrays, strings, objects and `range(...)`
+- Two loops only: `while` and `for (x in ...)` over arrays, strings, objects and ranges (`a..b`)
 - `break` and `continue` in both
 - Anonymous functions: `fun (x) { return x * 2; }`
 - Modulo `%` and compound assignment: `+=`, `-=`, `*=`, `/=`, `%=`
@@ -197,7 +197,6 @@ Rune provides several built-in functions:
 
 - `map(arr, f)`, `filter(arr, f)`, `reduce(arr, f[, init])` — return new values; `f` may be any function, built-ins included.
 - `sort(arr[, cmp])` — sorts **in place** and returns `arr`; stable. Without `cmp` the elements must be all numbers or all strings; `cmp(a, b) < 0` puts `a` first.
-- `range(end)`, `range(start, end[, step])` — array of numbers.
 - `slice(x, start[, end])`, `reverse(x)`, `contains(x, item)`, `indexOf(x, item)` — work on arrays and strings; string indices count characters, negative slice bounds count from the end.
 
 ```javascript
@@ -254,8 +253,9 @@ try {
 the index, or the key and the value. Each iteration has its own variable, so
 closures capture the current element. Array elements are taken when the loop
 starts, so pushing to the array inside the loop does not extend it.
-There is no C-style `for`: count with `range`, which a `for`-`in` walks
-without building the array. Anything else is a `while`.
+There is no C-style `for`: count with `a..b` (end excluded) or `a..=b` (end
+included), optionally `step n`; a `for`-`in` walks it without building the
+array. Outside a loop a range is an array. Anything else is a `while`.
 
 ```javascript
 for (i, name in ["ann", "bob"]) {
@@ -269,7 +269,9 @@ for (name, age in ages) {
     print name + " is 30+";
 }
 
-for (i in range(10, 0, -2)) print i; // 10 8 6 4 2
+for (i in 1..4) print i;  // 1 2 3
+for (i in 1..=3) print i; // 1 2 3
+for (i in 10..0 step -2) print i; // 10 8 6 4 2
 ```
 
 ## Anonymous Functions

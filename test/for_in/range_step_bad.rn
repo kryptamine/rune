@@ -1,0 +1,1 @@
+for (i in 0..5 step "x") print i; // expect runtime error: [line: 1] Range step must be a number, got string.

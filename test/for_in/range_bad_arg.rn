@@ -1,1 +1,0 @@
-for (i in range("x")) print i; // expect runtime error: [line: 1] range() expects a number as argument 1, got string.

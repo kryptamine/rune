@@ -111,8 +111,14 @@ func (s *Scanner) scanToken() {
 		s.addToken(ast.COMMA)
 		break
 	case '.':
-		s.addToken(ast.DOT)
-		break
+		switch {
+		case !s.match('.'):
+			s.addToken(ast.DOT)
+		case s.match('='):
+			s.addToken(ast.DOT_DOT_EQUAL)
+		default:
+			s.addToken(ast.DOT_DOT)
+		}
 	case '-':
 		switch {
 		case s.match('-'):

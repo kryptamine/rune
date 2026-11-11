@@ -82,7 +82,6 @@ var arrayNatives = []*Native{
 
 		return c.args[0]
 	}},
-	rangeNative,
 }
 
 // sortable reports whether items are all numbers or all strings.

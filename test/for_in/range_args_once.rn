@@ -1,6 +1,0 @@
-let mut calls = 0;
-fun n() { calls++; return 2; }
-for (i in range(n())) print i;
-// expect: 0
-// expect: 1
-print calls; // expect: 1

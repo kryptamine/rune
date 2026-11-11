@@ -8,7 +8,6 @@ import (
 	"rune/pkg/environment"
 	"rune/pkg/errors"
 	"rune/pkg/helpers"
-	"rune/pkg/stdlib"
 	"rune/pkg/value"
 	"slices"
 )
@@ -64,55 +63,16 @@ func compileForIn(s *ast.ForInStmt) execFn {
 	}
 }
 
-// compileIterable counts through range(...) instead of building its array.
+// compileIterable counts through a range instead of building its array.
 func compileIterable(s *ast.ForInStmt) func(*Interpreter) (items, error) {
-	if call, ok := s.Iterable.(*ast.CallExpr); ok {
-		if v, ok := call.Callee.(*ast.VarExpr); ok && v.Name.Lexeme == "range" {
-			return compileRangeIterable(s, call)
-		}
+	if r, ok := s.Iterable.(*ast.RangeExpr); ok {
+		return compileRangeItems(r)
 	}
 
 	e := compileExpr(s.Iterable)
 
 	return func(p *Interpreter) (items, error) {
 		v, err := e(p)
-		if err != nil {
-			return nil, err
-		}
-
-		return itemsOf(s, v)
-	}
-}
-
-// compileRangeIterable falls back to a plain call when range is shadowed or
-// the call would fail, so errors stay those of range itself.
-func compileRangeIterable(s *ast.ForInStmt, call *ast.CallExpr) func(*Interpreter) (items, error) {
-	callee := compileExpr(call.Callee)
-	args := make([]evalFn, len(call.Args))
-
-	for i, arg := range call.Args {
-		args[i] = compileExpr(arg)
-	}
-
-	return func(p *Interpreter) (items, error) {
-		fn, err := callee(p)
-		if err != nil {
-			return nil, err
-		}
-
-		vals := make([]value.Value, len(args))
-
-		for i, arg := range args {
-			if vals[i], err = arg(p); err != nil {
-				return nil, err
-			}
-		}
-
-		if r, ok := stdlib.AsRange(fn, vals); ok {
-			return r.All(), nil
-		}
-
-		v, err := p.CallValue(fn, vals, &call.Token)
 		if err != nil {
 			return nil, err
 		}

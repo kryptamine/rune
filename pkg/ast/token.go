@@ -68,6 +68,8 @@ const (
 	RIGHT_BRACE
 	COMMA
 	DOT
+	DOT_DOT
+	DOT_DOT_EQUAL
 	MINUS
 	PLUS
 	SLASH
@@ -132,6 +134,10 @@ func (tokenType TokenType) String() string {
 		return "COMMA"
 	case DOT:
 		return "DOT"
+	case DOT_DOT:
+		return "DOT_DOT"
+	case DOT_DOT_EQUAL:
+		return "DOT_DOT_EQUAL"
 	case MINUS:
 		return "MINUS"
 	case PLUS:
