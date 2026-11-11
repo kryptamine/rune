@@ -5,6 +5,8 @@ import (
 	"rune/pkg/value"
 )
 
+type refPair struct{ l, r uintptr }
+
 // IsTruthy follows JS-like semantics: nil, false, 0 and "" are falsy,
 // everything else (including arrays, objects and functions) is truthy.
 func IsTruthy(v value.Value) bool {
@@ -25,6 +27,10 @@ func IsTruthy(v value.Value) bool {
 // IsEqual compares arrays and objects structurally and everything else by value
 // (functions by identity). Values of different kinds are never equal.
 func IsEqual(left, right value.Value) bool {
+	return isEqual(left, right, nil)
+}
+
+func isEqual(left, right value.Value, seen map[refPair]bool) bool {
 	if left.Kind() != right.Kind() {
 		return false
 	}
@@ -38,8 +44,61 @@ func IsEqual(left, right value.Value) bool {
 		return left.Num() == right.Num()
 	case value.String:
 		return left.Str() == right.Str()
-	case value.Array, value.Object:
-		return reflect.DeepEqual(left.Fn(), right.Fn())
+	case value.Array:
+		l, r := left.ArrRef(), right.ArrRef()
+		if l == r {
+			return true
+		}
+
+		if len(*l) != len(*r) {
+			return false
+		}
+
+		pair := refPair{reflect.ValueOf(l).Pointer(), reflect.ValueOf(r).Pointer()}
+		if seen[pair] {
+			return true
+		}
+
+		if seen == nil {
+			seen = map[refPair]bool{}
+		}
+
+		seen[pair] = true
+		defer delete(seen, pair)
+
+		for i := range *l {
+			if !isEqual((*l)[i], (*r)[i], seen) {
+				return false
+			}
+		}
+
+		return true
+	case value.Object:
+		l, r := left.Obj(), right.Obj()
+		if len(l) != len(r) {
+			return false
+		}
+
+		pair := refPair{reflect.ValueOf(l).Pointer(), reflect.ValueOf(r).Pointer()}
+		if pair.l == pair.r || seen[pair] {
+			return true
+		}
+
+		if seen == nil {
+			seen = map[refPair]bool{}
+		}
+
+		seen[pair] = true
+		defer delete(seen, pair)
+
+		for k, lv := range l {
+			rv, ok := r[k]
+			if !ok || !isEqual(lv, rv, seen) {
+				return false
+			}
+		}
+
+		return true
 	default:
 		return left.Fn() == right.Fn()
 	}

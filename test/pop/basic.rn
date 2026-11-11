@@ -1,0 +1,5 @@
+var a = [1, 2, 3];
+print pop(a); // expect: 3
+print a; // expect: [1, 2]
+push(a, 9);
+print a; // expect: [1, 2, 9]

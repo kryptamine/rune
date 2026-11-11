@@ -1,0 +1,1 @@
+push("abc", 1); // expect runtime error: [line: 1] Can only push to arrays, got string

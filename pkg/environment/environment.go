@@ -13,18 +13,62 @@ import (
 type Environment struct {
 	values    []value.Value
 	enclosing *Environment
+	inline    [inlineSlots]value.Value
 }
 
+const inlineSlots = 4
+
 func NewEnvironment(enclosing *Environment, size int) *Environment {
-	return &Environment{
-		values:    make([]value.Value, size),
-		enclosing: enclosing,
+	env := &Environment{enclosing: enclosing}
+
+	if size <= inlineSlots {
+		env.values = env.inline[:size]
+	} else {
+		env.values = make([]value.Value, size)
 	}
+
+	return env
+}
+
+func (e *Environment) Values() []value.Value { return e.values }
+
+type Pool struct {
+	free []*Environment
+}
+
+func (p *Pool) Get(enclosing *Environment, size int) *Environment {
+	n := len(p.free)
+	if n == 0 {
+		return NewEnvironment(enclosing, size)
+	}
+
+	env := p.free[n-1]
+	p.free = p.free[:n-1]
+
+	if cap(env.values) >= size {
+		env.values = env.values[:size]
+	} else {
+		env.values = make([]value.Value, size)
+	}
+
+	env.enclosing = enclosing
+
+	return env
+}
+
+func (p *Pool) Put(env *Environment) {
+	clear(env.values)
+	env.enclosing = nil
+	p.free = append(p.free, env)
 }
 
 func (e *Environment) String() string {
 	return fmt.Sprintf("<env %v>", e.values)
 }
+
+func (e *Environment) Get(slot int) value.Value { return e.values[slot] }
+
+func (e *Environment) Enclosing() *Environment { return e.enclosing }
 
 func (e *Environment) Set(slot int, v value.Value) {
 	e.values[slot] = v
@@ -93,17 +137,17 @@ func (g *Globals) isDefined(slot int) bool {
 	return slot < len(g.defined) && g.defined[slot]
 }
 
-func (g *Globals) Get(slot int, token ast.Token) (value.Value, error) {
-	if !g.isDefined(slot) {
-		return value.NilValue, undefined(token)
+func (g *Globals) Get(slot int, token *ast.Token) (value.Value, error) {
+	if slot < len(g.defined) && g.defined[slot] {
+		return g.values[slot], nil
 	}
 
-	return g.values[slot], nil
+	return value.NilValue, undefined(*token)
 }
 
-func (g *Globals) Assign(slot int, token ast.Token, v value.Value) error {
+func (g *Globals) Assign(slot int, token *ast.Token, v value.Value) error {
 	if !g.isDefined(slot) {
-		return undefined(token)
+		return undefined(*token)
 	}
 
 	g.values[slot] = v

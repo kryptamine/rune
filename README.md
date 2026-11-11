@@ -11,7 +11,7 @@ Rune is a dynamically typed interpreted programming language inspired by [Lox](h
 - Dynamically typed language with a simple syntax
 - Supports expressions, statements, variables, and functions
 - Built-in functions for array manipulation, JSON parsing, and timing
-- Recursive descent parser and tree-walk interpreter
+- Recursive descent parser; the resolved AST is compiled into Go closures before it runs
 - Parser recovers from syntax errors and reports all of them in one run
 - String escapes: `\n`, `\t`, `\r`, `\"`, `\\`
 - Number literals with exponents: `1e3`, `2.5E-2`
@@ -81,14 +81,38 @@ For example, to run only the `arrays` tests:
 python3 test.py arrays
 ```
 
+## Arrays
+
+Arrays are references: assigning an array or passing it to a function does not copy it, so `push`, `pop` and index assignment are visible through every reference.
+
+```javascript
+var a = [1, 2];
+var b = a;
+push(b, 3);
+print a; // [1, 2, 3]
+```
+
 ## Built-in Functions
 
 Rune provides several built-in functions:
 
 - **`len(value)`** — Returns the length of an array, object or string (in characters).
-- **`append(arr, value1, value2, ...)`** — Returns a new array with the values appended; the original array is not modified.
+- **`append(arr, value1, value2, ...)`** — Returns a new array with the values appended; the original array is not modified. It copies the array, so building an array with it in a loop takes quadratic time; use `push` for that.
+- **`push(arr, value1, value2, ...)`** — Appends the values to the array in place (amortized O(1) each) and returns its new length.
+- **`pop(arr)`** — Removes the last element of the array in place and returns it; an empty array is a runtime error.
 - **`json(url)`** — Fetches and parses JSON from a URL (object, array or primitive); network, HTTP status and parse errors are reported as runtime errors.
 - **`clock()`** — Returns the current time in seconds (with sub-second precision).
+
+## Performance
+
+Before running, the resolved AST is compiled into a tree of Go closures, so each node costs one indirect call and the decisions that depend only on the source are taken once. In particular:
+
+- local variables live in slots resolved ahead of time, and calls to functions that create no closures reuse pooled environments instead of allocating;
+- conditions of `if` and loops yield a Go bool directly; constant operands and literal expressions are folded; `i = i + 1` / `i += 1` is a single node;
+- numbers, booleans and strings are stored inline in values and never allocate;
+- `print` output is buffered and flushed when the program ends (also on a runtime error).
+
+Benchmarks: `make bench`.
 
 ## Error Handling
 
@@ -145,7 +169,7 @@ for (name, age in ages) {
 ```javascript
 fun map(arr, f) {
     var out = [];
-    for (x in arr) out = append(out, f(x));
+    for (x in arr) push(out, f(x));
     return out;
 }
 

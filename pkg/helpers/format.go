@@ -35,7 +35,7 @@ func TypeName(v value.Value) string {
 // Stringify renders a runtime value the way the language prints it.
 // A container that contains itself is printed as [...] or {...}.
 func Stringify(v value.Value) string {
-	return stringify(v, map[uintptr]bool{})
+	return stringify(v, nil)
 }
 
 // stringify tracks the containers on the current path in seen, so shared
@@ -56,9 +56,13 @@ func stringify(v value.Value, seen map[uintptr]bool) string {
 			return "[]"
 		}
 
-		ptr := uintptr(unsafe.Pointer(unsafe.SliceData(arr)))
+		ptr := uintptr(unsafe.Pointer(v.ArrRef()))
 		if seen[ptr] {
 			return "[...]"
+		}
+
+		if seen == nil {
+			seen = map[uintptr]bool{}
 		}
 
 		seen[ptr] = true
@@ -77,6 +81,10 @@ func stringify(v value.Value, seen map[uintptr]bool) string {
 			return "{...}"
 		}
 
+		if seen == nil {
+			seen = map[uintptr]bool{}
+		}
+
 		seen[ptr] = true
 		defer delete(seen, ptr)
 
@@ -88,5 +96,20 @@ func stringify(v value.Value, seen map[uintptr]bool) string {
 		return "{" + strings.Join(pairs, ", ") + "}"
 	default:
 		return fmt.Sprint(v.Fn())
+	}
+}
+
+func AppendValue(buf []byte, v value.Value) []byte {
+	switch v.Kind() {
+	case value.Number:
+		return strconv.AppendFloat(buf, v.Num(), 'f', -1, 64)
+	case value.String:
+		return append(buf, v.Str()...)
+	case value.Bool:
+		return strconv.AppendBool(buf, v.Bool())
+	case value.Nil:
+		return append(buf, "nil"...)
+	default:
+		return append(buf, Stringify(v)...)
 	}
 }

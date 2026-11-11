@@ -1,0 +1,13 @@
+fun double(x) { var r = x * 2; return r; }
+
+var out = [];
+for (i, x in [1, 2, 3]) {
+  var d = double(x);
+  push(out, [i, d]);
+}
+print out; // expect: [[0, 2], [1, 4], [2, 6]]
+
+// A body that creates a closure gets a fresh scope per iteration.
+var fs = [];
+for (x in [1, 2, 3]) push(fs, fun () { return x; });
+print fs[0]() + fs[1]() + fs[2](); // expect: 6
