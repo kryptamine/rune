@@ -1,4 +1,4 @@
-var a = 1;
+let mut a = 1;
 print a++; // expect: 1
 print a;   // expect: 2
 print ++a; // expect: 3
@@ -7,7 +7,7 @@ print --a; // expect: 1
 print a;   // expect: 1
 
 {
-  var local = 5;
+  let mut local = 5;
   local++;
   ++local;
   print local; // expect: 7
@@ -15,7 +15,7 @@ print a;   // expect: 1
   print f(); // expect: 6
 }
 
-var b = 2;
+let mut b = 2;
 print a++ + ++b; // expect: 4
 print -a--;      // expect: -2
 print a;         // expect: 1

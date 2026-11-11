@@ -1,0 +1,6 @@
+fun f() {
+  let n = 0;
+  fun g() {
+    n = 1; // [line: 4] Error at 'n': Cannot assign to immutable variable 'n'.
+  }
+}

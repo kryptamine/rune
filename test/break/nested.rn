@@ -1,5 +1,5 @@
-for (var i = 0; i < 3; i += 1) {
-  for (var j = 0; j < 3; j += 1) {
+for (let mut i = 0; i < 3; i += 1) {
+  for (let mut j = 0; j < 3; j += 1) {
     if (j == 1) break;
     print i * 10 + j;
   }

@@ -1,9 +1,9 @@
 {
-  var foo = "closure";
+  let foo = "closure";
   fun f() {
     {
       print foo; // expect: closure
-      var foo = "shadow";
+      let foo = "shadow";
       print foo; // expect: shadow
     }
     print foo; // expect: closure

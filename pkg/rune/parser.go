@@ -69,7 +69,7 @@ func (s *Parser) synchronize() {
 		}
 
 		switch s.peek().TokenType {
-		case ast.FUN, ast.VAR, ast.FOR, ast.IF, ast.WHILE, ast.PRINT, ast.RETURN, ast.TRY, ast.THROW,
+		case ast.FUN, ast.LET, ast.FOR, ast.IF, ast.WHILE, ast.PRINT, ast.RETURN, ast.TRY, ast.THROW,
 			ast.BREAK, ast.CONTINUE:
 			return
 		}

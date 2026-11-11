@@ -8,11 +8,11 @@ fun createNode(data) {
 }
 
 fun createList(arr) {
-    var head = nil;
-    var tail = nil;
+    let mut head = nil;
+    let mut tail = nil;
 
-    for (var i = 0; i < len(arr); i = i+1) {
-        var node = createNode(arr[i]);
+    for (let mut i = 0; i < len(arr); i = i+1) {
+        let node = createNode(arr[i]);
         if (head == nil) {
             head = node;
             tail = node;
@@ -28,7 +28,7 @@ fun createList(arr) {
 }
 
 fun printList(list) {
-    var current = list;
+    let mut current = list;
 
     while (current != nil) {
         print(current["data"]);
@@ -37,9 +37,9 @@ fun printList(list) {
 }
 
 fun reverseList(list) {
-    var prev = nil;
-    var current = list;
-    var next = nil;
+    let mut prev = nil;
+    let mut current = list;
+    let mut next = nil;
 
     while (current != nil) {
         next = current["next"];
@@ -51,8 +51,8 @@ fun reverseList(list) {
     return prev;
 }
 
-var arr = [1, 2, 3, 4, 5];
-var list = createList(arr);
+let arr = [1, 2, 3, 4, 5];
+let mut list = createList(arr);
 
 print("Original list: ");
 printList(list);

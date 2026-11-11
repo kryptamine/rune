@@ -1,7 +1,7 @@
-var f;
+let mut f;
 
 {
-  var local = "local";
+  let local = "local";
   fun f_() {
     print local;
   }

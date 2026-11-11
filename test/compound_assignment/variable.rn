@@ -1,4 +1,4 @@
-var a = 10;
+let mut a = 10;
 a += 5;  print a; // expect: 15
 a -= 3;  print a; // expect: 12
 a *= 2;  print a; // expect: 24
@@ -6,12 +6,12 @@ a /= 4;  print a; // expect: 6
 a %= 4;  print a; // expect: 2
 print a += 1; // expect: 3
 
-var s = "ab";
+let mut s = "ab";
 s += "c";
 print s; // expect: abc
 
 {
-  var local = 1;
+  let mut local = 1;
   local += 1;
   print local; // expect: 2
 }

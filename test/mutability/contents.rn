@@ -1,0 +1,8 @@
+let arr = [[1]];
+arr[0] = 2; // [line: 2] Error at 'arr': Cannot mutate immutable variable 'arr'.
+arr[0][0] = 2; // [line: 3] Error at 'arr': Cannot mutate immutable variable 'arr'.
+arr[0] += 1; // [line: 4] Error at 'arr': Cannot mutate immutable variable 'arr'.
+arr[0]++; // [line: 5] Error at 'arr': Cannot mutate immutable variable 'arr'.
+let obj = {x: 1};
+obj.x = 2; // [line: 7] Error at 'obj': Cannot mutate immutable variable 'obj'.
+obj["x"] = 2; // [line: 8] Error at 'obj': Cannot mutate immutable variable 'obj'.

@@ -3,6 +3,6 @@ print "b" <= "a"; // expect: false
 print "abc" > "abd"; // expect: false
 print "b" >= "b"; // expect: true
 if ("apple" < "banana") print "ordered"; // expect: ordered
-var s = "z";
+let s = "z";
 if (s > "a") print "z wins"; // expect: z wins
 print "a" < 1; // expect runtime error: [line: 8] Operands must be two numbers or two strings.

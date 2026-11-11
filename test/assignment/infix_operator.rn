@@ -1,4 +1,4 @@
-var a = "a";
-var b = "b";
+let a = "a";
+let mut b = "b";
 a + b = "value"; // [line: 3] Error at '=': Invalid assignment target.
 

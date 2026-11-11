@@ -1,11 +1,11 @@
-var a = "global";
+let mut a = "global";
 
 {
   fun assign() {
     a = "assigned";
   }
 
-  var a = "inner";
+  let mut a = "inner";
   assign();
   print a; // expect: inner
 }

@@ -1,7 +1,7 @@
-var f;
+let mut f;
 
 {
-  var a = "a";
+  let a = "a";
   fun f_() {
     print a;
     print a;

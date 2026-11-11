@@ -1,0 +1,16 @@
+let grid = [[0, 0], [0, 0]];
+for (mut row in grid) row[0] = 1;
+print grid; // expect: [[1, 0], [1, 0]]
+for (mut i, x in [5, 6]) {
+  i *= 10;
+  print i; // expect: 0
+  // expect: 10
+}
+for (k, mut v in {a: 1}) {
+  v++;
+  print v; // expect: 2
+}
+for (mut k, mut v in ["x"]) {
+  k = v = "y";
+  print k + v; // expect: yy
+}

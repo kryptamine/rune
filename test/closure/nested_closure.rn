@@ -1,11 +1,11 @@
-var f;
+let mut f;
 
 fun f1() {
-  var a = "a";
+  let a = "a";
   fun f2() {
-    var b = "b";
+    let b = "b";
     fun f3() {
-      var c = "c";
+      let c = "c";
       fun f4() {
         print a;
         print b;

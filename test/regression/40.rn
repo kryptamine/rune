@@ -5,8 +5,8 @@ fun caller(g) {
 }
 
 fun callCaller() {
-  var capturedVar = "before";
-  var a = "a";
+  let mut capturedVar = "before";
+  let a = "a";
 
   fun f() {
     // Commenting the next line out prevents the bug!

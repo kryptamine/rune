@@ -1,2 +1,2 @@
-var obj = {};
+let obj = {};
 print obj.missing; // expect runtime error: [line: 2] Undefined property 'missing'.

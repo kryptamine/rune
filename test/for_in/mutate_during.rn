@@ -1,4 +1,4 @@
-var a = [1, 2, 3];
+let mut a = [1, 2, 3];
 for (x in a) {
   a[2] = 99;
   print x;

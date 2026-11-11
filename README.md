@@ -10,6 +10,7 @@ Rune is a dynamically typed interpreted programming language inspired by [Lox](h
 
 - Dynamically typed language with a simple syntax
 - Supports expressions, statements, variables, and functions
+- Variables are immutable by default (`let`); `let mut` makes them mutable
 - Built-in functions for array manipulation, JSON parsing, and timing
 - Recursive descent parser; the resolved AST is compiled into Go closures before it runs
 - Parser recovers from syntax errors and reports all of them in one run
@@ -113,7 +114,53 @@ Values of different types are never equal: `1 == "1"` is `false`.
 `print` shows strings inside arrays and objects quoted, so `["1", 1]` and `[1, 1]`
 look different; a string printed on its own is written as is.
 
+## Variables
+
+`let` declares an immutable variable, `let mut` a mutable one. Assigning to an
+immutable variable (`=`, `+=`, `++`, ...) is a compile-time error. An immutable
+variable must be initialized; `let mut x;` starts as `nil`.
+
+```javascript
+let mut count = 0;
+count += 1;
+
+let name = "ann";
+name = "bob"; // Error at 'name': Cannot assign to immutable variable 'name'.
+```
+
+Through an immutable variable the array or object it holds cannot be changed
+either: index and property assignment (`a[0] = 1`, `o.x += 1`, `a[0]++`, also
+nested like `o.xs[0] = 1`) and the in-place built-ins `push`, `pop` and `sort`
+are errors. Built-ins that return a new value (`append`, `reverse`, `map`, ...)
+work as usual.
+
+```javascript
+let a = [1];
+a[0] = 3;   // Error at 'a': Cannot mutate immutable variable 'a'.
+push(a, 2); // Error at 'a': Cannot mutate immutable variable 'a'.
+
+let mut b = [1];
+push(b, 2); // ok
+```
+
+Function parameters, `for`-`in` variables, `catch` variables and functions are
+immutable too. Parameters and `for`-`in` variables are made mutable with `mut`:
+
+```javascript
+fun fill(mut arr, n) {
+    push(arr, n);
+}
+
+let mut grid = [[0, 0], [0, 0]];
+for (i, mut row in grid) row[i] = 1;
+```
+
+The check is static and follows the variable, not the value: an array held by
+an immutable variable still changes when it is mutated through another,
+mutable reference (`let mut b = a;` or a `mut` parameter).
+
 Redeclaring a variable in the same scope is an error, at the top level too.
+A new scope may shadow a name with a different mutability.
 Built-ins are not declarations, so a program may still redefine them.
 
 ## Arrays
@@ -121,8 +168,8 @@ Built-ins are not declarations, so a program may still redefine them.
 Arrays are references: assigning an array or passing it to a function does not copy it, so `push`, `pop` and index assignment are visible through every reference.
 
 ```javascript
-var a = [1, 2];
-var b = a;
+let a = [1, 2];
+let mut b = a;
 push(b, 3);
 print a; // [1, 2, 3]
 ```
@@ -154,7 +201,7 @@ Rune provides several built-in functions:
 - `slice(x, start[, end])`, `reverse(x)`, `contains(x, item)`, `indexOf(x, item)` — work on arrays and strings; string indices count characters, negative slice bounds count from the end.
 
 ```javascript
-var people = [{name: "bob", age: 25}, {name: "ann", age: 31}];
+let mut people = [{name: "bob", age: 25}, {name: "ann", age: 31}];
 sort(people, fun (a, b) { return a.age - b.age; });
 print join(map(people, fun (p) { return p.name; }), ", "); // bob, ann
 ```
@@ -178,7 +225,7 @@ Runtime errors (including those from built-ins like `json()`) can be caught with
 
 ```javascript
 try {
-    var todos = json("https://dummyjson.com/todos");
+    let todos = json("https://dummyjson.com/todos");
     print len(todos.todos);
 } catch (err) {
     print "request failed: " + err.message;
@@ -214,7 +261,7 @@ for (i, name in ["ann", "bob"]) {
     print name; // bob
 }
 
-var ages = { "ann": 31, "bob": 25 };
+let ages = { "ann": 31, "bob": 25 };
 for (name, age in ages) {
     if (age < 30) break;
     print name + " is 30+";
@@ -227,7 +274,7 @@ for (name, age in ages) {
 
 ```javascript
 fun map(arr, f) {
-    var out = [];
+    let mut out = [];
     for (x in arr) push(out, f(x));
     return out;
 }
@@ -241,8 +288,8 @@ Here’s a simple Rune script that calculates the sum of an array:
 
 ```javascript
 fun sumArray(arr) {
-    var total = 0;
-    for (var i = 0; i < len(arr); i = i + 1) {
+    let mut total = 0;
+    for (let mut i = 0; i < len(arr); i = i + 1) {
         total = total + arr[i];
     }
     return total;

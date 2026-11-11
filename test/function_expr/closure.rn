@@ -1,7 +1,7 @@
 fun counter() {
-  var n = 0;
+  let mut n = 0;
   return fun () { n += 1; return n; };
 }
-var c = counter();
+let c = counter();
 c();
 print c(); // expect: 2

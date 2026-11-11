@@ -1,8 +1,8 @@
-var f;
-var g;
+let mut f;
+let mut g;
 
 {
-  var local = "local";
+  let mut local = "local";
   fun f_() {
     print local;
     local = "after f";

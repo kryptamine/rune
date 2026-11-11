@@ -1,14 +1,14 @@
 // A block that creates no closure is recycled; a closure created next to it
 // must still see its own variables.
 fun make() {
-  var x = "outer";
+  let x = "outer";
   {
-    var tmp = "block";
+    let tmp = "block";
     print tmp; // expect: block
   }
-  var f = fun () { return x; };
+  let f = fun () { return x; };
   {
-    var other = "again";
+    let other = "again";
     print other; // expect: again
   }
   return f;

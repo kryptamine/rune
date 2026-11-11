@@ -1,6 +1,6 @@
-var n = 0;
+let mut n = 0;
 fun outer() {
-  var x = 10;
+  let mut x = 10;
   fun inner() {
     fun deepest() { return x++; }
     return deepest();

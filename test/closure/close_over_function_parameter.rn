@@ -1,4 +1,4 @@
-var f;
+let mut f;
 
 fun foo(param) {
   fun f_() {
