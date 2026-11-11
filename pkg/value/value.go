@@ -75,7 +75,6 @@ func (v Value) Str() string {
 	return unsafe.String((*byte)(v.obj.(unsafe.Pointer)), int(v.num))
 }
 
-
 // Arr returns the array payload; only meaningful when Kind() == Array.
 func (v Value) Arr() []Value { return *v.obj.(*[]Value) }
 
