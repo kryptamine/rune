@@ -22,6 +22,7 @@ type ExprVisitor interface {
 	VisitUpdateExpr(updateExpr *UpdateExpr) (value.Value, error)
 	VisitRangeExpr(rangeExpr *RangeExpr) (value.Value, error)
 	VisitStructExpr(structExpr *StructExpr) (value.Value, error)
+	VisitWithExpr(withExpr *WithExpr) (value.Value, error)
 }
 
 type Expr interface {
@@ -222,6 +223,22 @@ func NewStructExpr(name Token, pairs []StructPair) Expr {
 
 func (n *StructExpr) Accept(v ExprVisitor) (value.Value, error) {
 	return v.VisitStructExpr(n)
+}
+
+// WithExpr is target with { field: value, ... }; its fields are checked
+// at run time, so Slot of the pairs is unused.
+type WithExpr struct {
+	Target  Expr
+	Keyword Token
+	Pairs   []StructPair
+}
+
+func NewWithExpr(target Expr, keyword Token, pairs []StructPair) Expr {
+	return &WithExpr{Target: target, Keyword: keyword, Pairs: pairs}
+}
+
+func (n *WithExpr) Accept(v ExprVisitor) (value.Value, error) {
+	return v.VisitWithExpr(n)
 }
 
 // ObjectPair is a single "key: value" entry of an object literal.

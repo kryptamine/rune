@@ -1,0 +1,19 @@
+struct Point { x, y = 0 }
+
+let p = Point { x: 1, y: 2 };
+let q = p with { x: 3 };
+print q; // expect: Point {x: 3, y: 2}
+print p; // expect: Point {x: 1, y: 2}
+print p with { y: 5, x: 4 }; // expect: Point {x: 4, y: 5}
+print p with { x: 2 } with { y: 7 }; // expect: Point {x: 2, y: 7}
+print (p with { x: 9 }).x; // expect: 9
+print p with { x: 1 } == p; // expect: true
+print p with {} == p; // expect: true
+print p with { x: p.x + 1, } is Point; // expect: true
+
+let mut r = p;
+r = r with { x: r.x * 10 };
+print r.x; // expect: 10
+
+let ps = [p];
+print ps[0] with { y: -1 }; // expect: Point {x: 1, y: -1}

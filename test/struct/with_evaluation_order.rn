@@ -1,0 +1,12 @@
+struct Point { x, y }
+
+fun log(s, v) {
+  print s;
+  return v;
+}
+
+let p = log("target", Point { x: 1, y: 2 }) with { y: log("y", 3), x: log("x", 4) };
+// expect: target
+// expect: y
+// expect: x
+print p; // expect: Point {x: 4, y: 3}

@@ -1,0 +1,14 @@
+struct Point { x, y }
+
+let p = Point { x: 1, y: 2 };
+try {
+  print p with { z: 1 };
+} catch (e) {
+  print e.message; // expect: Point has no field 'z'.
+}
+
+try {
+  print 1 with { x: 1 };
+} catch (e) {
+  print e.message; // expect: Can only use 'with' on structs, got number.
+}

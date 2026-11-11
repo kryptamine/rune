@@ -202,16 +202,42 @@ q = Point { x: q.x + 1, y: q.y };
 q.x = 5; // Cannot set field 'x' of Point: structs are immutable.
 ```
 
+`with` copies a struct, changing the fields it lists; it binds tighter
+than unary operators and looser than calls, so `(p with { x: 2 }).x`
+needs the parentheses. The fields are checked at run time.
+
+```javascript
+let q = p with { x: 3 }; // Point {x: 3, y: 0}; p is unchanged
+p with { z: 1 };         // Point has no field 'z'.
+```
+
+`v is Point` is `true` only for a `Point`; it has the precedence of `==`,
+and its right operand must be a struct type.
+
+Calling a struct type converts to it. From an object the keys must be
+exactly the fields, the defaulted ones optional; a struct of the same
+type is returned as is, and any other value is an error. There are no
+implicit conversions, and none between struct types.
+
+```javascript
+Point({x: 1});       // Point {x: 1, y: 0}
+Point({x: 1, z: 2}); // Point has no field 'z'.
+Point({y: 1});       // Missing field 'x' of Point.
+```
+
 `==` compares structs field by field and only if they are of the same
 struct, so `Point { x: 1, y: 2 } == { "x": 1, "y": 2 }` is `false`.
 `for (k, v in p)` walks the fields in declaration order. Reading a field
-that does not exist is a runtime error.
+that does not exist is a runtime error. `object(p)` copies a struct into
+a new object, `len(p)` is its number of fields and `type(p)` its name.
 
 ## Built-in Functions
 
 Rune provides several built-in functions:
 
-- **`len(value)`** — Returns the length of an array, object or string (in characters).
+- **`len(value)`** — Returns the length of an array, object or string (in characters), or the number of fields of a struct.
+- **`type(value)`** — Returns `"nil"`, `"boolean"`, `"number"`, `"string"`, `"array"`, `"object"`, `"function"`, a struct's name, or `"struct"` for a struct type.
+- **`object(s)`** — Returns a new object with the fields of struct `s`.
 - **`append(arr, value1, value2, ...)`** — Returns a new array with the values appended; the original array is not modified. It copies the array, so building an array with it in a loop takes quadratic time; use `push` for that.
 - **`push(arr, value1, value2, ...)`** — Appends the values to the array in place (amortized O(1) each) and returns its new length.
 - **`pop(arr)`** — Removes the last element of the array in place and returns it; an empty array is a runtime error.

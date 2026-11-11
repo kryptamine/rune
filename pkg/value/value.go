@@ -97,16 +97,22 @@ type Shape struct {
 	Fields []string
 	// Keys holds Fields as values, for iteration.
 	Keys []Value
+	// Defaults holds the default of each field that is not Required.
+	Defaults []Value
+	required []bool
 }
 
-func NewShape(name string, fields []string) *Shape {
+func NewShape(name string, fields []string, defaults []Value, required []bool) *Shape {
 	keys := make([]Value, len(fields))
 	for i, f := range fields {
 		keys[i] = NewString(f)
 	}
 
-	return &Shape{Name: name, Fields: fields, Keys: keys}
+	return &Shape{Name: name, Fields: fields, Keys: keys, Defaults: defaults, required: required}
 }
+
+// Required reports whether field i has no default.
+func (s *Shape) Required(i int) bool { return s.required[i] }
 
 // Index returns the slot of field name, or -1.
 func (s *Shape) Index(name string) int {
