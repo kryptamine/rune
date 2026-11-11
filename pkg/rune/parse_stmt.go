@@ -1,0 +1,480 @@
+package rune
+
+import (
+	"fmt"
+
+	"rune/pkg/ast"
+	"rune/pkg/errors"
+)
+
+func (s *Parser) declaration() (ast.Stmt, error) {
+	// "fun (" starts an anonymous function expression, not a declaration.
+	if s.check(ast.FUN) && s.peekAt(1) == ast.IDENTIFIER {
+		s.advance()
+		return s.function("function")
+	}
+
+	if s.match(ast.VAR) {
+		return s.varDeclaration()
+	}
+
+	return s.statement()
+}
+
+func (s *Parser) function(kind string) (ast.Stmt, error) {
+	name, err := s.consume(ast.IDENTIFIER, fmt.Sprintf("Expect %s name.", kind))
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = s.consume(ast.LEFT_PAREN, fmt.Sprintf("Expect '(' after %s name.", kind))
+	if err != nil {
+		return nil, err
+	}
+
+	fn, err := s.functionRest(name)
+	if err != nil {
+		return nil, err
+	}
+
+	return fn, nil
+}
+
+const maxArity = 8
+
+// functionRest parses a function's parameter list and body; the opening
+// "(" has already been consumed.
+func (s *Parser) functionRest(name ast.Token) (*ast.FunctionStmt, error) {
+	parameters := []ast.Token{}
+
+	if !s.check(ast.RIGHT_PAREN) {
+		for {
+			// Report but keep parsing: the parser is not in a confused state.
+			if len(parameters) == maxArity {
+				s.errors = append(s.errors, errors.NewSyntaxError(
+					s.peek(),
+					fmt.Sprintf("Cannot have more than %d parameters.", maxArity),
+				))
+			}
+
+			param, err := s.consume(ast.IDENTIFIER, "Expect parameter name.")
+			if err != nil {
+				return nil, err
+			}
+
+			parameters = append(parameters, param)
+
+			if !s.match(ast.COMMA) {
+				break
+			}
+		}
+	}
+
+	_, err := s.consume(ast.RIGHT_PAREN, "Expect ')' after parameters.")
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = s.consume(ast.LEFT_BRACE, "Expect '{' before function body.")
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := s.block()
+	if err != nil {
+		return nil, err
+	}
+
+	return ast.NewFunctionStmt(name, parameters, body).(*ast.FunctionStmt), nil
+}
+
+func (s *Parser) varDeclaration() (ast.Stmt, error) {
+	name, err := s.consume(ast.IDENTIFIER, "Expect variable name.")
+	if err != nil {
+		return nil, err
+	}
+
+	var initializer ast.Expr
+
+	if s.match(ast.EQUAL) {
+		initializer, err = s.expression()
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	_, err = s.consume(ast.SEMICOLON, "Expect ';' after variable declaration.")
+	if err != nil {
+		return nil, err
+	}
+
+	return ast.NewVarStmt(initializer, name), nil
+}
+
+func (s *Parser) statement() (ast.Stmt, error) {
+	if s.match(ast.PRINT) {
+		return s.printStmt()
+	}
+
+	if s.match(ast.RETURN) {
+		return s.returnStmt()
+	}
+
+	if s.match(ast.WHILE) {
+		return s.whileStatement()
+	}
+
+	if s.match(ast.TRY) {
+		return s.tryStatement()
+	}
+
+	if s.match(ast.THROW) {
+		return s.throwStatement()
+	}
+
+	if s.match(ast.BREAK, ast.CONTINUE) {
+		return s.loopJumpStatement()
+	}
+
+	// "{ key: ..." can only be an object literal; anything else after "{" is a block.
+	if !s.isObjectLiteralStart() && s.match(ast.LEFT_BRACE) {
+		block, err := s.block()
+		if err != nil {
+			return nil, err
+		}
+
+		return ast.NewBlockStmt(block), nil
+	}
+
+	if s.match(ast.FOR) {
+		return s.forStatement()
+	}
+
+	if s.match(ast.IF) {
+		return s.ifStatement()
+	}
+
+	return s.expressionStatement()
+}
+
+func (s *Parser) printStmt() (ast.Stmt, error) {
+	expr, err := s.expression()
+
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = s.consume(ast.SEMICOLON, "Expect ';' after value.")
+	if err != nil {
+		return nil, err
+	}
+
+	return ast.NewPrintStmt(expr), nil
+}
+
+func (s *Parser) returnStmt() (ast.Stmt, error) {
+	keyword := s.previous()
+	var value ast.Expr
+
+	if !s.check(ast.SEMICOLON) {
+		v, err := s.expression()
+
+		value = v
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	_, err := s.consume(ast.SEMICOLON, "Expect ';' after return value.")
+	if err != nil {
+		return nil, err
+	}
+
+	return ast.NewReturnStmt(value, keyword), nil
+}
+
+func (s *Parser) expressionStatement() (ast.Stmt, error) {
+	expr, err := s.expression()
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = s.consume(ast.SEMICOLON, "Expect ';' after expression.")
+	if err != nil {
+		return nil, err
+	}
+
+	return ast.NewExprStmt(expr), nil
+}
+
+func (s *Parser) block() ([]ast.Stmt, error) {
+	var stmts []ast.Stmt
+
+	for !s.check(ast.RIGHT_BRACE) && !s.isAtEnd() {
+		if stmt := s.safeDeclaration(); stmt != nil {
+			stmts = append(stmts, stmt)
+		}
+	}
+
+	_, err := s.consume(ast.RIGHT_BRACE, "Expect '}' after block.")
+	if err != nil {
+		return nil, err
+	}
+
+	return stmts, nil
+}
+
+func (s *Parser) ifStatement() (ast.Stmt, error) {
+	_, err := s.consume(ast.LEFT_PAREN, "Expect '(' after 'if'.")
+	if err != nil {
+		return nil, err
+	}
+
+	condition, err := s.expression()
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = s.consume(ast.RIGHT_PAREN, "Expect ')' after condition.")
+	if err != nil {
+		return nil, err
+	}
+
+	then, err := s.statement()
+	if err != nil {
+		return nil, err
+	}
+
+	var el ast.Stmt
+
+	if s.match(ast.ELSE) {
+		el, err = s.statement()
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return ast.NewIfStmt(condition, then, el), nil
+}
+
+func (s *Parser) whileStatement() (ast.Stmt, error) {
+	_, err := s.consume(ast.LEFT_PAREN, "Expect '(' after 'while'.")
+	if err != nil {
+		return nil, err
+	}
+
+	condition, err := s.expression()
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = s.consume(ast.RIGHT_PAREN, "Expect ')' after condition.")
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := s.statement()
+	if err != nil {
+		return nil, err
+	}
+
+	return ast.NewWhileStmt(condition, body, nil), nil
+}
+
+func (s *Parser) forStatement() (ast.Stmt, error) {
+	keyword := s.previous()
+
+	_, err := s.consume(ast.LEFT_PAREN, "Expect '(' after 'for'.")
+	if err != nil {
+		return nil, err
+	}
+
+	if s.isForInStart() {
+		return s.forInStatement(keyword)
+	}
+
+	var initializer ast.Stmt
+
+	if s.match(ast.SEMICOLON) {
+		initializer = nil
+	} else if s.match(ast.VAR) {
+		initializer, err = s.varDeclaration()
+
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		initializer, err = s.expressionStatement()
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var condition ast.Expr
+
+	if !s.check(ast.SEMICOLON) {
+		condition, err = s.expression()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	_, err = s.consume(ast.SEMICOLON, "Expect ';' after condition.")
+	if err != nil {
+		return nil, err
+	}
+
+	var increment ast.Expr
+
+	if !s.check(ast.RIGHT_PAREN) {
+		increment, err = s.expression()
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	_, err = s.consume(ast.RIGHT_PAREN, "Expect ')' after clauses.")
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := s.statement()
+	if err != nil {
+		return nil, err
+	}
+
+	if condition == nil {
+		condition = ast.NewLiteralExpr(ast.TRUE, true)
+	}
+
+	body = ast.NewWhileStmt(condition, body, increment)
+
+	if initializer != nil {
+		body = ast.NewBlockStmt([]ast.Stmt{initializer, body})
+	}
+
+	return body, nil
+}
+
+// isForInStart reports whether the tokens after "for (" are "name in" or
+// "name, name in".
+func (s *Parser) isForInStart() bool {
+	if s.peekAt(0) != ast.IDENTIFIER {
+		return false
+	}
+
+	if s.peekAt(1) == ast.IN {
+		return true
+	}
+
+	return s.peekAt(1) == ast.COMMA && s.peekAt(2) == ast.IDENTIFIER && s.peekAt(3) == ast.IN
+}
+
+// forInStatement parses the rest of `for (x in expr) body` or
+// `for (k, v in expr) body` after "for (".
+func (s *Parser) forInStatement(keyword ast.Token) (ast.Stmt, error) {
+	var key *ast.Token
+
+	val := s.advance()
+
+	if s.match(ast.COMMA) {
+		k := val
+		key = &k
+		val = s.advance()
+	}
+
+	s.advance() // "in", checked by isForInStart
+
+	iterable, err := s.expression()
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := s.consume(ast.RIGHT_PAREN, "Expect ')' after for-in clause."); err != nil {
+		return nil, err
+	}
+
+	body, err := s.statement()
+	if err != nil {
+		return nil, err
+	}
+
+	return ast.NewForInStmt(keyword, key, val, iterable, body), nil
+}
+
+// loopJumpStatement parses `break;` or `continue;` (the keyword is consumed).
+func (s *Parser) loopJumpStatement() (ast.Stmt, error) {
+	keyword := s.previous()
+
+	if _, err := s.consume(ast.SEMICOLON, fmt.Sprintf("Expect ';' after '%s'.", keyword.Lexeme)); err != nil {
+		return nil, err
+	}
+
+	if keyword.TokenType == ast.BREAK {
+		return ast.NewBreakStmt(keyword), nil
+	}
+
+	return ast.NewContinueStmt(keyword), nil
+}
+
+// tryStatement parses `try { ... } catch (name) { ... }`; "(name)" is optional.
+func (s *Parser) tryStatement() (ast.Stmt, error) {
+	if _, err := s.consume(ast.LEFT_BRACE, "Expect '{' after 'try'."); err != nil {
+		return nil, err
+	}
+
+	body, err := s.block()
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := s.consume(ast.CATCH, "Expect 'catch' after try block."); err != nil {
+		return nil, err
+	}
+
+	var param *ast.Token
+
+	if s.match(ast.LEFT_PAREN) {
+		name, err := s.consume(ast.IDENTIFIER, "Expect error variable name.")
+		if err != nil {
+			return nil, err
+		}
+
+		param = &name
+
+		if _, err := s.consume(ast.RIGHT_PAREN, "Expect ')' after catch variable."); err != nil {
+			return nil, err
+		}
+	}
+
+	if _, err := s.consume(ast.LEFT_BRACE, "Expect '{' after 'catch'."); err != nil {
+		return nil, err
+	}
+
+	handler, err := s.block()
+	if err != nil {
+		return nil, err
+	}
+
+	return ast.NewTryStmt(ast.NewBlockStmt(body), param, handler), nil
+}
+
+func (s *Parser) throwStatement() (ast.Stmt, error) {
+	keyword := s.previous()
+
+	value, err := s.expression()
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := s.consume(ast.SEMICOLON, "Expect ';' after thrown value."); err != nil {
+		return nil, err
+	}
+
+	return ast.NewThrowStmt(value, keyword), nil
+}
