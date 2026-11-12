@@ -33,6 +33,7 @@ syn region runeInterp contained matchgroup=runeInterpDelim start="{" end="}" con
 syn region runeInterpBrace contained transparent start="{" end="}" contains=TOP,runeInterpBrace
 syn region runeString start=+"+ skip=+\\\\\|\\"+ end=+"+ contains=runeEscape,runeInterp
 syn region runeBytes matchgroup=runeBytesPrefix start=+\<b"+ skip=+\\\\\|\\"+ end=+"+ contains=runeEscape,runeByteEscape
+syn region runeRawString matchgroup=runeBytesPrefix start=+\<r"+ end=+"+
 
 syn match runeOperator "=>\|\.\.\.\|\.\.=\|\.\.\|?\.\|??\|?\|[-+*/%=!<>&|^~]=\="
 
@@ -59,6 +60,7 @@ hi def link runeConst Constant
 hi def link runeNumber Number
 hi def link runeString String
 hi def link runeBytes String
+hi def link runeRawString String
 hi def link runeBytesPrefix Special
 hi def link runeEscape SpecialChar
 hi def link runeByteEscape SpecialChar

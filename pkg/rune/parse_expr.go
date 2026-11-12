@@ -559,7 +559,8 @@ func (s *Parser) braceList(dup, closeMsg string, item func() (string, ast.Token,
 	return err
 }
 
-// objectLiteral parses { key: value, ... }; the "{" has already been consumed.
+// objectLiteral parses { key: value, ... }; the "{" has already been
+// consumed. A bare name takes the variable of the same name.
 func (s *Parser) objectLiteral() (ast.Expr, error) {
 	var pairs []ast.ObjectPair
 
@@ -584,6 +585,11 @@ func (s *Parser) objectLiteral() (ast.Expr, error) {
 		}
 
 		tok := s.previous()
+
+		if tok.TokenType == ast.IDENTIFIER && endsItem(s.peekAt(0)) {
+			pairs = append(pairs, ast.ObjectPair{Key: key, Value: ast.NewVarExpr(tok)})
+			return key, tok, nil
+		}
 
 		if _, err := s.consume(ast.COLON, "Expect ':' after property name."); err != nil {
 			return "", tok, err
@@ -756,10 +762,16 @@ func (s *Parser) isObjectLiteralStart() bool {
 		return false
 	}
 
-	key := s.peekAt(1)
+	key, after := s.peekAt(1), s.peekAt(2)
 
-	return key == ast.DOT_DOT_DOT || (key == ast.IDENTIFIER || key == ast.STRING) && s.peekAt(2) == ast.COLON
+	return key == ast.DOT_DOT_DOT ||
+		(key == ast.IDENTIFIER || key == ast.STRING) && after == ast.COLON ||
+		key == ast.IDENTIFIER && endsItem(after)
 }
+
+// endsItem reports whether t ends an item of a brace list, as after a
+// shorthand property.
+func endsItem(t ast.TokenType) bool { return t == ast.COMMA || t == ast.RIGHT_BRACE }
 
 // interpolation parses the pieces of a string after its first one,
 // an INTERPOLATION token.

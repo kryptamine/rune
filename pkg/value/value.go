@@ -150,10 +150,46 @@ func NewShape(name string, decls []Field) *Shape {
 	return &Shape{Name: name, Fields: fields, Keys: keys, decls: decls}
 }
 
-// Default returns the default of field i, if it has one.
+// Default returns the default of field i, if it has one; one that is
+// Mutable is taken through Fresh.
 func (s *Shape) Default(i int) (Value, bool) {
 	f := s.decls[i]
 	return f.Default, !f.Required
+}
+
+// Fresh deep-copies the arrays and objects of a constant; its maps and
+// sets, being empty, are copied as they are.
+func Fresh(v Value) Value {
+	switch v.Kind() {
+	case Array:
+		items := make([]Value, len(v.Arr()))
+		for i, x := range v.Arr() {
+			items[i] = Fresh(x)
+		}
+		return NewArray(items)
+	case Object:
+		fields := make(map[string]Value, len(v.Obj()))
+		for k, x := range v.Obj() {
+			fields[k] = Fresh(x)
+		}
+		return NewObject(fields)
+	case Map:
+		return NewMap(v.HashMap().Clone())
+	case Set:
+		return NewSet(v.HashMap().Clone())
+	}
+
+	return v
+}
+
+// Mutable reports whether v is an array, object, map or set.
+func Mutable(v Value) bool {
+	switch v.Kind() {
+	case Array, Object, Map, Set:
+		return true
+	}
+
+	return false
 }
 
 // Index returns the slot of field name, or -1.

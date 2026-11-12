@@ -13,13 +13,14 @@ type Op uint8
 // the running closure. Jump targets are absolute, in C.
 // A and B take up to 16 bits, C up to 20.
 const (
-	opMove     Op = iota // R[A] = R[B]
-	opLoadK              // R[A] = K[C]
-	opNewCell            // R[A] = cell(R[B])
-	opGetCell            // R[A] = cell R[B], which must be defined
-	opSetCell            // cell R[A] = R[B]
-	opGetUpval           // R[A] = U[B], which must be defined
-	opSetUpval           // U[B] = R[A]
+	opMove      Op = iota // R[A] = R[B]
+	opLoadK               // R[A] = K[C]
+	opLoadFresh           // R[A] = a deep copy of K[C]
+	opNewCell             // R[A] = cell(R[B])
+	opGetCell             // R[A] = cell R[B], which must be defined
+	opSetCell             // cell R[A] = R[B]
+	opGetUpval            // R[A] = U[B], which must be defined
+	opSetUpval            // U[B] = R[A]
 	// The checked forms fail on a top-level variable not yet defined.
 	opCheckDefined // R[A] must be defined
 	opSetCellChecked
@@ -225,7 +226,7 @@ type methodTable struct {
 }
 
 var opNames = [...]string{
-	"MOVE", "LOADK", "NEWCELL", "GETCELL", "SETCELL", "GETUPVAL", "SETUPVAL",
+	"MOVE", "LOADK", "LOADFRESH", "NEWCELL", "GETCELL", "SETCELL", "GETUPVAL", "SETUPVAL",
 	"CHECKDEFINED", "SETCELL!", "SETUPVAL!", "UNDEFINED",
 	"ADD", "SUB", "MUL", "DIV", "MOD", "ADDK", "SUBK", "MULK", "DIVK", "MODK", "CMP", "CMPK", "IS", "NEG", "NOT", "INCR", "BITWISE", "BITNOT",
 	"JMP", "JMPIF", "JMPCMP", "JMPCMPK", "JMPNOTTYPE", "JMPNIL", "JMPDEFINED",

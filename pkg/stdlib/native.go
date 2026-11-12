@@ -299,6 +299,17 @@ func Member(name, key string) (v value.Value, found, isNamespace bool) {
 	return ns.Fields()[i], true, true
 }
 
+// Owner returns the first namespace that has member key, or "".
+func Owner(key string) string {
+	for _, ns := range namespaces {
+		if namespaceValues[ns.name].Shape().Index(key) >= 0 {
+			return ns.name
+		}
+	}
+
+	return ""
+}
+
 // Method is a method of a built-in type, whose native takes the receiver
 // first. An in-place one changes the receiver.
 type Method struct {

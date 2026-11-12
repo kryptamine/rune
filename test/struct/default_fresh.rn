@@ -1,0 +1,21 @@
+struct Bag { xs = [], o = { a: [1] }, m = Map(), s = Set(), n = -1 }
+
+let mut a = Bag {};
+let b = Bag {};
+a.xs.push(1);
+a.o.a.push(2);
+a.m.set("k", 1);
+a.s.add(3);
+print a; // expect: Bag {xs: [1], o: {a: [1, 2]}, m: Map {"k": 1}, s: Set {3}, n: -1}
+print b; // expect: Bag {xs: [], o: {a: [1]}, m: Map {}, s: Set {}, n: -1}
+
+let c = Bag({ n: 2 });
+print c; // expect: Bag {xs: [], o: {a: [1]}, m: Map {}, s: Set {}, n: 2}
+
+fun make() { return Bag {}; }
+let mut d = make();
+d.xs.push(9);
+print make().xs; // expect: []
+
+struct Two { a = [1], b = [2], c = {}, d = { k: 1 } }
+print Two {}; // expect: Two {a: [1], b: [2], c: {}, d: {k: 1}}

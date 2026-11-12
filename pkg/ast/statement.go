@@ -227,11 +227,12 @@ func NewTryStmt(body Stmt, catches []CatchClause) Stmt {
 	return &TryStmt{Body: body, Catches: catches}
 }
 
-// StructField is a field of a struct declaration; Default is a literal,
-// or nil for a required field.
+// StructField is a field of a struct declaration; Default, at DefaultAt,
+// is nil for a required field.
 type StructField struct {
-	Name    Token
-	Default Expr
+	Name      Token
+	Default   Expr
+	DefaultAt Token
 }
 
 // StructStmt declares a struct type; the resolver sets Local and Shape.

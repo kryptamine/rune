@@ -1,1 +1,5 @@
-struct Point { x = 1 + 2, y } // [line: 1] Error at '1': Field default must be a literal.
+struct Point { x = 1 + 2, y } // [line: 1] Error at '1': Field default must be a constant: a literal, or an array, object, Map() or Set() of them.
+struct Box { xs = [n] } // [line: 2] Error at '[': Field default must be a constant: a literal, or an array, object, Map() or Set() of them.
+fun Map() {}
+struct Bag { m = Map() } // [line: 4] Error at 'Map': Field default must be a constant: a literal, or an array, object, Map() or Set() of them.
+let n = 1;

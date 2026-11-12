@@ -53,6 +53,9 @@ reload:
 		case opLoadK:
 			regs[in.a()] = consts[in.c()]
 
+		case opLoadFresh:
+			regs[in.a()] = value.Fresh(consts[in.c()])
+
 		case opGetCell:
 			v := (*Cell)(regs[in.b()].Ptr()).v
 			if v.IsUndefined() {

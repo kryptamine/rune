@@ -38,7 +38,9 @@ func structOf(token *ast.Token, shape *value.Shape, obj map[string]value.Value) 
 		if f, ok := obj[name]; ok {
 			fields[i] = f
 			given++
-		} else if fields[i], ok = shape.Default(i); !ok {
+		} else if def, ok := shape.Default(i); ok {
+			fields[i] = value.Fresh(def)
+		} else {
 			return value.NilValue, errors.NewRuntimeError(errors.KeyError, *token, errors.MissingField(shape.Name, name))
 		}
 	}

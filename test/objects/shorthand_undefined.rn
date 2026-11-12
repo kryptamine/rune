@@ -1,0 +1,1 @@
+print { nope }; // expect runtime error: [line: 1] NameError: Undefined variable 'nope'.

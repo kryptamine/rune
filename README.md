@@ -15,7 +15,7 @@ Rune is a dynamically typed interpreted programming language inspired by [Lox](h
 - Modules with their own top level, `export` and `import a.b as m;`
 - Recursive descent parser; the resolved AST is compiled to register bytecode run by a VM
 - Parser recovers from syntax errors and reports all of them in one run
-- String escapes: `\n`, `\t`, `\r`, `\"`, `\\`, `\{`, `\}`
+- String escapes: `\n`, `\t`, `\r`, `\"`, `\\`, `\{`, `\}`; raw strings take neither: `r"\d{3}"`
 - String interpolation: `"x = {x}, sum = {a + b}"`
 - 64-bit integers and floats, both of type `number`: `7 / 2` is `3.5`, `7 % 2` is `1`, and overflow is an error
 - Number literals with exponents, hex, octal, binary and `_`: `1e3`, `0xff`, `0o17`, `0b1010`, `1_000_000`
@@ -23,10 +23,10 @@ Rune is a dynamically typed interpreted programming language inspired by [Lox](h
 - `Map` and `Set` with keys of any hashable value, in insertion order
 - `bytes`: immutable binary data, with literals `b"\x00\xff"`
 - Streams: files and HTTP bodies read line by line or in chunks, `for line in fs.open(path)`
-- Object property access with `obj.name` as sugar for `obj["name"]`
+- Object property access with `obj.name` as sugar for `obj["name"]`; shorthand `{ ip, hits }` for `{ ip: ip, hits: hits }`
 - Structs with required and default fields, read-only outside their `mut self` methods: `struct Point { x, y = 0 }`
 - Methods in `impl` blocks, on structs and built-in types: `p.len()`, `Point.origin()`, `fun move(mut self)`
-- Destructuring of objects, structs and arrays, in `let` and parameters: `let { x, y } = p;`, `let [head, ...tail] = xs;`
+- Destructuring of objects, structs and arrays, in `let`, parameters and `for`: `let { x, y } = p;`, `let [head, ...tail] = xs;`
 - Nil-safe access and defaults: `resp?.data?.items ?? []`
 - Conditional expressions: `n > 0 ? "pos" : "neg"`
 - Spread and rest: `[...a, ...b]`, `{...o, x: 1}`, `f(...args)`, `fun log(level, ...parts)`
@@ -236,6 +236,14 @@ print "hi {name}, {len(xs)} items: {xs}"; // hi ann, 2 items: [1, "two"]
 print "\{name}";                          // {name}
 ```
 
+A raw string, `r"..."`, is taken as written: no escapes and no
+interpolation, so it suits regular expressions. It cannot hold `"`; in a
+pattern write it `\x22`.
+
+```javascript
+regex.test(r"^\d{3}-\d{4}$", "555-1234"); // true
+```
+
 ## Variables
 
 `let` declares an immutable variable, `let mut` a mutable one. Assigning to an
@@ -299,8 +307,11 @@ print a; // [1, 2, 3]
 ## Structs
 
 A struct is a named record with a fixed set of fields. Fields without a
-default are required; a default must be a literal. Structs are declared at
-the top level only and can be used before their declaration.
+default are required. A default is a constant: a literal, or an array or
+object of them, `Map()` or `Set()`; each struct made gets its own copy of
+an array, object, map or set, so `struct Log { lines = [] }` never shares
+one. Structs are declared at the top level only and can be used before
+their declaration.
 
 ```javascript
 struct Point { x, y = 0 }
@@ -421,7 +432,8 @@ print "hi".shout(); // HI!
 ## Destructuring
 
 A pattern binds properties of an object or fields of a struct to variables,
-in `let` and in function parameters. `key: name` renames, `mut x` and
+in `let`, in function parameters and in `for`-`in` variables (the value,
+not the key: `for k, { hits } in m`). `key: name` renames, `mut x` and
 `key: mut name` make a variable mutable, `let mut { ... }` makes them all
 mutable. A string key needs a name. A missing property or field is a runtime
 error, as with `obj.name`.
@@ -722,6 +734,7 @@ current directory, not the script's.
 - `list(dir)` — the entries as `FileInfo`s, sorted by name.
 - `mkdir(path)` (with parents; an existing directory is fine), `remove(path)` (a file or an empty directory), `removeAll(path)`, `rename(from, to)`, `copy(from, to)`.
 - `cwd()`, `tempDir()` — a new directory, for the program to remove.
+- `join(a, ...)`, `base(p)`, `dir(p)`, `ext(p)` — paths.
 
 ### Streams
 
@@ -769,7 +782,6 @@ if r.code != 0 {
     os.exit(r.code);
 }
 ```
-- `join(a, ...)`, `base(p)`, `dir(p)`, `ext(p)`.
 
 A failure is an `IOError` with `path` and `code`: `"notFound"`, `"exists"`,
 `"permission"`, `"isDir"`, `"notDir"`, `"notEmpty"`, or `nil` for anything else.
@@ -895,7 +907,7 @@ fun map(arr, f) {
 print map([1, 2, 3], fun (x) { return x * x; }); // [1, 4, 9]
 ```
 
-Arrow functions are shorthand: an expression body is returned, a block body works like `fun`'s. Parameters may be `mut` or patterns; a single plain one needs no parentheses. `() => { a: 1 }` returns an object.
+Arrow functions are shorthand: an expression body is returned, a block body works like `fun`'s. Parameters may be `mut` or patterns; a single plain one needs no parentheses. `() => { a: 1 }` and `x => { x }` return an object.
 
 ```javascript
 let add = (a, b) => a + b;
