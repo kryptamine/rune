@@ -28,7 +28,7 @@ func isEqual(left, right value.Value, seen map[refPair]bool) bool {
 	case value.Bool:
 		return left.Bool() == right.Bool()
 	case value.Number:
-		return left.Num() == right.Num()
+		return value.NumEqual(left, right)
 	case value.String:
 		return left.Str() == right.Str()
 	case value.Array:
@@ -113,9 +113,49 @@ func isEqual(left, right value.Value, seen map[refPair]bool) bool {
 		return true
 	case value.Type:
 		return left.Ptr() == right.Ptr()
+	case value.Bytes:
+		return string(left.Bytes()) == string(right.Bytes())
+	case value.Map, value.Set:
+		return tablesEqual(left, right, seen)
 	default:
 		return left.Fn() == right.Fn()
 	}
+}
+
+// tablesEqual compares maps by keys and values, sets by elements, in any
+// order.
+func tablesEqual(left, right value.Value, seen map[refPair]bool) bool {
+	l, r := left.HashMap(), right.HashMap()
+	if l == r {
+		return true
+	}
+
+	if l.Len() != r.Len() {
+		return false
+	}
+
+	pair := refPair{uintptr(left.Ptr()), uintptr(right.Ptr())}
+	if seen[pair] {
+		return true
+	}
+
+	if seen == nil {
+		seen = map[refPair]bool{}
+	}
+
+	seen[pair] = true
+	defer delete(seen, pair)
+
+	equal := true
+
+	l.Each(func(k, lv value.Value) bool {
+		rv, ok, _ := r.Get(k)
+		equal = ok && isEqual(lv, rv, seen)
+
+		return equal
+	})
+
+	return equal
 }
 
 func IsDigit(c rune) bool {

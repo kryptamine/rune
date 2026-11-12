@@ -1,0 +1,33 @@
+print 6 & 3;        // expect: 2
+print 6 | 3;        // expect: 7
+print 6 ^ 3;        // expect: 5
+print ~5;           // expect: -6
+print 1 << 10;      // expect: 1024
+print -16 >> 2;     // expect: -4
+print 1 << 64;      // expect: 0
+print -1 >> 100;    // expect: -1
+print 4.0 & 5;      // expect: 4
+
+// | ^ & bind looser than + and tighter than comparisons.
+print 1 + 2 & 3;    // expect: 3
+print 1 | 2 == 3;   // expect: true
+print 1 << 2 + 1;   // expect: 8
+
+let mut x = 0b1100;
+x &= 0b1010;
+print x;            // expect: 8
+x |= 1;
+x ^= 0xF;
+print x;            // expect: 6
+x <<= 3;
+x >>= 1;
+print x;            // expect: 24
+
+let mut a = [1];
+a[0] |= 6;
+print a;            // expect: [7]
+
+print match 5 {
+  1 | 5 => "one or five",
+  _ => "other",
+};                  // expect: one or five

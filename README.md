@@ -17,7 +17,12 @@ Rune is a dynamically typed interpreted programming language inspired by [Lox](h
 - Parser recovers from syntax errors and reports all of them in one run
 - String escapes: `\n`, `\t`, `\r`, `\"`, `\\`, `\{`, `\}`
 - String interpolation: `"x = {x}, sum = {a + b}"`
-- Number literals with exponents: `1e3`, `2.5E-2`
+- 64-bit integers and floats, both of type `number`: `7 / 2` is `3.5`, `7 % 2` is `1`, and overflow is an error
+- Number literals with exponents, hex, octal, binary and `_`: `1e3`, `0xff`, `0o17`, `0b1010`, `1_000_000`
+- Bitwise operators on integers: `&`, `|`, `^`, `~`, `<<`, `>>`
+- `Map` and `Set` with keys of any hashable value, in insertion order
+- `bytes`: immutable binary data, with literals `b"\x00\xff"`
+- Streams: files and HTTP bodies read line by line or in chunks, `for line in fs.open(path)`
 - Object property access with `obj.name` as sugar for `obj["name"]`
 - Structs with required and default fields, read-only outside their `mut self` methods: `struct Point { x, y = 0 }`
 - Methods in `impl` blocks, on structs and built-in types: `p.len()`, `Point.origin()`, `fun move(mut self)`
@@ -114,13 +119,109 @@ Each `test/**/*.rn` script runs in-process, in parallel, with a 5s timeout. Dire
 Falsy values are `nil`, `false`, `0` and `""`; everything else, including empty
 arrays and objects, is truthy.
 
-`==` compares numbers, strings, booleans and `nil` by value, functions by identity,
-and arrays and objects structurally (element by element, cycles included), so
+`==` compares numbers (an integer with a float too), strings, bytes, booleans and `nil` by value, functions and streams by identity,
+and arrays, objects, maps and sets structurally (element by element, cycles included), so
 `[1, 2] == [1, 2]` is `true`. `array.contains` and `array.indexOf` use the same equality.
 Values of different types are never equal: `1 == "1"` is `false`.
 
 `print` shows strings inside arrays and objects quoted, so `["1", 1]` and `[1, 1]`
 look different; a string printed on its own is written as is.
+
+## Numbers
+
+A number is a 64-bit integer or a float; `type` says `"number"` for both
+and `math.isInt` tells them apart. A literal without a fraction or an
+exponent is an integer; `0x`, `0o` and `0b` prefix hex, octal and binary
+ones, and `_` may separate digits. An integer literal past `math.MAX_INT`
+is a compile error.
+
+`+`, `-`, `*` and `%` on two integers give an integer, and an integer that
+would overflow is a `ValueError`; with a float they give a float. `/`
+always gives a float: `6 / 2` is `3`, a float, and `math.idiv(7, 2)` is the
+integer `3`. `%` takes the sign of its left operand, and an integer `% 0`
+is a `ValueError`. Integers compare exactly with floats, so `1 == 1.0`,
+and `9007199254740993 == 9007199254740992.0` is `false`.
+
+```javascript
+print math.MAX_INT;        // 9223372036854775807
+print math.MAX_INT + 1;    // ValueError: Integer overflow.
+print 0xff & 0b1010;       // 10
+```
+
+The bitwise operators `&`, `|`, `^`, `~`, `<<` and `>>` take integers, or
+floats with an integer value, and give an integer; `>>` keeps the sign, a
+shift by 64 or more gives `0` (or `-1`), and a negative one is a
+`ValueError`. They bind tighter than comparisons and looser than `+`, with
+`|` loosest, then `^`, `&` and the shifts: `1 + 2 & 3` is `3`, and
+`flags & MASK == 0` needs no parentheses. Each has a compound assignment:
+`&=`, `|=`, `^=`, `<<=`, `>>=`.
+
+Lengths, indices, `int`, ranges of integers and JSON numbers without a
+fraction or an exponent are integers; `math.floor`, `ceil` and `round` give
+integers when one holds the result.
+
+## Map and Set
+
+`Map()` makes an empty map and `Map(src)` one from an object, another map
+or an array of `[key, value]` pairs; `Set()` and `Set(array)` likewise. A
+key is any hashable value: `nil`, a boolean, a number (`1` and `1.0` are
+one key; `NaN` is none), a string, bytes, a function, a struct type, or a
+struct whose fields are hashable, compared by value. An array, object, map
+or set is not, as it can change. Both keep their keys in the order they
+were first added.
+
+```javascript
+let mut seen = Map();
+seen[[1, 2]];                      // TypeError: Cannot use an array as a key.
+
+struct Pos { x, y }
+let mut grid = Map();
+grid[Pos { x: 0, y: 1 }] = "wall";
+print grid[Pos { x: 0, y: 1 }];    // wall
+print grid.get(Pos { x: 9, y: 9 }, "floor"); // floor
+
+let tags = Set(["a", "b", "a"]);
+tags.add("c");
+print tags;                        // Set {"a", "b", "c"}
+print tags.has("b");               // true
+```
+
+`m[k]` reads a key and a missing one is a `KeyError`; `m?.[k]` gives `nil`
+instead. `m[k] = v` sets one, like an array element, so `m` must be
+mutable. Methods: `get(k[, default])`, `set(k, v)` (returns the map),
+`has(k)`, `delete(k)` (whether it was there), `clear()`, and `keys()`,
+`values()`, `entries()`, new arrays. A set has `add(x)` (returns the set),
+`has`, `delete`, `clear`, `values()`, and `union(s)`, `intersection(s)`,
+`difference(s)`, new sets.
+
+`len` counts the entries; `for k, v in m` walks a map's keys and values,
+`for k in m` its keys, and `for x in s` or `for i, x in s` a set. A loop
+may set and delete keys, but adding one is a `ValueError`; walk `m.keys()`
+to change it freely. `==` compares entries in any order. `[...s]` spreads a
+set into an array; `json.stringify` writes a set as an array and a map of
+string keys as an object, in order. Both are references, like arrays.
+
+## Bytes
+
+`bytes` are immutable binary data: a `b"..."` literal, which takes
+`\xNN` escapes and no interpolation, or `bytes.from` a string (its UTF-8),
+an array of integers from 0 to 255, or bytes. `b[i]` is the integer byte,
+`len(b)` the size; `+` joins and `<` compares bytes, `==` by content, and
+`for i, x in b` walks them. Bytes are hashable, and print as a literal.
+
+```javascript
+let header = b"\x89PNG";
+print header[0];             // 137
+print header.hex();          // 89504e47
+print bytes.from("é");       // b"\xc3\xa9"
+print b"hi".toString();      // hi
+```
+
+The `bytes` namespace has `from(v)`, `alloc(n[, fill])`, `fromHex(s)` and
+`fromBase64(s)`, and these, which bytes also have as methods:
+`toString()` (UTF-8; anything else is a `ValueError`), `toArray()`,
+`slice(start[, end])` (sharing the data), `indexOf(sub)`, `concat(b, ...)`,
+`hex()` and `base64()`.
 
 ## String Interpolation
 
@@ -299,9 +400,10 @@ rest of the arguments; `Point.len` is the plain function, taking the
 instance first, so `array.map(points, Point.len)` works. A mutating method
 cannot be taken as a value.
 
-`impl` also takes `string`, `number`, `boolean`, `array`, `object` and
-`function`. Their methods must take `self`, not `mut self`, and are seen
-by the whole program; an object's own property of the same name wins.
+`impl` also takes `string`, `number`, `boolean`, `array`, `object`,
+`function`, `Map`, `Set` and `bytes`. Their methods must take `self`, not
+`mut self`, and are seen by the whole program; an object's own property of
+the same name wins, and a method of the program over a built-in one.
 Built-in structs, such as `IOError`, take no methods.
 
 ```javascript
@@ -490,15 +592,15 @@ fun main(args) {
 
 ## Built-in Functions
 
-`len`, `type`, `object`, `str`, `number` and `int` are global; everything else lives in a namespace,
+`len`, `type`, `object`, `str`, `number`, `int`, `Map` and `Set` are global; everything else lives in a namespace,
 used as `math.floor(x)`:
 
-- **`len(value)`** — Returns the length of an array, object or string (in characters), or the number of fields of a struct.
-- **`type(value)`** — Returns `"nil"`, `"boolean"`, `"number"`, `"string"`, `"array"`, `"object"`, `"function"`, a struct's name, `"struct"` for a struct type, or `"namespace"`.
+- **`len(value)`** — Returns the length of an array, object or string (in characters), the number of fields of a struct, the entries of a Map or Set, or the size of bytes.
+- **`type(value)`** — Returns `"nil"`, `"boolean"`, `"number"`, `"string"`, `"array"`, `"object"`, `"function"`, `"Map"`, `"Set"`, `"bytes"`, `"Stream"`, a struct's name, `"struct"` for a struct type, or `"namespace"`.
 - **`object(s)`** — Returns a new object with the fields of struct `s`.
 - **`str(v)`** — `v` as `print` shows it.
-- **`number(v)`** — a number as is, or a string holding a number literal, optionally negated and surrounded by spaces (`"42"`, `" -2.5e1 "`); anything else, `".5"`, `"+1"` or `"inf"` included, is a `ValueError`.
-- **`int(v[, base])`** — a number truncated toward zero, or a string parsed as an integer in `base` (2 to 36, default 10): `int("ff", 16)` is `255`.
+- **`number(v)`** — a number as is, or a string holding a number literal, optionally negated and surrounded by spaces (`"42"`, `" -2.5e1 "`), an integer unless it has a fraction or an exponent or int64 cannot hold it; anything else, `".5"`, `"+1"` or `"inf"` included, is a `ValueError`.
+- **`int(v[, base])`** — a number truncated toward zero (one past the integers is a `ValueError`), or a string parsed as an integer in `base` (2 to 36, default 10): `int("ff", 16)` is `255`.
 
 A namespace is an immutable struct of its members. Unless a program declares
 a variable of its name, `ns.member` is bound when the program is compiled:
@@ -554,14 +656,14 @@ print regex.replace("\\s+", "a  b   c", " "); // a b c
 
 ### math
 
-`floor(x)`, `ceil(x)`, `round(x)`, `abs(x)`, `sqrt(x)`, `pow(x, y)`, `min(a, ...)`, `max(a, ...)`, `random()` (in `[0, 1)`), constants `PI` and `INF`.
+`floor(x)`, `ceil(x)`, `round(x)` (integers when one holds the result), `abs(x)`, `sqrt(x)`, `pow(x, y)`, `min(a, ...)`, `max(a, ...)` (the argument itself), `idiv(a, b)` (integer division, toward zero), `isInt(x)`, `random()` (in `[0, 1)`), constants `PI`, `INF`, `MAX_INT` and `MIN_INT`.
 
 ### json, http, time
 
 - `json.parse(s)` — parses JSON (object, array or primitive); malformed input is a `ValueError`.
 - `json.stringify(v)` — encodes `nil`, booleans, numbers, strings, arrays, objects (keys sorted) and structs (fields in order) compactly; a function is a `TypeError`, a non-finite number or a cycle a `ValueError`.
 - `http.get(url)` — fetches a URL and returns the body; network errors and a status other than 200 are an `IOError`.
-- `http.request(method, url[, opts])` — sends a request and returns `HttpResponse { status, headers, body }`, header names lowercased and repeated ones joined with `, `. Any status is a response; a network error or timeout is an `IOError`. `opts` is an `HttpOptions { headers, body, timeout }`, or an object converted to one: `headers` an object of strings, `body` a string, `timeout` seconds (default 30).
+- `http.request(method, url[, opts])` — sends a request and returns `HttpResponse { status, headers, body }`, header names lowercased and repeated ones joined with `, `. Any status is a response; a network error or timeout is an `IOError`. `opts` is an `HttpOptions { headers, body, timeout, stream }`, or an object converted to one: `headers` an object of strings, `body` a string or bytes, `timeout` seconds (default 30). With `stream: true`, `body` is a `Stream` to read and close, and the timeout covers only getting the response.
 
 ```javascript
 let r = http.request("POST", "https://example.com/api", {
@@ -577,12 +679,36 @@ if r.status != 201 throw IOError { message: "status {r.status}" };
 Files are read and written whole, as strings; relative paths are taken from the
 current directory, not the script's.
 
-- `read(path)`, `lines(path)` — the contents, or its lines without `\n` or `\r\n`.
-- `write(path, s)` (creates or truncates), `append(path, s)`.
+- `read(path)`, `lines(path)` — the contents, or its lines without `\n` or `\r\n`; `readBytes(path)` — the contents as bytes.
+- `write(path, data)` (creates or truncates), `append(path, data)`, of a string or bytes.
+- `open(path[, mode])` — a `Stream` of the file: `"r"` (default) to read, `"w"` to write (creating or truncating), `"a"` to append.
 - `exists(path)`, `stat(path)` — a `FileInfo { name, size, isDir, modified, mode }`, `modified` in seconds like `time.now()`.
 - `list(dir)` — the entries as `FileInfo`s, sorted by name.
 - `mkdir(path)` (with parents; an existing directory is fine), `remove(path)` (a file or an empty directory), `removeAll(path)`, `rename(from, to)`, `copy(from, to)`.
 - `cwd()`, `tempDir()` — a new directory, for the program to remove.
+
+### Streams
+
+A `Stream` is an open file from `fs.open`, or a response body from
+`http.request` with `stream: true`. Reading:
+
+- `readLine()` — the next line without `\n` or `\r\n`, or `nil` at the end;
+- `read(n)` — bytes, at most `n` and at least one, or `nil` at the end;
+- `readAll()` — the rest as bytes; `readText()` — the rest as a string.
+
+`for line in s` (or `for i, line in s`) reads lines up to the end, so a
+large file is never held whole. Writing: `write(data)` of a string or bytes,
+buffered, and `flush()`. `close()` flushes and closes it, and closing again
+does nothing; streams the program leaves open are closed when it ends. A
+failure, reading a closed stream included, is an `IOError`.
+
+```javascript
+let out = fs.open("upper.txt", "w");
+for line in fs.open("words.txt") {
+    out.write(string.upper(line) + "\n");
+}
+out.close();
+```
 
 ### io
 

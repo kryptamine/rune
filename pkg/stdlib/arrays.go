@@ -1,7 +1,6 @@
 package stdlib
 
 import (
-	"cmp"
 	"rune/pkg/errors"
 	"rune/pkg/helpers"
 	"rune/pkg/value"
@@ -159,7 +158,8 @@ func sortable(items []value.Value) bool {
 // naturalOrder compares two numbers or two strings.
 func naturalOrder(a, b value.Value) int {
 	if a.IsNumber() {
-		return cmp.Compare(a.Num(), b.Num())
+		c, _ := value.CompareNum(a, b)
+		return c
 	}
 
 	return strings.Compare(a.Str(), b.Str())
@@ -182,6 +182,8 @@ func comparator(c *call, f value.Value) func(a, b value.Value) int {
 			return 0
 		}
 
-		return cmp.Compare(r.Num(), 0)
+		c, _ := value.CompareNum(r, value.NewInt(0))
+
+		return c
 	}
 }

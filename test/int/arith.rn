@@ -1,0 +1,48 @@
+print 7 + 2;       // expect: 9
+print 7 - 9;       // expect: -2
+print 6 * 7;       // expect: 42
+print 7 / 2;       // expect: 3.5
+print 6 / 2;       // expect: 3
+print 7 % 3;       // expect: 1
+print -7 % 3;      // expect: -1
+print 1 + 0.5;     // expect: 1.5
+print 2 * 1.5;     // expect: 3
+
+// Integers are exact past 2^53, where floats are not.
+print 9007199254740993;     // expect: 9007199254740993
+print 9007199254740992 + 1; // expect: 9007199254740993
+print 9007199254740993 == 9007199254740992.0; // expect: false
+
+print math.isInt(6 / 2); // expect: false
+print math.isInt(6 * 2); // expect: true
+print math.isInt(1.0);   // expect: false
+
+print 1 == 1.0;    // expect: true
+print 2 < 2.5;     // expect: true
+print 3 >= 3.0;    // expect: true
+print type(1);     // expect: number
+print type(1.5);   // expect: number
+
+let mut i = 0;
+i++;
+i += 2;
+print i;           // expect: 3
+print math.isInt(i); // expect: true
+
+let mut f = 0.5;
+f++;
+print f;           // expect: 1.5
+
+let xs = [10, 20, 30];
+print xs[1];       // expect: 20
+print xs[1.0];     // expect: 20
+for k, v in xs {
+  if k == 2 print math.isInt(k); // expect: true
+}
+for n in 0..3 { print n; }
+// expect: 0
+// expect: 1
+// expect: 2
+for n in 0..1 step 0.5 { print n; }
+// expect: 0
+// expect: 0.5

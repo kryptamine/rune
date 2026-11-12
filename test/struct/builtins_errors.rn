@@ -11,4 +11,4 @@ try { array.sort(p); } catch (e) { print e.message; }
 try { object({x: 1}); } catch (e) { print e.message; }
 // expect: object() expects a struct as argument 1, got object.
 try { len(Point); } catch (e) { print e.message; }
-// expect: len() expects a string, an array, an object or a struct as argument 1, got struct.
+// expect: len() expects a string, an array, an object, a struct, a Map, a Set or bytes as argument 1, got struct.

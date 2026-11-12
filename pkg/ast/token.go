@@ -106,12 +106,23 @@ const (
 	PERCENT_EQUAL
 	PLUS_PLUS
 	MINUS_MINUS
+	AMP
+	CARET
+	TILDE
+	LESS_LESS
+	GREATER_GREATER
+	AMP_EQUAL
+	PIPE_EQUAL
+	CARET_EQUAL
+	LESS_LESS_EQUAL
+	GREATER_GREATER_EQUAL
 
 	// Types
 	OBJECT
 	ARRAY
 	STRING
 	NUMBER
+	BYTES
 
 	// A string up to an interpolation's '{', and its rest after the last '}'.
 	INTERPOLATION
@@ -193,6 +204,8 @@ func (tokenType TokenType) String() string {
 		return "STRING_END"
 	case NUMBER:
 		return "NUMBER"
+	case BYTES:
+		return "BYTES"
 	case ARRAY:
 		return "ARRAY"
 	case OBJECT:
@@ -296,6 +309,26 @@ func (tokenType TokenType) String() string {
 		return "PLUS_PLUS"
 	case MINUS_MINUS:
 		return "MINUS_MINUS"
+	case AMP:
+		return "AMP"
+	case CARET:
+		return "CARET"
+	case TILDE:
+		return "TILDE"
+	case LESS_LESS:
+		return "LESS_LESS"
+	case GREATER_GREATER:
+		return "GREATER_GREATER"
+	case AMP_EQUAL:
+		return "AMP_EQUAL"
+	case PIPE_EQUAL:
+		return "PIPE_EQUAL"
+	case CARET_EQUAL:
+		return "CARET_EQUAL"
+	case LESS_LESS_EQUAL:
+		return "LESS_LESS_EQUAL"
+	case GREATER_GREATER_EQUAL:
+		return "GREATER_GREATER_EQUAL"
 	default:
 		return "Undefined token."
 	}

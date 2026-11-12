@@ -1,4 +1,4 @@
-package rune
+package value
 
 import (
 	"math"
@@ -11,7 +11,7 @@ func TestModMatchesMathMod(t *testing.T) {
 
 	for _, l := range vals {
 		for _, r := range vals {
-			got, want := mod(l, r), math.Mod(l, r)
+			got, want := FloatMod(l, r), math.Mod(l, r)
 			same := got == want && math.Signbit(got) == math.Signbit(want) || math.IsNaN(got) && math.IsNaN(want)
 
 			if !same {

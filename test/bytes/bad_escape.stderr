@@ -1,0 +1,3 @@
+[line: 2] Error: Invalid escape sequence '\q'.
+    2 | print b"\q";
+      |       ^

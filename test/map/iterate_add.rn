@@ -1,0 +1,10 @@
+let m = Map([[1, 1], [2, 2]]);
+for k, v in m {
+  m.delete(k);
+}
+print m; // expect: Map {}
+
+let n = Map([[1, 1]]);
+for k in n { // expect runtime error: [line: 8] ValueError: Cannot add to a Map while iterating over it.
+  n.set(k + 1, 0);
+}

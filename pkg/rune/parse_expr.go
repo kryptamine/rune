@@ -1,10 +1,10 @@
 package rune
 
 import (
-	"strconv"
-
 	"rune/pkg/ast"
 	"rune/pkg/errors"
+	"rune/pkg/helpers"
+	"rune/pkg/value"
 )
 
 func (s *Parser) expression() (ast.Expr, error) {
@@ -22,7 +22,8 @@ func (s *Parser) assignment() (ast.Expr, error) {
 		return nil, err
 	}
 
-	if s.match(ast.EQUAL, ast.PLUS_EQUAL, ast.MINUS_EQUAL, ast.STAR_EQUAL, ast.SLASH_EQUAL, ast.PERCENT_EQUAL) {
+	if s.match(ast.EQUAL, ast.PLUS_EQUAL, ast.MINUS_EQUAL, ast.STAR_EQUAL, ast.SLASH_EQUAL, ast.PERCENT_EQUAL,
+		ast.AMP_EQUAL, ast.PIPE_EQUAL, ast.CARET_EQUAL, ast.LESS_LESS_EQUAL, ast.GREATER_GREATER_EQUAL) {
 		equals := s.previous()
 		value, err := s.assignment()
 
@@ -65,6 +66,12 @@ var compoundOps = map[ast.TokenType]ast.TokenType{
 	ast.STAR_EQUAL:    ast.STAR,
 	ast.SLASH_EQUAL:   ast.SLASH,
 	ast.PERCENT_EQUAL: ast.PERCENT,
+
+	ast.AMP_EQUAL:             ast.AMP,
+	ast.PIPE_EQUAL:            ast.PIPE,
+	ast.CARET_EQUAL:           ast.CARET,
+	ast.LESS_LESS_EQUAL:       ast.LESS_LESS,
+	ast.GREATER_GREATER_EQUAL: ast.GREATER_GREATER,
 }
 
 func (s *Parser) rangeExpr() (ast.Expr, error) {
@@ -178,16 +185,32 @@ func (s *Parser) equality() (ast.Expr, error) {
 }
 
 func (s *Parser) comparison() (ast.Expr, error) {
-	expr, err := s.term()
+	return s.binaryLevel(parseBitOr, ast.GREATER, ast.GREATER_EQUAL, ast.LESS, ast.LESS_EQUAL)
+}
 
+// The bitwise levels bind tighter than comparison and looser than +, as
+// in Python: | then ^ then & then shifts.
+func parseBitOr(s *Parser) (ast.Expr, error) { return s.binaryLevel(parseBitXor, ast.PIPE) }
+
+func parseBitXor(s *Parser) (ast.Expr, error) { return s.binaryLevel(parseBitAnd, ast.CARET) }
+
+func parseBitAnd(s *Parser) (ast.Expr, error) { return s.binaryLevel(parseShift, ast.AMP) }
+
+func parseShift(s *Parser) (ast.Expr, error) {
+	return s.binaryLevel((*Parser).term, ast.LESS_LESS, ast.GREATER_GREATER)
+}
+
+// binaryLevel parses a left-associative chain of operands joined by ops.
+func (s *Parser) binaryLevel(operand func(*Parser) (ast.Expr, error), ops ...ast.TokenType) (ast.Expr, error) {
+	expr, err := operand(s)
 	if err != nil {
 		return nil, err
 	}
 
-	for s.match(ast.GREATER, ast.GREATER_EQUAL, ast.LESS, ast.LESS_EQUAL) {
+	for s.match(ops...) {
 		operator := s.previous()
-		right, err := s.term()
 
+		right, err := operand(s)
 		if err != nil {
 			return nil, err
 		}
@@ -199,23 +222,7 @@ func (s *Parser) comparison() (ast.Expr, error) {
 }
 
 func (s *Parser) term() (ast.Expr, error) {
-	expr, err := s.factor()
-
-	if err != nil {
-		return nil, err
-	}
-
-	for s.match(ast.PLUS, ast.MINUS) {
-		operator := s.previous()
-		right, err := s.factor()
-		if err != nil {
-			return nil, err
-		}
-
-		expr = ast.NewBinaryExpr(expr, right, operator)
-	}
-
-	return expr, nil
+	return s.binaryLevel((*Parser).factor, ast.PLUS, ast.MINUS)
 }
 
 func (s *Parser) factor() (ast.Expr, error) {
@@ -240,7 +247,7 @@ func (s *Parser) factor() (ast.Expr, error) {
 }
 
 func (s *Parser) unary() (ast.Expr, error) {
-	if s.match(ast.BANG, ast.MINUS) {
+	if s.match(ast.BANG, ast.MINUS, ast.TILDE) {
 		operator := s.previous()
 		right, err := s.unary()
 
@@ -431,14 +438,9 @@ func (s *Parser) primary() (ast.Expr, error) {
 	}
 
 	if s.match(ast.NUMBER) {
-		prev := s.previous()
-		value, err := strconv.ParseFloat(prev.Lexeme, 64)
+		v, _ := helpers.ParseLiteral(s.previous().Lexeme)
 
-		if err != nil {
-			return nil, errors.NewSyntaxError(prev, "Invalid number.")
-		}
-
-		return ast.NewLiteralExpr(ast.NUMBER, value), nil
+		return ast.NewLiteralExpr(ast.NUMBER, v), nil
 	}
 
 	if s.match(ast.STRING) {
@@ -449,6 +451,10 @@ func (s *Parser) primary() (ast.Expr, error) {
 
 	if s.match(ast.INTERPOLATION) {
 		return s.interpolation()
+	}
+
+	if s.match(ast.BYTES) {
+		return ast.NewLiteralExpr(ast.BYTES, value.NewBytes([]byte(s.previous().Literal))), nil
 	}
 
 	if s.match(ast.IDENTIFIER) {

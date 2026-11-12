@@ -17,7 +17,7 @@ try { fs.mkdir(fs.join(dir, "f", "g")); } catch (e: IOError) { print e.code; } /
 try { fs.remove(dir); } catch (e: IOError) { print e.code; } // expect: notEmpty
 try { fs.rename(missing, fs.join(dir, "g")); } catch (e: IOError) { print [e.code, e.path == missing]; } // expect: ["notFound", true]
 try { fs.removeAll(""); } catch (e: ValueError) { print e.message; } // expect: fs.removeAll() got an empty path.
-try { fs.write(fs.join(dir, "h"), 1); } catch (e: TypeError) { print e.message; } // expect: fs.write() expects a string as argument 2, got number.
+try { fs.write(fs.join(dir, "h"), 1); } catch (e: TypeError) { print e.message; } // expect: fs.write() expects a string or bytes as argument 2, got number.
 
 try { http.get("http://127.0.0.1:1"); } catch (e: IOError) { print e.code; } // expect: nil
 

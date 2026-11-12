@@ -1,0 +1,54 @@
+let dir = fs.tempDir();
+let path = fs.join(dir, "data.txt");
+
+let w = fs.open(path, "w");
+print type(w); // expect: Stream
+w.write("one\n");
+w.write(b"two\r\n");
+w.flush();
+w.write("three");
+w.close();
+w.close();
+
+let a = fs.open(path, "a");
+a.write("!\n");
+a.close();
+
+let r = fs.open(path);
+print r.readLine(); // expect: one
+print r.readLine(); // expect: two
+print r.readLine(); // expect: three!
+print r.readLine(); // expect: nil
+r.close();
+
+for i, line in fs.open(path) { print "{i} {line}"; }
+// expect: 0 one
+// expect: 1 two
+// expect: 2 three!
+
+let f = fs.open(path);
+print f.read(2);    // expect: b"on"
+print f.read(100);  // expect: b"e\ntwo\r\nthree!\n"
+print f.read(1);    // expect: nil
+f.close();
+
+print fs.open(path).readAll();  // expect: b"one\ntwo\r\nthree!\n"
+print len(fs.open(path).readText()); // expect: 16
+
+fs.write(path, b"\x00\x01");
+print fs.readBytes(path); // expect: b"\x00\x01"
+
+fun fails(f) {
+  try { f(); } catch (e) { print type(e) + ": " + e.code; }
+}
+fails(() => fs.open(fs.join(dir, "nope")));   // expect: IOError: notFound
+
+let closed = fs.open(path);
+closed.close();
+try { closed.readLine(); } catch (e: IOError) { print "closed"; } // expect: closed
+try { fs.open(path).write("x"); } catch (e: IOError) { print "read only"; } // expect: read only
+try { fs.open(path, "w").readLine(); } catch (e: IOError) { print "write only"; } // expect: write only
+try { fs.open(path, "x"); } catch (e: ValueError) { print e.message; } // expect: fs.open() expects mode "r", "w" or "a", got "x".
+try { fs.open(path, "w").write(1); } catch (e: TypeError) { print e.message; } // expect: Stream.write() expects a string or bytes as argument 2, got number.
+
+fs.removeAll(dir);

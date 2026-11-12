@@ -1,0 +1,3 @@
+[line: 2] Error: Invalid number literal '12abc'.
+    2 | print 12abc;
+      |       ^

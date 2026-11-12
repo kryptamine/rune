@@ -2,7 +2,6 @@ package stdlib
 
 import (
 	"fmt"
-	"math"
 	"rune/pkg/errors"
 	"rune/pkg/helpers"
 	"rune/pkg/value"
@@ -104,8 +103,8 @@ func formatArg(c *call, verb byte, i int) (any, bool) {
 	case 'q':
 		return helpers.Quoted(v), true
 	case 'd', 'x', 'X', 'o', 'b':
-		if n := v.Num(); v.IsNumber() && n == math.Trunc(n) && math.Abs(n) < 1<<63 {
-			return int64(n), true
+		if n, ok := value.ToInt(v); ok {
+			return n, true
 		}
 
 		c.typeError(i, "an integer")

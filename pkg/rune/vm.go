@@ -3,10 +3,7 @@ package rune
 import (
 	"fmt"
 	"math"
-	"rune/pkg/ast"
 	"rune/pkg/errors"
-	"rune/pkg/helpers"
-	"rune/pkg/stdlib"
 	"rune/pkg/value"
 )
 
@@ -102,24 +99,39 @@ reload:
 			goto undefined
 
 		case opAdd:
-			if l, r := regs[in.b()], regs[in.c()]; l.IsNumber() && r.IsNumber() {
-				regs[in.a()] = value.NewNumber(l.Num() + r.Num())
+			if l, r := regs[in.b()], regs[in.c()]; l.IsInt() && r.IsInt() {
+				if n, ok := value.AddInt(l.Int(), r.Int()); ok {
+					regs[in.a()] = value.NewInt(n)
+					continue
+				}
+			} else if l.IsFloat() && r.IsFloat() {
+				regs[in.a()] = value.NewNumber(l.Float() + r.Float())
 				continue
 			}
 
 			goto slow
 
 		case opSub:
-			if l, r := regs[in.b()], regs[in.c()]; l.IsNumber() && r.IsNumber() {
-				regs[in.a()] = value.NewNumber(l.Num() - r.Num())
+			if l, r := regs[in.b()], regs[in.c()]; l.IsInt() && r.IsInt() {
+				if n, ok := value.SubInt(l.Int(), r.Int()); ok {
+					regs[in.a()] = value.NewInt(n)
+					continue
+				}
+			} else if l.IsFloat() && r.IsFloat() {
+				regs[in.a()] = value.NewNumber(l.Float() - r.Float())
 				continue
 			}
 
 			goto slow
 
 		case opMul:
-			if l, r := regs[in.b()], regs[in.c()]; l.IsNumber() && r.IsNumber() {
-				regs[in.a()] = value.NewNumber(l.Num() * r.Num())
+			if l, r := regs[in.b()], regs[in.c()]; l.IsInt() && r.IsInt() {
+				if n, ok := value.MulInt(l.Int(), r.Int()); ok {
+					regs[in.a()] = value.NewInt(n)
+					continue
+				}
+			} else if l.IsFloat() && r.IsFloat() {
+				regs[in.a()] = value.NewNumber(l.Float() * r.Float())
 				continue
 			}
 
@@ -134,8 +146,13 @@ reload:
 			goto slow
 
 		case opMod:
-			if l, r := regs[in.b()], regs[in.c()]; l.IsNumber() && r.IsNumber() {
-				if m, ok := intMod(l.Num(), r.Num()); ok {
+			if l, r := regs[in.b()], regs[in.c()]; l.IsInt() && r.IsInt() {
+				if d := r.Int(); d != 0 {
+					regs[in.a()] = value.NewInt(l.Int() % d)
+					continue
+				}
+			} else if l.IsFloat() && r.IsFloat() {
+				if m, ok := value.ExactMod(l.Float(), r.Float()); ok {
 					regs[in.a()] = value.NewNumber(m)
 					continue
 				}
@@ -144,13 +161,15 @@ reload:
 			goto slow
 
 		case opAddK:
-			l, k := regs[in.b()], consts[in.c()]
-			if l.IsNumber() && k.IsNumber() {
-				regs[in.a()] = value.NewNumber(l.Num() + k.Num())
+			if l, k := regs[in.b()], consts[in.c()]; l.IsInt() && k.IsInt() {
+				if n, ok := value.AddInt(l.Int(), k.Int()); ok {
+					regs[in.a()] = value.NewInt(n)
+					continue
+				}
+			} else if l.IsFloat() && k.IsFloat() {
+				regs[in.a()] = value.NewNumber(l.Float() + k.Float())
 				continue
-			}
-
-			if l.IsString() && k.IsString() {
+			} else if l.IsString() && k.IsString() {
 				fr.pc = pc
 				dst := &regs[in.a()]
 				*dst = value.Concat(l, k)
@@ -161,16 +180,26 @@ reload:
 			goto slow
 
 		case opSubK:
-			if l, k := regs[in.b()], consts[in.c()]; l.IsNumber() && k.IsNumber() {
-				regs[in.a()] = value.NewNumber(l.Num() - k.Num())
+			if l, k := regs[in.b()], consts[in.c()]; l.IsInt() && k.IsInt() {
+				if n, ok := value.SubInt(l.Int(), k.Int()); ok {
+					regs[in.a()] = value.NewInt(n)
+					continue
+				}
+			} else if l.IsFloat() && k.IsFloat() {
+				regs[in.a()] = value.NewNumber(l.Float() - k.Float())
 				continue
 			}
 
 			goto slow
 
 		case opMulK:
-			if l, k := regs[in.b()], consts[in.c()]; l.IsNumber() && k.IsNumber() {
-				regs[in.a()] = value.NewNumber(l.Num() * k.Num())
+			if l, k := regs[in.b()], consts[in.c()]; l.IsInt() && k.IsInt() {
+				if n, ok := value.MulInt(l.Int(), k.Int()); ok {
+					regs[in.a()] = value.NewInt(n)
+					continue
+				}
+			} else if l.IsFloat() && k.IsFloat() {
+				regs[in.a()] = value.NewNumber(l.Float() * k.Float())
 				continue
 			}
 
@@ -185,8 +214,13 @@ reload:
 			goto slow
 
 		case opModK:
-			if l, k := regs[in.b()], consts[in.c()]; l.IsNumber() && k.IsNumber() {
-				if m, ok := intMod(l.Num(), k.Num()); ok {
+			if l, k := regs[in.b()], consts[in.c()]; l.IsInt() && k.IsInt() {
+				if d := k.Int(); d != 0 {
+					regs[in.a()] = value.NewInt(l.Int() % d)
+					continue
+				}
+			} else if l.IsFloat() && k.IsFloat() {
+				if m, ok := value.ExactMod(l.Float(), k.Float()); ok {
 					regs[in.a()] = value.NewNumber(m)
 					continue
 				}
@@ -195,16 +229,40 @@ reload:
 			goto slow
 
 		case opCmp:
-			if l, r := regs[in.b()], regs[in.c()]; l.IsNumber() && r.IsNumber() {
-				regs[in.a()] = value.NewBool(compareNumbers(in.x(), l.Num(), r.Num()))
+			if l, r := regs[in.b()], regs[in.c()]; l.IsInt() && r.IsInt() {
+				regs[in.a()] = value.NewBool(compareNumbers(in.x(), l.Int(), r.Int()))
+				continue
+			} else if l.IsFloat() && r.IsFloat() {
+				regs[in.a()] = value.NewBool(compareNumbers(in.x(), l.Float(), r.Float()))
 				continue
 			}
 
 			goto slow
 
 		case opCmpK:
-			if l, k := regs[in.b()], consts[in.c()]; l.IsNumber() && k.IsNumber() {
-				regs[in.a()] = value.NewBool(compareNumbers(in.x(), l.Num(), k.Num()))
+			if l, k := regs[in.b()], consts[in.c()]; l.IsInt() && k.IsInt() {
+				regs[in.a()] = value.NewBool(compareNumbers(in.x(), l.Int(), k.Int()))
+				continue
+			} else if l.IsFloat() && k.IsFloat() {
+				regs[in.a()] = value.NewBool(compareNumbers(in.x(), l.Float(), k.Float()))
+				continue
+			}
+
+			goto slow
+
+		case opBitwise:
+			if l, r := regs[in.b()], regs[in.c()]; l.IsInt() && r.IsInt() {
+				if v, ok := value.Bitwise(value.Bit(in.x()), l.Int(), r.Int()); ok {
+					regs[in.a()] = v
+					continue
+				}
+			}
+
+			goto slow
+
+		case opBitNot:
+			if v := regs[in.b()]; v.IsInt() {
+				regs[in.a()] = value.NewInt(^v.Int())
 				continue
 			}
 
@@ -220,8 +278,11 @@ reload:
 			regs[in.a()] = value.NewBool(v.Kind() == value.Struct && v.Shape() == t.TypeShape())
 
 		case opNeg:
-			if v := regs[in.b()]; v.IsNumber() {
-				regs[in.a()] = value.NewNumber(-v.Num())
+			if v := regs[in.b()]; v.IsFloat() {
+				regs[in.a()] = value.NewNumber(-v.Float())
+				continue
+			} else if v.IsInt() && v.Int() != math.MinInt64 {
+				regs[in.a()] = value.NewInt(-v.Int())
 				continue
 			}
 
@@ -231,16 +292,17 @@ reload:
 			regs[in.a()] = value.NewBool(!regs[in.b()].Truthy())
 
 		case opIncr:
-			v := regs[in.b()]
-			if !v.IsNumber() {
-				goto slow
+			if v := regs[in.b()]; v.IsInt() {
+				if n, ok := value.AddInt(v.Int(), 1-2*int64(in.x())); ok {
+					regs[in.a()] = value.NewInt(n)
+					continue
+				}
+			} else if v.IsFloat() {
+				regs[in.a()] = value.NewNumber(v.Float() + float64(1-2*int(in.x())))
+				continue
 			}
 
-			if in.x() == 0 {
-				regs[in.a()] = value.NewNumber(v.Num() + 1)
-			} else {
-				regs[in.a()] = value.NewNumber(v.Num() - 1)
-			}
+			goto slow
 
 		case opJmp:
 			pc = in.c()
@@ -258,11 +320,17 @@ reload:
 
 		case opJmpCmp:
 			l, r := regs[in.a()], regs[in.b()]
-			if !l.IsNumber() || !r.IsNumber() {
+
+			var b bool
+			if l.IsInt() && r.IsInt() {
+				b = compareNumbers(in.x(), l.Int(), r.Int())
+			} else if l.IsFloat() && r.IsFloat() {
+				b = compareNumbers(in.x(), l.Float(), r.Float())
+			} else {
 				goto slow
 			}
 
-			if compareNumbers(in.x(), l.Num(), r.Num()) == in.y() {
+			if b == in.y() {
 				pc = in.c()
 				if ticks--; ticks == 0 {
 					goto tick
@@ -271,20 +339,24 @@ reload:
 
 		case opJmpCmpK:
 			l, k := regs[in.a()], consts[in.b()]
-			if !l.IsNumber() || !k.IsNumber() {
-				if !l.IsString() || !k.IsString() {
-					goto slow
-				}
 
+			var b bool
+			if l.IsInt() && k.IsInt() {
+				b = compareNumbers(in.x(), l.Int(), k.Int())
+			} else if l.IsFloat() && k.IsFloat() {
+				b = compareNumbers(in.x(), l.Float(), k.Float())
+			} else if l.IsString() && k.IsString() {
 				fr.pc = pc
 				if compareStrings(in.x(), l.Str(), k.Str()) == in.y() {
 					fr.pc = in.c()
 				}
 
 				goto reload
+			} else {
+				goto slow
 			}
 
-			if compareNumbers(in.x(), l.Num(), k.Num()) == in.y() {
+			if b == in.y() {
 				pc = in.c()
 				if ticks--; ticks == 0 {
 					goto tick
@@ -321,9 +393,8 @@ reload:
 			}
 
 		case opGetIndex:
-			if t, i := regs[in.b()], regs[in.c()]; t.Kind() == value.Array && i.IsNumber() {
-				arr := t.Arr()
-				if idx := int(i.Num()); float64(idx) == i.Num() && idx >= 0 && idx < len(arr) {
+			if t, i := regs[in.b()], regs[in.c()]; t.Kind() == value.Array && i.IsInt() {
+				if arr, idx := t.Arr(), i.Int(); uint64(idx) < uint64(len(arr)) {
 					regs[in.a()] = arr[idx]
 					continue
 				}
@@ -473,28 +544,40 @@ reload:
 
 		case opForRangeNext:
 			s := regs[in.a() : in.a()+6]
-			r := numRange{start: s[0].Num(), end: s[1].Num(), step: s[2].Num(), inclusive: in.x() != 0}
+			i := s[3].Int()
 
-			i := s[3].Num()
-			if x, ok := r.at(i); ok {
-				s[3] = value.NewNumber(i + 1)
-				s[4] = value.NewNumber(i)
-				s[5] = value.NewNumber(x)
-				pc = in.c()
-				if ticks--; ticks == 0 {
-					goto tick
+			// Integers inline; floats, the rare case, through at.
+			var x value.Value
+			if s[0].IsInt() {
+				n, ok := intRangeAt(s[0].Int(), s[1].Int(), s[2].Int(), i, in.x() != 0)
+				if !ok {
+					continue
 				}
+
+				x = value.NewInt(n)
+			} else if v, ok := (numRange{s[0], s[1], s[2], in.x() != 0}).at(i); ok {
+				x = v
+			} else {
+				continue
+			}
+
+			s[3] = value.NewInt(i + 1)
+			s[4] = value.NewInt(i)
+			s[5] = x
+			pc = in.c()
+			if ticks--; ticks == 0 {
+				goto tick
 			}
 
 		case opForIterNext:
 			c := (*cursor)(regs[in.a()].Ptr())
-			if c.mode != arrayCursor {
+			if c.next != nil {
 				goto slow
 			}
 
 			if i := c.i; i < len(c.arr) {
 				c.i++
-				regs[in.a()+1] = value.NewNumber(float64(i))
+				regs[in.a()+1] = value.NewInt(int64(i))
 				regs[in.a()+2] = c.arr[i]
 				pc = in.c()
 				if ticks--; ticks == 0 {
@@ -542,388 +625,12 @@ reload:
 	}
 }
 
-// slow runs in, the instruction before the top frame's pc, for the cases
-// the dispatch loop leaves out. It may grow the stack.
-func (p *Interpreter) slow(in Instr) error {
-	fr := &p.frames[len(p.frames)-1]
-	f := fr.cl.proto
-	regs := p.stack[fr.base : fr.base+f.nregs]
-	consts := f.consts
-	tok := f.toks[fr.pc-1]
-
-	switch in.op() {
-	case opAdd, opSub, opMul, opDiv, opMod, opCmp:
-		return binaryInto(&regs[in.a()], in, tok, regs[in.b()], regs[in.c()])
-
-	case opAddK, opSubK, opMulK, opDivK, opModK, opCmpK:
-		return binaryInto(&regs[in.a()], in, tok, regs[in.b()], consts[in.c()])
-
-	case opNeg, opIncr:
-		return errors.NewRuntimeError(errors.TypeError, *tok, "Operand must be a number.")
-
-	case opIs:
-		return errors.NewRuntimeError(errors.TypeError, *tok, fmt.Sprintf(
-			"Right operand of 'is' must be a struct, got %s.", helpers.TypeName(regs[in.c()])))
-
-	case opJmpCmp, opJmpCmpK:
-		var r value.Value
-		if in.op() == opJmpCmp {
-			r = regs[in.b()]
-		} else {
-			r = consts[in.b()]
-		}
-
-		b, err := compareValues(in.x(), regs[in.a()], r, tok)
-		if err == nil && b == in.y() {
-			fr.pc = in.c()
-		}
-
-		return err
-
-	case opArray:
-		items := regs[in.b() : in.b()+in.c()]
-		if in.x() == 0 {
-			regs[in.a()] = value.NewArray(append([]value.Value(nil), items...))
-		} else {
-			arr := regs[in.a()].ArrRef()
-			*arr = append(*arr, items...)
-		}
-
-	case opConcat:
-		buf := p.buf[:0]
-		if in.x() != 0 {
-			buf = append(buf, regs[in.a()].Str()...)
-		}
-
-		for _, v := range regs[in.b() : in.b()+in.c()] {
-			buf = helpers.AppendValue(buf, v)
-		}
-
-		p.buf = buf
-		regs[in.a()] = value.NewString(string(buf))
-
-	case opObject:
-		keys := f.keys[in.c()]
-
-		var obj map[string]value.Value
-		if in.x() == 0 {
-			obj = make(map[string]value.Value, len(keys))
-			regs[in.a()] = value.NewObject(obj)
-		} else {
-			obj = regs[in.a()].Obj()
-		}
-
-		for i, k := range keys {
-			obj[k] = regs[in.b()+i]
-		}
-
-	case opGetIndex:
-		v, err := getIndex(tok, regs[in.b()], regs[in.c()])
-		if err == nil {
-			regs[in.a()] = v
-		}
-
-		return err
-
-	case opGetIndexOpt:
-		v, _, err := lookup(tok, regs[in.b()], regs[in.c()])
-		if err == nil {
-			regs[in.a()] = v
-		}
-
-		return err
-
-	case opGetProp, opGetPropOpt:
-		v, err := p.property(tok, regs[in.b()], consts[in.c()], in.op() == opGetPropOpt)
-		if err == nil {
-			regs[in.a()] = v
-		}
-
-		return err
-
-	case opStruct:
-		v, fields := value.NewStruct(consts[in.c()].TypeShape())
-		copy(fields, regs[in.b():])
-		regs[in.a()] = v
-
-	case opSetIndex, opSetProp:
-		t, key := regs[in.a()], setKey(in, regs, consts)
-
-		switch {
-		case t.Kind() == value.Struct && in.y():
-			v, err := setField(tok, t, key, regs[in.c()])
-			if err == nil {
-				regs[in.a()] = v
-				fr.pc += int(in.x())
-			}
-
-			return err
-		case in.op() == opSetIndex:
-			return setIndex(tok, t, key, regs[in.c()])
-		default:
-			// SetProp gets here only for a target that is not an object.
-			return propertyTarget(tok, t)
-		}
-
-	case opCheckProp:
-		if t := regs[in.a()]; t.Kind() == value.Struct && in.y() {
-			if t.Shape().Index(tok.Lexeme) < 0 {
-				return undefinedField(tok, t.Shape(), tok.Lexeme)
-			}
-
-			return nil
-		}
-
-		return propertyTarget(tok, regs[in.a()])
-
-	case opRange:
-		r, err := rangeOf(regs[in.b():], in.x() != 0, tok)
-		if err != nil {
-			return err
-		}
-
-		v, err := r.array(tok)
-		if err == nil {
-			regs[in.a()] = v
-		}
-
-		return err
-
-	case opClosure:
-		proto := f.protos[in.c()]
-		cl := &Closure{proto: proto}
-
-		if len(proto.upvals) > 0 {
-			cl.cells = make([]*Cell, len(proto.upvals))
-
-			for i, u := range proto.upvals {
-				if u.fromLocal {
-					cl.cells[i] = (*Cell)(regs[u.index].Ptr())
-				} else {
-					cl.cells[i] = fr.cl.cells[u.index]
-				}
-			}
-		}
-
-		regs[in.a()] = value.NewFunction(cl)
-
-	case opCall:
-		return p.callAt(fr.base+in.a(), in.b(), tok)
-
-	case opInvoke:
-		return p.invoke(fr, in, tok)
-
-	case opMethod:
-		p.methods[in.c()] = regs[in.a()]
-
-	case opCallArray:
-		args := regs[in.a()+1]
-		if args.Kind() != value.Array {
-			return spreadError(tok, args, "an array")
-		}
-
-		at := fr.base + in.a()
-		items := args.Arr()
-		p.grow(at + 1 + len(items))
-		copy(p.stack[at+1:], items)
-
-		return p.callAt(at, len(items), tok)
-
-	case opSpread:
-		return spread(tok, regs[in.a()], regs[in.b()])
-
-	case opUnpack:
-		src := regs[in.b()]
-		if src.Kind() != value.Array {
-			return errors.NewRuntimeError(errors.TypeError, *tok, "Cannot destructure "+helpers.TypeName(src)+" as an array.")
-		}
-
-		arr, n := src.Arr(), in.c()
-		if len(arr) < n {
-			return errors.NewRuntimeError(errors.IndexError, *tok, fmt.Sprintf("Expected at least %s but got %d.", helpers.Plural(n, "element"), len(arr)))
-		}
-
-		copy(regs[in.a():], arr[:n])
-
-		if in.x() != 0 {
-			regs[in.a()+n] = value.NewArray(append([]value.Value(nil), arr[n:]...))
-		}
-
-	case opPrint:
-		p.buf = append(helpers.AppendValue(p.buf[:0], regs[in.a()]), '\n')
-		p.host.Stdio.Out(p.buf)
-
-	case opThrow:
-		v := regs[in.a()]
-		if v.Kind() != value.Struct {
-			return errors.NewRuntimeError(errors.TypeError, *tok, "Can only throw struct instances.")
-		}
-
-		return errors.NewThrownError(*tok, v)
-
-	case opNoMatch:
-		return errors.NewRuntimeError(errors.ValueError, *tok, "No match arm for "+helpers.Quoted(regs[in.a()])+".")
-
-	case opRethrow:
-		return *regs[in.a()].Internal().(*errors.RuntimeError)
-
-	case opTry:
-		p.handlers = append(p.handlers, handler{frame: len(p.frames) - 1, pc: in.c(), reg: in.a(), bind: in.y(), keep: in.x() != 0})
-
-	case opForRange:
-		if _, err := rangeOf(regs[in.a():], false, tok); err != nil {
-			return err
-		}
-
-		regs[in.a()+3] = value.NewNumber(0)
-
-	case opForIter:
-		c, err := cursorOf(regs[in.a()], in.x() != 0, tok)
-		if err == nil {
-			regs[in.a()] = value.NewInternal(c)
-		}
-
-		return err
-
-	case opForIterNext:
-		if k, v, ok := (*cursor)(regs[in.a()].Ptr()).next(); ok {
-			regs[in.a()+1] = k
-			regs[in.a()+2] = v
-			fr.pc = in.c()
-		}
-
-	default:
-		panic(fmt.Sprintf("vm: unknown op %d", in.op()))
-	}
-
-	return nil
-}
-
-// callAt calls the function at stack[at] with the n arguments after it,
-// leaving the result there unless it pushes a frame.
-func (p *Interpreter) callAt(at, n int, tok *ast.Token) error {
-	fn := p.stack[at]
-	if fn.Kind() == value.Type {
-		v, err := convert(tok, fn.TypeShape(), p.stack[at+1:at+1+n])
-		if err == nil {
-			p.stack[at] = v
-		}
-
-		return err
-	}
-
-	if fn.Kind() != value.Function {
-		return errors.NewRuntimeError(errors.TypeError, *tok, "Can only call functions.")
-	}
-
-	switch f := fn.Fn().(type) {
-	case *Closure:
-		return p.enter(f, at+1, n, tok)
-	case *BoundMethod:
-		if !f.fn.proto.accepts(n + 1) {
-			return argumentError(f.fn.proto, n+1, 1, tok)
-		}
-
-		p.grow(at + 2 + n)
-		copy(p.stack[at+2:], p.stack[at+1:at+1+n])
-		p.stack[at], p.stack[at+1] = value.NewFunction(f.fn), f.recv
-
-		return p.enter(f.fn, at+1, n+1, tok)
-	}
-
-	v, err := p.host.Call(fn.Fn().(*stdlib.Native), p, p.stack[at+1:at+1+n], tok)
-	if err == nil {
-		// The call may have grown the stack.
-		p.stack[at] = v
-	}
-
-	return err
-}
-
-// setKey is the key a set writes: K[B] for a property, R[B] for an element.
-func setKey(in Instr, regs, consts []value.Value) value.Value {
-	if in.op() == opSetProp {
-		return consts[in.b()]
-	}
-
-	return regs[in.b()]
-}
-
-// spread adds the elements of src to the array dst, or the properties or
-// fields of src to the object dst.
-func spread(tok *ast.Token, dst, src value.Value) error {
-	if dst.Kind() == value.Array {
-		if src.Kind() != value.Array {
-			return spreadError(tok, src, "an array")
-		}
-
-		arr := dst.ArrRef()
-		*arr = append(*arr, src.Arr()...)
-
-		return nil
-	}
-
-	obj := dst.Obj()
-
-	switch src.Kind() {
-	case value.Object:
-		for k, v := range src.Obj() {
-			obj[k] = v
-		}
-	case value.Struct:
-		for i, f := range src.Shape().Fields {
-			obj[f] = src.Fields()[i]
-		}
-	default:
-		return spreadError(tok, src, "an object")
-	}
-
-	return nil
-}
-
-func spreadError(tok *ast.Token, v value.Value, into string) error {
-	return errors.NewRuntimeError(errors.TypeError, *tok, "Cannot spread "+helpers.TypeName(v)+" into "+into+".")
-}
-
-// binaryInto stores the result of in's operator in dst unless it fails.
-func binaryInto(dst *value.Value, in Instr, tok *ast.Token, l, r value.Value) error {
-	if in.op() == opCmp || in.op() == opCmpK {
-		b, err := compareValues(in.x(), l, r, tok)
-		if err == nil {
-			*dst = value.NewBool(b)
-		}
-
-		return err
-	}
-
-	v, err := binaryOp(tok, l, r)
-	if err == nil {
-		*dst = v
-	}
-
-	return err
-}
-
-// intMod is mod for integers that floats hold exactly.
-func intMod(l, r float64) (float64, bool) {
-	if l <= -maxExactInt || l >= maxExactInt || r <= -maxExactInt || r >= maxExactInt || r == 0 {
-		return 0, false
-	}
-
-	li, ri := int64(l), int64(r)
-	if float64(li) != l || float64(ri) != r {
-		return 0, false
-	}
-
-	return math.Copysign(float64(li%ri), l), true
-}
-
 func undefinedVariable(f *Proto, pc int) error {
 	tok := f.toks[pc-1]
 	return errors.NewRuntimeError(errors.NameError, *tok, fmt.Sprintf("Undefined variable '%s'.", tok.Lexeme))
 }
 
-func compareNumbers(op uint8, l, r float64) bool {
+func compareNumbers[T int64 | float64](op uint8, l, r T) bool {
 	switch op {
 	case cmpLT:
 		return l < r
@@ -938,20 +645,6 @@ func compareNumbers(op uint8, l, r float64) bool {
 	default:
 		return l != r
 	}
-}
-
-func compareValues(op uint8, l, r value.Value, tok *ast.Token) (bool, error) {
-	if l.IsNumber() && r.IsNumber() {
-		return compareNumbers(op, l.Num(), r.Num()), nil
-	}
-
-	if l.IsString() && r.IsString() {
-		return compareStrings(op, l.Str(), r.Str()), nil
-	}
-
-	v, err := binaryOp(tok, l, r)
-
-	return v.Bool(), err
 }
 
 func compareStrings(op uint8, l, r string) bool {

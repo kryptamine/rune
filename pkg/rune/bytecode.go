@@ -26,6 +26,9 @@ const (
 	opSetUpvalChecked
 	opUndefined // fail on a name neither declared nor built in
 
+	// The arithmetic ops come in the order of value.Arith, each op with
+	// a register then with a constant: a fast path apiece, as one op
+	// switching on its operator measured slower.
 	opAdd // R[A] = R[B] + R[C]
 	opSub
 	opMul
@@ -36,12 +39,14 @@ const (
 	opMulK
 	opDivK
 	opModK
-	opCmp  // R[A] = R[B] <X> R[C]
-	opCmpK // R[A] = R[B] <X> K[C]
-	opIs   // R[A] = R[B] is R[C]
-	opNeg  // R[A] = -R[B]
-	opNot  // R[A] = !R[B]
-	opIncr // R[A] = R[B] + 1, or - 1 if X
+	opCmp     // R[A] = R[B] <X> R[C]
+	opCmpK    // R[A] = R[B] <X> K[C]
+	opIs      // R[A] = R[B] is R[C]
+	opNeg     // R[A] = -R[B]
+	opNot     // R[A] = !R[B]
+	opIncr    // R[A] = R[B] + 1, or - 1 if X
+	opBitwise // R[A] = R[B] <X> R[C], X a value.Bit
+	opBitNot  // R[A] = ^R[B]
 
 	opJmp        // pc = C
 	opJmpIf      // if truthy(R[A]) == Y: pc = C
@@ -219,11 +224,40 @@ type methodTable struct {
 var opNames = [...]string{
 	"MOVE", "LOADK", "NEWCELL", "GETCELL", "SETCELL", "GETUPVAL", "SETUPVAL",
 	"CHECKDEFINED", "SETCELL!", "SETUPVAL!", "UNDEFINED",
-	"ADD", "SUB", "MUL", "DIV", "MOD", "ADDK", "SUBK", "MULK", "DIVK", "MODK", "CMP", "CMPK", "IS", "NEG", "NOT", "INCR",
+	"ADD", "SUB", "MUL", "DIV", "MOD", "ADDK", "SUBK", "MULK", "DIVK", "MODK", "CMP", "CMPK", "IS", "NEG", "NOT", "INCR", "BITWISE", "BITNOT",
 	"JMP", "JMPIF", "JMPCMP", "JMPCMPK", "JMPNOTTYPE", "JMPNIL",
 	"ARRAY", "CONCAT", "OBJECT", "STRUCT", "GETINDEX", "GETPROP", "GETINDEX?", "GETPROP?", "SETINDEX", "SETPROP", "CHECKPROP", "TESTPROP", "RANGE", "SPREAD", "UNPACK",
 	"CLOSURE", "CALL", "CALLARRAY", "INVOKE", "METHOD", "RETURN", "RETURNNIL", "PRINT", "THROW", "RETHROW", "NOMATCH", "TRY", "ENDTRY",
 	"FORRANGE", "FORRANGENEXT", "FORITER", "FORITERNEXT",
+}
+
+var bitNames = [...]string{"AND", "OR", "XOR", "SHL", "SHR"}
+
+// opName names in; ownX says the name already shows its X.
+func opName(in Instr) (string, bool) {
+	if in.op() == opBitwise {
+		return bitNames[in.x()], true
+	}
+
+	return opNames[in.op()], false
+}
+
+// arithOp is the instruction of op on a register, or a constant if k;
+// arithOf is the operator of one.
+func arithOp(op value.Arith, k bool) Op {
+	if k {
+		return opAddK + Op(op)
+	}
+
+	return opAdd + Op(op)
+}
+
+func arithOf(op Op) value.Arith {
+	if op >= opAddK {
+		return value.Arith(op - opAddK)
+	}
+
+	return value.Arith(op - opAdd)
 }
 
 // Disassemble lists the program's code, function by function.
@@ -240,9 +274,10 @@ func (prog *Program) Disassemble() string {
 		fmt.Fprintf(&b, "%s: arity %s, %d registers, %d upvalues\n", f.displayName(), arity, f.nregs, len(f.upvals))
 
 		for i, in := range f.code {
-			fmt.Fprintf(&b, "%5d  %-13s %d %d %d", i, opNames[in.op()], in.a(), in.b(), in.c())
+			name, ownX := opName(in)
+			fmt.Fprintf(&b, "%5d  %-13s %d %d %d", i, name, in.a(), in.b(), in.c())
 
-			if in.x() != 0 || in.y() {
+			if !ownX && in.x() != 0 || in.y() {
 				fmt.Fprintf(&b, "  x=%d y=%v", in.x(), in.y())
 			}
 

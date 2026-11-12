@@ -21,6 +21,7 @@ func (p *Resolver) VisitImplStmt(stmt *ast.ImplStmt) error {
 var builtinKinds = map[string]value.Kind{
 	"string": value.String, "number": value.Number, "boolean": value.Bool,
 	"array": value.Array, "object": value.Object, "function": value.Function,
+	"Map": value.Map, "Set": value.Set, "bytes": value.Bytes,
 }
 
 // declareImpl adds the methods of stmt to its type, a struct of this file

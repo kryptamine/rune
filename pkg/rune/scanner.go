@@ -7,7 +7,6 @@ import (
 	rerrors "rune/pkg/errors"
 	"rune/pkg/helpers"
 	"strconv"
-	"strings"
 	"unicode/utf8"
 )
 
@@ -171,11 +170,27 @@ func (s *Scanner) scanToken() {
 		s.addToken(helpers.If(s.match('='), ast.BANG_EQUAL, ast.BANG))
 		break
 	case '<':
-		s.addToken(helpers.If(s.match('='), ast.LESS_EQUAL, ast.LESS))
-		break
+		switch {
+		case s.match('<'):
+			s.addToken(helpers.If(s.match('='), ast.LESS_LESS_EQUAL, ast.LESS_LESS))
+		case s.match('='):
+			s.addToken(ast.LESS_EQUAL)
+		default:
+			s.addToken(ast.LESS)
+		}
 	case '>':
-		s.addToken(helpers.If(s.match('='), ast.GREATER_EQUAL, ast.GREATER))
-		break
+		switch {
+		case s.match('>'):
+			s.addToken(helpers.If(s.match('='), ast.GREATER_GREATER_EQUAL, ast.GREATER_GREATER))
+		case s.match('='):
+			s.addToken(ast.GREATER_EQUAL)
+		default:
+			s.addToken(ast.GREATER)
+		}
+	case '^':
+		s.addToken(helpers.If(s.match('='), ast.CARET_EQUAL, ast.CARET))
+	case '~':
+		s.addToken(ast.TILDE)
 	case '/':
 		if s.match('/') {
 			// A comment goes until the end of the line.
@@ -186,7 +201,7 @@ func (s *Scanner) scanToken() {
 			s.addToken(helpers.If(s.match('='), ast.SLASH_EQUAL, ast.SLASH))
 		}
 	case '"':
-		s.string()
+		s.string(false)
 
 		break
 		// Ignore whitespace.
@@ -209,11 +224,10 @@ func (s *Scanner) scanToken() {
 		}
 
 		if char == '|' {
-			s.addToken(ast.PIPE)
-			break
+			s.addToken(helpers.If(s.match('='), ast.PIPE_EQUAL, ast.PIPE))
+		} else {
+			s.addToken(helpers.If(s.match('='), ast.AMP_EQUAL, ast.AMP))
 		}
-
-		s.errorAt(fmt.Sprintf("Unexpected character: %c", char))
 	default:
 		if helpers.IsAlpha(char) {
 			s.identifier()
@@ -256,16 +270,17 @@ var escapes = map[byte]byte{
 
 // string scans a string literal. Each "{expr}" in it ends a piece as an
 // INTERPOLATION token, followed by the tokens of expr; the piece after
-// the last one is a STRING_END.
-func (s *Scanner) string() {
-	var value strings.Builder
+// the last one is a STRING_END. A bytes literal, after its b, takes no
+// interpolation and takes \xNN escapes.
+func (s *Scanner) string(isBytes bool) {
+	var value []byte
 	var badEscape string
-	end := ast.STRING
+	end := helpers.If(isBytes, ast.BYTES, ast.STRING)
 	line, col := s.startLine, s.startCol
 
 	piece := func(tokenType ast.TokenType) {
-		s.addTokenWithLiteral(tokenType, value.String())
-		value.Reset()
+		s.addTokenWithLiteral(tokenType, string(value))
+		value = value[:0]
 
 		if badEscape != "" {
 			s.errorAt(badEscape)
@@ -277,7 +292,7 @@ func (s *Scanner) string() {
 		c := s.source[s.current]
 		s.current++
 
-		if c == '{' {
+		if c == '{' && !isBytes {
 			piece(ast.INTERPOLATION)
 			if !s.interpolated() {
 				break
@@ -295,7 +310,7 @@ func (s *Scanner) string() {
 		}
 
 		if c != '\\' {
-			value.WriteByte(c)
+			value = append(value, c)
 			continue
 		}
 
@@ -308,7 +323,10 @@ func (s *Scanner) string() {
 		s.current += size
 
 		if e, ok := escapes[byte(r)]; ok && size == 1 {
-			value.WriteByte(e)
+			value = append(value, e)
+		} else if b, ok := hexByte(s.source[s.current:]); ok && r == 'x' && isBytes {
+			value = append(value, b)
+			s.current += 2
 		} else if badEscape == "" {
 			badEscape = fmt.Sprintf("Invalid escape sequence '\\%c'.", r)
 		}
@@ -321,13 +339,24 @@ func (s *Scanner) string() {
 	if s.isAtEnd() {
 		s.truncated = true
 		s.startLine, s.startCol = line, col
-		s.errorAt("Unterminated string.")
+		s.errorAt(helpers.If(isBytes, "Unterminated bytes.", "Unterminated string."))
 
 		return
 	}
 
 	s.advance()
 	piece(end)
+}
+
+// hexByte reads the two hex digits that start s.
+func hexByte(s string) (byte, bool) {
+	if len(s) < 2 {
+		return 0, false
+	}
+
+	n, err := strconv.ParseUint(s[:2], 16, 8)
+
+	return byte(n), err == nil
 }
 
 // interpolated scans the tokens of an interpolated expression up to its
@@ -354,15 +383,27 @@ func (s *Scanner) interpolated() bool {
 }
 
 func (s *Scanner) number() {
-	s.current = helpers.NumberEnd(s.source, s.current)
+	s.current = helpers.NumberEnd(s.source, s.start)
+	lexeme := s.source[s.start:s.current]
 
-	val, _ := strconv.ParseFloat(s.source[s.start:s.current], 64)
-	literal := ""
+	v, ok := helpers.ParseLiteral(lexeme)
+	if !ok {
+		s.errorAt("Integer literal is too large.")
+	}
+
+	if s.current < len(s.source) && s.isAlphaNumeric(rune(s.source[s.current])) {
+		for !s.isAtEnd() && s.isAlphaNumeric(s.peek()) {
+			s.advance()
+		}
+
+		s.errorAt("Invalid number literal '" + s.source[s.start:s.current] + "'.")
+	}
+
+	val := v.Num()
+	literal := fmt.Sprintf("%g", val) // Keeps the precision for non-whole numbers
 
 	if val == math.Trunc(val) {
 		literal = fmt.Sprintf("%.1f", val) // Ensures 1234.0 for whole numbers
-	} else {
-		literal = fmt.Sprintf("%g", val) // Keeps the precision for non-whole numbers
 	}
 
 	s.addTokenWithLiteral(ast.NUMBER, literal)
@@ -374,6 +415,13 @@ func (s *Scanner) identifier() {
 	}
 
 	text := s.source[s.start:s.current]
+
+	if text == "b" && s.peek() == '"' {
+		s.advance()
+		s.string(true)
+
+		return
+	}
 
 	if val, ok := ast.Keywords[text]; ok {
 		s.addToken(val)

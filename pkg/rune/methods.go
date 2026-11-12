@@ -5,6 +5,7 @@ import (
 	"rune/pkg/ast"
 	"rune/pkg/errors"
 	"rune/pkg/helpers"
+	"rune/pkg/stdlib"
 	"rune/pkg/value"
 )
 
@@ -15,6 +16,14 @@ type BoundMethod struct {
 }
 
 func (b *BoundMethod) String() string { return b.fn.String() }
+
+// BoundNative is a built-in method read off its receiver, as in m.get.
+type BoundNative struct {
+	recv value.Value
+	fn   *stdlib.Native
+}
+
+func (b *BoundNative) String() string { return b.fn.String() }
 
 // methodsOf returns the methods of v's type, and the type's name.
 func (p *Interpreter) methodsOf(v value.Value) ([]value.Method, string) {
@@ -50,6 +59,10 @@ func (p *Interpreter) property(tok *ast.Token, t, key value.Value, optional bool
 	ms, owner := p.methodsOf(t)
 	if m := value.FindMethod(ms, key.Str()); m != nil {
 		return p.methodValue(tok, t, m, owner)
+	}
+
+	if n := stdlib.Method(t.Kind(), key.Str()); n != nil {
+		return value.NewFunction(&BoundNative{recv: t, fn: n}), nil
 	}
 
 	if k := t.Kind(); optional && (k == value.Object || k == value.Struct) {
@@ -92,6 +105,11 @@ func (p *Interpreter) invoke(fr *frame, in Instr, tok *ast.Token) error {
 	m := value.FindMethod(ms, key.Str())
 	switch {
 	case m == nil:
+		if nat := stdlib.Method(t.Kind(), key.Str()); nat != nil {
+			p.stack[at] = value.NewFunction(nat)
+			return p.callAt(at, n+1, tok)
+		}
+
 		return missingMember(tok, t, key.Str())
 	case t.Kind() == value.Type:
 		p.stack[at] = p.methods[m.ID]

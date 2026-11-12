@@ -1,0 +1,24 @@
+fun fails(f) {
+  try {
+    f();
+  } catch (e) {
+    print type(e) + ": " + e.message;
+  }
+}
+
+fails(() => math.MAX_INT + 1);      // expect: ValueError: Integer overflow.
+fails(() => math.MIN_INT - 1);      // expect: ValueError: Integer overflow.
+fails(() => math.MAX_INT * 2);      // expect: ValueError: Integer overflow.
+fails(() => -math.MIN_INT);         // expect: ValueError: Integer overflow.
+fails(() => 5 % 0);                 // expect: ValueError: Integer modulo by zero.
+fails(() => 1 << -1);               // expect: ValueError: Shift count must not be negative.
+fails(() => 1.5 & 1);               // expect: TypeError: Operands must be integers.
+fails(() => "a" | 1);               // expect: TypeError: Operands must be numbers.
+fails(() => ~1.5);                  // expect: TypeError: Operand must be an integer.
+fails(() => math.idiv(1, 0));       // expect: ValueError: math.idiv() integer division by zero.
+fails(() => math.abs(math.MIN_INT)); // expect: ValueError: math.abs() integer overflow.
+fails(() => int(math.INF));         // expect: ValueError: int() cannot convert +Inf to an integer.
+
+let mut m = math.MAX_INT;
+fails(() => { m++; });              // expect: ValueError: Integer overflow.
+print 1 / 0;                        // expect: +Inf

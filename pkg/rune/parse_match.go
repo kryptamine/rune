@@ -1,10 +1,9 @@
 package rune
 
 import (
-	"strconv"
-
 	"rune/pkg/ast"
 	"rune/pkg/errors"
+	"rune/pkg/helpers"
 	"rune/pkg/value"
 )
 
@@ -130,6 +129,8 @@ func (s *Parser) patternAlt() (ast.Pattern, error) {
 		return p, err
 	case s.match(ast.STRING):
 		return &ast.LiteralPattern{Token: s.previous(), Value: value.NewString(s.previous().Literal)}, nil
+	case s.match(ast.BYTES):
+		return &ast.LiteralPattern{Token: s.previous(), Value: value.NewBytes([]byte(s.previous().Literal))}, nil
 	case s.match(ast.TRUE, ast.FALSE):
 		return &ast.LiteralPattern{Token: s.previous(), Value: value.NewBool(s.previous().TokenType == ast.TRUE)}, nil
 	case s.match(ast.NIL):
@@ -182,16 +183,15 @@ func (s *Parser) patternAlt() (ast.Pattern, error) {
 }
 
 func (s *Parser) numberPattern(tok ast.Token, negate bool) (ast.Pattern, error) {
-	n, err := strconv.ParseFloat(tok.Lexeme, 64)
-	if err != nil {
-		return nil, errors.NewSyntaxError(tok, "Invalid number.")
+	n, _ := helpers.ParseLiteral(tok.Lexeme)
+
+	if negate && n.IsInt() {
+		n = value.NewInt(-n.Int())
+	} else if negate {
+		n = value.NewNumber(-n.Float())
 	}
 
-	if negate {
-		n = -n
-	}
-
-	return &ast.LiteralPattern{Token: tok, Value: value.NewNumber(n)}, nil
+	return &ast.LiteralPattern{Token: tok, Value: n}, nil
 }
 
 // fieldPatterns parses key: pattern, ... up to "}"; the "{" has already

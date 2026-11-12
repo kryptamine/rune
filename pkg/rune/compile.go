@@ -49,10 +49,12 @@ type loop struct {
 }
 
 type constKey struct {
-	kind value.Kind
-	num  float64
-	str  string
-	ptr  unsafe.Pointer
+	kind  value.Kind
+	isInt bool
+	num   float64
+	int   int64
+	str   string
+	ptr   unsafe.Pointer
 }
 
 // compile compiles a program; builtins are the declarations the resolver
@@ -342,9 +344,14 @@ func (fs *funcState) constant(v value.Value) int32 {
 
 	switch v.Kind() {
 	case value.Number:
-		key.num = v.Num()
+		key.isInt, key.num = v.IsInt(), v.Num()
+		if v.IsInt() {
+			key.int = v.Int()
+		}
 	case value.Bool:
 		key.num = boolNum(v.Bool())
+	case value.Bytes:
+		key.str = string(v.Bytes())
 	case value.String:
 		key.str = v.Str()
 		if name, ok := fs.unit.names[key.str]; ok {

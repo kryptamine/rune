@@ -1,0 +1,2 @@
+let mut b = b"abc";
+b[0] = 1; // expect runtime error: [line: 2] TypeError: Bytes are immutable.
