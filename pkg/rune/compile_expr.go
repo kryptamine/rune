@@ -8,10 +8,6 @@ import (
 	"slices"
 )
 
-var arithOps = map[ast.TokenType]Op{
-	ast.PLUS: opAdd, ast.MINUS: opSub, ast.STAR: opMul, ast.SLASH: opDiv, ast.PERCENT: opMod,
-}
-
 var cmpOps = map[ast.TokenType]uint8{
 	ast.LESS: cmpLT, ast.LESS_EQUAL: cmpLE, ast.GREATER: cmpGT, ast.GREATER_EQUAL: cmpGE,
 	ast.EQUAL_EQUAL: cmpEQ, ast.BANG_EQUAL: cmpNE,
@@ -146,7 +142,9 @@ func literalOf(e ast.Expr) (value.Value, bool) {
 		}
 	case *ast.UnaryExpr:
 		if v, ok := literalOf(n.Right); ok && n.Operator.TokenType == ast.MINUS && v.IsNumber() {
-			return value.NewNumber(-v.Num()), true
+			if v, err := negate(&n.Operator, v); err == nil {
+				return v, true
+			}
 		}
 	}
 
@@ -436,13 +434,13 @@ func (fs *funcState) binary(n *ast.BinaryExpr, dst int32) {
 	}
 
 	arith, isArith := arithOps[op.TokenType]
-	cmp := cmpOps[op.TokenType]
+	cmp, isCmp := cmpOps[op.TokenType]
 
-	if k, ok := fs.operandConst(rc, rConst, maxC); ok {
+	if k, ok := fs.operandConst(rc, rConst, maxC); ok && (isArith || isCmp) {
 		l := fs.operand(n.Left)
 
 		if isArith {
-			fs.emit(ins{op: arith + (opAddK - opAdd), a: dst, b: l, c: k}, op)
+			fs.emit(ins{op: arithOp(arith, true), a: dst, b: l, c: k}, op)
 		} else {
 			fs.emit(ins{op: opCmpK, x: cmp, a: dst, b: l, c: k}, op)
 		}
@@ -453,8 +451,8 @@ func (fs *funcState) binary(n *ast.BinaryExpr, dst int32) {
 	l := fs.operand(n.Left, n.Right)
 	r := fs.exprAny(n.Right)
 
-	if isArith {
-		fs.emit(ins{op: arith, a: dst, b: l, c: r}, op)
+	if !isCmp {
+		fs.emit(binaryIns(op.TokenType, dst, l, r), op)
 	} else {
 		fs.emit(ins{op: opCmp, x: cmp, a: dst, b: l, c: r}, op)
 	}
@@ -489,6 +487,8 @@ func (fs *funcState) unary(n *ast.UnaryExpr, dst int32) {
 
 	if op.TokenType == ast.BANG {
 		fs.emit(ins{op: opNot, a: dst, b: r}, nil)
+	} else if op.TokenType == ast.TILDE {
+		fs.emit(ins{op: opBitNot, a: dst, b: r}, op)
 	} else {
 		fs.emit(ins{op: opNeg, a: dst, b: r}, op)
 	}
@@ -551,9 +551,10 @@ func (fs *funcState) invoke(n *ast.CallExpr, prop *ast.IndexExpr, dst int32) {
 		base = fs.alloc()
 	}
 
+	// A place that cannot take the new self fails at the write-back,
+	// which only a mutating method reaches.
 	self := fs.alloc()
 	if lv != nil {
-		lv.check()
 		lv.load(self)
 	} else {
 		fs.expr(prop.Array, self)
@@ -651,7 +652,7 @@ func (fs *funcState) setIndex(n *ast.SetIndexExpr) int32 {
 	pl.load(old)
 
 	v := fs.exprAny(n.Value)
-	fs.emit(ins{op: arithOps[n.Op.TokenType], a: old, b: old, c: v}, n.Op)
+	fs.emit(binaryIns(n.Op.TokenType, old, old, v), n.Op)
 	pl.store(old)
 
 	return old

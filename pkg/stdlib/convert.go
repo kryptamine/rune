@@ -72,7 +72,7 @@ var conversionNatives = []*Native{
 			return v
 		case v.IsString():
 			if n, ok := helpers.ParseNumber(strings.TrimSpace(v.Str())); ok {
-				return value.NewNumber(n)
+				return n
 			}
 
 			return c.fail(errors.ValueError, "cannot parse %s as a number.", helpers.Quoted(v))
@@ -82,12 +82,16 @@ var conversionNatives = []*Native{
 	}},
 	{"int", 1, 2, func(c *call) value.Value {
 		if v := c.args[0]; v.IsNumber() && !c.has(1) {
-			n := v.Num()
-			if math.IsInf(n, 0) || math.IsNaN(n) {
+			if v.IsInt() {
+				return v
+			}
+
+			n, ok := value.FloatToInt(math.Trunc(v.Float()))
+			if !ok {
 				return c.fail(errors.ValueError, "cannot convert %s to an integer.", helpers.Stringify(v))
 			}
 
-			return value.NewNumber(math.Trunc(n))
+			return value.NewInt(n)
 		}
 
 		base := 10
@@ -109,6 +113,6 @@ var conversionNatives = []*Native{
 			return c.fail(errors.ValueError, "cannot parse %s as an integer in base %d.", helpers.Quoted(c.args[0]), base)
 		}
 
-		return value.NewNumber(float64(n))
+		return value.NewInt(n)
 	}},
 }

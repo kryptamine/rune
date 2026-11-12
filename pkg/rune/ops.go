@@ -3,7 +3,6 @@ package rune
 import (
 	"cmp"
 	"fmt"
-	"math"
 	"rune/pkg/ast"
 	"rune/pkg/errors"
 	"rune/pkg/helpers"
@@ -12,90 +11,6 @@ import (
 	"strings"
 	"unicode/utf8"
 )
-
-// binaryOp applies a binary operator; operator also locates errors.
-func binaryOp(operator *ast.Token, left, right value.Value) (value.Value, error) {
-	op := operator.TokenType
-
-	bothNumbers := left.IsNumber() && right.IsNumber()
-
-	switch op {
-	case ast.EQUAL_EQUAL:
-		return value.NewBool(helpers.IsEqual(left, right)), nil
-	case ast.BANG_EQUAL:
-		return value.NewBool(!helpers.IsEqual(left, right)), nil
-	case ast.PLUS, ast.LESS, ast.LESS_EQUAL, ast.GREATER, ast.GREATER_EQUAL:
-		if left.IsString() && right.IsString() {
-			if op == ast.PLUS {
-				return value.Concat(left, right), nil
-			}
-
-			return value.NewBool(compare(op, left.Str(), right.Str())), nil
-		}
-
-		if !bothNumbers {
-			return value.NilValue, errors.NewRuntimeError(errors.TypeError, *operator, "Operands must be two numbers or two strings.")
-		}
-	default:
-		if !bothNumbers {
-			return value.NilValue, errors.NewRuntimeError(errors.TypeError, *operator, "Operands must be numbers.")
-		}
-	}
-
-	return numberOp(op, left.Num(), right.Num()), nil
-}
-
-func numberOp(op ast.TokenType, l, r float64) value.Value {
-	switch op {
-	case ast.PLUS:
-		return value.NewNumber(l + r)
-	case ast.MINUS:
-		return value.NewNumber(l - r)
-	case ast.SLASH:
-		return value.NewNumber(l / r)
-	case ast.STAR:
-		return value.NewNumber(l * r)
-	case ast.PERCENT:
-		return value.NewNumber(mod(l, r))
-	case ast.LESS:
-		return value.NewBool(l < r)
-	case ast.LESS_EQUAL:
-		return value.NewBool(l <= r)
-	case ast.GREATER:
-		return value.NewBool(l > r)
-	case ast.GREATER_EQUAL:
-		return value.NewBool(l >= r)
-	case ast.EQUAL_EQUAL:
-		return value.NewBool(l == r)
-	case ast.BANG_EQUAL:
-		return value.NewBool(l != r)
-	}
-
-	return value.NilValue
-}
-
-func isComparison(op ast.TokenType) bool {
-	switch op {
-	case ast.LESS, ast.LESS_EQUAL, ast.GREATER, ast.GREATER_EQUAL:
-		return true
-	}
-
-	return false
-}
-
-// compare applies one of < <= > >=.
-func compare[T cmp.Ordered](op ast.TokenType, l, r T) bool {
-	switch op {
-	case ast.LESS:
-		return l < r
-	case ast.LESS_EQUAL:
-		return l <= r
-	case ast.GREATER:
-		return l > r
-	default:
-		return l >= r
-	}
-}
 
 func undefinedProperty(token *ast.Token, key string) error {
 	return errors.NewRuntimeError(errors.KeyError, *token, fmt.Sprintf("Undefined property '%s'.", key))
@@ -164,6 +79,8 @@ func getIndex(token *ast.Token, target, index value.Value) (value.Value, error) 
 	switch target.Kind() {
 	case value.Object:
 		return v, undefinedProperty(token, index.Str())
+	case value.Map:
+		return v, errors.NewRuntimeError(errors.KeyError, *token, "Key not found: "+helpers.Quoted(index)+".")
 	case value.Struct:
 		return v, undefinedField(token, target.Shape(), index.Str())
 	default:
@@ -175,13 +92,15 @@ func getIndex(token *ast.Token, target, index value.Value) (value.Value, error) 
 // by found instead of an error.
 func lookup(token *ast.Token, target, index value.Value) (value.Value, bool, error) {
 	switch target.Kind() {
-	case value.Array, value.String:
+	case value.Array, value.String, value.Bytes:
 		idx, ok, err := elementIndex(token, target, index)
 		switch {
 		case !ok || err != nil:
 			return value.NilValue, false, err
 		case target.IsString():
 			return value.NewString(helpers.CharAt(target.Str(), idx)), true, nil
+		case target.Kind() == value.Bytes:
+			return value.NewInt(int64(target.Bytes()[idx])), true, nil
 		default:
 			return target.Arr()[idx], true, nil
 		}
@@ -192,6 +111,14 @@ func lookup(token *ast.Token, target, index value.Value) (value.Value, bool, err
 		}
 
 		v, found := target.Obj()[index.Str()]
+
+		return v, found, nil
+
+	case value.Map:
+		v, found, err := target.HashMap().Get(index)
+		if err != nil {
+			return v, false, keyError(token, err)
+		}
 
 		return v, found, nil
 
@@ -209,7 +136,7 @@ func lookup(token *ast.Token, target, index value.Value) (value.Value, bool, err
 	}
 
 	return value.NilValue, false, errors.NewRuntimeError(errors.TypeError, *token, fmt.Sprintf(
-		"Can only index arrays, strings, objects and structs, got %s.", helpers.TypeName(target)))
+		"Can only index arrays, strings, objects, structs, Maps and bytes, got %s.", helpers.TypeName(target)))
 }
 
 func setIndex(token *ast.Token, target, index, v value.Value) error {
@@ -233,8 +160,18 @@ func setIndex(token *ast.Token, target, index, v value.Value) error {
 
 		return nil
 
+	case value.Map:
+		if err := target.HashMap().Set(index, v); err != nil {
+			return keyError(token, err)
+		}
+
+		return nil
+
 	case value.String:
 		return errors.NewRuntimeError(errors.TypeError, *token, "Strings are immutable.")
+
+	case value.Bytes:
+		return errors.NewRuntimeError(errors.TypeError, *token, "Bytes are immutable.")
 
 	case value.Struct:
 		if !index.IsString() {
@@ -245,23 +182,28 @@ func setIndex(token *ast.Token, target, index, v value.Value) error {
 
 	default:
 		return errors.NewRuntimeError(errors.TypeError, *token, fmt.Sprintf(
-			"Can only index arrays, strings, objects and structs, got %s.", helpers.TypeName(target)))
+			"Can only index arrays, strings, objects, structs, Maps and bytes, got %s.", helpers.TypeName(target)))
 	}
 }
 
 // elementIndex checks that v is an integer and reports whether it is in
 // bounds of the array or string target.
 func elementIndex(token *ast.Token, target, v value.Value) (int, bool, error) {
-	f := v.Num()
-	if !v.IsNumber() || f != math.Trunc(f) {
+	i, ok := value.ToInt(v)
+	if !ok {
 		return 0, false, notInteger(token, target)
 	}
 
-	if f < 0 || f >= float64(length(target)) {
+	if i < 0 || i >= int64(length(target)) {
 		return 0, false, nil
 	}
 
-	return int(f), true, nil
+	return int(i), true, nil
+}
+
+// keyError is a key a Map or a Set cannot hold.
+func keyError(token *ast.Token, err error) error {
+	return errors.NewRuntimeError(errors.TypeError, *token, err.Error())
 }
 
 func notInteger(token *ast.Token, target value.Value) error {
@@ -270,29 +212,17 @@ func notInteger(token *ast.Token, target value.Value) error {
 }
 
 func outOfBounds(token *ast.Token, target, v value.Value) error {
-	return errors.NewRuntimeError(errors.IndexError, *token, fmt.Sprintf("Index out of bounds: %v of %v", v.Num(), length(target)))
+	return errors.NewRuntimeError(errors.IndexError, *token, fmt.Sprintf("Index out of bounds: %s of %d", helpers.Stringify(v), length(target)))
 }
 
 // length is the number of elements of an array, or characters of a string.
 func length(target value.Value) int {
-	if target.Kind() == value.Array {
+	switch target.Kind() {
+	case value.Array:
 		return len(target.Arr())
+	case value.Bytes:
+		return len(target.Bytes())
 	}
 
 	return utf8.RuneCountInString(target.Str())
-}
-
-const maxExactInt = 1 << 53
-
-// mod matches math.Mod, including the sign of zero results.
-func mod(l, r float64) float64 {
-	if l > -maxExactInt && l < maxExactInt && r > -maxExactInt && r < maxExactInt && r != 0 {
-		li, ri := int64(l), int64(r)
-
-		if float64(li) == l && float64(ri) == r {
-			return math.Copysign(float64(li%ri), l)
-		}
-	}
-
-	return math.Mod(l, r)
 }

@@ -58,7 +58,7 @@ func (e RuntimeError) Value() value.Value {
 
 	v, fields := value.NewStruct(e.kind)
 	fields[0] = value.NewString(e.errMsg)
-	fields[1] = value.NewNumber(float64(e.token.Line))
+	fields[1] = value.NewInt(int64(e.token.Line))
 
 	for name, f := range e.extra {
 		fields[e.kind.Index(name)] = f

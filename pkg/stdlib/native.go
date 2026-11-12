@@ -35,6 +35,7 @@ type Host struct {
 	free   []*call
 	// regexes caches the patterns compiled so far.
 	regexes map[string]*regexp.Regexp
+	streams map[*Stream]struct{}
 }
 
 func NewHost(stdio *Stdio) *Host {
@@ -121,17 +122,20 @@ func (c *call) typeError(i int, want string) value.Value {
 	return c.fail(errors.TypeError, "expects %s as argument %d, got %s.", want, i+1, helpers.TypeName(c.args[i]))
 }
 
-func (c *call) num(i int) float64 {
+func (c *call) num(i int) float64 { return c.number(i).Num() }
+
+// number is argument i, which must be a number, as is.
+func (c *call) number(i int) value.Value {
 	if !c.args[i].IsNumber() {
 		c.typeError(i, "a number")
-		return 0
+		return value.NewInt(0)
 	}
 
-	return c.args[i].Num()
+	return c.args[i]
 }
 
 func (c *call) int(i int) int {
-	if n := c.num(i); n == math.Trunc(n) && !math.IsInf(n, 0) {
+	if n, ok := value.ToInt(c.args[i]); ok {
 		return int(n)
 	}
 
@@ -180,7 +184,7 @@ func (c *call) invoke(fn value.Value, args []value.Value) value.Value {
 	return v
 }
 
-func count(n int) value.Value { return value.NewNumber(float64(n)) }
+func count(n int) value.Value { return value.NewInt(int64(n)) }
 
 // Builtin is a global defined before a program runs.
 type Builtin struct {
@@ -217,8 +221,11 @@ var namespaces = []namespace{
 	{"math", mathNatives, []Builtin{
 		{"PI", value.NewNumber(math.Pi)},
 		{"INF", value.NewNumber(math.Inf(1))},
+		{"MAX_INT", value.NewInt(math.MaxInt64)},
+		{"MIN_INT", value.NewInt(math.MinInt64)},
 	}},
 	{"regex", regexNatives, nil},
+	{"bytes", bytesNatives, nil},
 	{"json", jsonNatives, nil},
 	{"http", httpNatives, nil},
 	{"time", timeNatives, nil},
@@ -279,12 +286,32 @@ func Member(name, key string) (v value.Value, found, isNamespace bool) {
 	return ns.Fields()[i], true, true
 }
 
+// kindMethods are the methods of the built-in types that have them, by
+// kind and name; each takes its receiver first.
+var kindMethods = func() (out [value.NumKinds]map[string]*Native) {
+	for kind, natives := range map[value.Kind][]*Native{
+		value.Map: mapMethods, value.Set: setMethods, value.Bytes: bytesMethods, value.Stream: streamMethods,
+	} {
+		out[kind] = map[string]*Native{}
+
+		for _, n := range natives {
+			_, name, _ := strings.Cut(n.name, ".")
+			out[kind][name] = n
+		}
+	}
+
+	return out
+}()
+
+// Method returns the built-in method of kind called name, or nil.
+func Method(kind value.Kind, name string) *Native { return kindMethods[kind][name] }
+
 var Builtins = builtins()
 
 func builtins() []Builtin {
 	var out []Builtin
 
-	for _, n := range slices.Concat(preludeNatives, conversionNatives) {
+	for _, n := range slices.Concat(preludeNatives, conversionNatives, collectionNatives) {
 		out = append(out, Builtin{n.name, value.NewFunction(n)})
 	}
 

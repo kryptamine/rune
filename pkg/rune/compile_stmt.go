@@ -317,7 +317,7 @@ func (fs *funcState) forIn(s *ast.ForInStmt) {
 		fs.patch(l.continues)
 
 		next.c = body
-		fs.emit(next, nil)
+		fs.emit(next, &s.Keyword)
 		fs.patch(l.breaks)
 	})
 }
@@ -334,7 +334,7 @@ func (fs *funcState) rangeParts(r *ast.RangeExpr) int32 {
 	if r.Step != nil {
 		fs.expr(r.Step, base+2)
 	} else {
-		fs.emit(ins{op: opLoadK, a: base + 2, c: fs.constant(value.NewNumber(1))}, nil)
+		fs.emit(ins{op: opLoadK, a: base + 2, c: fs.constant(value.NewInt(1))}, nil)
 	}
 
 	return base

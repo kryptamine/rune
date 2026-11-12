@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestHTTPRequest(t *testing.T) {
@@ -21,6 +22,15 @@ func TestHTTPRequest(t *testing.T) {
 			w.WriteHeader(http.StatusNotFound)
 		case "/slow":
 			<-r.Context().Done()
+			return
+		case "/lines":
+			io.WriteString(w, "a\nb\r\nc")
+			return
+		case "/slowbody":
+			w.(http.Flusher).Flush()
+			time.Sleep(100 * time.Millisecond)
+			io.WriteString(w, "done")
+
 			return
 		}
 
@@ -47,6 +57,14 @@ func TestHTTPRequest(t *testing.T) {
 		try { http.request("GET", "URL/", { timeout: 0 }); } catch (e: ValueError) { print e.message; }
 		try { http.request("GET", "URL/", { bogus: 1 }); } catch (e: KeyError) { print e.message; }
 		try { http.request("BAD METHOD", "URL/"); } catch (e: ValueError) { print "bad method"; }
+
+		let raw = http.request("PUT", "URL/x", { body: b"\x01raw", stream: true });
+		print type(raw.body);
+		print raw.body.readAll();
+		raw.body.close();
+		for i, line in http.request("GET", "URL/lines", { stream: true }).body { print "{i}: {line}"; }
+		print http.request("GET", "URL/slowbody", { stream: true, timeout: 0.05 }).body.readText();
+		try { http.request("GET", "URL/", { stream: 1 }); } catch (e: TypeError) { print e.message; }
 	`, "URL", srv.URL)
 
 	prog, errs := loadSource([]byte(src))
@@ -73,6 +91,13 @@ http.request() expects header 'a' to be a string, got number.
 http.request() expects a positive timeout, got 0.
 HttpOptions has no field 'bogus'.
 bad method
+Stream
+b"PUT \x01raw"
+0: a
+1: b
+2: c
+done
+http.request() expects HttpOptions.stream to be a boolean, got number.
 `
 	if out.String() != want {
 		t.Errorf("got:\n%s\nwant:\n%s", out.String(), want)

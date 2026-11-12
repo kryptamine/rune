@@ -1,0 +1,26 @@
+print math.floor(3.7);          // expect: 3
+print math.isInt(math.floor(3.7)); // expect: true
+print math.isInt(math.floor(1e300)); // expect: false
+print math.ceil(-1.5);          // expect: -1
+print math.round(2.5);          // expect: 3
+print math.abs(-4);             // expect: 4
+print math.idiv(7, 2);          // expect: 3
+print math.idiv(-7, 2);         // expect: -3
+print math.max(1, 2.5, 2);      // expect: 2.5
+print math.isInt(math.max(1, 3)); // expect: true
+print int(3.9);                 // expect: 3
+print int(-3.9);                // expect: -3
+print int("7fffffffffffffff", 16); // expect: 9223372036854775807
+print number("42");             // expect: 42
+print math.isInt(number("42")); // expect: true
+print math.isInt(number("42.0")); // expect: false
+print number("99999999999999999999"); // expect: 100000000000000000000
+print math.isInt(len([1, 2]));  // expect: true
+print string.format("%d %x %b", 9007199254740993, 255, 5); // expect: 9007199254740993 ff 101
+
+let parsed = json.parse("\{\"id\": 9007199254740993, \"x\": 1.0, \"y\": 2}");
+print parsed.id;                // expect: 9007199254740993
+print math.isInt(parsed.x);     // expect: false
+print math.isInt(parsed.y);     // expect: true
+print json.stringify([9007199254740993, 1.5, 2]); // expect: [9007199254740993,1.5,2]
+print array.sort([3, 1.5, 2]);  // expect: [1.5, 2, 3]

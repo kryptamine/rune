@@ -1,0 +1,23 @@
+exit: 0
+-- stdout --
+NUMBER 0xff 255.0
+NUMBER 1_000 1000.0
+NUMBER 2.5 2.5
+BYTES b"a\x01" a
+AMP & null
+PIPE | null
+CARET ^ null
+TILDE ~ null
+LESS_LESS << null
+GREATER_GREATER >> null
+AMP_EQUAL &= null
+PIPE_EQUAL |= null
+CARET_EQUAL ^= null
+LESS_LESS_EQUAL <<= null
+GREATER_GREATER_EQUAL >>= null
+LESS < null
+GREATER > null
+LESS_EQUAL <= null
+GREATER_EQUAL >= null
+EOF  null
+-- stderr --

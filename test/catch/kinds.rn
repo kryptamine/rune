@@ -2,7 +2,7 @@ fun kind(f) {
   try { f(); } catch (e) { return type(e) + ": " + e.message; }
 }
 
-print kind(fun () { return 1 + nil; }); // expect: TypeError: Operands must be two numbers or two strings.
+print kind(fun () { return 1 + nil; }); // expect: TypeError: Operands must be two numbers, two strings or two bytes.
 print kind(fun () { return [][0]; }); // expect: IndexError: Index out of bounds: 0 of 0
 print kind(fun () { return {}.x; }); // expect: KeyError: Undefined property 'x'.
 print kind(fun () { return nope; }); // expect: NameError: Undefined variable 'nope'.
@@ -15,5 +15,5 @@ try { 1 + nil; } catch (e) {
   print e is IndexError; // expect: false
   print e.line; // expect: 13
   print e.cause; // expect: nil
-  print e; // expect: TypeError {message: "Operands must be two numbers or two strings.", line: 13, cause: nil}
+  print e; // expect: TypeError {message: "Operands must be two numbers, two strings or two bytes.", line: 13, cause: nil}
 }

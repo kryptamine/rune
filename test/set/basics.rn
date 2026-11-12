@@ -1,0 +1,31 @@
+let s = Set([3, 1, 3, 2, 1.0]);
+print s;          // expect: Set {3, 1, 2}
+print len(s);     // expect: 3
+print type(s);    // expect: Set
+print s.has(2);   // expect: true
+print s.has(4);   // expect: false
+print s.add(4).has(4); // expect: true
+print s.delete(3); // expect: true
+print s.values(); // expect: [1, 2, 4]
+for x in s { print x; }
+// expect: 1
+// expect: 2
+// expect: 4
+for i, x in s { if i == 2 print x; } // expect: 4
+
+let a = Set([1, 2, 3]);
+let b = Set([2, 3, 4]);
+print a.union(b);        // expect: Set {1, 2, 3, 4}
+print a.intersection(b); // expect: Set {2, 3}
+print a.difference(b);   // expect: Set {1}
+print [...a, 0];         // expect: [1, 2, 3, 0]
+print Set([1, 2]) == Set([2, 1]); // expect: true
+print Set([1]) == Set([2]);       // expect: false
+print Set(a) == a;                // expect: true
+print json.stringify(Set(["x"])); // expect: ["x"]
+print Set();                      // expect: Set {}
+s.clear();
+print len(s);                     // expect: 0
+
+try { Set([[1]]); } catch (e) { print e.message; } // expect: Set() cannot use an array as a key.
+try { a.union([1]); } catch (e) { print e.message; } // expect: Set.union() expects a Set as argument 2, got array.

@@ -5,91 +5,149 @@ import (
 	"rune/pkg/ast"
 	"rune/pkg/errors"
 	"rune/pkg/helpers"
+	"rune/pkg/stdlib"
 	"rune/pkg/value"
 	"slices"
 	"strings"
 )
 
-type cursorMode uint8
-
-const (
-	arrayCursor cursorMode = iota
-	stringCursor
-	objectCursor
-	structCursor
-)
-
-// cursor walks what a for-in iterates: (index or key, element) pairs. An
-// object cursor walks the keys in arr, reading each value from obj; a
-// struct cursor reads it from vals.
+// cursor walks what a for-in iterates, as (index or key, element) pairs:
+// an array by itself, which the dispatch loop reads, anything else by next.
 type cursor struct {
-	mode cursorMode
-	i    int
 	arr  []value.Value
-	str  string
-	obj  map[string]value.Value
-	vals []value.Value
+	i    int
+	next func() (key, val value.Value, ok bool, err error)
 }
 
-func (c *cursor) next() (key, val value.Value, ok bool) {
-	i := c.i
-	c.i++
-
-	switch c.mode {
-	case arrayCursor:
-		if i < len(c.arr) {
-			return value.NewNumber(float64(i)), c.arr[i], true
-		}
-	case stringCursor:
-		if c.str != "" {
-			ch, n := helpers.NextChar(c.str)
-			c.str = c.str[n:]
-
-			return value.NewNumber(float64(i)), value.NewString(ch), true
-		}
-	case objectCursor:
-		if i < len(c.arr) {
-			return c.arr[i], c.obj[c.arr[i].Str()], true
-		}
-	case structCursor:
-		if i < len(c.arr) {
-			return c.arr[i], c.vals[i], true
-		}
+func (c *cursor) advance() (key, val value.Value, ok bool, err error) {
+	if c.next != nil {
+		return c.next()
 	}
 
-	return key, val, false
+	if i := c.i; i < len(c.arr) {
+		c.i++
+		return value.NewInt(int64(i)), c.arr[i], true, nil
+	}
+
+	return key, val, false, nil
 }
 
-// cursorOf snapshots arrays. Objects yield their keys in sorted order and
-// structs in declaration order; a loop that binds only one variable walks
-// them like an array of keys.
+// indexed yields the elements at returns, with their indices, until it
+// reports no more.
+func indexed(at func(i int) (value.Value, bool)) func() (value.Value, value.Value, bool, error) {
+	i := 0
+
+	return func() (value.Value, value.Value, bool, error) {
+		v, ok := at(i)
+		i++
+
+		return value.NewInt(int64(i - 1)), v, ok, nil
+	}
+}
+
+// cursorOf snapshots arrays and walks maps and sets in place. Objects
+// yield their keys in sorted order and structs in declaration order; a
+// loop that binds only one variable walks them like an array of keys.
 func cursorOf(v value.Value, hasKey bool, keyword *ast.Token) (*cursor, error) {
 	switch v.Kind() {
 	case value.Array:
-		return &cursor{mode: arrayCursor, arr: slices.Clone(v.Arr())}, nil
+		return &cursor{arr: slices.Clone(v.Arr())}, nil
 	case value.String:
-		return &cursor{mode: stringCursor, str: v.Str()}, nil
+		s := v.Str()
+
+		return &cursor{next: indexed(func(int) (value.Value, bool) {
+			if s == "" {
+				return value.NilValue, false
+			}
+
+			ch, n := helpers.NextChar(s)
+			s = s[n:]
+
+			return value.NewString(ch), true
+		})}, nil
+	case value.Bytes:
+		b := v.Bytes()
+
+		return &cursor{next: indexed(func(i int) (value.Value, bool) {
+			if i >= len(b) {
+				return value.NilValue, false
+			}
+
+			return value.NewInt(int64(b[i])), true
+		})}, nil
 	case value.Object:
-		obj := v.Obj()
-		keys := sortedKeys(obj)
-
-		if !hasKey {
-			return &cursor{mode: arrayCursor, arr: keys}, nil
-		}
-
-		return &cursor{mode: objectCursor, arr: keys, obj: obj}, nil
+		return pairs(sortedKeys(v.Obj()), hasKey, func(i int, k value.Value) value.Value { return v.Obj()[k.Str()] }), nil
 	case value.Struct:
 		// Keys and fields never change, so the cursor shares them.
-		keys := v.Shape().Keys
-		if !hasKey {
-			return &cursor{mode: arrayCursor, arr: keys}, nil
-		}
-
-		return &cursor{mode: structCursor, arr: keys, vals: v.Fields()}, nil
+		fields := v.Fields()
+		return pairs(v.Shape().Keys, hasKey, func(i int, _ value.Value) value.Value { return fields[i] }), nil
+	case value.Map, value.Set:
+		return tableCursor(v, hasKey && v.Kind() == value.Map, *keyword), nil
+	case value.Stream:
+		return streamCursor(v.Internal().(*stdlib.Stream), *keyword), nil
 	}
 
 	return nil, errors.NewRuntimeError(errors.TypeError, *keyword, fmt.Sprintf(
-		"Can only iterate over arrays, strings, objects and structs, got %s.", helpers.TypeName(v)))
+		"Can only iterate over arrays, strings, objects, structs, Maps, Sets, bytes and Streams, got %s.", helpers.TypeName(v)))
+}
+
+// pairs walks keys, with their values if hasKey.
+func pairs(keys []value.Value, hasKey bool, val func(i int, k value.Value) value.Value) *cursor {
+	if !hasKey {
+		return &cursor{arr: keys}
+	}
+
+	i := 0
+
+	return &cursor{next: func() (value.Value, value.Value, bool, error) {
+		if i >= len(keys) {
+			return value.NilValue, value.NilValue, false, nil
+		}
+
+		i++
+
+		return keys[i-1], val(i-1, keys[i-1]), true, nil
+	}}
+}
+
+// tableCursor walks a Map or a Set in place, by key with keys, else by
+// index; adding a key while it walks is an error.
+func tableCursor(v value.Value, keys bool, keyword ast.Token) *cursor {
+	walk, n := v.HashMap().Walk(), 0
+
+	return &cursor{next: func() (value.Value, value.Value, bool, error) {
+		k, x, ok, stale := walk()
+
+		switch {
+		case stale:
+			return k, x, false, errors.NewRuntimeError(errors.ValueError, keyword,
+				"Cannot add to a "+helpers.TypeName(v)+" while iterating over it.")
+		case !ok:
+			return k, x, false, nil
+		case keys:
+			return k, x, true, nil
+		}
+
+		n++
+
+		return value.NewInt(int64(n - 1)), k, true, nil
+	}}
+}
+
+// streamCursor reads lines up to the end.
+func streamCursor(s *stdlib.Stream, keyword ast.Token) *cursor {
+	n := 0
+
+	return &cursor{next: func() (value.Value, value.Value, bool, error) {
+		line, ok, err := s.ReadLine()
+		if err != nil {
+			return value.NilValue, value.NilValue, false, errors.NewIOError(keyword, s.String()+": "+err.Error()+".", "", "")
+		}
+
+		n++
+
+		return value.NewInt(int64(n - 1)), value.NewString(line), ok, nil
+	}}
 }
 
 func sortedKeys(obj map[string]value.Value) []value.Value {

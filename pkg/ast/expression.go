@@ -334,6 +334,8 @@ func (n *LiteralExpr) String() string {
 		return n.Value.Str()
 	case value.Bool:
 		return fmt.Sprint(n.Value.Bool())
+	case value.Bytes:
+		return string(n.Value.Bytes())
 	}
 
 	return fmt.Sprintf("%v", n.Value.Fn())

@@ -19,9 +19,13 @@ var preludeNatives = []*Native{
 			return count(utf8.RuneCountInString(v.Str()))
 		case value.Struct:
 			return count(len(v.Shape().Fields))
+		case value.Map, value.Set:
+			return count(v.HashMap().Len())
+		case value.Bytes:
+			return count(len(v.Bytes()))
 		}
 
-		return c.typeError(0, "a string, an array, an object or a struct")
+		return c.typeError(0, "a string, an array, an object, a struct, a Map, a Set or bytes")
 	}},
 	{"type", 1, 1, func(c *call) value.Value {
 		return value.NewString(helpers.TypeName(c.args[0]))

@@ -32,6 +32,14 @@ func TypeName(v value.Value) string {
 		return v.Shape().Name
 	case value.Type:
 		return "struct"
+	case value.Map:
+		return "Map"
+	case value.Set:
+		return "Set"
+	case value.Bytes:
+		return "bytes"
+	case value.Stream:
+		return "Stream"
 	default:
 		return "function"
 	}
@@ -83,7 +91,7 @@ func stringify(v value.Value, seen map[uintptr]bool) string {
 	case value.Bool:
 		return strconv.FormatBool(v.Bool())
 	case value.Number:
-		return string(AppendFixed(nil, v.Num(), -1))
+		return string(AppendNumber(nil, v))
 	case value.String:
 		return v.Str()
 	case value.Array:
@@ -157,15 +165,85 @@ func stringify(v value.Value, seen map[uintptr]bool) string {
 		return shape.Name + " {" + strings.Join(pairs, ", ") + "}"
 	case value.Type:
 		return "<struct " + v.TypeShape().Name + ">"
+	case value.Map, value.Set:
+		return stringifyTable(v, seen)
+	case value.Bytes:
+		return QuoteBytes(v.Bytes())
+	case value.Stream:
+		return fmt.Sprint(v.Internal())
 	default:
 		return fmt.Sprint(v.Fn())
 	}
 }
 
+func stringifyTable(v value.Value, seen map[uintptr]bool) string {
+	m := v.HashMap()
+	name := TypeName(v)
+
+	ptr := uintptr(v.Ptr())
+	if seen[ptr] {
+		return name + " {...}"
+	}
+
+	if m.Len() == 0 {
+		return name + " {}"
+	}
+
+	if seen == nil {
+		seen = map[uintptr]bool{}
+	}
+
+	seen[ptr] = true
+	defer delete(seen, ptr)
+
+	items := make([]string, 0, m.Len())
+	m.Each(func(k, x value.Value) bool {
+		if v.Kind() == value.Set {
+			items = append(items, element(k, seen))
+		} else {
+			items = append(items, element(k, seen)+": "+element(x, seen))
+		}
+
+		return true
+	})
+
+	return name + " {" + strings.Join(items, ", ") + "}"
+}
+
+// QuoteBytes writes b as a bytes literal: printable ASCII as is, other
+// bytes as \xNN.
+func QuoteBytes(b []byte) string {
+	buf := make([]byte, 0, len(b)+3)
+	buf = append(buf, 'b', '"')
+
+	for _, c := range b {
+		switch {
+		case c == '"' || c == '\\':
+			buf = append(buf, '\\', c)
+		case c == '\n':
+			buf = append(buf, '\\', 'n')
+		case c == '\t':
+			buf = append(buf, '\\', 't')
+		case c == '\r':
+			buf = append(buf, '\\', 'r')
+		case c == '{' || c == '}':
+			buf = append(buf, '\\', c)
+		case c >= 0x20 && c < 0x7f:
+			buf = append(buf, c)
+		default:
+			buf = append(buf, '\\', 'x', hexDigits[c>>4], hexDigits[c&15])
+		}
+	}
+
+	return string(append(buf, '"'))
+}
+
+const hexDigits = "0123456789abcdef"
+
 func AppendValue(buf []byte, v value.Value) []byte {
 	switch v.Kind() {
 	case value.Number:
-		return AppendFixed(buf, v.Num(), -1)
+		return AppendNumber(buf, v)
 	case value.String:
 		return append(buf, v.Str()...)
 	case value.Bool:

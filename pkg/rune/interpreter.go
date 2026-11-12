@@ -3,7 +3,6 @@ package rune
 import (
 	stderrors "errors"
 	"fmt"
-	"math"
 	"rune/pkg/ast"
 	"rune/pkg/errors"
 	"rune/pkg/helpers"
@@ -83,6 +82,7 @@ func (p *Interpreter) Evaluate(expr ast.Expr) (value.Value, error) {
 	}
 
 	defer p.host.Stdio.Flush()
+	defer p.host.CloseStreams()
 
 	return p.exec(prog, nil)
 }
@@ -91,13 +91,14 @@ func (p *Interpreter) Evaluate(expr ast.Expr) (value.Value, error) {
 // or main returning one, returns a stdlib.Exit.
 func (p *Interpreter) Run(prog *Program, args []string) error {
 	defer p.host.Stdio.Flush()
+	defer p.host.CloseStreams()
 
 	result, err := p.exec(prog, args)
 	if err != nil || result.IsNil() {
 		return err
 	}
 
-	if n := result.Num(); result.IsNumber() && n == math.Trunc(n) && n >= 0 && n <= 255 {
+	if n, ok := value.ToInt(result); ok && n >= 0 && n <= 255 {
 		return stdlib.Exit{Code: int(n)}
 	}
 
@@ -154,6 +155,8 @@ func (p *Interpreter) CallValue(fn value.Value, args []value.Value, token *ast.T
 			return p.run(len(p.frames) - 1)
 		case *BoundMethod:
 			return p.CallValue(value.NewFunction(f.fn), append([]value.Value{f.recv}, args...), token)
+		case *BoundNative:
+			return p.host.Call(f.fn, p, append([]value.Value{f.recv}, args...), token)
 		case *stdlib.Native:
 			return p.host.Call(f, p, args, token)
 		}

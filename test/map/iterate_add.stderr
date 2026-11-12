@@ -1,0 +1,3 @@
+[line: 8] ValueError: Cannot add to a Map while iterating over it.
+    8 | for k in n { // expect runtime error: [line: 8] ValueError: Cannot add to a Map while iterating over it.
+      | ^

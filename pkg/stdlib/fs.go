@@ -48,17 +48,25 @@ var fsNatives = []*Native{
 
 		return value.NewArray(items)
 	}},
+	{"fs.readBytes", 1, 1, func(c *call) value.Value {
+		b, err := os.ReadFile(c.str(0))
+		if c.ok() && err != nil {
+			return c.ioFail(err)
+		}
+
+		return value.NewBytes(b)
+	}},
+	{"fs.open", 1, 2, openFile},
 	{"fs.write", 2, 2, func(c *call) value.Value {
-		path, s := c.str(0), c.str(1)
+		path, data := c.str(0), c.data(1)
 		if c.ok() {
-			// WriteFile only reads the bytes, so s need not be copied.
-			c.check(os.WriteFile(path, unsafe.Slice(unsafe.StringData(s), len(s)), 0o644))
+			c.check(os.WriteFile(path, data, 0o644))
 		}
 
 		return value.NilValue
 	}},
 	{"fs.append", 2, 2, func(c *call) value.Value {
-		path, s := c.str(0), c.str(1)
+		path, data := c.str(0), c.data(1)
 		if !c.ok() {
 			return value.NilValue
 		}
@@ -68,7 +76,7 @@ var fsNatives = []*Native{
 			return c.ioFail(err)
 		}
 
-		_, err = f.WriteString(s)
+		_, err = f.Write(data)
 		c.check(stderrors.Join(err, f.Close()))
 
 		return value.NilValue

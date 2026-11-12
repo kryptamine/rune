@@ -25,13 +25,18 @@ const (
 	Struct
 	// Type is a struct type, the value of its name.
 	Type
+	Map
+	Set
+	Bytes
+	// Stream is an open file or a body being read.
+	Stream
 	NumKinds
 )
 
 // Value is a Rune runtime value in two words; the zero Value is nil.
 //
-// p tells the kind apart: nil for nil, a tag address for booleans and
-// numbers (whose payload is n), and otherwise the heap object, with the
+// p tells the kind apart: nil for nil, a tag address for booleans,
+// floats and integers (whose payload is n), and otherwise the heap object, with the
 // kind in the top byte of n. A string's p is its data and n holds its
 // length; with bufFlag set, p is the *strBuf it was concatenated into.
 // Functions and internal values keep the data word of an interface in p
@@ -41,12 +46,13 @@ type Value struct {
 	n uint64
 }
 
-var tags [3]byte
+var tags [4]byte
 
 // The tags are functions so they compile to constant addresses.
 func boolTag() unsafe.Pointer  { return unsafe.Pointer(&tags[0]) }
 func numTag() unsafe.Pointer   { return unsafe.Pointer(&tags[1]) }
 func otherTag() unsafe.Pointer { return unsafe.Pointer(&tags[2]) }
+func intTag() unsafe.Pointer   { return unsafe.Pointer(&tags[3]) }
 
 const (
 	kindShift = 56
@@ -61,7 +67,10 @@ var (
 	UndefinedValue = Value{p: otherTag(), n: uint64(Undefined) << kindShift}
 )
 
+// NewNumber returns a float; NewInt an integer. Both are of kind Number.
 func NewNumber(n float64) Value { return Value{p: numTag(), n: *(*uint64)(unsafe.Pointer(&n))} }
+
+func NewInt(i int64) Value { return Value{p: intTag(), n: uint64(i)} }
 
 func NewBool(b bool) Value {
 	if b {
@@ -191,7 +200,7 @@ func (v Value) Kind() Kind {
 		return Nil
 	case boolTag():
 		return Bool
-	case numTag():
+	case numTag(), intTag():
 		return Number
 	}
 
@@ -199,7 +208,9 @@ func (v Value) Kind() Kind {
 }
 
 func (v Value) IsNil() bool    { return v.p == nil }
-func (v Value) IsNumber() bool { return v.p == numTag() }
+func (v Value) IsNumber() bool { return v.p == numTag() || v.p == intTag() }
+func (v Value) IsInt() bool    { return v.p == intTag() }
+func (v Value) IsFloat() bool  { return v.p == numTag() }
 func (v Value) IsString() bool { return v.Kind() == String }
 
 func (v Value) IsUndefined() bool {
@@ -216,13 +227,25 @@ func (v Value) Truthy() bool {
 		return v.n != 0
 	case numTag():
 		return v.n<<1 != 0
+	case intTag():
+		return v.n != 0
 	}
 
 	return Kind(v.n>>kindShift) != String || v.n&lenMask != 0
 }
 
-// Num returns the number payload; only meaningful when Kind() == Number.
-func (v Value) Num() float64 { return *(*float64)(unsafe.Pointer(&v.n)) }
+// Num returns a number as a float; only meaningful when Kind() == Number.
+func (v Value) Num() float64 {
+	if v.p == intTag() {
+		return float64(int64(v.n))
+	}
+
+	return v.Float()
+}
+
+// Float returns the payload of a float; Int that of an integer.
+func (v Value) Float() float64 { return *(*float64)(unsafe.Pointer(&v.n)) }
+func (v Value) Int() int64     { return int64(v.n) }
 
 // Bool returns the boolean payload; only meaningful when Kind() == Bool.
 func (v Value) Bool() bool { return v.n != 0 }
@@ -282,6 +305,28 @@ func (v Value) Detach() Value {
 
 	return v
 }
+
+func NewMap(m *HashMap) Value { return Value{p: unsafe.Pointer(m), n: uint64(Map) << kindShift} }
+func NewSet(m *HashMap) Value { return Value{p: unsafe.Pointer(m), n: uint64(Set) << kindShift} }
+
+// HashMap returns the table of a map or a set.
+func (v Value) HashMap() *HashMap { return (*HashMap)(v.p) }
+
+// NewBytes wraps b, which must not change afterwards.
+func NewBytes(b []byte) Value {
+	p := unsafe.Pointer(unsafe.SliceData(b))
+	if len(b) == 0 {
+		p = otherTag()
+	}
+
+	return Value{p: p, n: uint64(Bytes)<<kindShift | uint64(len(b))}
+}
+
+// Bytes returns the payload of bytes, which must not be changed.
+func (v Value) Bytes() []byte { return unsafe.Slice((*byte)(v.p), int(v.n&lenMask)) }
+
+// NewStream wraps x, a stream of package stdlib.
+func NewStream(x any) Value { return boxed(Stream, x) }
 
 // Arr returns the array payload; only meaningful when Kind() == Array.
 func (v Value) Arr() []Value { return *(*[]Value)(v.p) }
@@ -424,7 +469,9 @@ func FromGo(x any) Value {
 	case float64:
 		return NewNumber(v)
 	case int:
-		return NewNumber(float64(v))
+		return NewInt(int64(v))
+	case int64:
+		return NewInt(v)
 	case string:
 		return NewString(v)
 	case []any:
