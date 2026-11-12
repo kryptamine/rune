@@ -28,14 +28,16 @@ Rune is a dynamically typed interpreted programming language inspired by [Lox](h
 - Methods in `impl` blocks, on structs and built-in types: `p.len()`, `Point.origin()`, `fun move(mut self)`
 - Destructuring of objects, structs and arrays, in `let` and parameters: `let { x, y } = p;`, `let [head, ...tail] = xs;`
 - Nil-safe access and defaults: `resp?.data?.items ?? []`
+- Conditional expressions: `n > 0 ? "pos" : "neg"`
 - Spread and rest: `[...a, ...b]`, `{...o, x: 1}`, `f(...args)`, `fun log(level, ...parts)`
 - Strings compare with `<`, `<=`, `>`, `>=` and index by character: `"héllo"[1]` is `"é"`
 - Pattern matching with `match`, as an expression or a statement
-- Error handling with `try`/`catch` and `throw`
+- Error handling with `try`/`catch` and `throw`, also as an expression: `x ?? throw E { ... }`
 - Two loops only: `while` and `for x in ...` over arrays, strings, objects and ranges (`a..b`)
 - `break` and `continue` in both
 - `if`/`else`, `while` and `for` bodies are blocks, or a bare statement starting with a name or keyword: `if v < 0 return;`, `for x in xs out.push(x);`
 - Anonymous functions: `fun (x) { return x * 2; }`, or arrow functions: `x => x * 2`
+- Default parameters, evaluated at each call: `fun greet(name, greeting = "hi")`
 - Modulo `%` and compound assignment: `+=`, `-=`, `*=`, `/=`, `%=`
 - Increment and decrement, prefix and postfix: `++i`, `i++`, `--i`, `i--` (on variables, array elements and properties)
 - Cross-platform, compiles to a single binary
@@ -469,6 +471,17 @@ let n = opts?.retries ?? 3; // 0 stays 0
 cb?.(result);
 ```
 
+## Conditional Expressions
+
+`c ? a : b` is `a` if `c` is truthy, else `b`; only the chosen branch runs.
+It binds looser than ranges and `??`, tighter than assignment, and nests to
+the right: `a ? b : c ? d : e` is `a ? b : (c ? d : e)`.
+
+```javascript
+let label = n > 0 ? "pos" : n < 0 ? "neg" : "zero";
+let parity = n => n % 2 == 0 ? "even" : "odd";
+```
+
 ## Spread and Rest
 
 `...` spreads an array into an array literal or a call's arguments, and an
@@ -494,10 +507,30 @@ log("info", "started", "in", 3, "ms");
 let count = (...args) => len(args);
 ```
 
+## Default Parameters
+
+A parameter may have a default, `name = expression`, taken when the call
+passes no argument for it; an explicit `nil` is an argument. The default is
+evaluated at each such call, after the parameters before it, which it may
+use. Every parameter after one with a default needs one too, except a rest
+parameter; `self` and a rest parameter cannot have one.
+
+```javascript
+fun greet(name, greeting = "hi", punct = greeting == "hi" ? "!" : ".") {
+    return "{greeting} {name}{punct}";
+}
+
+greet("ann");          // hi ann!
+greet("ann", "hello"); // hello ann.
+
+fun push(x, mut xs = []) { xs.push(x); return xs; } // a new array each call
+let add = (a, b = 1) => a + b;
+```
+
 ## Pattern Matching
 
 `match` tries its arms in order and runs the first whose pattern matches;
-an arm is `pattern => expression`, `pattern => { block }` or a bare
+an arm is `pattern => expression` (ended by `,` or `;`), `pattern => { block }` or a bare
 statement starting with a keyword, `pattern => return x;`, and may have a
 guard, `pattern if condition`. As an expression its value is the arm's (a
 block or statement gives `nil`) and no arm matching is a `ValueError`. At the start of
@@ -800,7 +833,9 @@ try {
 ```
 
 `throw` raises a struct instance, built-in or your own; `catch` receives it
-unchanged. Throwing anything else is a `TypeError`. An uncaught throw stops the program like any runtime error,
+unchanged. It is also an expression, whose operand extends as far as it can,
+so it fits where a value is expected: `o?.[k] ?? throw KeyError { message: k }`,
+`n > 0 ? n : throw E { ... }`, or a match arm `_ => throw E { ... },`. Throwing anything else is a `TypeError`. An uncaught throw stops the program like any runtime error,
 reported as `Name: message` when the struct has a string `message`.
 
 ```javascript

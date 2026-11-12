@@ -16,7 +16,7 @@ func (s *Parser) assignment() (ast.Expr, error) {
 		return fn, err
 	}
 
-	expr, err := s.rangeExpr()
+	expr, err := s.conditional()
 
 	if err != nil {
 		return nil, err
@@ -72,6 +72,30 @@ var compoundOps = map[ast.TokenType]ast.TokenType{
 	ast.CARET_EQUAL:           ast.CARET,
 	ast.LESS_LESS_EQUAL:       ast.LESS_LESS,
 	ast.GREATER_GREATER_EQUAL: ast.GREATER_GREATER,
+}
+
+// conditional parses cond ? then : else, right-associative.
+func (s *Parser) conditional() (ast.Expr, error) {
+	cond, err := s.rangeExpr()
+	if err != nil || !s.match(ast.QUESTION) {
+		return cond, err
+	}
+
+	then, err := s.expressionWithStructs(structsAll)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := s.consume(ast.COLON, "Expect ':' after then branch of '?'."); err != nil {
+		return nil, err
+	}
+
+	els, err := s.assignment()
+	if err != nil {
+		return nil, err
+	}
+
+	return &ast.ConditionalExpr{Cond: cond, Then: then, Else: els}, nil
 }
 
 func (s *Parser) rangeExpr() (ast.Expr, error) {
@@ -247,6 +271,17 @@ func (s *Parser) factor() (ast.Expr, error) {
 }
 
 func (s *Parser) unary() (ast.Expr, error) {
+	if s.match(ast.THROW) {
+		keyword := s.previous()
+
+		v, err := s.assignment()
+		if err != nil {
+			return nil, err
+		}
+
+		return &ast.ThrowExpr{Value: v, Keyword: keyword}, nil
+	}
+
 	if s.match(ast.BANG, ast.MINUS, ast.TILDE) {
 		operator := s.previous()
 		right, err := s.unary()
@@ -693,7 +728,7 @@ func (s *Parser) arrowParams() (params, bool) {
 
 	b, _ := s.binding("")
 
-	return params{list: []ast.Binding{b}}, true
+	return params{list: []ast.Binding{b}, defaults: []ast.Expr{nil}}, true
 }
 
 // arrowBody parses a block, or an expression whose value is returned.

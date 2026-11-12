@@ -1,1 +1,1 @@
-throw e // [line: 2] Error at end: Expect ';' after thrown value.
+throw e // [line: 2] Error at end: Expect ';' after expression.

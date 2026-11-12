@@ -34,7 +34,7 @@ syn region runeInterpBrace contained transparent start="{" end="}" contains=TOP,
 syn region runeString start=+"+ skip=+\\\\\|\\"+ end=+"+ contains=runeEscape,runeInterp
 syn region runeBytes matchgroup=runeBytesPrefix start=+\<b"+ skip=+\\\\\|\\"+ end=+"+ contains=runeEscape,runeByteEscape
 
-syn match runeOperator "=>\|\.\.\.\|\.\.=\|\.\.\|?\.\|??\|[-+*/%=!<>&|^~]=\="
+syn match runeOperator "=>\|\.\.\.\|\.\.=\|\.\.\|?\.\|??\|?\|[-+*/%=!<>&|^~]=\="
 
 syn keyword runeTodo contained TODO FIXME XXX NOTE
 syn match runeComment "//.*$" contains=runeTodo,@Spell

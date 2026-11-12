@@ -1,2 +1,0 @@
-print 1 ? 2; // Error: Unexpected character: ?
-// [line: 1] Error at '2': Expect ';' after value.

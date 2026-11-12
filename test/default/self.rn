@@ -1,0 +1,5 @@
+struct P { x }
+
+impl P {
+    fun m(self = 1) {} // [line: 4] Error at 'self': 'self' cannot have a default.
+}

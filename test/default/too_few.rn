@@ -1,0 +1,3 @@
+fun f(a, b = 1) {}
+
+f(); // expect runtime error: [line: 3] ArgumentError: Expected 1 to 2 arguments but got 0.

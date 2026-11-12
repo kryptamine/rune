@@ -54,8 +54,6 @@ func (fs *funcState) stmt(stmt ast.Stmt) {
 		}
 	case *ast.TryStmt:
 		fs.tryStmt(s)
-	case *ast.ThrowStmt:
-		fs.emit(ins{op: opThrow, a: fs.exprAny(s.Value)}, &s.Keyword)
 	case *ast.MatchStmt:
 		fs.match(s.Match, noReg)
 	case *ast.StructStmt, *ast.ImplStmt:

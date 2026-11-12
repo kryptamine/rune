@@ -374,6 +374,11 @@ reload:
 				pc = in.c()
 			}
 
+		case opJmpDefined:
+			if !regs[in.a()].IsUndefined() {
+				pc = in.c()
+			}
+
 		case opTestProp:
 			t := regs[in.b()]
 			if k := t.Kind(); k == value.Struct {

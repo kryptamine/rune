@@ -433,11 +433,6 @@ func (p *Resolver) resolveCatch(c *ast.CatchClause) {
 	p.endScope()
 }
 
-func (p *Resolver) VisitThrowStmt(throwStmt *ast.ThrowStmt) error {
-	p.resolveExpr(throwStmt.Value)
-	return nil
-}
-
 func (p *Resolver) VisitAssignExpr(expr *ast.AssignExpr) (value.Value, error) {
 	p.resolveExpr(expr.Value)
 	p.requireInitialized(expr.Name, "assign to")
@@ -482,6 +477,20 @@ func (p *Resolver) VisitLiteralExpr(_ *ast.LiteralExpr) (value.Value, error) {
 func (p *Resolver) VisitLogicalExpr(expr *ast.LogicalExpr) (value.Value, error) {
 	p.resolveExpr(expr.Left)
 	p.resolveExpr(expr.Right)
+
+	return value.NilValue, nil
+}
+
+func (p *Resolver) VisitConditionalExpr(expr *ast.ConditionalExpr) (value.Value, error) {
+	p.resolveExpr(expr.Cond)
+	p.resolveExpr(expr.Then)
+	p.resolveExpr(expr.Else)
+
+	return value.NilValue, nil
+}
+
+func (p *Resolver) VisitThrowExpr(expr *ast.ThrowExpr) (value.Value, error) {
+	p.resolveExpr(expr.Value)
 
 	return value.NilValue, nil
 }
@@ -766,6 +775,10 @@ func (p *Resolver) resolveFn(fn *ast.FunctionStmt) {
 	p.beginScope()
 
 	for i, param := range fn.Parameters {
+		if fn.Defaults[i] != nil {
+			p.resolveExpr(fn.Defaults[i])
+		}
+
 		fn.Parameters[i].Local = p.declare(param)
 		p.define(param.Name)
 	}

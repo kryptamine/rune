@@ -79,6 +79,7 @@ const (
 	DOT_DOT
 	DOT_DOT_EQUAL
 	DOT_DOT_DOT
+	QUESTION
 	QUESTION_DOT
 	QUESTION_QUESTION
 	ARROW
@@ -174,6 +175,8 @@ func (tokenType TokenType) String() string {
 		return "DOT_DOT_EQUAL"
 	case DOT_DOT_DOT:
 		return "DOT_DOT_DOT"
+	case QUESTION:
+		return "QUESTION"
 	case QUESTION_DOT:
 		return "QUESTION_DOT"
 	case QUESTION_QUESTION:

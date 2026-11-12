@@ -167,6 +167,7 @@ func (s *Parser) functionRest(name ast.Token) (*ast.FunctionStmt, error) {
 // first in the body.
 type params struct {
 	list     []ast.Binding
+	defaults []ast.Expr
 	patterns []ast.Stmt
 	rest     bool
 }
@@ -174,6 +175,7 @@ type params struct {
 func (ps params) function(name ast.Token, body []ast.Stmt) *ast.FunctionStmt {
 	fn := ast.NewFunctionStmt(name, ps.list, append(ps.patterns, body...))
 	fn.Rest = ps.rest
+	fn.Defaults = ps.defaults
 
 	return fn
 }
@@ -181,6 +183,7 @@ func (ps params) function(name ast.Token, body []ast.Stmt) *ast.FunctionStmt {
 // parameters parses a parameter list up to and including ")".
 func (s *Parser) parameters() (params, error) {
 	ps := params{list: []ast.Binding{}}
+	sawDefault := false
 
 	for !s.check(ast.RIGHT_PAREN) && !ps.rest {
 		// Report but keep parsing: the parser is not in a confused state.
@@ -200,6 +203,18 @@ func (s *Parser) parameters() (params, error) {
 
 		ps.list = append(ps.list, param)
 
+		def, err := s.paramDefault(ps.rest)
+		if err != nil {
+			return ps, err
+		}
+
+		if def == nil && sawDefault && !ps.rest {
+			s.errors = append(s.errors, errors.NewSyntaxError(param.Name, "A parameter without a default cannot follow one with a default."))
+		}
+
+		sawDefault = sawDefault || def != nil
+		ps.defaults = append(ps.defaults, def)
+
 		if pattern != nil {
 			ps.patterns = append(ps.patterns, pattern)
 		}
@@ -216,6 +231,19 @@ func (s *Parser) parameters() (params, error) {
 	_, err := s.consume(ast.RIGHT_PAREN, "Expect ')' after parameters.")
 
 	return ps, err
+}
+
+// paramDefault parses the "= value" of the parameter just parsed, if any.
+func (s *Parser) paramDefault(rest bool) (ast.Expr, error) {
+	if !s.match(ast.EQUAL) {
+		return nil, nil
+	}
+
+	if rest {
+		return nil, errors.NewSyntaxError(s.previous(), "A rest parameter cannot have a default.")
+	}
+
+	return s.expressionWithStructs(structsAll)
 }
 
 // parameter parses a parameter: a binding, or a pattern, which binds a
@@ -462,10 +490,6 @@ func (s *Parser) statement() (ast.Stmt, error) {
 
 	if s.match(ast.TRY) {
 		return s.tryStatement()
-	}
-
-	if s.match(ast.THROW) {
-		return s.throwStatement()
 	}
 
 	if s.match(ast.BREAK, ast.CONTINUE) {
@@ -836,19 +860,4 @@ func (s *Parser) catchClause() (ast.CatchClause, error) {
 	c.Body = handler
 
 	return c, err
-}
-
-func (s *Parser) throwStatement() (ast.Stmt, error) {
-	keyword := s.previous()
-
-	value, err := s.expression()
-	if err != nil {
-		return nil, err
-	}
-
-	if _, err := s.consume(ast.SEMICOLON, "Expect ';' after thrown value."); err != nil {
-		return nil, err
-	}
-
-	return ast.NewThrowStmt(value, keyword), nil
 }

@@ -1,0 +1,5 @@
+[line: 1] NameError: Undefined variable 'b'.
+    1 | fun f(a = b, b = 1) { return a; }
+      |           ^
+  at f (line 1)
+  at <script> (line 3)
