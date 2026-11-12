@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"regexp"
 	"rune/pkg/ast"
 	"rune/pkg/errors"
 	"rune/pkg/helpers"
@@ -32,6 +33,8 @@ type Host struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 	free   []*call
+	// regexes caches the patterns compiled so far.
+	regexes map[string]*regexp.Regexp
 }
 
 func NewHost(stdio *Stdio) *Host {
@@ -194,7 +197,7 @@ type Builtin struct {
 }
 
 // Types are the built-in struct types, which programs see by name.
-var Types = slices.Concat(errors.Kinds, []*value.Shape{FileInfo, ExecOptions, ExecResult})
+var Types = slices.Concat(errors.Kinds, []*value.Shape{FileInfo, ExecOptions, ExecResult, Match, HttpOptions, HttpResponse})
 
 // FieldNames returns each field name of Types as its one string.
 func FieldNames() map[string]string {
@@ -223,6 +226,7 @@ var namespaces = []namespace{
 		{"PI", value.NewNumber(math.Pi)},
 		{"INF", value.NewNumber(math.Inf(1))},
 	}},
+	{"regex", regexNatives, nil},
 	{"json", jsonNatives, nil},
 	{"http", httpNatives, nil},
 	{"time", timeNatives, nil},

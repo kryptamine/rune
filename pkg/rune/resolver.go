@@ -34,18 +34,10 @@ type Resolver struct {
 	loopDepth int
 	fnDepth   int
 	errors    []error
-	// globals tracks top-level declarations like a scope's vars; their
-	// mutability is in globalMutable, so localVar.mutable is unused.
-	globals map[string]*localVar
-	// globalMutable holds every top-level declaration up front, since a
-	// function may assign to a global declared after it.
-	globalMutable map[string]bool
-	// topLevel holds the declarations of every top-level name up front,
-	// for the same reason.
-	topLevel map[string]*ast.Local
-	// builtins holds a declaration for each built-in the program names
-	// without declaring it.
-	builtins map[string]*ast.Local
+	// mod is the top level of the file being resolved; modules holds
+	// every file's, by file index.
+	mod     *moduleScope
+	modules []*moduleScope
 	// structs holds every struct type up front, by its name's declaration.
 	structs map[*ast.Local]*value.Shape
 	// fieldNames holds each field name's one string, shared by every struct
@@ -56,39 +48,37 @@ type Resolver struct {
 }
 
 func NewResolver() *Resolver {
+	mod := newModuleScope()
+
 	return &Resolver{
-		globals:       map[string]*localVar{},
-		globalMutable: map[string]bool{},
-		topLevel:      map[string]*ast.Local{},
-		builtins:      map[string]*ast.Local{},
-		structs:       map[*ast.Local]*value.Shape{},
-		fieldNames:    stdlib.FieldNames(),
+		mod:        mod,
+		modules:    []*moduleScope{mod},
+		structs:    map[*ast.Local]*value.Shape{},
+		fieldNames: stdlib.FieldNames(),
 	}
 }
 
-// ResolveStmts resolves a whole program and returns all errors found.
-func (p *Resolver) ResolveStmts(stmts []ast.Stmt) []error {
+// resolveTopLevel resolves the statements of one file.
+func (p *Resolver) resolveTopLevel(stmts []ast.Stmt) {
 	for _, stmt := range stmts {
 		fn, _ := stmt.(*ast.FunctionStmt)
 		for _, b := range ast.Declared(stmt) {
-			p.globalMutable[b.Name.Lexeme] = b.Mutable
-			p.topLevel[b.Name.Lexeme] = &ast.Local{TopLevel: true}
+			p.mod.globalMutable[b.Name.Lexeme] = b.Mutable
+			p.mod.topLevel[b.Name.Lexeme] = &ast.Local{TopLevel: true}
 			p.declareMain(b.Name, fn)
 		}
 
 		if s, ok := stmt.(*ast.StructStmt); ok {
 			p.declareMain(s.Name, nil)
-			p.globalMutable[s.Name.Lexeme] = false
+			p.mod.globalMutable[s.Name.Lexeme] = false
 			l := &ast.Local{TopLevel: true}
-			p.topLevel[s.Name.Lexeme] = l
+			p.mod.topLevel[s.Name.Lexeme] = l
 			s.Shape = p.shape(s)
 			p.structs[l] = s.Shape
 		}
 	}
 
 	p.resolveStmts(stmts)
-
-	return p.errors
 }
 
 // declareMain takes a top-level declaration of name as the entry point
@@ -160,6 +150,16 @@ func (p *Resolver) requireInitialized(name ast.Token, verb string) {
 }
 
 func (p *Resolver) VisitVarExpr(expr *ast.VarExpr) (value.Value, error) {
+	if expr.Module != nil {
+		expr.Local = p.member(*expr.Module, expr.Name)
+		return value.NilValue, nil
+	}
+
+	if p.isModule(expr) {
+		p.error(expr.Name, "Module '"+expr.Name.Lexeme+"' is not a value; use its members, as in "+expr.Name.Lexeme+".name.")
+		return value.NilValue, nil
+	}
+
 	p.requireInitialized(expr.Name, "read")
 	expr.Local = p.resolveLocal(expr.Name)
 
@@ -297,11 +297,10 @@ func (p *Resolver) VisitStructExpr(expr *ast.StructExpr) (value.Value, error) {
 		p.resolveExpr(pair.Value)
 	}
 
-	expr.Local = p.resolveLocal(expr.Name)
+	p.resolveExpr(expr.Type)
 
-	shape := p.structs[expr.Local]
+	shape := p.structType(expr.Type)
 	if shape == nil {
-		p.error(expr.Name, "'"+expr.Name.Lexeme+"' is not a struct.")
 		return value.NilValue, nil
 	}
 
@@ -321,7 +320,7 @@ func (p *Resolver) VisitStructExpr(expr *ast.StructExpr) (value.Value, error) {
 
 	for i, f := range shape.Fields {
 		if _, optional := shape.Default(i); !given[i] && !optional {
-			p.error(expr.Name, errors.MissingField(shape.Name, f))
+			p.error(expr.Type.Name, errors.MissingField(shape.Name, f))
 		}
 	}
 
@@ -372,13 +371,12 @@ func (p *Resolver) VisitTryStmt(tryStmt *ast.TryStmt) error {
 		for _, t := range c.Types {
 			p.resolveExpr(t)
 
-			if p.structs[t.Local] == nil {
-				p.error(t.Name, "'"+t.Name.Lexeme+"' is not a struct.")
-			} else if caught[t.Name.Lexeme] {
-				p.error(t.Name, "'"+t.Name.Lexeme+"' is already caught.")
+			name := qualified(t.Module, t.Name)
+			if p.structType(t) != nil && caught[name] {
+				p.error(t.Name, "'"+name+"' is already caught.")
 			}
 
-			caught[t.Name.Lexeme] = true
+			caught[name] = true
 		}
 
 		p.resolveCatch(c)
@@ -477,6 +475,11 @@ func (p *Resolver) VisitInterpolationExpr(expr *ast.InterpolationExpr) (value.Va
 }
 
 func (p *Resolver) VisitIndexExpr(expr *ast.IndexExpr) (value.Value, error) {
+	if p.isModule(expr.Array) {
+		expr.Export = p.moduleMember(expr)
+		return value.NilValue, nil
+	}
+
 	p.resolveMember(expr)
 	p.resolveExpr(expr.Array)
 	p.resolveExpr(expr.Index)
@@ -505,6 +508,13 @@ func (p *Resolver) resolveMember(expr *ast.IndexExpr) {
 }
 
 func (p *Resolver) VisitSetIndexExpr(expr *ast.SetIndexExpr) (value.Value, error) {
+	if p.isModule(expr.Array) {
+		p.moduleAssign(expr.Array, expr.Token)
+		p.resolveExpr(expr.Value)
+
+		return value.NilValue, nil
+	}
+
 	p.resolveExpr(expr.Array)
 	p.resolveExpr(expr.Index)
 	p.resolveExpr(expr.Value)
@@ -531,7 +541,11 @@ func (p *Resolver) VisitUpdateExpr(expr *ast.UpdateExpr) (value.Value, error) {
 	case *ast.VarExpr:
 		p.requireMutable(t.Name, "assign to")
 	case *ast.IndexExpr:
-		p.requireMutableRoot(t.Array)
+		if t.Export != nil {
+			p.moduleAssign(t.Array, t.Token)
+		} else {
+			p.requireMutableRoot(t.Array)
+		}
 	}
 
 	return value.NilValue, nil
@@ -554,7 +568,15 @@ func (p *Resolver) requireMutable(name ast.Token, verb string) {
 
 // requireMutableRoot checks the variable an element or property chain starts from.
 func (p *Resolver) requireMutableRoot(expr ast.Expr) {
-	if root := rootVar(expr); root != nil {
+	root := rootVar(expr)
+
+	switch {
+	case root == nil:
+	case root.Module != nil:
+		if root.Local != nil && !p.mod.imports[root.Module.Lexeme].globalMutable[root.Name.Lexeme] {
+			p.error(root.Name, "Cannot mutate immutable variable '"+qualified(root.Module, root.Name)+"'.")
+		}
+	default:
 		p.requireMutable(root.Name, "mutate")
 	}
 }
@@ -567,11 +589,16 @@ func (p *Resolver) requireMutableArg(call *ast.CallExpr) {
 	}
 }
 
-// rootVar returns the variable an element or property chain starts from, if any.
+// rootVar returns the variable an element or property chain starts from,
+// a module member included, if any.
 func rootVar(expr ast.Expr) *ast.VarExpr {
 	for {
 		switch e := expr.(type) {
 		case *ast.IndexExpr:
+			if e.Export != nil {
+				return e.Export
+			}
+
 			expr = e.Array
 		case *ast.VarExpr:
 			return e
@@ -588,13 +615,13 @@ func (p *Resolver) isMutable(name string) bool {
 		return l.mutable
 	}
 
-	mutable, declared := p.globalMutable[name]
+	mutable, declared := p.mod.globalMutable[name]
 
 	return !declared || mutable
 }
 
 func (p *Resolver) isBuiltin(name string) bool {
-	_, declared := p.globalMutable[name]
+	_, declared := p.mod.globalMutable[name]
 
 	return !declared && p.lookupScopes(name) == nil
 }
@@ -626,7 +653,7 @@ func (p *Resolver) resolveLocal(name ast.Token) *ast.Local {
 		}
 	}
 
-	l := p.topLevel[name.Lexeme]
+	l := p.mod.topLevel[name.Lexeme]
 	if l == nil {
 		l = p.builtin(name.Lexeme)
 	}
@@ -643,10 +670,10 @@ func (p *Resolver) builtin(name string) *ast.Local {
 		return nil
 	}
 
-	l, ok := p.builtins[name]
+	l, ok := p.mod.builtins[name]
 	if !ok {
 		l = &ast.Local{TopLevel: true}
-		p.builtins[name] = l
+		p.mod.builtins[name] = l
 
 		if v := builtinValues()[name]; v.Kind() == value.Type {
 			p.structs[l] = v.TypeShape()
@@ -704,8 +731,8 @@ func (p *Resolver) declare(b ast.Binding) *ast.Local {
 	}
 
 	if p.isScopesEmpty() {
-		p.globals[name.Lexeme] = &localVar{name: name}
-		return p.topLevel[name.Lexeme]
+		p.mod.globals[name.Lexeme] = &localVar{name: name}
+		return p.mod.topLevel[name.Lexeme]
 	}
 
 	l := &ast.Local{}
@@ -721,7 +748,7 @@ func (p *Resolver) define(name ast.Token) {
 // innermost returns the declarations of the current scope, the top level included.
 func (p *Resolver) innermost() map[string]*localVar {
 	if p.isScopesEmpty() {
-		return p.globals
+		return p.mod.globals
 	}
 
 	return p.peekScope().vars

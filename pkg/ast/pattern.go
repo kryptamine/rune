@@ -41,6 +41,7 @@ type FieldPattern struct {
 // StructPattern tests the value is a Name and matches its Fields; the
 // resolver sets Shape.
 type StructPattern struct {
+	Module *Token
 	Name   Token
 	Fields []FieldPattern
 	Shape  *value.Shape

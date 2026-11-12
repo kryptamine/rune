@@ -74,7 +74,7 @@ func (p *Interpreter) Evaluate(expr ast.Expr) (value.Value, error) {
 		return value.NilValue, errs[0]
 	}
 
-	prog, err := compileExpr(expr, r.builtins)
+	prog, err := compileExpr(expr, r.builtinLocals())
 	if err != nil {
 		return value.NilValue, err
 	}

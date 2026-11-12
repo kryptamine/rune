@@ -88,9 +88,11 @@ func NewLiteralExpr(tokenType TokenType, v any) Expr {
 	return &LiteralExpr{TokenType: tokenType, Value: value.FromGo(v)}
 }
 
+// VarExpr is a name; Module is set when it is qualified, as in m.Point.
 type VarExpr struct {
-	Name  Token
-	Local *Local
+	Module *Token
+	Name   Token
+	Local  *Local
 }
 
 func NewVarExpr(name Token) Expr {
@@ -142,6 +144,8 @@ type IndexExpr struct {
 	Property bool
 	// Member is the built-in a namespace member names, set by the resolver.
 	Member *value.Value
+	// Export is the variable a module member names, set by the resolver.
+	Export *VarExpr
 }
 
 func NewIndexExpr(array Expr, index Expr, token Token) Expr {
@@ -213,17 +217,12 @@ type StructPair struct {
 	Slot  int
 }
 
-// StructExpr is a struct literal, Point { x: 1 }; the resolver sets Local
-// and Shape.
+// StructExpr is a struct literal, Point { x: 1 } or m.Point { x: 1 };
+// the resolver sets Shape.
 type StructExpr struct {
-	Name  Token
+	Type  *VarExpr
 	Pairs []StructPair
-	Local *Local
 	Shape *value.Shape
-}
-
-func NewStructExpr(name Token, pairs []StructPair) Expr {
-	return &StructExpr{Name: name, Pairs: pairs}
 }
 
 func (n *StructExpr) Accept(v ExprVisitor) (value.Value, error) {

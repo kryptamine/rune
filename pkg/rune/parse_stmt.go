@@ -26,6 +26,10 @@ func (s *Parser) declaration() (ast.Stmt, error) {
 		return nil, errors.NewSyntaxError(s.previous(), "Imports must come before other statements.")
 	}
 
+	if s.match(ast.EXPORT) {
+		return nil, errors.NewSyntaxError(s.previous(), "Only top-level declarations can be exported.")
+	}
+
 	return s.statement()
 }
 
@@ -678,7 +682,16 @@ func (s *Parser) catchClause() (ast.CatchClause, error) {
 					return c, err
 				}
 
-				c.Types = append(c.Types, &ast.VarExpr{Name: t})
+				typ := &ast.VarExpr{Name: t}
+				if s.match(ast.DOT) {
+					if typ.Name, err = s.consume(ast.IDENTIFIER, "Expect error type name."); err != nil {
+						return c, err
+					}
+
+					typ.Module = &t
+				}
+
+				c.Types = append(c.Types, typ)
 
 				if !s.match(ast.COMMA) {
 					break

@@ -2,8 +2,8 @@ package stdlib
 
 import (
 	"bytes"
-	"fmt"
 	stderrors "errors"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -191,15 +191,15 @@ func (c *call) execOptions(cmd *exec.Cmd) {
 
 	f := opts.Fields()
 
-	if input, ok := c.option(f, 0, value.String, "a string"); ok {
+	if input, ok := c.option(ExecOptions, f, 0, value.String, "a string"); ok {
 		cmd.Stdin = strings.NewReader(input.Str())
 	}
 
-	if dir, ok := c.option(f, 1, value.String, "a string"); ok {
+	if dir, ok := c.option(ExecOptions, f, 1, value.String, "a string"); ok {
 		cmd.Dir = dir.Str()
 	}
 
-	if env, ok := c.option(f, 2, value.Object, "an object"); ok {
+	if env, ok := c.option(ExecOptions, f, 2, value.Object, "an object"); ok {
 		cmd.Env = os.Environ()
 
 		for name, v := range env.Obj() {
@@ -213,15 +213,15 @@ func (c *call) execOptions(cmd *exec.Cmd) {
 	}
 }
 
-// option returns ExecOptions field i if it is set; it must be of kind.
-func (c *call) option(fields []value.Value, i int, kind value.Kind, want string) (value.Value, bool) {
+// option returns field i of an options struct of shape if it is set; it must be of kind.
+func (c *call) option(shape *value.Shape, fields []value.Value, i int, kind value.Kind, want string) (value.Value, bool) {
 	v := fields[i]
 	if v.IsNil() || !c.ok() {
 		return v, false
 	}
 
 	if v.Kind() != kind {
-		c.fail(errors.TypeError, "expects ExecOptions.%s to be %s, got %s.", ExecOptions.Fields[i], want, helpers.TypeName(v))
+		c.fail(errors.TypeError, "expects %s.%s to be %s, got %s.", shape.Name, shape.Fields[i], want, helpers.TypeName(v))
 		return v, false
 	}
 

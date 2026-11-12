@@ -1,2 +1,2 @@
-fun ok() {}
+export fun ok() {}
 print "loaded";

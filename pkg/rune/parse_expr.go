@@ -423,9 +423,17 @@ func (s *Parser) primary() (ast.Expr, error) {
 	if s.match(ast.IDENTIFIER) {
 		prev := s.previous()
 
-		if s.isStructLiteralStart() {
+		if s.isStructLiteralStart(0) {
 			s.advance()
-			return s.structLiteral(prev)
+			return s.structLiteral(nil, prev)
+		}
+
+		if s.check(ast.DOT) && s.peekAt(1) == ast.IDENTIFIER && s.isStructLiteralStart(2) {
+			s.advance()
+			name := s.advance()
+			s.advance()
+
+			return s.structLiteral(&prev, name)
 		}
 
 		return ast.NewVarExpr(prev), nil
@@ -512,14 +520,14 @@ func (s *Parser) objectLiteral() (ast.Expr, error) {
 	return ast.NewObjectExpr(ast.OBJECT, pairs), nil
 }
 
-// structLiteral parses Name { field: value, ... }; "Name {" has already been consumed.
-func (s *Parser) structLiteral(name ast.Token) (ast.Expr, error) {
+// structLiteral parses [module.]Name { field: value, ... }; "Name {" has already been consumed.
+func (s *Parser) structLiteral(module *ast.Token, name ast.Token) (ast.Expr, error) {
 	pairs, err := s.structPairs()
 	if err != nil {
 		return nil, err
 	}
 
-	return ast.NewStructExpr(name, pairs), nil
+	return &ast.StructExpr{Type: &ast.VarExpr{Module: module, Name: name}, Pairs: pairs}, nil
 }
 
 // structPairs parses field: value, ... up to "}"; the "{" has already been consumed.
@@ -545,19 +553,19 @@ func (s *Parser) structPairs() ([]ast.StructPair, error) {
 	return pairs, err
 }
 
-// isStructLiteralStart reports whether a name is followed by "{ }" or
-// "{ field :", where the mode allows a struct literal.
-func (s *Parser) isStructLiteralStart() bool {
-	if s.structs == structsNone || !s.check(ast.LEFT_BRACE) {
+// isStructLiteralStart reports whether "{ }" or "{ field :" starts at
+// offset tokens ahead, where the mode allows a struct literal.
+func (s *Parser) isStructLiteralStart(offset int) bool {
+	if s.structs == structsNone || s.peekAt(offset) != ast.LEFT_BRACE {
 		return false
 	}
 
-	next := s.peekAt(1)
+	next := s.peekAt(offset + 1)
 	if next == ast.RIGHT_BRACE {
 		return s.structs == structsAll
 	}
 
-	return next == ast.IDENTIFIER && s.peekAt(2) == ast.COLON
+	return next == ast.IDENTIFIER && s.peekAt(offset+2) == ast.COLON
 }
 
 // arrayLiteral parses [a, b, ...]; the "[" has already been consumed.

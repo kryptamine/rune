@@ -1,0 +1,18 @@
+[line: 3] Error at 'pi': Cannot assign to a member of module 'math'.
+    3 | math.pi = 4; // Error at 'pi': Cannot assign to a member of module 'math'.
+      |      ^
+[line: 4] Error at 'calls': Cannot assign to a member of module 'math'.
+    4 | math.calls += 1; // Error at 'calls': Cannot assign to a member of module 'math'.
+      |      ^
+[line: 5] Error at 'calls': Cannot assign to a member of module 'math'.
+    5 | math.calls++; // Error at 'calls': Cannot assign to a member of module 'math'.
+      |      ^
+[line: 6] Error at 'items': Cannot mutate immutable variable 'math.items'.
+    6 | math.items[0] = 1; // Error at 'items': Cannot mutate immutable variable 'math.items'.
+      |      ^
+[line: 7] Error at 'items': Cannot mutate immutable variable 'math.items'.
+    7 | array.push(math.items, 1); // Error at 'items': Cannot mutate immutable variable 'math.items'.
+      |                 ^
+[line: 8] Error at 'math': Cannot assign to immutable variable 'math'.
+    8 | math = 1; // Error at 'math': Cannot assign to immutable variable 'math'.
+      | ^

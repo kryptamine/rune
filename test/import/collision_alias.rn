@@ -1,0 +1,2 @@
+import _lib.math;
+import _lib.math_clash as math; // Error at 'math': Variable with this name already declared in this scope.

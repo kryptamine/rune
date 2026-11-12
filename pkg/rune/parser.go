@@ -35,19 +35,30 @@ func ParseExpr(tokens []ast.Token) (ast.Expr, error) {
 	return parser.expression()
 }
 
-// importDecl is `import a.b;`; tok is its first segment.
+// importDecl is `import a.b;` or `import a.b as m;`; tok is its first
+// segment, as the name it binds: its last segment or alias. The loader
+// sets file to the imported file's index.
 type importDecl struct {
 	tok  ast.Token
 	name string
+	as   ast.Token
+	file int
+}
+
+// fileAST is a parsed file; exports are its exported declarations.
+type fileAST struct {
+	file    int
+	imports []importDecl
+	stmts   []ast.Stmt
+	exports []ast.Stmt
 }
 
 // parseFile parses a file: its imports, then its statements, which in a
 // module must be declarations. On a syntax error it records it, skips to
 // the next statement boundary and keeps going, so all errors are reported
 // at once.
-func parseFile(tokens []ast.Token, module bool) ([]importDecl, []ast.Stmt, []error) {
-	var imports []importDecl
-	var stmts []ast.Stmt
+func parseFile(tokens []ast.Token, module bool) (*fileAST, []error) {
+	file := &fileAST{}
 
 	parser := Parser{
 		tokens:  tokens,
@@ -58,26 +69,39 @@ func parseFile(tokens []ast.Token, module bool) ([]importDecl, []ast.Stmt, []err
 		if imp, err := parser.importDecl(); err != nil {
 			parser.recover(err)
 		} else {
-			imports = append(imports, imp)
+			file.imports = append(file.imports, imp)
 		}
 	}
 
 	for !parser.isAtEnd() {
+		exported := parser.match(ast.EXPORT)
 		tok := parser.peek()
-		if stmt := parser.safeDeclaration(); stmt != nil {
-			if module && !isDeclaration(stmt) {
-				parser.errors = append(parser.errors, errors.NewSyntaxError(tok, "Only declarations can be at the top level of a module."))
-			}
 
-			stmts = append(stmts, stmt)
+		stmt := parser.safeDeclaration()
+		if stmt == nil {
+			continue
+		}
+
+		switch {
+		case isDeclaration(stmt):
+		case exported:
+			parser.errors = append(parser.errors, errors.NewSyntaxError(tok, "Expect declaration after 'export'."))
+		case module:
+			parser.errors = append(parser.errors, errors.NewSyntaxError(tok, "Only declarations can be at the top level of a module."))
+		}
+
+		file.stmts = append(file.stmts, stmt)
+
+		if exported {
+			file.exports = append(file.exports, stmt)
 		}
 	}
 
 	if len(parser.errors) > 0 {
-		return nil, nil, parser.errors
+		return nil, parser.errors
 	}
 
-	return imports, stmts, nil
+	return file, nil
 }
 
 func isDeclaration(stmt ast.Stmt) bool {
@@ -86,11 +110,13 @@ func isDeclaration(stmt ast.Stmt) bool {
 	return isStruct || len(ast.Declared(stmt)) > 0
 }
 
-// importDecl parses a.b; after "import".
+// importDecl parses a.b [as m]; after "import".
 func (s *Parser) importDecl() (importDecl, error) {
 	var name strings.Builder
 
 	tok := s.peek()
+
+	var as ast.Token
 
 	for {
 		seg, err := s.consume(ast.IDENTIFIER, "Expect module name.")
@@ -99,6 +125,7 @@ func (s *Parser) importDecl() (importDecl, error) {
 		}
 
 		name.WriteString(seg.Lexeme)
+		as = seg
 
 		if !s.match(ast.DOT) {
 			break
@@ -107,11 +134,22 @@ func (s *Parser) importDecl() (importDecl, error) {
 		name.WriteByte('.')
 	}
 
+	if s.check(ast.IDENTIFIER) && s.peek().Lexeme == "as" {
+		s.advance()
+
+		alias, err := s.consume(ast.IDENTIFIER, "Expect name after 'as'.")
+		if err != nil {
+			return importDecl{}, err
+		}
+
+		as = alias
+	}
+
 	if _, err := s.consume(ast.SEMICOLON, "Expect ';' after import."); err != nil {
 		return importDecl{}, err
 	}
 
-	return importDecl{tok: tok, name: name.String()}, nil
+	return importDecl{tok: tok, name: name.String(), as: as}, nil
 }
 
 // safeDeclaration parses a declaration and recovers from a syntax error in it.
@@ -142,7 +180,7 @@ func (s *Parser) synchronize() {
 		}
 
 		switch t := s.peek().TokenType; t {
-		case ast.FUN, ast.LET, ast.STRUCT, ast.IMPORT, ast.MATCH:
+		case ast.FUN, ast.LET, ast.STRUCT, ast.IMPORT, ast.EXPORT, ast.MATCH:
 			return
 		default:
 			if stmtKeyword(t) {

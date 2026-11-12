@@ -4,7 +4,6 @@ import (
 	"rune/pkg/ast"
 	"rune/pkg/stdlib"
 	"rune/pkg/value"
-	"slices"
 	"unsafe"
 )
 
@@ -52,7 +51,7 @@ type constKey struct {
 // compile compiles a program; builtins are the declarations the resolver
 // made for the built-ins it names. The script takes the program's
 // arguments and returns what main, if any, returns.
-func compile(stmts []ast.Stmt, builtins map[string]*ast.Local, main *ast.FunctionStmt) (*Program, error) {
+func compile(stmts []ast.Stmt, builtins []namedLocal, main *ast.FunctionStmt) (*Program, error) {
 	return compileScript(func(fs *funcState, args *ast.Local) *ast.Token {
 		fs.declareStructs(stmts)
 		fs.declareTopLevel(stmts, builtins)
@@ -77,7 +76,7 @@ func compile(stmts []ast.Stmt, builtins map[string]*ast.Local, main *ast.Functio
 }
 
 // compileExpr compiles a lone expression into a program returning it.
-func compileExpr(expr ast.Expr, builtins map[string]*ast.Local) (*Program, error) {
+func compileExpr(expr ast.Expr, builtins []namedLocal) (*Program, error) {
 	return compileScript(func(fs *funcState, _ *ast.Local) *ast.Token {
 		fs.declareTopLevel(nil, builtins)
 		r := fs.alloc()
@@ -160,7 +159,7 @@ func (fs *funcState) declareStructs(stmts []ast.Stmt) {
 // declareTopLevel gives every top-level variable a register of the
 // script, holding the built-in of that name until it is declared, and
 // every built-in the program names one holding it from the start.
-func (fs *funcState) declareTopLevel(stmts []ast.Stmt, builtins map[string]*ast.Local) {
+func (fs *funcState) declareTopLevel(stmts []ast.Stmt, builtins []namedLocal) {
 	for _, stmt := range stmts {
 		for _, b := range ast.Declared(stmt) {
 			if _, done := fs.locals[b.Local]; !done {
@@ -169,16 +168,9 @@ func (fs *funcState) declareTopLevel(stmts []ast.Stmt, builtins map[string]*ast.
 		}
 	}
 
-	names := make([]string, 0, len(builtins))
-	for name := range builtins {
-		names = append(names, name)
-	}
-
-	slices.Sort(names)
-
-	for _, name := range names {
-		fs.declareTopLevelVar(builtins[name], name)
-		fs.defined[builtins[name]] = true
+	for _, b := range builtins {
+		fs.declareTopLevelVar(b.local, b.name)
+		fs.defined[b.local] = true
 	}
 }
 

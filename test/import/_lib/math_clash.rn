@@ -1,3 +1,9 @@
-fun square(x) {
+export fun square(x) {
   return x;
+}
+
+let pi = "clash";
+
+export fun clashPi() {
+  return pi;
 }

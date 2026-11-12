@@ -1,4 +1,0 @@
-import _lib.counter;
-
-count = 10;
-print bump(); // expect: 11

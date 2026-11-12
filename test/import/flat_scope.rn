@@ -1,4 +1,0 @@
-import _lib.uses_greet;
-import _lib.nested.greet;
-
-print welcome(); // expect: hi all

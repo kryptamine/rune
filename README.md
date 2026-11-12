@@ -11,7 +11,8 @@ Rune is a dynamically typed interpreted programming language inspired by [Lox](h
 - Dynamically typed language with a simple syntax
 - Supports expressions, statements, variables, and functions
 - Variables are immutable by default (`let`); `let mut` makes them mutable
-- Standard library in namespaces: `array`, `string`, `math`, `json`, `http`, `time`, `fs`, `io`, `os`
+- Standard library in namespaces: `array`, `string`, `regex`, `math`, `json`, `http`, `time`, `fs`, `io`, `os`
+- Modules with their own top level, `export` and `import a.b as m;`
 - Recursive descent parser; the resolved AST is compiled to register bytecode run by a VM
 - Parser recovers from syntax errors and reports all of them in one run
 - String escapes: `\n`, `\t`, `\r`, `\"`, `\\`, `\{`, `\}`
@@ -310,17 +311,39 @@ The value is evaluated once; it may be a struct literal, `match Point { x: 1 } {
 except an empty one, which needs parentheses. An arm after one that
 matches everything is an error.
 
-## Imports
+## Modules
 
-`import a.b;` loads `a/b.rn`, named from the directory of the file passed to `rune`. Imports come first in a file.
+`import a.b;` loads `a/b.rn`, named from the directory of the file passed to `rune`, and binds it as `b`;
+`import a.b as m;` binds it as `m`. Imports come first in a file.
+
+Each file has its own top level: names it declares are private unless marked `export` (`fun`, `let`, `struct`),
+and another file reaches them only through the module, as `m.name`. Two modules may declare the same name.
 
 ```
-import lib.math;
+// lib/geo.rn
+export struct Point { x, y = 0 }
+export let origin = Point { x: 0 };
+export fun dist(p) { return math.sqrt(p.x * p.x + p.y * p.y); }
+fun helper() {} // private
 
-print square(3);
+// main.rn
+import lib.geo;
+import lib.geo as g;
+
+print geo.dist(geo.Point { x: 3, y: 4 }); // 5
+let p = g.Point({x: 1});
+print p is g.Point;                         // true
+match p { g.Point { x, y } => print x; _ => {} }
+try { ... } catch (e: g.ParseError) { ... }
 ```
 
-All files share one top level: a name declared in one file is visible in every other, and declaring it twice is an error. Each file runs once, after the files it imports; an import cycle is an error.
+Members are bound when the program is compiled: a member a module does not export is a compile error,
+and so is using a module as a value (`print geo;`, `geo[k]`). A module's variables cannot be assigned from
+outside (`geo.origin = ...`); the array or object a `let mut` export holds may be changed, one held by an
+immutable `let` may not. Importing a module shadows a built-in namespace of the same name in that file,
+so `import lib.math;` hides `math.floor`; import it `as` another name to keep both.
+
+Each file runs once, after the files it imports; an import cycle is an error.
 An imported file may only declare things at its top level (`fun`, `let`, `struct`); statements such as `print` belong in the entry file.
 
 ## main
@@ -379,6 +402,31 @@ print array.join(array.map(people, ({ name }) => name), ", "); // bob, ann
 
 `fixed(n, digits)` (`n` with 0 to 100 decimals: `string.fixed(3.14159, 2)` is `"3.14"`), `split(s, sep)` (`""` splits into characters), `upper(s)`, `lower(s)`, `trim(s)`, `startsWith(s, p)`, `endsWith(s, p)`, `replace(s, old, new)` (all occurrences), `repeat(s, n)`, and `slice`, `reverse`, `contains`, `indexOf` as for arrays, counting characters.
 
+- `charCode(s[, i])` — the code point of character `i` (default 0); `fromCharCode(c, ...)` — the string of those code points.
+- `padStart(s, width[, pad])`, `padEnd(s, width[, pad])` — `s` filled to `width` characters with `pad` (default `" "`), repeated and cut.
+- `format(f, ...)` — printf: `%[flags][width][.precision]verb`, flags `-+ 0#`. `%v` and `%s` show a value as `print` does, `%q` as inside an array; `%d %x %X %o %b` take integers, `%f %e %E %g %G` numbers; `%%` is `%`. Widths count characters; a missing or extra argument is an `ArgumentError`.
+
+```javascript
+string.format("%-6s|%5.2f|%03d", "ab", 3.14159, 7); // "ab    | 3.14|007"
+```
+
+### regex
+
+Patterns are RE2 syntax (no backreferences; matching is linear in the input). A bad pattern is a `ValueError`.
+Indices count characters.
+
+- `test(re, s)` — whether `re` matches anywhere in `s`.
+- `find(re, s)` — the first `Match { text, index, groups, named }`, or `nil`; `groups` holds each group's text, `nil` if it did not take part, `named` the named ones (`(?P<name>...)`).
+- `findAll(re, s[, n])` — all matches, at most `n`.
+- `replace(re, s, with)` — every match replaced; `with` is a string, where `$1` or `${name}` is a group, or a function from a `Match` to a string.
+- `split(re, s[, n])` — the parts between matches, at most `n`; `escape(s)` — `s` with the special characters quoted.
+
+```javascript
+let m = regex.find("(\\d+)-(\\d+)", "pages 10-20");
+print m.groups; // ["10", "20"]
+print regex.replace("\\s+", "a  b   c", " "); // a b c
+```
+
 ### math
 
 `floor(x)`, `ceil(x)`, `round(x)`, `abs(x)`, `sqrt(x)`, `pow(x, y)`, `min(a, ...)`, `max(a, ...)`, `random()` (in `[0, 1)`), constants `PI` and `INF`.
@@ -388,6 +436,15 @@ print array.join(array.map(people, ({ name }) => name), ", "); // bob, ann
 - `json.parse(s)` — parses JSON (object, array or primitive); malformed input is a `ValueError`.
 - `json.stringify(v)` — encodes `nil`, booleans, numbers, strings, arrays, objects (keys sorted) and structs (fields in order) compactly; a function is a `TypeError`, a non-finite number or a cycle a `ValueError`.
 - `http.get(url)` — fetches a URL and returns the body; network errors and a status other than 200 are an `IOError`.
+- `http.request(method, url[, opts])` — sends a request and returns `HttpResponse { status, headers, body }`, header names lowercased and repeated ones joined with `, `. Any status is a response; a network error or timeout is an `IOError`. `opts` is an `HttpOptions { headers, body, timeout }`, or an object converted to one: `headers` an object of strings, `body` a string, `timeout` seconds (default 30).
+
+```javascript
+let r = http.request("POST", "https://example.com/api", {
+    headers: { "Content-Type": "application/json" },
+    body: json.stringify({ name: "ann" }),
+});
+if r.status != 201 throw IOError { message: "status {r.status}" };
+```
 - `time.now()` — the current time in seconds, with sub-second precision.
 
 ### fs
@@ -461,7 +518,7 @@ Runtime errors (including those from built-ins like `http.get()`) can be caught 
 - `IndexError` — an index out of bounds
 - `KeyError` — a missing property or struct field
 - `NameError` — an undefined variable
-- `IOError` — a file system call or `http.get()` failing; it also has `path` and `code` (see `fs`)
+- `IOError` — a file system call or an `http` request failing; it also has `path` and `code` (see `fs`)
 
 A stack overflow is fatal and cannot be caught.
 

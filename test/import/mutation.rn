@@ -1,0 +1,8 @@
+import _lib.math;
+
+math.pi = 4; // Error at 'pi': Cannot assign to a member of module 'math'.
+math.calls += 1; // Error at 'calls': Cannot assign to a member of module 'math'.
+math.calls++; // Error at 'calls': Cannot assign to a member of module 'math'.
+math.items[0] = 1; // Error at 'items': Cannot mutate immutable variable 'math.items'.
+array.push(math.items, 1); // Error at 'items': Cannot mutate immutable variable 'math.items'.
+math = 1; // Error at 'math': Cannot assign to immutable variable 'math'.

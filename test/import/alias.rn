@@ -1,0 +1,6 @@
+import _lib.math as m;
+import _lib.nested.greet as g;
+
+print m.square(2); // expect: 4
+print g.greet("ann"); // expect: hi ann
+print math.floor(1.5); // expect: 1

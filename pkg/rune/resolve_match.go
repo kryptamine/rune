@@ -64,8 +64,11 @@ func (p *Resolver) resolvePattern(pat ast.Pattern) ast.Pattern {
 			}
 		}
 	case *ast.StructPattern:
-		n.Shape = p.structNamed(n.Name.Lexeme)
-		if n.Shape == nil {
+		if n.Module != nil {
+			t := &ast.VarExpr{Module: n.Module, Name: n.Name}
+			p.resolveExpr(t)
+			n.Shape = p.structType(t)
+		} else if n.Shape = p.structNamed(n.Name.Lexeme); n.Shape == nil {
 			p.error(n.Name, "'"+n.Name.Lexeme+"' is not a struct.")
 		}
 
@@ -95,7 +98,7 @@ func (p *Resolver) structNamed(name string) *value.Shape {
 		return nil
 	}
 
-	if l := p.topLevel[name]; l != nil {
+	if l := p.mod.topLevel[name]; l != nil {
 		return p.structs[l]
 	}
 

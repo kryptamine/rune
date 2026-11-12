@@ -1,0 +1,3 @@
+import _lib.bad_export;
+// [line: 1] Error at 'print': Expect declaration after 'export'.
+// [line: 3] Error at 'export': Only top-level declarations can be exported.
