@@ -161,19 +161,10 @@ func (fs *funcState) declareStructs(stmts []ast.Stmt) {
 // every built-in the program names one holding it from the start.
 func (fs *funcState) declareTopLevel(stmts []ast.Stmt, builtins map[string]*ast.Local) {
 	for _, stmt := range stmts {
-		var l *ast.Local
-
-		var name string
-
-		switch s := stmt.(type) {
-		case *ast.VarStmt:
-			l, name = s.Local, s.Name.Lexeme
-		case *ast.FunctionStmt:
-			l, name = s.Local, s.Name.Lexeme
-		}
-
-		if _, done := fs.locals[l]; l != nil && !done {
-			fs.declareTopLevelVar(l, name)
+		for _, b := range ast.Declared(stmt) {
+			if _, done := fs.locals[b.Local]; !done {
+				fs.declareTopLevelVar(b.Local, b.Name.Lexeme)
+			}
 		}
 	}
 

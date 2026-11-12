@@ -1,0 +1,3 @@
+[line: 1] TypeError: Cannot read property 'x' of number.
+    1 | let { x } = 1; // expect runtime error: [line: 1] TypeError: Cannot read property 'x' of number.
+      |       ^

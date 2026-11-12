@@ -1,0 +1,1 @@
+let { "x" } = { x: 1 }; // Error at '}': Expect ':' after string key.

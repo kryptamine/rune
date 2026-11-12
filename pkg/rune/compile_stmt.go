@@ -29,6 +29,8 @@ func (fs *funcState) stmt(stmt ast.Stmt) {
 		fs.emit(ins{op: opPrint, a: fs.exprAny(s.Expr)}, nil)
 	case *ast.VarStmt:
 		fs.varStmt(s)
+	case *ast.DestructureStmt:
+		fs.destructure(s)
 	case *ast.BlockStmt:
 		fs.scoped(func() { fs.stmts(s.Stmts) })
 	case *ast.IfStmt:
@@ -84,32 +86,62 @@ func (fs *funcState) leaveLoop() *loop {
 	return l
 }
 
-// varStmt binds a captured variable's cell before its initializer runs,
-// since a closure there may capture it.
+// varStmt computes a plain local's value before declaring it, so a call
+// there can put its result in the local's register with no move.
 func (fs *funcState) varStmt(s *ast.VarStmt) {
 	l := s.Local
 
-	switch {
-	case !l.TopLevel && !l.Captured:
+	if !l.TopLevel && !l.Captured {
 		r := fs.alloc()
 		fs.exprOrNil(s.Initializer, r)
 		fs.free = r
 		fs.declare(l)
 
 		return
-	case !l.TopLevel:
-		fs.declareAs(l, value.UndefinedValue)
 	}
 
+	fs.predeclare(l)
+	fs.initialize(l, func(dst int32) { fs.exprOrNil(s.Initializer, dst) })
+}
+
+func (fs *funcState) destructure(s *ast.DestructureStmt) {
+	for _, f := range s.Fields {
+		fs.predeclare(f.Local)
+	}
+
+	src := fs.exprAny(s.Initializer)
+
+	for i := range s.Fields {
+		f := &s.Fields[i]
+		fs.initialize(f.Local, func(dst int32) {
+			fs.emit(ins{op: opGetProp, a: dst, b: src, c: fs.constant(value.NewString(f.Key.Lexeme))}, &f.Key)
+		})
+	}
+}
+
+// predeclare gives a local its register before its value is computed, in
+// a cell if captured, since a closure there may capture it.
+func (fs *funcState) predeclare(l *ast.Local) {
+	switch {
+	case l.TopLevel:
+	case l.Captured:
+		fs.declareAs(l, value.UndefinedValue)
+	default:
+		fs.declare(l)
+	}
+}
+
+// initialize stores what emit computes into dst in the declared variable l.
+func (fs *funcState) initialize(l *ast.Local, emit func(dst int32)) {
 	r := fs.locals[l]
 
 	if l.Captured {
 		t := fs.alloc()
-		fs.exprOrNil(s.Initializer, t)
+		emit(t)
 		fs.emit(ins{op: opSetCell, a: r, b: t}, nil)
 		fs.free = t
 	} else {
-		fs.exprOrNil(s.Initializer, r)
+		emit(r)
 	}
 
 	fs.defined[l] = true

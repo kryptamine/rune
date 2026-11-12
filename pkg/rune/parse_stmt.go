@@ -105,6 +105,8 @@ const maxArity = 8
 func (s *Parser) functionRest(name ast.Token) (*ast.FunctionStmt, error) {
 	parameters := []ast.Binding{}
 
+	var patterns []ast.Stmt
+
 	if !s.check(ast.RIGHT_PAREN) {
 		for {
 			// Report but keep parsing: the parser is not in a confused state.
@@ -115,12 +117,16 @@ func (s *Parser) functionRest(name ast.Token) (*ast.FunctionStmt, error) {
 				))
 			}
 
-			param, err := s.binding("Expect parameter name.")
+			param, pattern, err := s.parameter(len(parameters))
 			if err != nil {
 				return nil, err
 			}
 
 			parameters = append(parameters, param)
+
+			if pattern != nil {
+				patterns = append(patterns, pattern)
+			}
 
 			if !s.match(ast.COMMA) {
 				break
@@ -143,7 +149,86 @@ func (s *Parser) functionRest(name ast.Token) (*ast.FunctionStmt, error) {
 		return nil, err
 	}
 
-	return ast.NewFunctionStmt(name, parameters, body).(*ast.FunctionStmt), nil
+	return ast.NewFunctionStmt(name, parameters, append(patterns, body...)).(*ast.FunctionStmt), nil
+}
+
+// parameter parses a parameter: a binding, or a pattern, which binds a
+// hidden parameter destructured at the start of the body.
+func (s *Parser) parameter(i int) (ast.Binding, ast.Stmt, error) {
+	if !s.match(ast.LEFT_BRACE) {
+		param, err := s.binding("Expect parameter name.")
+		return param, nil, err
+	}
+
+	fields, err := s.pattern(false)
+	if err != nil {
+		return ast.Binding{}, nil, err
+	}
+
+	hidden := s.previous()
+	hidden.TokenType = ast.IDENTIFIER
+	hidden.Lexeme = fmt.Sprintf("{%d}", i)
+
+	return ast.Binding{Name: hidden}, ast.NewDestructureStmt(fields, ast.NewVarExpr(hidden)), nil
+}
+
+// pattern parses { a, mut b, c: d, "e": f }; the "{" has already been
+// consumed. With mutable, every variable is mutable.
+func (s *Parser) pattern(mutable bool) ([]ast.DestructureField, error) {
+	var fields []ast.DestructureField
+
+	for !s.check(ast.RIGHT_BRACE) && !s.isAtEnd() {
+		f, err := s.patternField()
+		if err != nil {
+			return nil, err
+		}
+
+		f.Mutable = f.Mutable || mutable
+
+		fields = append(fields, f)
+
+		if !s.match(ast.COMMA) {
+			break
+		}
+	}
+
+	if len(fields) == 0 {
+		s.errors = append(s.errors, errors.NewSyntaxError(s.peek(), "Expect property name in pattern."))
+	}
+
+	_, err := s.consume(ast.RIGHT_BRACE, "Expect '}' after pattern.")
+
+	return fields, err
+}
+
+func (s *Parser) patternField() (ast.DestructureField, error) {
+	if s.check(ast.MUT) {
+		b, err := s.binding("Expect property name.")
+		return ast.DestructureField{Key: b.Name, Binding: b}, err
+	}
+
+	if !s.match(ast.IDENTIFIER, ast.STRING) {
+		return ast.DestructureField{}, errors.NewSyntaxError(s.peek(), "Expect property name.")
+	}
+
+	key := s.previous()
+	quoted := key.TokenType == ast.STRING
+
+	if quoted {
+		key.Lexeme = key.Literal
+	}
+
+	if !s.match(ast.COLON) {
+		if quoted {
+			return ast.DestructureField{}, errors.NewSyntaxError(s.peek(), "Expect ':' after string key.")
+		}
+
+		return ast.DestructureField{Key: key, Binding: ast.Binding{Name: key}}, nil
+	}
+
+	b, err := s.binding("Expect variable name.")
+
+	return ast.DestructureField{Key: key, Binding: b}, err
 }
 
 // binding parses "name" or "mut name".
@@ -169,10 +254,18 @@ func (s *Parser) bindingEnd(i int) int {
 }
 
 func (s *Parser) varDeclaration() (ast.Stmt, error) {
-	binding, err := s.binding("Expect variable name.")
+	mutable := s.match(ast.MUT)
+
+	if s.match(ast.LEFT_BRACE) {
+		return s.destructureDeclaration(mutable)
+	}
+
+	name, err := s.consume(ast.IDENTIFIER, "Expect variable name.")
 	if err != nil {
 		return nil, err
 	}
+
+	binding := ast.Binding{Name: name, Mutable: mutable}
 
 	var initializer ast.Expr
 
@@ -192,6 +285,30 @@ func (s *Parser) varDeclaration() (ast.Stmt, error) {
 	}
 
 	return ast.NewVarStmt(initializer, binding), nil
+}
+
+// destructureDeclaration parses the rest of let { ... } = value; after
+// "{"; with "let mut" every variable is mutable.
+func (s *Parser) destructureDeclaration(mutable bool) (ast.Stmt, error) {
+	fields, err := s.pattern(mutable)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := s.consume(ast.EQUAL, "Expect '=' after pattern."); err != nil {
+		return nil, err
+	}
+
+	initializer, err := s.expression()
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := s.consume(ast.SEMICOLON, "Expect ';' after variable declaration."); err != nil {
+		return nil, err
+	}
+
+	return ast.NewDestructureStmt(fields, initializer), nil
 }
 
 func (s *Parser) statement() (ast.Stmt, error) {

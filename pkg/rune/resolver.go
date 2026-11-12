@@ -80,16 +80,14 @@ func errorFieldNames() map[string]string {
 // ResolveStmts resolves a whole program and returns all errors found.
 func (p *Resolver) ResolveStmts(stmts []ast.Stmt) []error {
 	for _, stmt := range stmts {
-		switch s := stmt.(type) {
-		case *ast.VarStmt:
-			p.globalMutable[s.Name.Lexeme] = s.Mutable
-			p.topLevel[s.Name.Lexeme] = &ast.Local{TopLevel: true}
-			p.declareMain(s.Name, nil)
-		case *ast.FunctionStmt:
-			p.globalMutable[s.Name.Lexeme] = false
-			p.topLevel[s.Name.Lexeme] = &ast.Local{TopLevel: true}
-			p.declareMain(s.Name, s)
-		case *ast.StructStmt:
+		fn, _ := stmt.(*ast.FunctionStmt)
+		for _, b := range ast.Declared(stmt) {
+			p.globalMutable[b.Name.Lexeme] = b.Mutable
+			p.topLevel[b.Name.Lexeme] = &ast.Local{TopLevel: true}
+			p.declareMain(b.Name, fn)
+		}
+
+		if s, ok := stmt.(*ast.StructStmt); ok {
 			p.declareMain(s.Name, nil)
 			p.globalMutable[s.Name.Lexeme] = false
 			l := &ast.Local{TopLevel: true}
@@ -150,6 +148,21 @@ func (p *Resolver) VisitVarStmt(stmt *ast.VarStmt) error {
 	return nil
 }
 
+func (p *Resolver) VisitDestructureStmt(stmt *ast.DestructureStmt) error {
+	bindings := ast.Declared(stmt)
+	for _, b := range bindings {
+		b.Local = p.declare(*b)
+	}
+
+	p.resolveExpr(stmt.Initializer)
+
+	for _, b := range bindings {
+		p.define(b.Name)
+	}
+
+	return nil
+}
+
 func (p *Resolver) requireInitialized(name ast.Token, verb string) {
 	if l, exists := p.innermost()[name.Lexeme]; exists && !l.defined {
 		kind := helpers.If(p.isScopesEmpty(), "global", "local")
@@ -180,8 +193,7 @@ func (p *Resolver) VisitBlockStmt(blockStmt *ast.BlockStmt) error {
 // declaresLocals reports whether stmts directly declare a variable or function.
 func declaresLocals(stmts []ast.Stmt) bool {
 	for _, stmt := range stmts {
-		switch stmt.(type) {
-		case *ast.VarStmt, *ast.FunctionStmt:
+		if len(ast.Declared(stmt)) > 0 {
 			return true
 		}
 	}
@@ -255,7 +267,7 @@ func (p *Resolver) VisitFunctionExpr(expr *ast.FunctionExpr) (value.Value, error
 }
 
 func (p *Resolver) VisitFunctionStmt(fnStmt *ast.FunctionStmt) error {
-	fnStmt.Local = p.declare(ast.Binding{Name: fnStmt.Name})
+	fnStmt.Local = p.declare(fnStmt.Binding)
 	p.define(fnStmt.Name)
 	p.resolveFn(fnStmt)
 

@@ -1,0 +1,3 @@
+[line: 1] Error at '}': Expect ':' after string key.
+    1 | let { "x" } = { x: 1 }; // Error at '}': Expect ':' after string key.
+      |           ^

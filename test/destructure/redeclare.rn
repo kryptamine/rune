@@ -1,0 +1,4 @@
+let { x, x: y } = { x: 1 };
+let { y } = { y: 1 }; // Error at 'y': Variable with this name already declared in this scope.
+
+fun f({ a }, a) {} // Error at 'a': Variable with this name already declared in this scope.

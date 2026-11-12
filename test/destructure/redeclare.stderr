@@ -1,0 +1,8 @@
+[line: 2] Error at 'y': Variable with this name already declared in this scope.
+    2 | let { y } = { y: 1 }; // Error at 'y': Variable with this name already declared in this scope.
+      |       ^
+  note: first declared at line 1
+[line: 4] Error at 'a': Variable with this name already declared in this scope.
+    4 | fun f({ a }, a) {} // Error at 'a': Variable with this name already declared in this scope.
+      |         ^
+  note: first declared at line 4

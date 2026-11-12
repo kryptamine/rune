@@ -4,5 +4,5 @@ fun f() {
   x = ; // [line: 4] Error at ';': Expect expression.
 }
 
-fun g( { } // [line: 7] Error at '{': Expect parameter name.
+fun g( 1 { } // [line: 7] Error at '1': Expect parameter name.
 print 1 // [line: 9] Error at end: Expect ';' after value.

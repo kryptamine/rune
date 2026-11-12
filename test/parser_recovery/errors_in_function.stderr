@@ -4,7 +4,7 @@
 [line: 4] Error at ';': Expect expression.
     4 |   x = ; // [line: 4] Error at ';': Expect expression.
       |       ^
-[line: 7] Error at '{': Expect parameter name.
-    7 | fun g( { } // [line: 7] Error at '{': Expect parameter name.
+[line: 7] Error at '1': Expect parameter name.
+    7 | fun g( 1 { } // [line: 7] Error at '1': Expect parameter name.
       |        ^
 [line: 9] Error at end: Expect ';' after value.

@@ -1,0 +1,5 @@
+struct Point { x, y }
+
+fun f({ z }) { return z; }
+
+f(Point { x: 1, y: 2 }); // expect runtime error: [line: 3] KeyError: Point has no field 'z'.

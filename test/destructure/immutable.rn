@@ -1,0 +1,7 @@
+let { x, mut y } = { x: 1, y: 2 };
+y = 3;
+x = 2; // Error at 'x': Cannot assign to immutable variable 'x'.
+
+fun f({ a }) {
+  a = 1; // Error at 'a': Cannot assign to immutable variable 'a'.
+}

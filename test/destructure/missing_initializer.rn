@@ -1,0 +1,1 @@
+let { x }; // Error at ';': Expect '=' after pattern.
