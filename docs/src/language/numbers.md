@@ -22,7 +22,8 @@ print math.isInt(1e3);   // false
 `+`, `-`, `*` and `%` on two integers give an integer, and an integer that
 would overflow is a `ValueError`; with a float they give a float. `/`
 always gives a float: `6 / 2` is `3`, a float, and `math.idiv(7, 2)` is the
-integer `3`. A float with an integer value prints without a fraction.
+integer `3`. A float with an integer value prints without a fraction, and
+one outside [1e-6, 1e21) with an exponent: `1e+21`, `1e-7`.
 
 ```rune
 let price = 19.99;
@@ -40,11 +41,11 @@ print math.ceil(items / perPage);      // 4
 ```
 
 `%` takes the sign of its left operand, and an integer `% 0` is a
-`ValueError`. A float divided by zero is `+Inf` or `NaN`.
+`ValueError`. A float divided by zero is `inf`, `-inf` or `nan`.
 
 ```rune
 print -7 % 3;     // -1
-print 7 / 0;      // +Inf
+print 7 / 0;      // inf
 ```
 
 ```rune

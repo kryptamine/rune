@@ -1,0 +1,15 @@
+struct Cart { items = [] }
+impl Cart {
+  fun add(mut self, x) { self.items.push(x); }
+  fun with(mut self, x) { self.items = self.items.append(x); }
+}
+
+let mut cart = Cart {};
+let before = cart;
+cart.add("tea");
+print before.items; // expect: ["tea"]
+
+let snapshot = cart;
+cart.with("milk");
+print snapshot.items; // expect: ["tea"]
+print cart.items;     // expect: ["tea", "milk"]

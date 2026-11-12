@@ -238,12 +238,12 @@ func (p *Interpreter) slow(in Instr) error {
 
 	case opCallArray:
 		args := regs[in.a()+1]
-		if args.Kind() != value.Array {
+		items, ok := spreadArgs(args)
+		if !ok {
 			return spreadError(tok, args, "an array")
 		}
 
 		at := fr.base + in.a()
-		items := args.Arr()
 		p.grow(at + 1 + len(items))
 		copy(p.stack[at+1:], items)
 
@@ -399,17 +399,12 @@ func spread(tok *ast.Token, dst, src value.Value) error {
 	if dst.Kind() == value.Array {
 		arr := dst.ArrRef()
 
-		switch src.Kind() {
-		case value.Array:
-			*arr = append(*arr, src.Arr()...)
-		case value.Set:
-			src.HashMap().Each(func(k, _ value.Value) bool {
-				*arr = append(*arr, k)
-				return true
-			})
-		default:
+		items, ok := spreadItems(*arr, src)
+		if !ok {
 			return spreadError(tok, src, "an array")
 		}
+
+		*arr = items
 
 		return nil
 	}
@@ -430,6 +425,42 @@ func spread(tok *ast.Token, dst, src value.Value) error {
 	}
 
 	return nil
+}
+
+// spreadItems appends the elements of src: an array's, a set's, a map's
+// [key, value] pairs or a bytes' integers.
+func spreadItems(items []value.Value, src value.Value) ([]value.Value, bool) {
+	switch src.Kind() {
+	case value.Array:
+		return append(items, src.Arr()...), true
+	case value.Set:
+		src.HashMap().Each(func(k, _ value.Value) bool {
+			items = append(items, k)
+			return true
+		})
+	case value.Map:
+		src.HashMap().Each(func(k, v value.Value) bool {
+			items = append(items, value.NewArray([]value.Value{k, v}))
+			return true
+		})
+	case value.Bytes:
+		for _, b := range src.Bytes() {
+			items = append(items, value.NewInt(int64(b)))
+		}
+	default:
+		return items, false
+	}
+
+	return items, true
+}
+
+// spreadArgs is spreadItems for a call, which takes an array's own items.
+func spreadArgs(src value.Value) ([]value.Value, bool) {
+	if src.Kind() == value.Array {
+		return src.Arr(), true
+	}
+
+	return spreadItems(nil, src)
 }
 
 // spreadFields copies src, a struct of type shape or an object of some of

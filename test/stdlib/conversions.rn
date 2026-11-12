@@ -3,7 +3,11 @@ print str("hi"); // expect: hi
 print str([1, "a"]); // expect: [1, "a"]
 print str(nil); // expect: nil
 print str(-0); // expect: 0
-print str(1e21); // expect: 1000000000000000000000
+print str(1e21); // expect: 1e+21
+print str(1e20); // expect: 100000000000000000000
+print 1e-7;      // expect: 1e-7
+print math.floor(1e300); // expect: 1e+300
+print -math.INF; // expect: -inf
 
 print number("42") + 1; // expect: 43
 print number(" -2.5e1 "); // expect: -25
@@ -37,7 +41,7 @@ try { int("3.5"); } catch (e: ValueError) { print e.message; } // expect: int() 
 try { int("1_000"); } catch (e: ValueError) { print e.message; } // expect: int() cannot parse "1_000" as an integer in base 10.
 try { int("z", 37); } catch (e: ValueError) { print e.message; } // expect: int() expects a base from 2 to 36, got 37.
 try { int(10, 2); } catch (e: TypeError) { print e.message; } // expect: int() expects a string as argument 1, got number.
-try { int(math.INF); } catch (e: ValueError) { print e.message; } // expect: int() cannot convert +Inf to an integer.
+try { int(math.INF); } catch (e: ValueError) { print e.message; } // expect: int() cannot convert inf to an integer.
 
 print 3.14159.fixed(2); // expect: 3.14
 print 2.fixed(3); // expect: 2.000

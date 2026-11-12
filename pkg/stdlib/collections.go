@@ -160,13 +160,7 @@ var mapMethods = []*Native{
 
 		return v
 	}),
-	mapMethod("Map.set", 3, 3, func(c *call, m *value.HashMap) value.Value {
-		c.keyErr(m.Set(c.args[1], c.args[2]))
-		return c.args[0]
-	}),
 	mapMethod("Map.has", 2, 2, hasKey),
-	mapMethod("Map.delete", 2, 2, deleteKey),
-	mapMethod("Map.clear", 1, 1, clearTable),
 	mapMethod("Map.keys", 1, 1, func(_ *call, m *value.HashMap) value.Value { return keysOf(m) }),
 	mapMethod("Map.values", 1, 1, func(_ *call, m *value.HashMap) value.Value {
 		return collect(m, func(_, v value.Value) value.Value { return v })
@@ -174,6 +168,15 @@ var mapMethods = []*Native{
 	mapMethod("Map.entries", 1, 1, func(_ *call, m *value.HashMap) value.Value {
 		return collect(m, func(k, v value.Value) value.Value { return value.NewArray([]value.Value{k, v}) })
 	}),
+}
+
+var mapInPlace = []*Native{
+	mapMethod("Map.set", 3, 3, func(c *call, m *value.HashMap) value.Value {
+		c.keyErr(m.Set(c.args[1], c.args[2]))
+		return c.args[0]
+	}),
+	mapMethod("Map.delete", 2, 2, deleteKey),
+	mapMethod("Map.clear", 1, 1, clearTable),
 }
 
 // setOp builds a new set of the elements of the receiver that keep says
@@ -205,14 +208,17 @@ func setOp(name string, keep func(inOther bool) bool, union bool) *Native {
 	})
 }
 
-var setMethods = []*Native{
+var setInPlace = []*Native{
 	setMethod("Set.add", 2, 2, func(c *call, m *value.HashMap) value.Value {
 		c.keyErr(m.Set(c.args[1], value.NilValue))
 		return c.args[0]
 	}),
-	setMethod("Set.has", 2, 2, hasKey),
 	setMethod("Set.delete", 2, 2, deleteKey),
 	setMethod("Set.clear", 1, 1, clearTable),
+}
+
+var setMethods = []*Native{
+	setMethod("Set.has", 2, 2, hasKey),
 	setMethod("Set.values", 1, 1, func(_ *call, m *value.HashMap) value.Value { return keysOf(m) }),
 	setOp("Set.union", func(bool) bool { return true }, true),
 	setOp("Set.intersection", func(in bool) bool { return in }, false),

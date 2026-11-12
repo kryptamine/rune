@@ -64,6 +64,7 @@ const (
 	EXPORT
 	MATCH
 	IMPL
+	NOT
 
 	// Single tokens
 	COLON
@@ -157,6 +158,7 @@ var Keywords = map[string]TokenType{
 	"export":   EXPORT,
 	"match":    MATCH,
 	"impl":     IMPL,
+	"not":      NOT,
 }
 
 func (tokenType TokenType) String() string {
@@ -262,6 +264,8 @@ func (tokenType TokenType) String() string {
 		return "EXPORT"
 	case IMPL:
 		return "IMPL"
+	case NOT:
+		return "NOT"
 	case CONTINUE:
 		return "CONTINUE"
 	case IN:

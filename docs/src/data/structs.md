@@ -18,8 +18,8 @@ print User { name, role: "admin" }; // User {name: "bob", role: "admin", tags: [
 
 `User { name }` is shorthand for `User { name: name }`.
 
-A default is a constant: a literal, or an array or object of them, `Map()`
-or `Set()`. Each struct made gets its own copy of an array, object, map or
+A default is a constant: a literal or operators on literals (`60 * 60`), an
+array or object of them, `Map()` or `Set()`. Each struct made gets its own copy of an array, object, map or
 set, so `tags = []` is never shared:
 
 ```rune

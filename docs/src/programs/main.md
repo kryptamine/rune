@@ -53,11 +53,15 @@ fun main() {
 }
 ```
 
-`main` takes at most one parameter, and returning anything but `nil` or an
-exit code is an error:
+`main` takes at most one parameter. Returning an integer out of range is a
+`ValueError`, and anything else but `nil` or an integer a `TypeError`:
 
 ```rune
-fun main() { return 256; } // TypeError: main must return nil or an exit code from 0 to 255, got 256.
+fun main() { return 256; } // ValueError: main must return nil or an exit code from 0 to 255, got 256.
+```
+
+```rune
+fun main() { return "ok"; } // TypeError: main must return nil or an exit code from 0 to 255, got "ok".
 ```
 
 To exit from deeper in the program, use `os.exit(code)`.

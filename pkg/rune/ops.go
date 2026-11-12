@@ -189,11 +189,11 @@ func setIndex(token *ast.Token, target, index, v value.Value) error {
 // elementIndex checks that v is an integer and reports whether it is in
 // bounds of the array or string target.
 func elementIndex(token *ast.Token, target, v value.Value) (int, bool, error) {
-	i, ok := value.ToInt(v)
-	if !ok {
+	if !v.IsInt() {
 		return 0, false, notInteger(token, target)
 	}
 
+	i := v.Int()
 	if i < 0 || i >= int64(length(target)) {
 		return 0, false, nil
 	}

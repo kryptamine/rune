@@ -6,7 +6,7 @@ syn keyword runeKeyword let mut fun return struct impl import export match is in
 syn keyword runeConditional if else
 syn keyword runeRepeat for while break continue
 syn keyword runeException try catch throw
-syn keyword runeOperatorWord and or
+syn keyword runeOperatorWord and or not
 syn keyword runeStatement print
 syn keyword runeBoolean true false
 syn keyword runeNil nil

@@ -12,7 +12,7 @@ hljs.registerLanguage("rune", function (hljs) {
   };
   const KEYWORDS = {
     keyword:
-      "let mut fun return struct impl import export as match is in if else for while break continue try catch throw and or print step self",
+      "let mut fun return struct impl import export as match is in if else for while break continue try catch throw and or not print step self",
     literal: "true false nil",
     built_in:
       "len type object str number int Map Set string math regex bytes json http time fs io os array module",

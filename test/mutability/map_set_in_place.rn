@@ -1,0 +1,16 @@
+let m = Map([["a", 1]]);
+let s = Set([1]);
+try { m.set("b", 2); } catch (e: TypeError) { print e.message; } // expect: Cannot call in-place method 'set' of Map: its receiver is in an immutable variable.
+try { m.delete("a"); } catch (e: TypeError) { print e.message; } // expect: Cannot call in-place method 'delete' of Map: its receiver is in an immutable variable.
+try { m.clear(); } catch (e: TypeError) { print e.message; } // expect: Cannot call in-place method 'clear' of Map: its receiver is in an immutable variable.
+try { s.add(2); } catch (e: TypeError) { print e.message; } // expect: Cannot call in-place method 'add' of Set: its receiver is in an immutable variable.
+try { s.delete(1); } catch (e: TypeError) { print e.message; } // expect: Cannot call in-place method 'delete' of Set: its receiver is in an immutable variable.
+try { s.clear(); } catch (e: TypeError) { print e.message; } // expect: Cannot call in-place method 'clear' of Set: its receiver is in an immutable variable.
+print m; // expect: Map {"a": 1}
+print s; // expect: Set {1}
+print m.get("a"); // expect: 1
+print s.has(1); // expect: true
+
+let mut mm = m;
+mm.set("b", 2);
+print m; // expect: Map {"a": 1, "b": 2}

@@ -98,11 +98,14 @@ func (p *Interpreter) Run(prog *Program, args []string) error {
 		return err
 	}
 
-	if n, ok := value.ToInt(result); ok && n >= 0 && n <= 255 {
+	n, ok := value.ToInt(result)
+	if ok && n >= 0 && n <= 255 {
 		return stdlib.Exit{Code: int(n)}
 	}
 
-	return errors.NewRuntimeError(errors.TypeError, *prog.main, "main must return nil or an exit code from 0 to 255, got "+helpers.Stringify(result)+".")
+	kind := helpers.If(ok, errors.ValueError, errors.TypeError)
+
+	return errors.NewRuntimeError(kind, *prog.main, "main must return nil or an exit code from 0 to 255, got "+helpers.Quoted(result)+".")
 }
 
 func (p *Interpreter) exec(prog *Program, args []string) (value.Value, error) {

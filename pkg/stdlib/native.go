@@ -346,7 +346,9 @@ var Methods = func() (out []Method) {
 	add(value.Object, false, objectMethods, lenMethod("object"))
 	add(value.Object, true, objectInPlace)
 	add(value.Map, false, mapMethods, lenMethod("Map"))
+	add(value.Map, true, mapInPlace)
 	add(value.Set, false, setMethods, lenMethod("Set"))
+	add(value.Set, true, setInPlace)
 	add(value.Bytes, false, bytesMethods, lenMethod("bytes"))
 	add(value.Stream, false, streamMethods)
 
