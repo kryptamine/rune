@@ -1,0 +1,18 @@
+[line: 1] Error at '}': Expect match arm.
+    1 | match 1 { }; // [line: 1] Error at '}': Expect match arm.
+      |           ^
+[line: 2] Error at '{': Expect property name in pattern.
+    2 | match 1 { { } => 1 }; // [line: 2] Error at '{': Expect property name in pattern.
+      |           ^
+[line: 3] Error at '3': Expect '}' after match arms.
+    3 | match 1 { 1 => 2 3 => 4 }; // [line: 3] Error at '3': Expect '}' after match arms.
+      |                  ^
+[line: 4] Error at '-': Expect '=>' after pattern.
+    4 | match 1 { 1 -> 2 }; // [line: 4] Error at '-': Expect '=>' after pattern.
+      |             ^
+[line: 5] Error at '[': Expect pattern.
+    5 | match 1 { [] => 1 }; // [line: 5] Error at '[': Expect pattern.
+      |           ^
+[line: 6] Error at '}': Expect match arm.
+    6 | match P {}; // [line: 6] Error at '}': Expect match arm.
+      |          ^

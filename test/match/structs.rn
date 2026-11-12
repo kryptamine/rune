@@ -1,0 +1,33 @@
+struct Point { x, y = 0 }
+struct Line { from, to }
+
+fun kind(v) {
+    return match v {
+        Point { x: 0, y: 0 } => "origin",
+        Point { x: 0, y } => ["y axis", y],
+        Point { x, y } if x == y => "diagonal",
+        Point => "point",
+        Line { from: Point { x: 0 }, to } => ["from y axis to", to.x],
+        Line => "line",
+        _ => "other",
+    };
+}
+
+print kind(Point { x: 0 });               // expect: origin
+print kind(Point { x: 0, y: 5 });         // expect: ["y axis", 5]
+print kind(Point { x: 2, y: 2 });         // expect: diagonal
+print kind(Point { x: 2, y: 3 });         // expect: point
+print kind(Line { from: Point { x: 0, y: 1 }, to: Point { x: 7 } }); // expect: ["from y axis to", 7]
+print kind(Line { from: 1, to: 2 });      // expect: line
+print kind({ x: 0, y: 0 });               // expect: other
+
+// The built-in error types are structs too.
+try {
+    fs.read("/nonexistent/rune-match");
+} catch (e) {
+    print match e {
+        KeyError => "key",
+        IOError { code: "notFound" } => "missing",
+        _ => "other",
+    }; // expect: missing
+}

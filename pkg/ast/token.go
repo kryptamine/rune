@@ -62,6 +62,7 @@ const (
 	WITH
 	IS
 	IMPORT
+	MATCH
 
 	// Single tokens
 	COLON
@@ -76,6 +77,8 @@ const (
 	DOT
 	DOT_DOT
 	DOT_DOT_EQUAL
+	ARROW
+	PIPE
 	MINUS
 	PLUS
 	SLASH
@@ -132,6 +135,7 @@ var Keywords = map[string]TokenType{
 	"with":     WITH,
 	"is":       IS,
 	"import":   IMPORT,
+	"match":    MATCH,
 }
 
 func (tokenType TokenType) String() string {
@@ -148,6 +152,10 @@ func (tokenType TokenType) String() string {
 		return "DOT_DOT"
 	case DOT_DOT_EQUAL:
 		return "DOT_DOT_EQUAL"
+	case ARROW:
+		return "ARROW"
+	case PIPE:
+		return "PIPE"
 	case MINUS:
 		return "MINUS"
 	case PLUS:
@@ -213,6 +221,8 @@ func (tokenType TokenType) String() string {
 		return "WITH"
 	case IS:
 		return "IS"
+	case MATCH:
+		return "MATCH"
 	case IMPORT:
 		return "IMPORT"
 	case CONTINUE:

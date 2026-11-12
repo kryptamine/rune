@@ -336,6 +336,17 @@ func (s *Parser) statement() (ast.Stmt, error) {
 		return s.loopJumpStatement()
 	}
 
+	if s.match(ast.MATCH) {
+		m, err := s.matchExpr()
+		if err != nil {
+			return nil, err
+		}
+
+		s.match(ast.SEMICOLON)
+
+		return &ast.MatchStmt{Match: m}, nil
+	}
+
 	// "{ key: ..." can only be an object literal; anything else after "{" is a block.
 	if !s.isObjectLiteralStart() && s.match(ast.LEFT_BRACE) {
 		block, err := s.block()
@@ -426,7 +437,7 @@ func (s *Parser) block() ([]ast.Stmt, error) {
 }
 
 func (s *Parser) ifStatement() (ast.Stmt, error) {
-	condition, err := s.expressionWithStructs(false)
+	condition, err := s.expressionWithStructs(structsNone)
 	if err != nil {
 		return nil, err
 	}
@@ -453,12 +464,21 @@ func (s *Parser) ifStatement() (ast.Stmt, error) {
 	return ast.NewIfStmt(condition, then, el), nil
 }
 
+// stmtKeyword reports whether t starts a statement that is no expression
+// or declaration.
+func stmtKeyword(t ast.TokenType) bool {
+	switch t {
+	case ast.PRINT, ast.RETURN, ast.THROW, ast.BREAK, ast.CONTINUE, ast.IF, ast.WHILE, ast.FOR, ast.TRY:
+		return true
+	}
+
+	return false
+}
+
 // body parses an if/else/while/for body: a block, or a bare statement
 // starting with a token that cannot continue the paren-free header.
 func (s *Parser) body(after string) (ast.Stmt, error) {
-	switch s.peek().TokenType {
-	case ast.LEFT_BRACE, ast.IDENTIFIER, ast.PRINT, ast.RETURN, ast.THROW, ast.BREAK, ast.CONTINUE,
-		ast.IF, ast.WHILE, ast.FOR, ast.TRY:
+	if t := s.peek().TokenType; t == ast.LEFT_BRACE || t == ast.IDENTIFIER || t == ast.MATCH || stmtKeyword(t) {
 		return s.statement()
 	}
 
@@ -502,7 +522,7 @@ func (s *Parser) skipBraces() {
 }
 
 func (s *Parser) whileStatement() (ast.Stmt, error) {
-	condition, err := s.expressionWithStructs(false)
+	condition, err := s.expressionWithStructs(structsNone)
 	if err != nil {
 		return nil, err
 	}
@@ -556,7 +576,7 @@ func (s *Parser) forInStatement(keyword ast.Token) (ast.Stmt, error) {
 
 	s.advance() // "in", checked by isForInStart
 
-	iterable, err := s.expressionWithStructs(false)
+	iterable, err := s.expressionWithStructs(structsNone)
 	if err != nil {
 		return nil, err
 	}

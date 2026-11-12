@@ -20,6 +20,7 @@ Rune is a dynamically typed interpreted programming language inspired by [Lox](h
 - Immutable structs with required and default fields: `struct Point { x, y = 0 }`
 - Destructuring of objects and structs, in `let` and parameters: `let { x, y } = p;`
 - Strings compare with `<`, `<=`, `>`, `>=` and index by character: `"héllo"[1]` is `"é"`
+- Pattern matching with `match`, as an expression or a statement
 - Error handling with `try`/`catch` and `throw`
 - Two loops only: `while` and `for x in ...` over arrays, strings, objects and ranges (`a..b`)
 - `break` and `continue` in both
@@ -251,6 +252,50 @@ fun length({ x, y }) {
 
 length(Point { x: 3, y: 4 }); // 25
 ```
+
+## Pattern Matching
+
+`match` tries its arms in order and runs the first whose pattern matches;
+an arm is `pattern => expression`, `pattern => { block }` or a bare
+statement starting with a keyword, `pattern => return x;`, and may have a
+guard, `pattern if condition`. As an expression its value is the arm's (a
+block or statement gives `nil`) and no arm matching is a `ValueError`. At the start of
+a statement it is a statement: values are dropped and no arm matching
+does nothing.
+
+```javascript
+struct Point { x, y = 0 }
+
+let label = match v {
+    nil => "nothing",
+    0 | 1 => "bit",
+    Point { x: 0, y } => "on the y axis",
+    Point { x, y } if x == y => "diagonal",
+    Point => "a point",
+    { op: "+", a, b } => a + b,
+    _ => "other",
+};
+
+match cmd {
+    "quit" => return;
+    "help" => print usage;
+    _ => {}
+}
+```
+
+Patterns:
+
+- `_` matches anything; a name binds the value (`mut name` mutably), unless
+  it names a struct type, then it tests the value is of it;
+- literals: numbers, strings, `true`, `false`, `nil`, compared as by `==`;
+- `p | q` matches if either does; alternatives cannot bind;
+- `Point { x, y: 0 }` tests the type, then matches the listed fields;
+- `{ key, "other key": p }` matches an object, or a struct, that has the
+  keys; other keys are allowed and a missing one is no match.
+
+The value is evaluated once; it may be a struct literal, `match Point { x: 1 } { ... }`,
+except an empty one, which needs parentheses. An arm after one that
+matches everything is an error.
 
 ## Imports
 

@@ -1,0 +1,23 @@
+struct Point { x, y }
+
+fun eval(e) {
+    return match e {
+        { op: "+", a, b } => eval(a) + eval(b),
+        { op: "*", a, b } => eval(a) * eval(b),
+        { num } => num,
+    };
+}
+
+print eval({ op: "+", a: { num: 2 }, b: { op: "*", a: { num: 3 }, b: { num: 4 } } }); // expect: 14
+
+// A missing key is no match; extra keys are fine.
+print match { a: 1 } { { b } => "b", { a } => a, _ => "none" }; // expect: 1
+print match { a: 1, b: 2 } { { a: _ } => "has a" };           // expect: has a
+
+// Object patterns match structs by their fields.
+print match Point { x: 1, y: 2 } { { x, y } => x + y };  // expect: 3
+print match (Point { x: 1, y: 2 }) { { z } => z, _ => "no z" }; // expect: no z
+
+// Anything that is not an object or struct has no keys.
+print match 5 { { a } => a, _ => "not an object" }; // expect: not an object
+print match "s" { { length } => length, _ => "not an object" }; // expect: not an object

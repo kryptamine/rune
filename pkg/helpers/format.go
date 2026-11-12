@@ -70,6 +70,9 @@ func isIdentifier(s string) bool {
 	return s != "" && !keyword
 }
 
+// Quoted renders v as print does inside a container, strings quoted.
+func Quoted(v value.Value) string { return element(v, nil) }
+
 // element renders a value nested in a container.
 func element(v value.Value, seen map[uintptr]bool) string {
 	if v.IsString() {

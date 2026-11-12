@@ -1,0 +1,23 @@
+struct Box { v }
+
+let mut fs = [];
+for i in 0..3 {
+    match Box { v: i } {
+        Box { v } if v > 0 => array.push(fs, fun () { return v; }),
+        _ => nil,
+    }
+}
+
+for f in fs print f();
+// expect: 1
+// expect: 2
+
+fun guarded(x) {
+    return match x {
+        n if fun () { return n > 1; }() => "big",
+        n => fun () { return n; },
+    };
+}
+
+print guarded(5);   // expect: big
+print guarded(1)(); // expect: 1

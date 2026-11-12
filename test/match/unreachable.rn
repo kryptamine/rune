@@ -1,0 +1,4 @@
+let a = 1;
+match a { n => 1, 2 => 3 }; // [line: 2] Error at '2': Unreachable match arm.
+match a { _ | 1 => 1, 2 => 3 }; // [line: 3] Error at '2': Unreachable match arm.
+match a { n if n > 0 => 1, 2 => 3 };

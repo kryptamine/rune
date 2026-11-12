@@ -1,0 +1,6 @@
+struct P { x = 1 }
+
+// The value may be a struct literal; an empty one needs parentheses.
+match P { x: 2 } { P { x } => print x; } // expect: 2
+match (P {}) { P { x } => print x; }     // expect: 1
+print match P { x: 3 } with { x: 4 } { { x } => x }; // expect: 4

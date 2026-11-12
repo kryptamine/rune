@@ -43,10 +43,11 @@ const (
 	opNot  // R[A] = !R[B]
 	opIncr // R[A] = R[B] + 1, or - 1 if X
 
-	opJmp     // pc = C
-	opJmpIf   // if truthy(R[A]) == Y: pc = C
-	opJmpCmp  // if (R[A] <X> R[B]) == Y: pc = C
-	opJmpCmpK // if (R[A] <X> K[B]) == Y: pc = C
+	opJmp        // pc = C
+	opJmpIf      // if truthy(R[A]) == Y: pc = C
+	opJmpCmp     // if (R[A] <X> R[B]) == Y: pc = C
+	opJmpCmpK    // if (R[A] <X> K[B]) == Y: pc = C
+	opJmpNotType // if R[A] is not a struct of type K[B]: pc = C
 
 	opArray     // R[A] = [R[B], ..., R[B+C-1]]
 	opObject    // R[A] = {keys[C][i]: R[B+i]}
@@ -57,7 +58,10 @@ const (
 	opSetIndex  // R[A][R[B]] = R[C]
 	opSetProp   // R[A].K[B] = R[C]
 	opCheckProp // R[A] must be an object to set a property on
-	opRange     // R[A] = array of R[B]..R[B+1] step R[B+2], inclusive if X
+	// TestProp needs four operands, so it skips over the instruction after
+	// it, a jump to the mismatch, instead of taking a target.
+	opTestProp // if R[B] is an object or struct with K[C]: R[A] = R[B].K[C], pc++
+	opRange    // R[A] = array of R[B]..R[B+1] step R[B+2], inclusive if X
 
 	opClosure   // R[A] = closure of protos[C]
 	opCall      // R[A] = R[A](R[A+1], ..., R[A+B])
@@ -66,6 +70,7 @@ const (
 	opPrint     // print R[A]
 	opThrow     // throw R[A]
 	opRethrow   // throw the caught error in R[A] again
+	opNoMatch   // fail: no match arm matches R[A]
 	opTry       // catch errors at C, into R[A] if Y, and the error into R[A+1] if X
 	opEndTry    // drop B handlers
 
@@ -182,9 +187,9 @@ var opNames = [...]string{
 	"MOVE", "LOADK", "NEWCELL", "GETCELL", "SETCELL", "GETUPVAL", "SETUPVAL",
 	"CHECKDEFINED", "SETCELL!", "SETUPVAL!", "UNDEFINED",
 	"ADD", "SUB", "MUL", "DIV", "MOD", "ADDK", "SUBK", "MULK", "DIVK", "MODK", "CMP", "CMPK", "IS", "NEG", "NOT", "INCR",
-	"JMP", "JMPIF", "JMPCMP", "JMPCMPK",
-	"ARRAY", "OBJECT", "STRUCT", "WITH", "GETINDEX", "GETPROP", "SETINDEX", "SETPROP", "CHECKPROP", "RANGE",
-	"CLOSURE", "CALL", "RETURN", "RETURNNIL", "PRINT", "THROW", "RETHROW", "TRY", "ENDTRY",
+	"JMP", "JMPIF", "JMPCMP", "JMPCMPK", "JMPNOTTYPE",
+	"ARRAY", "OBJECT", "STRUCT", "WITH", "GETINDEX", "GETPROP", "SETINDEX", "SETPROP", "CHECKPROP", "TESTPROP", "RANGE",
+	"CLOSURE", "CALL", "RETURN", "RETURNNIL", "PRINT", "THROW", "RETHROW", "NOMATCH", "TRY", "ENDTRY",
 	"FORRANGE", "FORRANGENEXT", "FORITER", "FORITERNEXT",
 }
 

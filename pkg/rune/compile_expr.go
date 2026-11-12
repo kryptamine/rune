@@ -221,6 +221,8 @@ func (fs *funcState) expr(e ast.Expr, dst int32) {
 		fs.emit(ins{op: opRange, a: dst, b: base, x: uint8(boolNum(n.Inclusive))}, &n.Operator)
 	case *ast.FunctionExpr:
 		fs.emit(ins{op: opClosure, a: dst, c: fs.function(n.Decl)}, nil)
+	case *ast.MatchExpr:
+		fs.match(n, dst)
 	default:
 		panic(fmt.Sprintf("compile: unknown expression %T", e))
 	}
