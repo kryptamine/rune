@@ -11,7 +11,7 @@ Rune is a dynamically typed interpreted programming language inspired by [Lox](h
 - Dynamically typed language with a simple syntax
 - Supports expressions, statements, variables, and functions
 - Variables are immutable by default (`let`); `let mut` makes them mutable
-- Standard library in namespaces: `array`, `string`, `math`, `json`, `http`, `time`, `fs`
+- Standard library in namespaces: `array`, `string`, `math`, `json`, `http`, `time`, `fs`, `io`, `os`
 - Recursive descent parser; the resolved AST is compiled to register bytecode run by a VM
 - Parser recovers from syntax errors and reports all of them in one run
 - String escapes: `\n`, `\t`, `\r`, `\"`, `\\`, `\{`, `\}`
@@ -342,12 +342,15 @@ fun main(args) {
 
 ## Built-in Functions
 
-`len`, `type` and `object` are global; everything else lives in a namespace,
+`len`, `type`, `object`, `str`, `number` and `int` are global; everything else lives in a namespace,
 used as `math.floor(x)`:
 
 - **`len(value)`** — Returns the length of an array, object or string (in characters), or the number of fields of a struct.
 - **`type(value)`** — Returns `"nil"`, `"boolean"`, `"number"`, `"string"`, `"array"`, `"object"`, `"function"`, a struct's name, `"struct"` for a struct type, or `"namespace"`.
 - **`object(s)`** — Returns a new object with the fields of struct `s`.
+- **`str(v)`** — `v` as `print` shows it.
+- **`number(v)`** — a number as is, or a string holding a number literal, optionally negated and surrounded by spaces (`"42"`, `" -2.5e1 "`); anything else, `".5"`, `"+1"` or `"inf"` included, is a `ValueError`.
+- **`int(v[, base])`** — a number truncated toward zero, or a string parsed as an integer in `base` (2 to 36, default 10): `int("ff", 16)` is `255`.
 
 A namespace is an immutable struct of its members. Unless a program declares
 a variable of its name, `ns.member` is bound when the program is compiled:
@@ -374,7 +377,7 @@ print array.join(array.map(people, ({ name }) => name), ", "); // bob, ann
 
 ### string
 
-`split(s, sep)` (`""` splits into characters), `upper(s)`, `lower(s)`, `trim(s)`, `startsWith(s, p)`, `endsWith(s, p)`, `replace(s, old, new)` (all occurrences), `repeat(s, n)`, and `slice`, `reverse`, `contains`, `indexOf` as for arrays, counting characters.
+`fixed(n, digits)` (`n` with 0 to 100 decimals: `string.fixed(3.14159, 2)` is `"3.14"`), `split(s, sep)` (`""` splits into characters), `upper(s)`, `lower(s)`, `trim(s)`, `startsWith(s, p)`, `endsWith(s, p)`, `replace(s, old, new)` (all occurrences), `repeat(s, n)`, and `slice`, `reverse`, `contains`, `indexOf` as for arrays, counting characters.
 
 ### math
 
@@ -398,6 +401,30 @@ current directory, not the script's.
 - `list(dir)` — the entries as `FileInfo`s, sorted by name.
 - `mkdir(path)` (with parents; an existing directory is fine), `remove(path)` (a file or an empty directory), `removeAll(path)`, `rename(from, to)`, `copy(from, to)`.
 - `cwd()`, `tempDir()` — a new directory, for the program to remove.
+
+### io
+
+- `readLine()` — the next line of stdin without `\n` or `\r\n`, or `nil` at the end.
+- `read()` — the rest of stdin.
+- `write(v)` — writes `v` to stdout as `print` does, without a newline.
+- `eprint(v)`, `ewrite(v)` — the same to stderr, with and without a newline.
+
+Reading stdin or writing stderr first flushes what was printed.
+
+### os
+
+- `env(name)` — the variable's value, or `nil` if unset; `setEnv(name, v)`, `unsetEnv(name)`; `environ()` — all as an object.
+- `exit([code])` — exits with `code` (0 to 255, default 0) at once; `try` does not catch it.
+- `exec(cmd[, args[, opts]])` — runs `cmd` with the array of string `args` and waits; returns `ExecResult { code, stdout, stderr }`. A non-zero exit is not an error; a command not found is an `IOError` with code `notFound`. `opts` is an `ExecOptions { input, dir, env }`, or an object converted to one: `input` is stdin, `env` an object added to the current environment; all are optional.
+- `platform` — `"darwin"`, `"linux"`, `"windows"`, ...
+
+```javascript
+let r = os.exec("git", ["status", "--short"], { dir: "repo" });
+if r.code != 0 {
+    io.eprint(r.stderr);
+    os.exit(r.code);
+}
+```
 - `join(a, ...)`, `base(p)`, `dir(p)`, `ext(p)`.
 
 A failure is an `IOError` with `path` and `code`: `"notFound"`, `"exists"`,

@@ -1,12 +1,9 @@
 package rune
 
 import (
-	"bufio"
 	stderrors "errors"
 	"fmt"
-	"io"
 	"math"
-	"os"
 	"rune/pkg/ast"
 	"rune/pkg/errors"
 	"rune/pkg/helpers"
@@ -45,41 +42,21 @@ type Interpreter struct {
 	stack        []value.Value
 	frames       []frame
 	handlers     []handler
-	natives      stdlib.Frames
+	host         *stdlib.Host
 	maxRecursion int
-	out          *bufio.Writer
-	dest         io.Writer
 	buf          []byte
 	halted       atomic.Bool
 }
 
-func NewInterpreter() *Interpreter {
-	return &Interpreter{maxRecursion: maxRecursionDepth, dest: os.Stdout}
+func NewInterpreter(stdio *stdlib.Stdio) *Interpreter {
+	return &Interpreter{maxRecursion: maxRecursionDepth, host: stdlib.NewHost(stdio)}
 }
 
 // Interrupt stops Run at the next call or loop iteration, from any
 // goroutine. The interpreter stays interrupted.
 func (p *Interpreter) Interrupt() {
 	p.halted.Store(true)
-}
-
-func (p *Interpreter) SetOutput(w io.Writer) {
-	p.flush()
-	p.out, p.dest = nil, w
-}
-
-func (p *Interpreter) write(b []byte) {
-	if p.out == nil {
-		p.out = bufio.NewWriterSize(p.dest, 32<<10)
-	}
-
-	_, _ = p.out.Write(b)
-}
-
-func (p *Interpreter) flush() {
-	if p.out != nil {
-		_ = p.out.Flush()
-	}
+	p.host.Cancel()
 }
 
 var builtinValues = sync.OnceValue(func() map[string]value.Value {
@@ -91,7 +68,7 @@ var builtinValues = sync.OnceValue(func() map[string]value.Value {
 	return m
 })
 
-func EvaluateExpr(expr ast.Expr) (value.Value, error) {
+func (p *Interpreter) Evaluate(expr ast.Expr) (value.Value, error) {
 	r := NewResolver()
 	if errs := r.ResolveExpr(expr); len(errs) > 0 {
 		return value.NilValue, errs[0]
@@ -102,27 +79,26 @@ func EvaluateExpr(expr ast.Expr) (value.Value, error) {
 		return value.NilValue, err
 	}
 
-	p := NewInterpreter()
-	defer p.flush()
+	defer p.host.Stdio.Flush()
 
 	return p.exec(prog, nil)
 }
 
-// Run runs prog with args and returns the exit code its main returns: nil
-// for 0, or an integer from 0 to 255.
-func (p *Interpreter) Run(prog *Program, args []string) (int, error) {
-	defer p.flush()
+// Run runs prog with args. A program that exits with a code, by os.exit
+// or main returning one, returns a stdlib.Exit.
+func (p *Interpreter) Run(prog *Program, args []string) error {
+	defer p.host.Stdio.Flush()
 
 	result, err := p.exec(prog, args)
 	if err != nil || result.IsNil() {
-		return 0, err
+		return err
 	}
 
 	if n := result.Num(); result.IsNumber() && n == math.Trunc(n) && n >= 0 && n <= 255 {
-		return int(n), nil
+		return stdlib.Exit{Code: int(n)}
 	}
 
-	return 0, errors.NewRuntimeError(errors.TypeError, *prog.main, "main must return nil or an exit code from 0 to 255, got "+helpers.Stringify(result)+".")
+	return errors.NewRuntimeError(errors.TypeError, *prog.main, "main must return nil or an exit code from 0 to 255, got "+helpers.Stringify(result)+".")
 }
 
 func (p *Interpreter) exec(prog *Program, args []string) (value.Value, error) {
@@ -171,7 +147,7 @@ func (p *Interpreter) CallValue(fn value.Value, args []value.Value, token *ast.T
 
 			return p.run(len(p.frames) - 1)
 		case *stdlib.Native:
-			return p.natives.Call(f, p, args, token)
+			return p.host.Call(f, p, args, token)
 		}
 	}
 

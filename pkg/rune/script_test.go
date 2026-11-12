@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"rune/pkg/errors"
 	"rune/pkg/golden"
+	"rune/pkg/stdlib"
 	"strconv"
 	"strings"
 	"testing"
@@ -146,11 +147,13 @@ func execute(fsys fs.FS, name string, out io.Writer, timeout time.Duration) outc
 	}
 
 	if o.prog != nil {
-		p := NewInterpreter()
-		p.SetOutput(out)
+		p := NewInterpreter(stdlib.NewStdio(strings.NewReader(""), out, &stderr))
 
 		timer := time.AfterFunc(timeout, p.Interrupt)
-		_, o.runtimeError = p.Run(o.prog, nil)
+		o.runtimeError = p.Run(o.prog, nil)
+		if _, ok := o.runtimeError.(stdlib.Exit); ok {
+			o.runtimeError = nil // exit codes are checked by the CLI tests
+		}
 		timer.Stop()
 
 		if o.runtimeError != nil {
@@ -201,4 +204,9 @@ func compareLines(t *testing.T, what string, got, want []string) {
 			t.Errorf("%s %d:\n got: %q\nwant: %q", what, i+1, got[i], want[i])
 		}
 	}
+}
+
+// testStdio has no input, writes stdout to out and drops stderr.
+func testStdio(out io.Writer) *stdlib.Stdio {
+	return stdlib.NewStdio(strings.NewReader(""), out, io.Discard)
 }

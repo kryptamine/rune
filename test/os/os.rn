@@ -1,0 +1,29 @@
+print type(os.platform); // expect: string
+
+os.setEnv("RUNE_TEST_OS_VAR", "v1");
+print os.env("RUNE_TEST_OS_VAR"); // expect: v1
+print os.environ()["RUNE_TEST_OS_VAR"]; // expect: v1
+os.unsetEnv("RUNE_TEST_OS_VAR");
+print os.env("RUNE_TEST_OS_VAR"); // expect: nil
+
+let r = os.exec("sh", ["-c", "echo out; echo err >&2; exit 3"]);
+print r is ExecResult; // expect: true
+print r.code; // expect: 3
+print string.trim(r.stdout); // expect: out
+print string.trim(r.stderr); // expect: err
+
+print os.exec("cat", [], { input: "piped" }).stdout; // expect: piped
+print string.trim(os.exec("pwd", [], { dir: "/" }).stdout); // expect: /
+print string.trim(os.exec("sh", ["-c", "echo $RUNE_X"], { env: { RUNE_X: "set" } }).stdout); // expect: set
+print os.exec("true").code; // expect: 0
+
+try { os.exec("rune-no-such-command"); } catch (e: IOError) { print [e.code, e.path]; } // expect: ["notFound", "rune-no-such-command"]
+try { os.exec("true", [1]); } catch (e: TypeError) { print e.message; } // expect: os.exec() expects an array of strings as argument 2, got number at 0.
+print os.exec("cat", [], ExecOptions { input: "typed" }).stdout; // expect: typed
+try { os.exec("true", [], { cwd: "/" }); } catch (e: KeyError) { print e.message; } // expect: ExecOptions has no field 'cwd'.
+try { os.exec("true", [], 1); } catch (e: TypeError) { print e.message; } // expect: Cannot convert number to ExecOptions.
+try { os.exec("true", [], { dir: 1 }); } catch (e: TypeError) { print e.message; } // expect: os.exec() expects ExecOptions.dir to be a string, got number.
+try { os.exec("true", [], { env: [] }); } catch (e: TypeError) { print e.message; } // expect: os.exec() expects ExecOptions.env to be an object, got array.
+try { os.exec("true", [], { env: { A: 1 } }); } catch (e: TypeError) { print e.message; } // expect: os.exec() expects env 'A' to be a string, got number.
+try { os.setEnv("RUNE_TEST_OS_VAR", nil); } catch (e: TypeError) { print e.message; } // expect: os.setEnv() expects a string as argument 2, got nil.
+try { os.exit(256); } catch (e: ValueError) { print e.message; } // expect: os.exit() expects an exit code from 0 to 255, got 256.

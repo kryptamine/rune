@@ -1,6 +1,9 @@
 package rune
 
-import "testing"
+import (
+	"io"
+	"testing"
+)
 
 // benchSources are CPU-bound programs that print nothing.
 var benchSources = map[string]string{
@@ -33,7 +36,7 @@ func BenchmarkPrograms(b *testing.B) {
 			b.ReportAllocs()
 
 			for b.Loop() {
-				if _, err := NewInterpreter().Run(prog, nil); err != nil {
+				if err := NewInterpreter(testStdio(io.Discard)).Run(prog, nil); err != nil {
 					b.Fatal(err)
 				}
 			}

@@ -343,34 +343,7 @@ func (s *Scanner) interpolated() bool {
 }
 
 func (s *Scanner) number() {
-	for helpers.IsDigit(s.peek()) {
-		s.advance()
-	}
-	// Look for a fractional part.
-	if s.peek() == '.' && helpers.IsDigit(s.peekNext()) {
-		// Consume the "."
-		s.advance()
-
-		for helpers.IsDigit(s.peek()) {
-			s.advance()
-		}
-	}
-
-	// Look for an exponent: e10, E-3, e+2.
-	if s.peek() == 'e' || s.peek() == 'E' {
-		digitAt := s.current + 1
-		if digitAt < len(s.source) && (s.source[digitAt] == '+' || s.source[digitAt] == '-') {
-			digitAt++
-		}
-
-		if digitAt < len(s.source) && helpers.IsDigit(rune(s.source[digitAt])) {
-			s.current = digitAt
-
-			for helpers.IsDigit(s.peek()) {
-				s.advance()
-			}
-		}
-	}
+	s.current = helpers.NumberEnd(s.source, s.current)
 
 	val, _ := strconv.ParseFloat(s.source[s.start:s.current], 64)
 	literal := ""

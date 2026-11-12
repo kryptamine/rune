@@ -3,6 +3,7 @@ package stdlib
 import (
 	"math"
 	"rune/pkg/errors"
+	"rune/pkg/helpers"
 	"rune/pkg/value"
 	"strings"
 )
@@ -20,6 +21,18 @@ func stringPredicate(name string, f func(s, x string) bool) *Native {
 }
 
 var stringNatives = []*Native{
+	{"string.fixed", 2, 2, func(c *call) value.Value {
+		n, digits := c.num(0), c.int(1)
+		if !c.ok() {
+			return value.NilValue
+		}
+
+		if digits < 0 || digits > 100 {
+			return c.fail(errors.ValueError, "expects 0 to 100 digits, got %d.", digits)
+		}
+
+		return value.NewString(string(helpers.AppendFixed(nil, n, digits)))
+	}},
 	unaryString("string.upper", strings.ToUpper),
 	unaryString("string.lower", strings.ToLower),
 	unaryString("string.trim", strings.TrimSpace),

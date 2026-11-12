@@ -8,6 +8,7 @@ import (
 	"rune/pkg/errors"
 	"rune/pkg/helpers"
 	"rune/pkg/rune"
+	"rune/pkg/stdlib"
 	"strings"
 )
 
@@ -87,10 +88,9 @@ func evaluate(stdout, stderr io.Writer, path string, src []byte, _ []string) int
 		return exitCodeParseError
 	}
 
-	result, err := rune.EvaluateExpr(expr)
+	result, err := rune.NewInterpreter(stdio(stdout, stderr)).Evaluate(expr)
 	if err != nil {
-		printError(stderr, err, files)
-		return exitCodeEvalError
+		return exitStatus(stderr, err, files)
 	}
 
 	fmt.Fprintln(stdout, helpers.Stringify(result))
@@ -108,6 +108,21 @@ func printError(w io.Writer, err error, files []errors.File) {
 	fmt.Fprint(w, errors.Report(err, files))
 }
 
+// exitStatus is the exit code of a run that ended with err, reported.
+func exitStatus(stderr io.Writer, err error, files []errors.File) int {
+	if exit, ok := err.(stdlib.Exit); ok || err == nil {
+		return exit.Code
+	}
+
+	printError(stderr, err, files)
+
+	return exitCodeEvalError
+}
+
+func stdio(stdout, stderr io.Writer) *stdlib.Stdio {
+	return stdlib.NewStdio(os.Stdin, stdout, stderr)
+}
+
 // load loads the program at path; its imports are named from its directory.
 func load(stderr io.Writer, path string) (*rune.Program, []errors.File) {
 	prog, files, errs := rune.Load(os.DirFS(filepath.Dir(path)), filepath.Base(path))
@@ -122,16 +137,7 @@ func run(stdout, stderr io.Writer, path string, _ []byte, args []string) int {
 		return exitCodeParseError
 	}
 
-	p := rune.NewInterpreter()
-	p.SetOutput(stdout)
-
-	code, err := p.Run(prog, args)
-	if err != nil {
-		printError(stderr, err, files)
-		return exitCodeEvalError
-	}
-
-	return code
+	return exitStatus(stderr, rune.NewInterpreter(stdio(stdout, stderr)).Run(prog, args), files)
 }
 
 func disasm(stdout, stderr io.Writer, path string, _ []byte, _ []string) int {

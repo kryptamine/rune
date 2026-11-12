@@ -311,7 +311,7 @@ func (p *Resolver) VisitStructExpr(expr *ast.StructExpr) (value.Value, error) {
 	for i, pair := range expr.Pairs {
 		slot := shape.Index(pair.Key.Lexeme)
 		if slot < 0 {
-			p.error(pair.Key, noField(shape.Name, pair.Key.Lexeme))
+			p.error(pair.Key, errors.NoField(shape.Name, pair.Key.Lexeme))
 			continue
 		}
 
@@ -321,7 +321,7 @@ func (p *Resolver) VisitStructExpr(expr *ast.StructExpr) (value.Value, error) {
 
 	for i, f := range shape.Fields {
 		if _, optional := shape.Default(i); !given[i] && !optional {
-			p.error(expr.Name, missingField(shape.Name, f))
+			p.error(expr.Name, errors.MissingField(shape.Name, f))
 		}
 	}
 

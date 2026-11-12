@@ -2,6 +2,7 @@
 package stdlib
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"rune/pkg/ast"
@@ -24,15 +25,28 @@ type Native struct {
 	fn       func(c *call) value.Value
 }
 
-// Frames reuses call frames across native calls; each interpreter owns one.
-type Frames struct {
-	free []*call
+// Host is what natives run with; each interpreter owns one. It holds the
+// program's stdio and a context Cancel ends, and reuses call frames.
+type Host struct {
+	Stdio  *Stdio
+	ctx    context.Context
+	cancel context.CancelFunc
+	free   []*call
 }
 
+func NewHost(stdio *Stdio) *Host {
+	ctx, cancel := context.WithCancel(context.Background())
+	return &Host{Stdio: stdio, ctx: ctx, cancel: cancel}
+}
+
+// Cancel stops what natives are waiting on, such as a running command;
+// safe from any goroutine.
+func (f *Host) Cancel() { f.cancel() }
+
 // Call runs n; it must not keep args.
-func (f *Frames) Call(n *Native, caller Caller, args []value.Value, token *ast.Token) (value.Value, error) {
+func (f *Host) Call(n *Native, caller Caller, args []value.Value, token *ast.Token) (value.Value, error) {
 	c := f.get()
-	*c = call{caller: caller, args: args, token: token, name: n.name}
+	*c = call{caller: caller, host: f, args: args, token: token, name: n.name}
 
 	var v value.Value
 
@@ -52,7 +66,7 @@ func (f *Frames) Call(n *Native, caller Caller, args []value.Value, token *ast.T
 	return v, nil
 }
 
-func (f *Frames) get() *call {
+func (f *Host) get() *call {
 	n := len(f.free)
 	if n == 0 {
 		return &call{}
@@ -89,6 +103,7 @@ func (n *Native) String() string { return "<native fn " + n.name + ">" }
 // accessors return zero values and the native's result is discarded.
 type call struct {
 	caller Caller
+	host   *Host
 	args   []value.Value
 	token  *ast.Token
 	name   string
@@ -179,7 +194,7 @@ type Builtin struct {
 }
 
 // Types are the built-in struct types, which programs see by name.
-var Types = slices.Concat(errors.Kinds, []*value.Shape{FileInfo})
+var Types = slices.Concat(errors.Kinds, []*value.Shape{FileInfo, ExecOptions, ExecResult})
 
 // FieldNames returns each field name of Types as its one string.
 func FieldNames() map[string]string {
@@ -212,6 +227,8 @@ var namespaces = []namespace{
 	{"http", httpNatives, nil},
 	{"time", timeNatives, nil},
 	{"fs", fsNatives, nil},
+	{"io", ioNatives, nil},
+	{"os", osNatives, osConsts},
 }
 
 func (ns namespace) value() value.Value {
@@ -271,7 +288,7 @@ var Builtins = builtins()
 func builtins() []Builtin {
 	var out []Builtin
 
-	for _, n := range preludeNatives {
+	for _, n := range slices.Concat(preludeNatives, conversionNatives) {
 		out = append(out, Builtin{n.name, value.NewFunction(n)})
 	}
 

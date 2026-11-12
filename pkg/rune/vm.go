@@ -649,7 +649,7 @@ func (p *Interpreter) slow(in Instr) error {
 
 		at := fr.base + in.a()
 
-		v, err := p.natives.Call(fn.Fn().(*stdlib.Native), p, p.stack[at+1:at+1+in.b()], tok)
+		v, err := p.host.Call(fn.Fn().(*stdlib.Native), p, p.stack[at+1:at+1+in.b()], tok)
 		if err == nil {
 			// The call may have grown the stack.
 			p.stack[at] = v
@@ -659,7 +659,7 @@ func (p *Interpreter) slow(in Instr) error {
 
 	case opPrint:
 		p.buf = append(helpers.AppendValue(p.buf[:0], regs[in.a()]), '\n')
-		p.write(p.buf)
+		p.host.Stdio.Out(p.buf)
 
 	case opThrow:
 		v := regs[in.a()]
