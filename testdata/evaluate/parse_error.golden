@@ -1,4 +1,6 @@
 exit: 65
 -- stdout --
 -- stderr --
-[line: 2] Error at end: Expect expression.
+[line: 1] Error at end: Expect expression.
+    1 | 1 +
+      |    ^

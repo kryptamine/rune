@@ -25,6 +25,9 @@ type Scanner struct {
 	startLine int
 	startCol  int
 
+	// endLine and endCol are just past the last token, where EOF goes.
+	endLine, endCol int
+
 	// truncated is set when an unterminated string swallowed the rest of the source.
 	truncated bool
 }
@@ -44,6 +47,8 @@ func scan(source []byte, file int) *Scanner {
 		current: 0,
 		line:    1,
 		start:   0,
+		endLine: 1,
+		endCol:  1,
 	}
 
 	scanner.scanTokens()
@@ -56,8 +61,8 @@ func (s *Scanner) scanTokens() {
 		s.next()
 	}
 
-	eof := ast.NewToken(ast.EOF, "", "", s.line)
-	eof.Col, eof.File = s.col(s.current), s.file
+	eof := ast.NewToken(ast.EOF, "", "", s.endLine)
+	eof.Col, eof.File = s.endCol, s.file
 	s.tokens = append(s.tokens, eof)
 }
 
@@ -253,6 +258,7 @@ func (s *Scanner) addTokenWithLiteral(tokenType ast.TokenType, literal string) {
 	token := ast.NewToken(tokenType, lexeme, literal, s.startLine)
 	token.Col, token.File = s.startCol, s.file
 	s.tokens = append(s.tokens, token)
+	s.endLine, s.endCol = s.line, s.col(s.current)
 }
 
 func (s *Scanner) currentChar() rune {

@@ -63,8 +63,8 @@ print acc.balance; // 70
 ```
 
 Structs are values, so the method works on a copy, which replaces the
-receiver when it returns; nothing else holding the old struct sees the
-change, and if the method throws, the receiver keeps its old value.
+receiver when it returns; nothing else holding the old struct sees its
+fields change, and if the method throws, the receiver keeps its old value.
 
 ```rune
 struct Account { owner, balance = 0 }
@@ -88,6 +88,29 @@ try {
     print e.message;  // insufficient funds
 }
 print acc.balance;    // 60
+```
+
+The copy is shallow: an array, object, map or set in a field is shared
+with the old struct, so changing it in place (`self.items.push(x)`) shows
+through both. Assign a new one (`self.items = self.items.append(x)`) to
+keep the old struct as it was.
+
+```rune
+struct Cart { items = [] }
+impl Cart {
+  fun add(mut self, x) { self.items.push(x); }
+  fun with(mut self, x) { self.items = self.items.append(x); }
+}
+
+let mut cart = Cart {};
+let before = cart;
+cart.add("tea");
+print before.items; // ["tea"]
+
+let snapshot = cart;
+cart.with("milk");
+print snapshot.items; // ["tea"]
+print cart.items;     // ["tea", "milk"]
 ```
 
 The receiver must be a mutable variable, or an element or property of an

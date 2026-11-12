@@ -32,14 +32,18 @@ print classify(-1);    // invalid
 print classify(30);    // adult
 ```
 
-## and, or, !
+## and, or, not
 
 `and` and `or` stop as soon as the result is known and give one of their
-operands, not a boolean; `!` negates. `&&` and `||` are an error with a hint.
+operands, not a boolean; `not` and `!` negate. `not` binds looser than
+comparisons, so `not a == b` is `not (a == b)`; `!` binds tightly, like `-`.
+`&&` and `||` are an error with a hint.
 
 ```rune
 let user = nil;
-if !user { print "guest"; }       // guest
+if not user { print "guest"; }    // guest
+print not 1 == 2;                 // true
+print !1 == 2;                    // false
 
 print nil or "default";           // default
 print 0 or 5;                     // 5

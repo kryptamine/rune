@@ -1,1 +1,3 @@
-[line: 2] Error at end: Expect ';' after expression.
+[line: 1] Error at end: Expect ';' after expression.
+    1 | throw e // [line: 1] Error at end: Expect ';' after expression.
+      |        ^

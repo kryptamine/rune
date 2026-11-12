@@ -135,7 +135,8 @@ func unwrap(e ast.Expr) ast.Expr {
 	}
 }
 
-// literalOf returns the value of a literal, a negated number included.
+// literalOf returns the value of a literal, or of operators on literals
+// that fold without an error.
 func literalOf(e ast.Expr) (value.Value, bool) {
 	switch n := unwrap(e).(type) {
 	case *ast.LiteralExpr:
@@ -145,10 +146,30 @@ func literalOf(e ast.Expr) (value.Value, bool) {
 			return *n.Member, true
 		}
 	case *ast.UnaryExpr:
-		if v, ok := literalOf(n.Right); ok && n.Operator.TokenType == ast.MINUS && v.IsNumber() {
-			if v, err := negate(&n.Operator, v); err == nil {
-				return v, true
-			}
+		v, ok := literalOf(n.Right)
+		if !ok {
+			break
+		}
+
+		switch n.Operator.TokenType {
+		case ast.BANG:
+			return value.NewBool(!helpers.IsTruthy(v)), true
+		case ast.MINUS:
+			v, err := negate(&n.Operator, v)
+			return v, err == nil
+		case ast.TILDE:
+			v, err := bitNot(&n.Operator, v)
+			return v, err == nil
+		}
+	case *ast.BinaryExpr:
+		l, ok := literalOf(n.Left)
+		if !ok {
+			break
+		}
+
+		if r, ok := literalOf(n.Right); ok {
+			v, err := binaryOp(&n.Operator, l, r)
+			return v, err == nil
 		}
 	}
 
@@ -466,16 +487,13 @@ func (fs *funcState) assign(n *ast.AssignExpr) int32 {
 func (fs *funcState) binary(n *ast.BinaryExpr, dst int32) {
 	op := &n.Operator
 
-	lc, lConst := literalOf(n.Left)
-	rc, rConst := literalOf(n.Right)
-
 	// A fold that fails is left to fail at run time.
-	if lConst && rConst {
-		if v, err := binaryOp(op, lc, rc); err == nil {
-			fs.emit(ins{op: opLoadK, a: dst, c: fs.constant(v)}, nil)
-			return
-		}
+	if v, ok := literalOf(n); ok {
+		fs.emit(ins{op: opLoadK, a: dst, c: fs.constant(v)}, nil)
+		return
 	}
+
+	rc, rConst := literalOf(n.Right)
 
 	arith, isArith := arithOps[op.TokenType]
 	cmp, isCmp := cmpOps[op.TokenType]
@@ -519,11 +537,6 @@ func (fs *funcState) unary(n *ast.UnaryExpr, dst int32) {
 
 	if v, ok := literalOf(n); ok {
 		fs.emit(ins{op: opLoadK, a: dst, c: fs.constant(v)}, nil)
-		return
-	}
-
-	if c, ok := literalOf(n.Right); ok && op.TokenType == ast.BANG {
-		fs.emit(ins{op: opLoadK, a: dst, c: fs.constant(value.NewBool(!helpers.IsTruthy(c)))}, nil)
 		return
 	}
 

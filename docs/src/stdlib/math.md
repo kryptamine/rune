@@ -51,8 +51,8 @@ print colors.contains(pick);   // true
 
 ```rune
 print math.PI;        // 3.141592653589793
-print math.INF;       // +Inf
-print -math.INF;      // -Inf
+print math.INF;       // inf
+print -math.INF;      // -inf
 print math.MAX_INT;   // 9223372036854775807
 print math.MIN_INT;   // -9223372036854775808
 ```

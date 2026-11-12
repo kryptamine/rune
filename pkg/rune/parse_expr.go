@@ -165,14 +165,14 @@ func (s *Parser) or() (ast.Expr, error) {
 }
 
 func (s *Parser) and() (ast.Expr, error) {
-	expr, err := s.equality()
+	expr, err := s.not()
 	if err != nil {
 		return nil, err
 	}
 
 	for s.match(ast.AND) {
 		operator := s.previous()
-		right, err := s.equality()
+		right, err := s.not()
 		if err != nil {
 			return nil, err
 		}
@@ -181,6 +181,23 @@ func (s *Parser) and() (ast.Expr, error) {
 	}
 
 	return expr, nil
+}
+
+// not binds looser than comparisons: not a == b is not (a == b).
+func (s *Parser) not() (ast.Expr, error) {
+	if !s.match(ast.NOT) {
+		return s.equality()
+	}
+
+	operator := s.previous()
+	operator.TokenType = ast.BANG
+
+	right, err := s.not()
+	if err != nil {
+		return nil, err
+	}
+
+	return ast.NewUnaryExpr(right, operator), nil
 }
 
 func (s *Parser) equality() (ast.Expr, error) {

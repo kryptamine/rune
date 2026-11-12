@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"math"
 	"rune/pkg/value"
 	"strconv"
 	"strings"
@@ -128,14 +129,53 @@ func AppendNumber(buf []byte, v value.Value) []byte {
 		return strconv.AppendInt(buf, v.Int(), 10)
 	}
 
-	return AppendFixed(buf, v.Float(), -1)
+	return AppendFloat(buf, v.Float())
+}
+
+// AppendFloat formats like JavaScript: exponents only outside [1e-6, 1e21).
+func AppendFloat(buf []byte, f float64) []byte {
+	if s, ok := nonFinite(f); ok {
+		return append(buf, s...)
+	}
+
+	a := math.Abs(f)
+	if a == 0 || a >= 1e-6 && a < 1e21 {
+		return AppendFixed(buf, f, -1)
+	}
+
+	buf = strconv.AppendFloat(buf, f, 'e', -1, 64)
+
+	// e-07 becomes e-7.
+	if n := len(buf); buf[n-4] == 'e' && buf[n-3] == '-' && buf[n-2] == '0' {
+		buf[n-2] = buf[n-1]
+		buf = buf[:n-1]
+	}
+
+	return buf
 }
 
 // AppendFixed appends n with digits decimals, or as few as it needs if digits is -1.
 func AppendFixed(buf []byte, n float64, digits int) []byte {
+	if s, ok := nonFinite(n); ok {
+		return append(buf, s...)
+	}
+
 	if n == 0 {
 		n = 0 // -0 prints as 0
 	}
 
 	return strconv.AppendFloat(buf, n, 'f', digits, 64)
+}
+
+func nonFinite(f float64) (string, bool) {
+	switch {
+	case f != f:
+		return "nan", true
+	case math.IsInf(f, 1):
+		return "inf", true
+	case math.IsInf(f, -1):
+		return "-inf", true
+	}
+
+	return "", false
 }

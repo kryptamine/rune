@@ -2,6 +2,6 @@ print 7 % 3; // expect: 1
 print -7 % 3; // expect: -1
 print 7 % -3; // expect: 1
 print -4 % 2; // expect: 0
-print 1 / (-4.0 % 2); // expect: -Inf
+print 1 / (-4.0 % 2); // expect: -inf
 print 5.5 % 2; // expect: 1.5
-print 1.0 % 0; // expect: NaN
+print 1.0 % 0; // expect: nan

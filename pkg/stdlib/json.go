@@ -188,29 +188,13 @@ func appendJSONPairs(c *call, buf []byte, keys []string, val func(i int) value.V
 	return append(buf, '}')
 }
 
-// appendJSONNumber formats like JavaScript: exponents only outside [1e-6, 1e21).
 func appendJSONNumber(c *call, buf []byte, f float64) []byte {
 	if math.IsNaN(f) || math.IsInf(f, 0) {
 		c.fail(errors.ValueError, "cannot encode a non-finite number.")
 		return buf
 	}
 
-	format := byte('f')
-	if a := math.Abs(f); a != 0 && (a < 1e-6 || a >= 1e21) {
-		format = 'e'
-	}
-
-	buf = strconv.AppendFloat(buf, f, format, -1, 64)
-
-	if format == 'e' {
-		// e-07 becomes e-7.
-		if n := len(buf); n >= 4 && buf[n-4] == 'e' && buf[n-3] == '-' && buf[n-2] == '0' {
-			buf[n-2] = buf[n-1]
-			buf = buf[:n-1]
-		}
-	}
-
-	return buf
+	return helpers.AppendFloat(buf, f)
 }
 
 const hexDigits = "0123456789abcdef"

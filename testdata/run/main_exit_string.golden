@@ -1,0 +1,6 @@
+exit: 70
+-- stdout --
+-- stderr --
+[line: 1] TypeError: main must return nil or an exit code from 0 to 255, got "x".
+    1 | fun main() { return "x"; }
+      |     ^

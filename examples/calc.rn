@@ -245,7 +245,7 @@ fun main(args) {
 
     for line in DEMO run(env, line);
 
-    let stats = Map();
+    let mut stats = Map();
     for line in DEMO {
         try {
             let kind = type(parse(line));

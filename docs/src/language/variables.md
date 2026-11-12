@@ -29,7 +29,8 @@ let limit;       // Error at 'limit': Immutable variable must be initialized.
 Through an immutable variable the array or object it holds cannot be changed
 either: index and property assignment (`a[0] = 1`, `o.x += 1`, `a[0]++`, also
 nested like `o.xs[0] = 1`) is a compile error, and the in-place methods
-`push`, `pop` and `sort` a runtime `TypeError`, as is taking one as a value.
+`push`, `pop`, `sort`, `Map.set`, `Set.add`, `delete` and `clear` a runtime
+`TypeError`, as is taking one as a value.
 Methods that return a new value (`append`, `map`, ...) work as usual.
 
 ```rune

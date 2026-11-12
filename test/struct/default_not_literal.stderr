@@ -1,5 +1,5 @@
 [line: 1] Error at '1': Field default must be a constant: a literal, or an array, object, Map() or Set() of them.
-    1 | struct Point { x = 1 + 2, y } // [line: 1] Error at '1': Field default must be a constant: a literal, or an array, object, Map() or Set() of them.
+    1 | struct Point { x = 1 + n, y } // [line: 1] Error at '1': Field default must be a constant: a literal, or an array, object, Map() or Set() of them.
       |                    ^
 [line: 2] Error at '[': Field default must be a constant: a literal, or an array, object, Map() or Set() of them.
     2 | struct Box { xs = [n] } // [line: 2] Error at '[': Field default must be a constant: a literal, or an array, object, Map() or Set() of them.
