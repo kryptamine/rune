@@ -125,7 +125,12 @@ func stdio(stdout, stderr io.Writer) *stdlib.Stdio {
 
 // load loads the program at path; its imports are named from its directory.
 func load(stderr io.Writer, path string) (*rune.Program, []errors.File) {
-	prog, files, errs := rune.Load(os.DirFS(filepath.Dir(path)), filepath.Base(path))
+	root, err := filepath.Abs(filepath.Dir(path))
+	if err != nil {
+		root = filepath.Dir(path)
+	}
+
+	prog, files, errs := rune.Load(os.DirFS(root), root, filepath.Base(path))
 	printErrors(stderr, errs, files)
 
 	return prog, files

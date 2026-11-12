@@ -1,0 +1,4 @@
+[line: 1] Error at '...': Module '....nope' is outside the program's directory.
+  --> _lib/rel/outside.rn:1:8
+    1 | import ....nope;
+      |        ^

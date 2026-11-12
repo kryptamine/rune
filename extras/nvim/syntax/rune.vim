@@ -13,7 +13,7 @@ syn keyword runeNil nil
 syn keyword runeSelf self
 syn match runeAs "\<as\>"
 
-syn keyword runeNamespace string math regex bytes json http time fs io os array
+syn keyword runeNamespace string math regex bytes json http time fs io os array module
 syn keyword runeBuiltin len type object
 syn keyword runeType Map Set
 
@@ -34,6 +34,8 @@ syn region runeInterpBrace contained transparent start="{" end="}" contains=TOP,
 syn region runeString start=+"+ skip=+\\\\\|\\"+ end=+"+ contains=runeEscape,runeInterp
 syn region runeBytes matchgroup=runeBytesPrefix start=+\<b"+ skip=+\\\\\|\\"+ end=+"+ contains=runeEscape,runeByteEscape
 syn region runeRawString matchgroup=runeBytesPrefix start=+\<r"+ end=+"+
+syn region runeString start=+"""+ skip=+\\\\\|\\"+ end=+"""+ contains=runeEscape,runeInterp
+syn region runeRawString matchgroup=runeBytesPrefix start=+\<r"""+ end=+"""+
 
 syn match runeOperator "=>\|\.\.\.\|\.\.=\|\.\.\|?\.\|??\|?\|[-+*/%=!<>&|^~]=\="
 

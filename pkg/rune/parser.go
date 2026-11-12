@@ -12,6 +12,15 @@ type Parser struct {
 	errors  []error
 	current int
 	structs structMode
+	// depth[i] is the number of braces open before tokens[i], a closing one
+	// included; blockDepth that of the statements of the block being parsed,
+	// 0 at the top level. They tell synchronize where a statement ends.
+	depth      []int
+	blockDepth int
+}
+
+func newParser(tokens []ast.Token) *Parser {
+	return &Parser{tokens: tokens, depth: braceDepths(tokens)}
 }
 
 // structMode says which "Name {" start a struct literal.
@@ -27,20 +36,17 @@ const (
 
 // ParseExpr parses a single expression and stops at the first error.
 func ParseExpr(tokens []ast.Token) (ast.Expr, error) {
-	parser := Parser{
-		tokens:  tokens,
-		current: 0,
-	}
-
-	return parser.expression()
+	return newParser(tokens).expression()
 }
 
 // importDecl is `import a.b;` or `import a.b as m;`; tok is its first
-// segment, as the name it binds: its last segment or alias. The loader
-// sets file to the imported file's index.
+// segment, as the name it binds: its last segment or alias. A name with
+// leading dots is relative: `.a` is next to the importing file, `..a` in
+// its parent directory. The loader sets file to the imported file's index.
 type importDecl struct {
 	tok  ast.Token
 	name string
+	dots int
 	as   ast.Token
 	file int
 }
@@ -48,6 +54,7 @@ type importDecl struct {
 // fileAST is a parsed file; exports are its exported declarations.
 type fileAST struct {
 	file    int
+	path    string
 	imports []importDecl
 	stmts   []ast.Stmt
 	exports []ast.Stmt
@@ -60,10 +67,7 @@ type fileAST struct {
 func parseFile(tokens []ast.Token, module bool) (*fileAST, []error) {
 	file := &fileAST{}
 
-	parser := Parser{
-		tokens:  tokens,
-		current: 0,
-	}
+	parser := newParser(tokens)
 
 	for parser.match(ast.IMPORT) {
 		if imp, err := parser.importDecl(); err != nil {
@@ -122,6 +126,13 @@ func (s *Parser) importDecl() (importDecl, error) {
 	var name strings.Builder
 
 	tok := s.peek()
+	dots := 0
+
+	for s.match(ast.DOT, ast.DOT_DOT, ast.DOT_DOT_DOT) {
+		dots += len(s.previous().Lexeme)
+	}
+
+	name.WriteString(strings.Repeat(".", dots))
 
 	var as ast.Token
 
@@ -156,7 +167,7 @@ func (s *Parser) importDecl() (importDecl, error) {
 		return importDecl{}, err
 	}
 
-	return importDecl{tok: tok, name: name.String(), as: as}, nil
+	return importDecl{tok: tok, name: name.String(), dots: dots, as: as}, nil
 }
 
 // safeDeclaration parses a declaration and recovers from a syntax error in it.
@@ -177,21 +188,47 @@ func (s *Parser) recover(err error) {
 	s.synchronize()
 }
 
-// synchronize discards tokens until it reaches a likely start of the next statement.
+func braceDepths(tokens []ast.Token) []int {
+	depth := make([]int, len(tokens))
+	d := 0
+
+	for i, t := range tokens {
+		depth[i] = d
+
+		switch {
+		case t.TokenType == ast.LEFT_BRACE:
+			d++
+		case t.TokenType == ast.RIGHT_BRACE && d > 0:
+			d--
+		}
+	}
+
+	return depth
+}
+
+// synchronize discards tokens until it reaches a likely start of the next
+// statement of the block being parsed, or its closing brace, skipping
+// whatever braces the bad statement opens.
 func (s *Parser) synchronize() {
 	s.advance()
 
 	for !s.isAtEnd() {
-		if s.previous().TokenType == ast.SEMICOLON {
+		if s.previous().TokenType == ast.SEMICOLON && s.depth[s.current-1] == s.blockDepth {
 			return
 		}
 
-		switch t := s.peek().TokenType; t {
-		case ast.FUN, ast.LET, ast.STRUCT, ast.IMPL, ast.IMPORT, ast.EXPORT, ast.MATCH:
-			return
-		default:
-			if stmtKeyword(t) {
+		if s.depth[s.current] == s.blockDepth {
+			switch t := s.peek().TokenType; t {
+			case ast.FUN, ast.LET, ast.STRUCT, ast.IMPL, ast.IMPORT, ast.EXPORT, ast.MATCH:
 				return
+			case ast.RIGHT_BRACE:
+				if s.blockDepth > 0 {
+					return
+				}
+			default:
+				if stmtKeyword(t) {
+					return
+				}
 			}
 		}
 

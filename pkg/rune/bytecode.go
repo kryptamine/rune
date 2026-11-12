@@ -62,7 +62,7 @@ const (
 	opObject   // R[A] = {keys[C][i]: R[B+i]}
 	opStruct   // R[A] = struct of type K[C] with fields R[B...]
 	opGetIndex // R[A] = R[B][R[C]]
-	opGetProp  // R[A] = R[B].K[C]
+	opGetProp  // R[A] = R[B].K[C]; with X one missing from an object or struct is undefined
 	// The optional forms give nil for a missing element, property or field.
 	opGetIndexOpt
 	opGetPropOpt
@@ -77,7 +77,10 @@ const (
 	opTestProp // if R[B] is an object or struct with K[C]: R[A] = R[B].K[C], pc++
 	opRange    // R[A] = array of R[B]..R[B+1] step R[B+2], inclusive if X
 	opSpread   // append the elements of array R[B] to array R[A], or merge R[B] into object R[A]
-	opUnpack   // R[A+i] = R[B][i] for i < C, and if X R[A+C] = R[B][C:]
+	// Unpack: R[A+i] = R[B][i] for i < n, and if X R[A+n] = R[B][n:]; C is
+	// n | required<<unpackShift, and an element past those required that is
+	// missing is undefined.
+	opUnpack
 
 	opClosure   // R[A] = closure of protos[C]
 	opCall      // R[A] = R[A](R[A+1], ..., R[A+B])
@@ -137,6 +140,11 @@ type ins struct {
 	x, y    uint8
 	a, b, c int32
 }
+
+const (
+	unpackShift = 10
+	maxUnpack   = 1<<unpackShift - 1
+)
 
 // tooLarge is the error of a function past the limits of the encoding.
 type tooLarge struct{ name string }
@@ -283,7 +291,12 @@ func (prog *Program) Disassemble() string {
 
 		for i, in := range f.code {
 			name, ownX := opName(in)
-			fmt.Fprintf(&b, "%5d  %-13s %d %d %d", i, name, in.a(), in.b(), in.c())
+			c := fmt.Sprint(in.c())
+			if in.op() == opUnpack {
+				c = fmt.Sprintf("%d/%d", in.c()&maxUnpack, in.c()>>unpackShift)
+			}
+
+			fmt.Fprintf(&b, "%5d  %-13s %d %d %s", i, name, in.a(), in.b(), c)
 
 			if !ownX && in.x() != 0 || in.y() {
 				fmt.Fprintf(&b, "  x=%d y=%v", in.x(), in.y())

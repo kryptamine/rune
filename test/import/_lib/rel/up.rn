@@ -1,0 +1,9 @@
+import ..nested.greet;
+import .side as s;
+
+export fun hello() {
+  return greet.greet(s.name);
+}
+
+export let dir = module.dir;
+export let file = module.file;

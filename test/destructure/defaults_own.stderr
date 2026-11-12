@@ -1,0 +1,3 @@
+[line: 2] Error at 'y': Cannot read local variable in its own initializer.
+    2 |     let { x = y, y } = {}; // Error at 'y': Cannot read local variable in its own initializer.
+      |               ^

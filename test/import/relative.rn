@@ -1,0 +1,9 @@
+import _lib.rel.up;
+import ._lib.nested.greet as g;
+
+print up.hello(); // expect: hi rel
+print g.greet("dot"); // expect: hi dot
+print up.dir; // expect: _lib/rel
+print up.file; // expect: _lib/rel/up.rn
+print module.dir; // expect: .
+print module.file; // expect: relative.rn

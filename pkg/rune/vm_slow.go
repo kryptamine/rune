@@ -11,6 +11,19 @@ import (
 
 // slow runs in, the instruction before the top frame's pc, for the cases
 // the dispatch loop leaves out. It may grow the stack.
+// missingProp is what a property read gives for one an object or struct
+// does not have, or nil for an error.
+func missingProp(in Instr) *value.Value {
+	switch {
+	case in.x() != 0:
+		return &value.UndefinedValue
+	case in.op() == opGetPropOpt:
+		return &value.NilValue
+	}
+
+	return nil
+}
+
 func (p *Interpreter) slow(in Instr) error {
 	fr := &p.frames[len(p.frames)-1]
 	f := fr.cl.proto
@@ -122,7 +135,7 @@ func (p *Interpreter) slow(in Instr) error {
 		return err
 
 	case opGetProp, opGetPropOpt:
-		v, err := p.property(tok, regs[in.b()], consts[in.c()], in.op() == opGetPropOpt)
+		v, err := p.property(tok, regs[in.b()], consts[in.c()], missingProp(in))
 		if err == nil {
 			regs[in.a()] = v
 		}
@@ -226,15 +239,19 @@ func (p *Interpreter) slow(in Instr) error {
 			return errors.NewRuntimeError(errors.TypeError, *tok, "Cannot destructure "+helpers.TypeName(src)+" as an array.")
 		}
 
-		arr, n := src.Arr(), in.c()
-		if len(arr) < n {
-			return errors.NewRuntimeError(errors.IndexError, *tok, fmt.Sprintf("Expected at least %s but got %d.", helpers.Plural(n, "element"), len(arr)))
+		arr, n, req := src.Arr(), in.c()&maxUnpack, in.c()>>unpackShift
+
+		if len(arr) < req {
+			return errors.NewRuntimeError(errors.IndexError, *tok, fmt.Sprintf("Expected at least %s but got %d.", helpers.Plural(req, "element"), len(arr)))
 		}
 
-		copy(regs[in.a():], arr[:n])
+		got := copy(regs[in.a():in.a()+n], arr)
+		for i := got; i < n; i++ {
+			regs[in.a()+i] = value.UndefinedValue
+		}
 
 		if in.x() != 0 {
-			regs[in.a()+n] = value.NewArray(append([]value.Value(nil), arr[n:]...))
+			regs[in.a()+n] = value.NewArray(append([]value.Value(nil), arr[got:]...))
 		}
 
 	case opPrint:

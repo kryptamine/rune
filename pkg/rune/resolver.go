@@ -1,6 +1,7 @@
 package rune
 
 import (
+	"path/filepath"
 	"rune/pkg/ast"
 	"rune/pkg/errors"
 	"rune/pkg/helpers"
@@ -38,6 +39,8 @@ type Resolver struct {
 	// every file's, by file index.
 	mod     *moduleScope
 	modules []*moduleScope
+	// root is where the program's files are on disk, for module.dir.
+	root string
 	// structs holds every struct type up front, by its name's declaration.
 	structs map[*ast.Local]*value.Shape
 	// fieldNames holds each field name's one string, shared by every struct
@@ -53,7 +56,7 @@ type Resolver struct {
 }
 
 func NewResolver() *Resolver {
-	mod := newModuleScope()
+	mod := newModuleScope(newFileNamespace("", ""))
 
 	p := &Resolver{
 		mod:        mod,
@@ -165,18 +168,22 @@ func (p *Resolver) VisitArrayDestructureStmt(stmt *ast.ArrayDestructureStmt) err
 	return nil
 }
 
-// resolveDestructure declares the variables stmt binds, defined once
-// initializer is resolved.
+// resolveDestructure declares the variables stmt binds, each defined
+// once initializer and its default are resolved.
 func (p *Resolver) resolveDestructure(stmt ast.Stmt, initializer ast.Expr) {
-	bindings := ast.Declared(stmt)
-	for _, b := range bindings {
-		b.Local = p.declare(*b)
+	vars := ast.PatternVars(stmt)
+	for _, v := range vars {
+		v.Local = p.declare(v.Binding)
 	}
 
 	p.resolveExpr(initializer)
 
-	for _, b := range bindings {
-		p.define(b.Name)
+	for _, v := range vars {
+		if v.Default != nil {
+			p.resolveExpr(v.Default)
+		}
+
+		p.define(v.Name)
 	}
 }
 
@@ -604,7 +611,7 @@ func (p *Resolver) resolveMember(expr *ast.IndexExpr) {
 		return
 	}
 
-	v, found, isNamespace := stdlib.Member(ns.Name.Lexeme, key.Value.Str())
+	v, found, isNamespace := p.namespaceMember(ns.Name.Lexeme, key.Value.Str())
 
 	switch {
 	case found:
@@ -616,6 +623,28 @@ func (p *Resolver) resolveMember(expr *ast.IndexExpr) {
 		}
 		p.error(expr.Token, msg)
 	}
+}
+
+// fileNamespace names the namespace of each file's own: module.dir and
+// module.file, the directory and path of the file.
+const fileNamespace = "module"
+
+func newFileNamespace(root, path string) value.Value {
+	file := filepath.Join(root, filepath.FromSlash(path))
+
+	return stdlib.NewNamespace([]stdlib.Builtin{
+		{Name: "dir", Value: value.NewString(filepath.Dir(file))},
+		{Name: "file", Value: value.NewString(file)},
+	})
+}
+
+func (p *Resolver) namespaceMember(ns, key string) (v value.Value, found, isNamespace bool) {
+	if ns == fileNamespace {
+		v, found = stdlib.NamespaceMember(p.mod.file, key)
+		return v, found, true
+	}
+
+	return stdlib.Member(ns, key)
 }
 
 func (p *Resolver) VisitSetIndexExpr(expr *ast.SetIndexExpr) (value.Value, error) {
@@ -783,7 +812,8 @@ func (p *Resolver) resolveLocal(name ast.Token) *ast.Local {
 }
 
 func (p *Resolver) builtin(name string) *ast.Local {
-	if _, ok := builtinValues()[name]; !ok {
+	v, ok := p.mod.builtinValue(name)
+	if !ok {
 		return nil
 	}
 
@@ -792,7 +822,7 @@ func (p *Resolver) builtin(name string) *ast.Local {
 		l = &ast.Local{TopLevel: true}
 		p.mod.builtins[name] = l
 
-		if v := builtinValues()[name]; v.Kind() == value.Type {
+		if v.Kind() == value.Type {
 			p.structs[l] = v.TypeShape()
 		}
 	}

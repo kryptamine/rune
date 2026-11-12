@@ -1,0 +1,1 @@
+let { a = 1 } = 5; // expect runtime error: [line: 1] TypeError: Cannot read property 'a' of number.

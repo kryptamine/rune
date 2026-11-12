@@ -49,9 +49,9 @@ func own(tok *ast.Token, t, key value.Value) (value.Value, bool) {
 	return v, found
 }
 
-// property reads t.key: its own field or property, else a method, else
-// nil if optional and t has properties at all.
-func (p *Interpreter) property(tok *ast.Token, t, key value.Value, optional bool) (value.Value, error) {
+// property reads t.key: its own field or property, else a method; one an
+// object or struct does not have is missing, unless that is nil.
+func (p *Interpreter) property(tok *ast.Token, t, key value.Value, missing *value.Value) (value.Value, error) {
 	if v, ok := own(tok, t, key); ok {
 		return v, nil
 	}
@@ -61,8 +61,8 @@ func (p *Interpreter) property(tok *ast.Token, t, key value.Value, optional bool
 		return p.methodValue(tok, t, m, owner)
 	}
 
-	if k := t.Kind(); optional && (k == value.Object || k == value.Struct) {
-		return value.NilValue, nil
+	if k := t.Kind(); missing != nil && (k == value.Object || k == value.Struct) {
+		return *missing, nil
 	}
 
 	return value.NilValue, missingMember(tok, t, key.Str())

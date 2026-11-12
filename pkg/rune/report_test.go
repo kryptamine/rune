@@ -10,7 +10,7 @@ import (
 func report(t *testing.T, src string) string {
 	t.Helper()
 
-	prog, files, errs := Load(fstest.MapFS{"main.rn": {Data: []byte(src)}}, "main.rn")
+	prog, files, errs := Load(fstest.MapFS{"main.rn": {Data: []byte(src)}}, "", "main.rn")
 	if len(errs) > 0 {
 		return errors.Report(errs[0], files)
 	}

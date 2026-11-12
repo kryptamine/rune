@@ -1,0 +1,2 @@
+import _lib.rel.outside;
+// [line: 1] Error at '...': Module '....nope' is outside the program's directory.

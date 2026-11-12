@@ -20,7 +20,7 @@ exit: 0
    16  RETURNNIL     0 0 0
 
 f: arity 1+, 7 registers, 0 upvalues
-    0  UNPACK        4 1 2  x=1 y=false
+    0  UNPACK        4 1 2/2  x=1 y=false
     1  MOVE          2 4 0
     2  MOVE          3 6 0
     3  JMPNIL        0 0 6  x=0 y=true
