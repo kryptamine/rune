@@ -44,14 +44,6 @@ func Stringify(v value.Value) string {
 	return stringify(v, nil)
 }
 
-func formatNumber(buf []byte, n float64) []byte {
-	if n == 0 {
-		n = 0 // -0 prints as 0
-	}
-
-	return strconv.AppendFloat(buf, n, 'f', -1, 64)
-}
-
 var quoter = strings.NewReplacer(`\`, `\\`, `"`, `\"`, "\n", `\n`, "\t", `\t`, "\r", `\r`)
 
 // quote writes s as a string literal the scanner accepts.
@@ -91,7 +83,7 @@ func stringify(v value.Value, seen map[uintptr]bool) string {
 	case value.Bool:
 		return strconv.FormatBool(v.Bool())
 	case value.Number:
-		return string(formatNumber(nil, v.Num()))
+		return string(AppendFixed(nil, v.Num(), -1))
 	case value.String:
 		return v.Str()
 	case value.Array:
@@ -173,7 +165,7 @@ func stringify(v value.Value, seen map[uintptr]bool) string {
 func AppendValue(buf []byte, v value.Value) []byte {
 	switch v.Kind() {
 	case value.Number:
-		return formatNumber(buf, v.Num())
+		return AppendFixed(buf, v.Num(), -1)
 	case value.String:
 		return append(buf, v.Str()...)
 	case value.Bool:

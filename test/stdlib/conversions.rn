@@ -1,0 +1,49 @@
+print str(1.5) + "!"; // expect: 1.5!
+print str("hi"); // expect: hi
+print str([1, "a"]); // expect: [1, "a"]
+print str(nil); // expect: nil
+print str(-0); // expect: 0
+print str(1e21); // expect: 1000000000000000000000
+
+print number("42") + 1; // expect: 43
+print number(" -2.5e1 "); // expect: -25
+print number("1E+2"); // expect: 100
+print number(7); // expect: 7
+
+print int("42"); // expect: 42
+print int(" -17 "); // expect: -17
+print int("ff", 16); // expect: 255
+print int("101", 2); // expect: 5
+print int(3.9); // expect: 3
+print int(-3.9); // expect: -3
+
+for s in ["abc", "inf", "0x10", "", "-", ".5", "5.", "+1", "1e", "1e400", "1 2"] {
+    try { number(s); } catch (e: ValueError) { print e.message; }
+}
+// expect: number() cannot parse "abc" as a number.
+// expect: number() cannot parse "inf" as a number.
+// expect: number() cannot parse "0x10" as a number.
+// expect: number() cannot parse "" as a number.
+// expect: number() cannot parse "-" as a number.
+// expect: number() cannot parse ".5" as a number.
+// expect: number() cannot parse "5." as a number.
+// expect: number() cannot parse "+1" as a number.
+// expect: number() cannot parse "1e" as a number.
+// expect: number() cannot parse "1e400" as a number.
+// expect: number() cannot parse "1 2" as a number.
+
+try { number(nil); } catch (e: TypeError) { print e.message; } // expect: number() expects a number or a string as argument 1, got nil.
+try { int("3.5"); } catch (e: ValueError) { print e.message; } // expect: int() cannot parse "3.5" as an integer in base 10.
+try { int("1_000"); } catch (e: ValueError) { print e.message; } // expect: int() cannot parse "1_000" as an integer in base 10.
+try { int("z", 37); } catch (e: ValueError) { print e.message; } // expect: int() expects a base from 2 to 36, got 37.
+try { int(10, 2); } catch (e: TypeError) { print e.message; } // expect: int() expects a string as argument 1, got number.
+try { int(math.INF); } catch (e: ValueError) { print e.message; } // expect: int() cannot convert +Inf to an integer.
+
+print string.fixed(3.14159, 2); // expect: 3.14
+print string.fixed(2, 3); // expect: 2.000
+print string.fixed(2.5, 0); // expect: 2
+print string.fixed(-0.001, 1); // expect: -0.0
+print string.fixed(-0, 2); // expect: 0.00
+try { string.fixed(1, 101); } catch (e: ValueError) { print e.message; } // expect: string.fixed() expects 0 to 100 digits, got 101.
+try { string.fixed(1, 1.5); } catch (e: TypeError) { print e.message; } // expect: string.fixed() expects an integer as argument 2, got number.
+try { string.fixed("1", 2); } catch (e: TypeError) { print e.message; } // expect: string.fixed() expects a number as argument 1, got string.

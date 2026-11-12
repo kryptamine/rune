@@ -43,7 +43,7 @@ var fsNatives = []*Native{
 
 		items := make([]value.Value, 0, strings.Count(s, "\n")+1)
 		for line := range strings.SplitSeq(s, "\n") {
-			items = append(items, value.NewString(strings.TrimSuffix(line, "\r")))
+			items = append(items, value.NewString(trimEOL(line)))
 		}
 
 		return value.NewArray(items)

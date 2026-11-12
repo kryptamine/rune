@@ -2,6 +2,7 @@ package rune
 
 import (
 	"bytes"
+	"io"
 	"sync"
 	"testing"
 	"time"
@@ -26,10 +27,9 @@ func TestProgramRunsConcurrently(t *testing.T) {
 			for range 20 {
 				var out bytes.Buffer
 
-				p := NewInterpreter()
-				p.SetOutput(&out)
+				p := NewInterpreter(testStdio(&out))
 
-				if _, err := p.Run(prog, nil); err != nil {
+				if err := p.Run(prog, nil); err != nil {
 					t.Error(err)
 				}
 
@@ -51,6 +51,7 @@ func TestInterrupt(t *testing.T) {
 		"recursion": `fun f(n) { if n < 2 { return n; } return f(n - 1) + f(n - 2); } f(100);`,
 		"try":       `while true { try { while true {} } catch (e) {} }`,
 		"native":    `array.map([1], fun (x) { while true {} });`,
+		"exec":      `os.exec("sleep", ["100"]);`,
 	}
 
 	for name, src := range srcs {
@@ -62,10 +63,10 @@ func TestInterrupt(t *testing.T) {
 				t.Fatal(errs)
 			}
 
-			p := NewInterpreter()
+			p := NewInterpreter(testStdio(io.Discard))
 			time.AfterFunc(10*time.Millisecond, p.Interrupt)
 
-			if _, err := p.Run(prog, nil); err != ErrInterrupted {
+			if err := p.Run(prog, nil); err != ErrInterrupted {
 				t.Fatalf("got %v, want %v", err, ErrInterrupted)
 			}
 		})

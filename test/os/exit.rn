@@ -1,0 +1,9 @@
+fun main() {
+    print "before"; // expect: before
+    try {
+        array.map([1], x => os.exit(3));
+    } catch (e) {
+        print "caught";
+    }
+    print "after";
+}

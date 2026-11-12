@@ -1,6 +1,7 @@
 package errors
 
 import (
+	"fmt"
 	"rune/pkg/value"
 	"slices"
 )
@@ -26,3 +27,11 @@ var (
 
 // Kinds lists the built-in error kinds, which programs see as struct types.
 var Kinds = []*value.Shape{TypeError, ArgumentError, ValueError, IndexError, KeyError, NameError, IOError}
+
+func NoField(structName, key string) string {
+	return fmt.Sprintf("%s has no field '%s'.", structName, key)
+}
+
+func MissingField(structName, field string) string {
+	return fmt.Sprintf("Missing field '%s' of %s.", field, structName)
+}

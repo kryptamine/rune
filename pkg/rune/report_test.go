@@ -15,10 +15,9 @@ func report(t *testing.T, src string) string {
 		return errors.Report(errs[0], files)
 	}
 
-	p := NewInterpreter()
-	p.SetOutput(io.Discard)
+	p := NewInterpreter(testStdio(io.Discard))
 
-	_, err := p.Run(prog, nil)
+	err := p.Run(prog, nil)
 	if err == nil {
 		t.Fatal("expected an error")
 	}

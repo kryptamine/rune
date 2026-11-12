@@ -7,8 +7,8 @@ import (
 	"rune/pkg/ast"
 	"rune/pkg/errors"
 	"rune/pkg/helpers"
+	"rune/pkg/stdlib"
 	"rune/pkg/value"
-	"slices"
 	"strings"
 	"unicode/utf8"
 )
@@ -101,16 +101,8 @@ func undefinedProperty(token *ast.Token, key string) error {
 	return errors.NewRuntimeError(errors.KeyError, *token, fmt.Sprintf("Undefined property '%s'.", key))
 }
 
-func noField(structName, key string) string {
-	return fmt.Sprintf("%s has no field '%s'.", structName, key)
-}
-
-func missingField(structName, field string) string {
-	return fmt.Sprintf("Missing field '%s' of %s.", field, structName)
-}
-
 func undefinedField(token *ast.Token, shape *value.Shape, key string) error {
-	return errors.NewRuntimeError(errors.KeyError, *token, noField(shape.Name, key))
+	return errors.NewRuntimeError(errors.KeyError, *token, errors.NoField(shape.Name, key))
 }
 
 func immutableField(token *ast.Token, shape *value.Shape, key string) error {
@@ -141,54 +133,14 @@ func with(token *ast.Token, target value.Value, keys []string, vals []value.Valu
 	return v, nil
 }
 
-// convert is Shape(v): v itself if already of that shape, or a struct
-// built from an object holding every required field and no other.
+// convert is a call of the struct type shape, which takes one value.
 func convert(token *ast.Token, shape *value.Shape, args []value.Value) (value.Value, error) {
 	if len(args) != 1 {
 		return value.NilValue, errors.NewRuntimeError(errors.ArgumentError, *token, fmt.Sprintf(
 			"%s() expects 1 argument, got %d.", shape.Name, len(args)))
 	}
 
-	switch v := args[0]; v.Kind() {
-	case value.Struct:
-		if v.Shape() == shape {
-			return v, nil
-		}
-	case value.Object:
-		return structOf(token, shape, v.Obj())
-	}
-
-	return value.NilValue, errors.NewRuntimeError(errors.TypeError, *token, fmt.Sprintf(
-		"Cannot convert %s to %s.", helpers.TypeName(args[0]), shape.Name))
-}
-
-// structOf walks the fields, not the keys, so no map order shows; the
-// least extra key is the one reported.
-func structOf(token *ast.Token, shape *value.Shape, obj map[string]value.Value) (value.Value, error) {
-	v, fields := value.NewStruct(shape)
-	given := 0
-
-	for i, name := range shape.Fields {
-		if f, ok := obj[name]; ok {
-			fields[i] = f
-			given++
-		} else if fields[i], ok = shape.Default(i); !ok {
-			return value.NilValue, errors.NewRuntimeError(errors.KeyError, *token, missingField(shape.Name, name))
-		}
-	}
-
-	if given == len(obj) {
-		return v, nil
-	}
-
-	var extra []string
-	for k := range obj {
-		if shape.Index(k) < 0 {
-			extra = append(extra, k)
-		}
-	}
-
-	return value.NilValue, undefinedField(token, shape, slices.Min(extra))
+	return stdlib.Convert(token, shape, args[0])
 }
 
 // propertyTarget fails unless target can have a property set, as only
