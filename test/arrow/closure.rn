@@ -1,0 +1,10 @@
+fun counter() {
+  let mut n = 0;
+  return () => { n += 1; return n; };
+}
+let c = counter();
+c();
+print c(); // expect: 2
+
+let base = 10;
+print array.map([1, 2], x => x + base); // expect: [11, 12]

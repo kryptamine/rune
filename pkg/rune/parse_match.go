@@ -61,7 +61,7 @@ func (s *Parser) matchArm() (ast.MatchArm, error) {
 	}
 
 	if s.match(ast.IF) {
-		if arm.Guard, err = s.expression(); err != nil {
+		if arm.Guard, err = s.rangeExpr(); err != nil {
 			return arm, err
 		}
 	}
@@ -82,8 +82,7 @@ func (s *Parser) armBody() (ast.Stmt, error) {
 		return s.statement()
 	}
 
-	if !s.isObjectLiteralStart() && s.match(ast.LEFT_BRACE) {
-		stmts, err := s.block()
+	if stmts, ok, err := s.braceBody(); ok {
 		return ast.NewBlockStmt(stmts), err
 	}
 

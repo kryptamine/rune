@@ -25,7 +25,7 @@ Rune is a dynamically typed interpreted programming language inspired by [Lox](h
 - Two loops only: `while` and `for x in ...` over arrays, strings, objects and ranges (`a..b`)
 - `break` and `continue` in both
 - `if`/`else`, `while` and `for` bodies are blocks, or a bare statement starting with a name or keyword: `if v < 0 return;`, `for x in xs array.push(out, x);`
-- Anonymous functions: `fun (x) { return x * 2; }`
+- Anonymous functions: `fun (x) { return x * 2; }`, or arrow functions: `x => x * 2`
 - Modulo `%` and compound assignment: `+=`, `-=`, `*=`, `/=`, `%=`
 - Increment and decrement, prefix and postfix: `++i`, `i++`, `--i`, `i--` (on variables, array elements and properties)
 - Cross-platform, compiles to a single binary
@@ -355,8 +355,8 @@ math.flor(1); // Error at 'flor': math has no member 'flor'.
 
 ```javascript
 let mut people = [{name: "bob", age: 25}, {name: "ann", age: 31}];
-array.sort(people, fun (a, b) { return a.age - b.age; });
-print array.join(array.map(people, fun (p) { return p.name; }), ", "); // bob, ann
+array.sort(people, (a, b) => a.age - b.age);
+print array.join(array.map(people, ({ name }) => name), ", "); // bob, ann
 ```
 
 ### string
@@ -507,6 +507,14 @@ fun map(arr, f) {
 }
 
 print map([1, 2, 3], fun (x) { return x * x; }); // [1, 4, 9]
+```
+
+Arrow functions are shorthand: an expression body is returned, a block body works like `fun`'s. Parameters may be `mut` or patterns; a single plain one needs no parentheses. `() => { a: 1 }` returns an object.
+
+```javascript
+let add = (a, b) => a + b;
+let names = array.map(people, ({ name }) => name);
+let log = msg => { print msg; };
 ```
 
 ## Example Program

@@ -1,0 +1,19 @@
+let add = (a, b) => a + b;
+print add(1, 2); // expect: 3
+print add;       // expect: <fn>
+
+let sq = x => x * x;
+print sq(4); // expect: 16
+
+let zero = () => 0;
+print zero(); // expect: 0
+
+print ((n) => n + 1)(41); // expect: 42
+
+let curried = a => b => a * b;
+print curried(3)(5); // expect: 15
+let inc = (mut x) => { x += 1; return x; };
+print inc(1); // expect: 2
+
+let dec = mut x => { x -= 1; return x; };
+print dec(1); // expect: 0
