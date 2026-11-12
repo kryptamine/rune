@@ -1,0 +1,9 @@
+fun f(x) {
+  if x return 1; print "after";
+  return 2;
+}
+
+print f(true); // expect: 1
+print f(false);
+// expect: after
+// expect: 2

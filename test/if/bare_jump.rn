@@ -1,0 +1,27 @@
+struct AgeError { message, value }
+
+fun parseAge(v) {
+  if v < 0 throw AgeError { message: "negative age", value: v };
+  return v;
+}
+
+fun sign(n) {
+  if n < 0 return "neg";
+  else if n == 0 return "zero";
+  else return "pos";
+}
+
+print sign(-1); // expect: neg
+print sign(0); // expect: zero
+print sign(1); // expect: pos
+print parseAge(3); // expect: 3
+
+try { parseAge(-1); } catch (e: AgeError) { print e.value; } // expect: -1
+
+for i in [1, 2, 3, 4] {
+  if i == 2 continue;
+  if i == 4 break;
+  print i;
+}
+// expect: 1
+// expect: 3
