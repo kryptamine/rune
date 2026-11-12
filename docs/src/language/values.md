@@ -2,7 +2,7 @@
 
 A value is one of `nil`, a boolean, a [number](numbers.md), a
 [string](strings.md), an [array](../data/arrays.md), an object, a function,
-a [`Map` or `Set`](../data/map-and-set.md), [bytes](../data/bytes.md), a
+a [`map` or `set`](../data/map-and-set.md), [bytes](../data/bytes.md), a
 [struct](../data/structs.md) or a [stream](../stdlib/streams.md). `type`
 names it:
 
@@ -13,6 +13,31 @@ print(type("ann"));            // string
 print(type([1, 2]));           // array
 print(type({ name: "ann" }));  // object
 print(type(x => x * 2));       // function
+```
+
+## Type Tests
+
+`v is T` tests that `v` is of type `T`: a struct type, or one of the
+built-in `boolean`, `number`, `string`, `array`, `object`, `function`,
+`map`, `set`, `bytes` and `stream`. It has the precedence of `==`; the
+same test is `name is T` in [match](pattern-matching.md) and `catch e is T`.
+
+```rune
+struct User { name }
+
+print(42 is number);                  // true
+print("42" is number);                // false
+print([1, 2] is array);               // true
+print(User { name: "ann" } is User);  // true
+print(User { name: "ann" } is object); // false
+```
+
+A variable named like a built-in type hides it, and testing against
+anything but a type is a `TypeError`:
+
+```rune
+let string = "text";
+print("a" is string); // TypeError: Right operand of 'is' must be a type, got string.
 ```
 
 ## Truthiness
@@ -33,7 +58,7 @@ for v in [nil, false, 0, "", [], {}, "0"] {
 // "0" is truthy
 ```
 
-So `or` gives a fallback for an empty string, and an empty array needs `.len()`:
+So `||` gives a fallback for an empty string, and an empty array needs `.len()`:
 
 ```rune
 let user = { name: "ann", nickname: "" };

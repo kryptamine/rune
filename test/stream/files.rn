@@ -2,7 +2,7 @@ let dir = fs.tempDir();
 let path = fs.join(dir, "data.txt");
 
 let w = fs.open(path, "w");
-print(type(w)); // expect: Stream
+print(type(w)); // expect: stream
 w.write("one\n");
 w.write(b"two\r\n");
 w.flush();
@@ -49,6 +49,6 @@ try { closed.readLine(); } catch e is IOError { print("closed"); } // expect: cl
 try { fs.open(path).write("x"); } catch e is IOError { print("read only"); } // expect: read only
 try { fs.open(path, "w").readLine(); } catch e is IOError { print("write only"); } // expect: write only
 try { fs.open(path, "x"); } catch e is ValueError { print(e.message); } // expect: fs.open() expects mode "r", "w" or "a", got "x".
-try { fs.open(path, "w").write(1); } catch e is TypeError { print(e.message); } // expect: Stream.write() expects a string or bytes as argument 1, got number.
+try { fs.open(path, "w").write(1); } catch e is TypeError { print(e.message); } // expect: stream.write() expects a string or bytes as argument 1, got number.
 
 fs.removeAll(dir);

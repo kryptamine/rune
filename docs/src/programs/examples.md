@@ -33,7 +33,7 @@ Tasks live in `$TODO_FILE`, or `~/.todo.json`.
 
 Per-endpoint latency percentiles, status classes, top clients and slow
 requests. Reads the log line by line with a [stream](../stdlib/streams.md),
-groups with `Map`, writes JSON.
+groups with `map`, writes JSON.
 
 ```sh
 ./rune run examples/log-report.rn                 # generate a sample log and analyze it

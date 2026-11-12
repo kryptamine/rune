@@ -1,1 +1,1 @@
-"abc".push(1); // expect runtime error: [line: 1] TypeError: Cannot read property 'push' of string.
+"abc".push(1); // expect runtime error: [line: 1] TypeError: string has no method 'push'.

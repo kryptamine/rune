@@ -12,8 +12,7 @@ syn keyword runeSelf self
 syn match runeAs "\<as\>"
 
 syn keyword runeNamespace string math regex bytes json http time fs io os array module
-syn keyword runeBuiltin print len type object str number int
-syn keyword runeType Map Set
+syn keyword runeBuiltin print type object str number int map set
 
 syn match runeFuncDecl "\<fun\s\+\zs\h\w*"
 syn match runeFuncCall "\h\w*\ze\s*("
@@ -50,7 +49,6 @@ hi def link runeNil Constant
 hi def link runeSelf Special
 hi def link runeNamespace Include
 hi def link runeBuiltin Function
-hi def link runeType Type
 hi def link runeFuncDecl Function
 hi def link runeFuncCall Function
 hi def link runeStructName Type

@@ -91,7 +91,7 @@ http.request() expects header 'a' to be a string, got number.
 http.request() expects a positive timeout, got 0.
 HttpOptions has no field 'bogus'.
 bad method
-Stream
+stream
 b"PUT \x01raw"
 0: a
 1: b

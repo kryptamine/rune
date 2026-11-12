@@ -29,8 +29,8 @@ func (c *call) table(i int, kind value.Kind, want string) *value.HashMap {
 	return c.args[i].HashMap()
 }
 
-func (c *call) mapArg(i int) *value.HashMap { return c.table(i, value.Map, "a Map") }
-func (c *call) setArg(i int) *value.HashMap { return c.table(i, value.Set, "a Set") }
+func (c *call) mapArg(i int) *value.HashMap { return c.table(i, value.Map, "a map") }
+func (c *call) setArg(i int) *value.HashMap { return c.table(i, value.Set, "a set") }
 
 // keyErr turns a failure of a table into the call's error.
 func (c *call) keyErr(err error) bool {
@@ -52,7 +52,7 @@ func (c *call) pair(v value.Value) (k, x value.Value, ok bool) {
 }
 
 var collectionNatives = []*Native{
-	{"Map", 0, 1, func(c *call) value.Value {
+	{"map", 0, 1, func(c *call) value.Value {
 		if !c.has(0) {
 			return value.NewMap(value.NewHashMap(0))
 		}
@@ -79,9 +79,9 @@ var collectionNatives = []*Native{
 			return value.NewMap(m)
 		}
 
-		return c.typeError(0, "a Map, an object or an array of pairs")
+		return c.typeError(0, "a map, an object or an array of pairs")
 	}},
-	{"Set", 0, 1, func(c *call) value.Value {
+	{"set", 0, 1, func(c *call) value.Value {
 		if !c.has(0) {
 			return value.NewSet(value.NewHashMap(0))
 		}
@@ -100,7 +100,7 @@ var collectionNatives = []*Native{
 			return value.NewSet(m)
 		}
 
-		return c.typeError(0, "a Set or an array")
+		return c.typeError(0, "a set or an array")
 	}},
 }
 
@@ -148,7 +148,7 @@ func setMethod(name string, min, max int, fn func(c *call, m *value.HashMap) val
 }
 
 var mapMethods = []*Native{
-	mapMethod("Map.get", 2, 3, func(c *call, m *value.HashMap) value.Value {
+	mapMethod("map.get", 2, 3, func(c *call, m *value.HashMap) value.Value {
 		v, found, err := m.Get(c.args[1])
 		if !c.keyErr(err) {
 			return value.NilValue
@@ -160,23 +160,23 @@ var mapMethods = []*Native{
 
 		return v
 	}),
-	mapMethod("Map.has", 2, 2, hasKey),
-	mapMethod("Map.keys", 1, 1, func(_ *call, m *value.HashMap) value.Value { return keysOf(m) }),
-	mapMethod("Map.values", 1, 1, func(_ *call, m *value.HashMap) value.Value {
+	mapMethod("map.has", 2, 2, hasKey),
+	mapMethod("map.keys", 1, 1, func(_ *call, m *value.HashMap) value.Value { return keysOf(m) }),
+	mapMethod("map.values", 1, 1, func(_ *call, m *value.HashMap) value.Value {
 		return collect(m, func(_, v value.Value) value.Value { return v })
 	}),
-	mapMethod("Map.entries", 1, 1, func(_ *call, m *value.HashMap) value.Value {
+	mapMethod("map.entries", 1, 1, func(_ *call, m *value.HashMap) value.Value {
 		return collect(m, func(k, v value.Value) value.Value { return value.NewArray([]value.Value{k, v}) })
 	}),
 }
 
 var mapInPlace = []*Native{
-	mapMethod("Map.set", 3, 3, func(c *call, m *value.HashMap) value.Value {
+	mapMethod("map.set", 3, 3, func(c *call, m *value.HashMap) value.Value {
 		c.keyErr(m.Set(c.args[1], c.args[2]))
-		return c.args[0]
+		return value.NilValue
 	}),
-	mapMethod("Map.delete", 2, 2, deleteKey),
-	mapMethod("Map.clear", 1, 1, clearTable),
+	mapMethod("map.delete", 2, 2, deleteKey),
+	mapMethod("map.clear", 1, 1, clearTable),
 }
 
 // setOp builds a new set of the elements of the receiver that keep says
@@ -209,18 +209,18 @@ func setOp(name string, keep func(inOther bool) bool, union bool) *Native {
 }
 
 var setInPlace = []*Native{
-	setMethod("Set.add", 2, 2, func(c *call, m *value.HashMap) value.Value {
+	setMethod("set.add", 2, 2, func(c *call, m *value.HashMap) value.Value {
 		c.keyErr(m.Set(c.args[1], value.NilValue))
-		return c.args[0]
+		return value.NilValue
 	}),
-	setMethod("Set.delete", 2, 2, deleteKey),
-	setMethod("Set.clear", 1, 1, clearTable),
+	setMethod("set.delete", 2, 2, deleteKey),
+	setMethod("set.clear", 1, 1, clearTable),
 }
 
 var setMethods = []*Native{
-	setMethod("Set.has", 2, 2, hasKey),
-	setMethod("Set.values", 1, 1, func(_ *call, m *value.HashMap) value.Value { return keysOf(m) }),
-	setOp("Set.union", func(bool) bool { return true }, true),
-	setOp("Set.intersection", func(in bool) bool { return in }, false),
-	setOp("Set.difference", func(in bool) bool { return !in }, false),
+	setMethod("set.contains", 2, 2, hasKey),
+	setMethod("set.values", 1, 1, func(_ *call, m *value.HashMap) value.Value { return keysOf(m) }),
+	setOp("set.union", func(bool) bool { return true }, true),
+	setOp("set.intersection", func(in bool) bool { return in }, false),
+	setOp("set.difference", func(in bool) bool { return !in }, false),
 }

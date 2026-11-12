@@ -1,2 +1,2 @@
 let n = 1;
-n.nope(); // expect runtime error: [line: 2] TypeError: Cannot read property 'nope' of number.
+n.nope(); // expect runtime error: [line: 2] TypeError: number has no method 'nope'.

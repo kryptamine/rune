@@ -35,8 +35,8 @@ fun tokenize(src) {
     return tokens;
 }
 
-let PRECEDENCE = Map({ "+": 10, "-": 10, "*": 20, "/": 20, "%": 20, "^": 30, "**": 30 });
-let RIGHT_ASSOC = Set(["^", "**"]);
+let PRECEDENCE = map({ "+": 10, "-": 10, "*": 20, "/": 20, "%": 20, "^": 30, "**": 30 });
+let RIGHT_ASSOC = set(["^", "**"]);
 
 struct Parser { tokens, i = 0 }
 
@@ -89,7 +89,7 @@ impl Parser {
             if prec < minPrec || prec < 0 break;
 
             self.next();
-            let nextMin = RIGHT_ASSOC.has(op) ? prec : prec + 1;
+            let nextMin = RIGHT_ASSOC.contains(op) ? prec : prec + 1;
             left = Binary { op, left, right: self.expr(nextMin) };
         }
 
@@ -144,7 +144,7 @@ struct Env { vars, funs }
 
 impl Env {
     fun new() {
-        return Env { vars: Map({ pi: math.PI }), funs: Map() };
+        return Env { vars: map({ pi: math.PI }), funs: map() };
     }
 
     fun eval(mut self, node, locals = {}) {
@@ -245,7 +245,7 @@ fun main(args) {
 
     for line in DEMO run(env, line);
 
-    let mut stats = Map();
+    let mut stats = map();
     for line in DEMO {
         try {
             let kind = type(parse(line));

@@ -20,16 +20,19 @@ print(status(418)); // unknown
 ```
 
 An arm is `pattern => expression`, ended by `,` or `;`, `pattern => { block }`,
-or a bare statement starting with a keyword, `pattern => return x;`. A
-guard, `pattern if condition`, adds a test after the pattern matches.
+or a bare statement starting with a keyword, `pattern => return x;`. As
+after an arrow function's `=>`, braces that look like an object are one:
+`1 => { a: 1 }` and `1 => { x }` give an object. A guard,
+`pattern if condition`, adds a test after the pattern matches.
 
 ## Patterns
 
 - `_` matches anything;
 - a name binds the value (`mut name` mutably); a struct type's name is
   an error, test the type with `is`;
-- `name is T` and `_ is T` test the value is a `T`, `_ is T | U` one of
-  them, the same test as `v is T` and `catch e is T`;
+- `name is T` and `_ is T` test the value is a `T`, a struct type or a
+  built-in one like `string`, `_ is T | U` one of them, the same
+  [test](values.md#type-tests) as `v is T` and `catch e is T`;
 - literals: numbers, strings, `true`, `false`, `nil`, compared as by `==`;
 - `p | q` matches if either does;
 - `Point { x, y: 0 }` tests the type, then matches the listed fields;

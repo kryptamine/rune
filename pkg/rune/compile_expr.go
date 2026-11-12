@@ -240,6 +240,11 @@ func (fs *funcState) expr(e ast.Expr, dst int32) {
 	case *ast.StructExpr:
 		fs.structLiteral(n, dst)
 	case *ast.IsExpr:
+		if n.Shape != nil {
+			fs.isType(n, dst)
+			break
+		}
+
 		v := fs.operand(n.Value, n.Type)
 		fs.emit(ins{op: opIs, a: dst, b: v, c: fs.exprAny(n.Type)}, &n.Token)
 	case *ast.IndexExpr:
@@ -861,4 +866,12 @@ func pick(cond bool, a, b Op) Op {
 	}
 
 	return b
+}
+
+// isType sets R[dst] to whether the value of n is of the type n.Shape.
+func (fs *funcState) isType(n *ast.IsExpr, dst int32) {
+	v := fs.exprAny(n.Value)
+	t := fs.alloc()
+	fs.emit(ins{op: opLoadK, a: t, c: fs.constant(value.NewType(n.Shape))}, nil)
+	fs.emit(ins{op: opIs, a: dst, b: v, c: t}, &n.Token)
 }

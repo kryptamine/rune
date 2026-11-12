@@ -44,7 +44,7 @@ print(json.stringify({ name: "ann", active: true, manager: nil }));
 // {"active":true,"manager":null,"name":"ann"}
 print(json.stringify(Order { id: 7, total: 19.99 }));
 // {"id":7,"total":19.99,"items":[]}
-print(json.stringify(Set(["a", "b"])));   // ["a","b"]
+print(json.stringify(set(["a", "b"])));   // ["a","b"]
 print(json.stringify("say \"hi\""));      // "say \"hi\""
 ```
 

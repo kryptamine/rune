@@ -1,6 +1,6 @@
 # Built-in Functions
 
-`print`, `type`, `object`, `str`, `number`, `int`, `Map` and `Set`
+`print`, `type`, `object`, `str`, `number`, `int`, `map` and `set`
 are global; the operations on a value are its methods, as `xs.map(f)` or
 `s.split(",")`; everything else lives in a namespace, used as
 `math.floor(x)`.
@@ -22,7 +22,7 @@ print([1, "two", nil]);  // [1, "two", nil]
 ## type
 
 `type(value)` is `"nil"`, `"boolean"`, `"number"`, `"string"`, `"array"`,
-`"object"`, `"function"`, `"Map"`, `"Set"`, `"bytes"`, `"Stream"`, a
+`"object"`, `"function"`, `"map"`, `"set"`, `"bytes"`, `"stream"`, a
 struct's name, `"struct"` for a struct type, or `"namespace"`.
 
 ```rune
@@ -54,10 +54,12 @@ print("items: " + str(3)); // items: 3
 
 ## number and int
 
-`number(v)` is a number as is, or a string holding a number literal,
-optionally negated and surrounded by spaces (`"42"`, `" -2.5e1 "`). It is
-an integer unless it has a fraction or an exponent or int64 cannot hold it;
-anything else, `".5"`, `"+1"` or `"inf"` included, is a `ValueError`.
+`number(v)` is a number as is, or a string holding a
+[number literal](../language/numbers.md), optionally negated and
+surrounded by spaces (`"42"`, `" -2.5e1 "`, `"0xff"`, `"1_000"`). It is an
+integer unless it has a fraction or an exponent or, in decimal, int64
+cannot hold it; anything else, `".5"`, `"+1"` or `"inf"` included, is a
+`ValueError`.
 
 `int(v[, base])` is a number truncated toward zero (one past the integers
 is a `ValueError`), or a string parsed as an integer in `base`, 2 to 36,
@@ -66,6 +68,8 @@ default 10.
 ```rune
 print(number("42"));         // 42
 print(number(" -2.5e1 "));   // -25
+print(number("0xff"));       // 255
+print(number("1_000"));      // 1000
 print(int(3.9));             // 3
 print(int(-3.9));            // -3
 print(int("42"));            // 42

@@ -69,9 +69,9 @@ let TOP_SLOW = 5;
 struct Report {
     total = 0,
     skipped = [],
-    endpoints = Map(),
-    statuses = Map(),
-    clients = Map(),
+    endpoints = map(),
+    statuses = map(),
+    clients = map(),
     slowest = [],
 }
 
@@ -87,7 +87,7 @@ impl Report {
         let cls = statusClass(e.status);
         self.statuses.set(cls, self.statuses.get(cls, 0) + 1);
 
-        let mut c = self.clients.get(e.ip) ?? { hits: 0, paths: Set() };
+        let mut c = self.clients.get(e.ip) ?? { hits: 0, paths: set() };
         c.hits++;
         c.paths.add(e.path);
         self.clients.set(e.ip, c);
@@ -175,7 +175,8 @@ fun printReport(r) {
     let mut max = 0;
     for _, n in r.statuses max = math.max(max, n);
     let mut classes = r.statuses.keys();
-    for cls in classes.sort() {
+    classes.sort();
+    for cls in classes {
         let n = r.statuses[cls];
         print("  %-4s %s %5d  %5.1f%%".format(cls, bar(n, max), n, n / r.total * 100));
     }

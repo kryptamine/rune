@@ -10,7 +10,7 @@ an array of integers from 0 to 255, or bytes. `b[i]` is the integer byte,
 let header = b"\x89PNG";
 print(header);           // b"\x89PNG"
 print(header[0]);        // 137
-print(header.len());      // 4
+print(header.len());     // 4
 print(header.hex());     // 89504e47
 
 print(bytes.from("é"));           // b"\xc3\xa9"
@@ -46,13 +46,14 @@ print(bytes.fromBase64("aGk="));   // b"hi"
 
 ## Methods
 
-`toString()` (UTF-8; anything else is a `ValueError`), `toArray()`,
-`slice(start[, end])` (sharing the data), `indexOf(sub)` (`-1` if missing),
-`concat(b, ...)`, `hex()` and `base64()`.
+`text()` (the bytes as UTF-8 text, as a stream's `readText()` reads it;
+anything else is a `ValueError`), `toArray()`, `slice(start[, end])`
+(sharing the data), `indexOf(sub)` (`-1` if missing), `concat(b, ...)`,
+`hex()` and `base64()`.
 
 ```rune
 let data = b"hello";
-print(data.toString());              // hello
+print(data.text());                  // hello
 print(data.toArray());               // [104, 101, 108, 108, 111]
 print(data.slice(1, 3));             // b"el"
 print(data.indexOf(b"ll"));          // 2
@@ -61,5 +62,5 @@ print(data.base64());                // aGVsbG8=
 ```
 
 ```rune
-print(b"\xff".toString()); // ValueError: bytes.toString() got bytes that are not valid UTF-8.
+print(b"\xff".text()); // ValueError: bytes.text() got bytes that are not valid UTF-8.
 ```

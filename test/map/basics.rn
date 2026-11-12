@@ -1,13 +1,13 @@
-let mut m = Map();
+let mut m = map();
 m[1] = "one";
 m["1"] = "string one";
 m[true] = "yes";
 m[nil] = "nothing";
-print(m);      // expect: Map {1: "one", "1": "string one", true: "yes", nil: "nothing"}
+print(m);      // expect: map {1: "one", "1": "string one", true: "yes", nil: "nothing"}
 print(m[1]);   // expect: one
 print(m[1.0]); // expect: one
 print(m.len()); // expect: 4
-print(type(m)); // expect: Map
+print(type(m)); // expect: map
 
 m[1] = "uno";
 print(m[1]);   // expect: uno
@@ -20,13 +20,14 @@ print(m.delete("1"));     // expect: false
 print(m.keys());          // expect: [1, true, nil]
 print(m.values());        // expect: ["uno", "yes", "nothing"]
 print(m.entries());       // expect: [[1, "uno"], [true, "yes"], [nil, "nothing"]]
-print(m.set(5, "five").get(5)); // expect: five
+print(m.set(5, "five")); // expect: nil
+print(m.get(5)); // expect: five
 m.clear();
-print(m);      // expect: Map {}
+print(m);      // expect: map {}
 print(m.len()); // expect: 0
 
 // Insertion order is kept, a deleted key goes to the end when added back.
-let mut o = Map([["b", 1], ["a", 2], ["c", 3]]);
+let mut o = map([["b", 1], ["a", 2], ["c", 3]]);
 o.delete("b");
 o["b"] = 4;
 for k, v in o { print("{k}={v}"); }
@@ -38,13 +39,13 @@ for k in o { print(k); }
 // expect: c
 // expect: b
 
-print(Map({y: 1, x: 2}));            // expect: Map {"x": 2, "y": 1}
-print(Map(Map([[1, 2]])) == Map([[1, 2]])); // expect: true
-print(Map([[1, 2], [3, 4]]) == Map([[3, 4], [1, 2]])); // expect: true
-print(Map([[1, 2]]) == Map([[1, 3]])); // expect: false
-print(Map() == {});                   // expect: false
-print(json.stringify(Map([["b", 1], ["a", [2]]]))); // expect: {"b":1,"a":[2]}
+print(map({y: 1, x: 2}));            // expect: map {"x": 2, "y": 1}
+print(map(map([[1, 2]])) == map([[1, 2]])); // expect: true
+print(map([[1, 2], [3, 4]]) == map([[3, 4], [1, 2]])); // expect: true
+print(map([[1, 2]]) == map([[1, 3]])); // expect: false
+print(map() == {});                   // expect: false
+print(json.stringify(map([["b", 1], ["a", [2]]]))); // expect: {"b":1,"a":[2]}
 
 let get = o.get;
 print(get("a")); // expect: 2
-print([Map([[1, "x"]])].map(m => m[1])); // expect: ["x"]
+print([map([[1, "x"]])].map(m => m[1])); // expect: ["x"]

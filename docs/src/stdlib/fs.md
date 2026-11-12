@@ -13,8 +13,8 @@ fs.mkdir(fs.dir(notes));
 fs.write(notes, "buy milk\nwrite docs\n");
 fs.append(notes, "ship v1\n");
 
-print(fs.lines(notes));          // ["buy milk", "write docs", "ship v1"]
-print(fs.read(notes).len());      // 28
+print(fs.lines(notes));                 // ["buy milk", "write docs", "ship v1"]
+print(fs.read(notes).len());            // 28
 print(fs.readBytes(notes).slice(0, 3)); // b"buy"
 fs.removeAll(dir);
 ```

@@ -1,0 +1,3 @@
+{
+    struct Q { a } // Error at 'Q': Structs must be declared at the top level.
+}

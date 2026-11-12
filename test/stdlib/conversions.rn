@@ -21,12 +21,12 @@ print(int("101", 2)); // expect: 5
 print(int(3.9)); // expect: 3
 print(int(-3.9)); // expect: -3
 
-for s in ["abc", "inf", "0x10", "", "-", ".5", "5.", "+1", "1e", "1e400", "1 2"] {
+for s in ["abc", "inf", "0x", "", "-", ".5", "5.", "+1", "1e", "1e400", "1 2"] {
     try { number(s); } catch e is ValueError { print(e.message); }
 }
 // expect: number() cannot parse "abc" as a number.
 // expect: number() cannot parse "inf" as a number.
-// expect: number() cannot parse "0x10" as a number.
+// expect: number() cannot parse "0x" as a number.
 // expect: number() cannot parse "" as a number.
 // expect: number() cannot parse "-" as a number.
 // expect: number() cannot parse ".5" as a number.
@@ -50,3 +50,7 @@ print((-0.001).fixed(1)); // expect: -0.0
 print((-0).fixed(2)); // expect: 0.00
 try { 1.fixed(101); } catch e is ValueError { print(e.message); } // expect: number.fixed() expects 0 to 100 digits, got 101.
 try { 1.fixed(1.5); } catch e is TypeError { print(e.message); } // expect: number.fixed() expects an integer as argument 1, got number.
+print(number("1_000")); // expect: 1000
+print(number("0xff")); // expect: 255
+print(number(" -0b101 ")); // expect: -5
+print(number("1_000.5")); // expect: 1000.5

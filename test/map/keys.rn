@@ -1,6 +1,6 @@
 struct Point { x, y }
 
-let mut m = Map();
+let mut m = map();
 m[Point { x: 1, y: 2 }] = "p";
 print(m[Point { x: 1, y: 2 }]); // expect: p
 print(m.has(Point { x: 2, y: 1 })); // expect: false
@@ -20,10 +20,10 @@ fun fails(f) {
   try { f(); } catch e { print(type(e) + ": " + e.message); }
 }
 fails(() => m[[1]]);            // expect: TypeError: Cannot use an array as a key.
-fails(() => m.set({}, 1));      // expect: TypeError: Map.set() cannot use an object as a key.
-fails(() => Map([[0 / 0, 1]])); // expect: TypeError: Map() cannot use NaN as a key.
+fails(() => m.set({}, 1));      // expect: TypeError: map.set() cannot use an object as a key.
+fails(() => map([[0 / 0, 1]])); // expect: TypeError: map() cannot use NaN as a key.
 fails(() => m[Point { x: [1], y: 0 }]); // expect: TypeError: Cannot use a struct holding an array as a key.
 fails(() => m["missing"]);      // expect: KeyError: Key not found: "missing".
-fails(() => Map([1]));          // expect: TypeError: Map() expects [key, value] pairs, got 1.
-fails(() => Map(1));            // expect: TypeError: Map() expects a Map, an object or an array of pairs as argument 1, got number.
-fails(() => m.nope());          // expect: TypeError: Cannot read property 'nope' of Map.
+fails(() => map([1]));          // expect: TypeError: map() expects [key, value] pairs, got 1.
+fails(() => map(1));            // expect: TypeError: map() expects a map, an object or an array of pairs as argument 1, got number.
+fails(() => m.nope());          // expect: TypeError: map has no method 'nope'.

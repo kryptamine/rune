@@ -192,7 +192,7 @@ fun stats(store, now) {
     let done = store.tasks.len() - open.len();
     let late = open.filter(t => t.due != nil && t.due < now);
 
-    let mut byTag = Map();
+    let mut byTag = map();
     for t in open {
         for tag in t.tags byTag.set(tag, byTag.get(tag, 0) + 1);
     }

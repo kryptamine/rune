@@ -126,7 +126,7 @@ var arrayInPlace = []*Native{
 		arr := c.args[0].ArrRef()
 		*arr = append(*arr, c.args[1:]...)
 
-		return count(len(*arr))
+		return value.NilValue
 	}},
 	{"array.pop", 1, 1, func(c *call) value.Value {
 		if c.arr(0); !c.ok() {
@@ -160,7 +160,7 @@ var arrayInPlace = []*Native{
 
 		*arr = slices.Insert(*arr, i, c.args[2])
 
-		return count(len(*arr))
+		return value.NilValue
 	}},
 	{"array.remove", 2, 2, func(c *call) value.Value {
 		if c.arr(0); !c.ok() {
@@ -179,7 +179,7 @@ var arrayInPlace = []*Native{
 
 		return x
 	}},
-	// sort sorts in place, stably, and returns the array.
+	// sort sorts in place, stably.
 	{"array.sort", 1, 2, func(c *call) value.Value {
 		items := c.arr(0)
 
@@ -198,7 +198,7 @@ var arrayInPlace = []*Native{
 
 		slices.SortStableFunc(items, compare)
 
-		return c.args[0]
+		return value.NilValue
 	}},
 }
 

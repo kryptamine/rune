@@ -29,7 +29,7 @@ let limit;       // Error at 'limit': Immutable variable must be initialized.
 Through an immutable variable the array, object or struct it holds cannot
 be changed either: index and property assignment (`a[0] = 1`, `o.x += 1`,
 `a[0]++`, also nested like `o.xs[0] = 1`) and calls of the in-place
-methods (`push`, `pop`, `sort`, `Map.set`, `Set.add`, `delete`, `clear`,
+methods (`push`, `pop`, `sort`, `map.set`, `set.add`, `delete`, `clear`,
 ...) and of `mut self` methods are compile errors. Taking an in-place
 method as a value is a runtime `TypeError`. Methods that return a new value
 (`append`, `map`, ...) work as usual.
@@ -110,4 +110,24 @@ print(type);         // 3
 ```rune
 let total = 10;
 let total = 20;    // Error at 'total': Variable with this name already declared in this scope.
+```
+
+## Discarding with _
+
+`_` declares nothing: in `let`, a parameter, a `for`-`in` or `catch`
+variable or a pattern it takes a value and drops it, so it may appear any
+number of times. It cannot be read, assigned or exported.
+
+```rune
+fun second(_, b, _) { return b; }
+print(second(1, 2, 3));    // 2
+
+let _ = 1;
+let _ = 2;
+for _, x in ["a"] { print(x); }    // a
+```
+
+```rune
+let _ = 5;
+print(_);    // Error at '_': Cannot read '_'.
 ```

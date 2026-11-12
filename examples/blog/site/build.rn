@@ -60,7 +60,8 @@ export fun write(site, out) {
     let tags = byTag(site.posts);
     let mut sections = [];
     let mut names = tags.keys();
-    for tag in names.sort() {
+    names.sort();
+    for tag in names {
         let items = tags[tag].map(p => tpl.postLink(p)).join("\n");
         sections.push("<h2 id=\"{tag}\">#{tag}</h2>\n<ul>\n{items}\n</ul>");
     }
@@ -70,7 +71,7 @@ export fun write(site, out) {
 }
 
 fun byTag(posts) {
-    let mut tags = Map();
+    let mut tags = map();
     for p in posts {
         for t in p.tags {
             let mut list = tags.get(t) ?? [];

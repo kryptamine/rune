@@ -20,7 +20,7 @@ type Stream struct {
 	closed bool
 }
 
-func (s *Stream) String() string { return "<Stream " + s.name + ">" }
+func (s *Stream) String() string { return "<stream " + s.name + ">" }
 
 var errClosed = stderrors.New("stream is closed")
 
@@ -136,7 +136,7 @@ func openFile(c *call) value.Value {
 
 func (c *call) stream(i int) *Stream {
 	if c.args[i].Kind() != value.Stream {
-		c.typeError(i, "a Stream")
+		c.typeError(i, "a stream")
 		return nil
 	}
 
@@ -184,7 +184,7 @@ func readRest(name string, make func([]byte) value.Value) *Native {
 const maxRead = 1 << 30
 
 var streamMethods = []*Native{
-	reading("Stream.readLine", 1, 1, func(c *call, s *Stream) value.Value {
+	reading("stream.readLine", 1, 1, func(c *call, s *Stream) value.Value {
 		line, ok, err := s.ReadLine()
 		if err != nil {
 			return c.streamFail(s, err)
@@ -196,7 +196,7 @@ var streamMethods = []*Native{
 
 		return value.NewString(line)
 	}),
-	reading("Stream.read", 2, 2, func(c *call, s *Stream) value.Value {
+	reading("stream.read", 2, 2, func(c *call, s *Stream) value.Value {
 		n := c.int(1)
 		if !c.ok() {
 			return value.NilValue
@@ -220,9 +220,9 @@ var streamMethods = []*Native{
 
 		return value.NewBytes(buf[:got:got])
 	}),
-	readRest("Stream.readAll", value.NewBytes),
-	readRest("Stream.readText", func(b []byte) value.Value { return value.NewString(bytesString(b)) }),
-	streamMethod("Stream.write", 2, 2, (*Stream).writable, func(c *call, s *Stream) value.Value {
+	readRest("stream.readAll", value.NewBytes),
+	readRest("stream.readText", func(b []byte) value.Value { return value.NewString(bytesString(b)) }),
+	streamMethod("stream.write", 2, 2, (*Stream).writable, func(c *call, s *Stream) value.Value {
 		data := c.data(1)
 		if !c.ok() {
 			return value.NilValue
@@ -234,14 +234,14 @@ var streamMethods = []*Native{
 
 		return value.NilValue
 	}),
-	streamMethod("Stream.flush", 1, 1, (*Stream).writable, func(c *call, s *Stream) value.Value {
+	streamMethod("stream.flush", 1, 1, (*Stream).writable, func(c *call, s *Stream) value.Value {
 		if err := s.w.Flush(); err != nil {
 			return c.streamFail(s, err)
 		}
 
 		return value.NilValue
 	}),
-	method("Stream.close", 1, 1, (*call).stream, func(c *call, s *Stream) value.Value {
+	method("stream.close", 1, 1, (*call).stream, func(c *call, s *Stream) value.Value {
 		delete(c.host.streams, s)
 
 		if err := s.Close(); err != nil {

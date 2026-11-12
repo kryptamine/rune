@@ -307,7 +307,7 @@ func (s *Parser) arrayPattern(mutable bool) (*ast.ArrayDestructureStmt, error) {
 		}
 
 		b.Mutable = b.Mutable || mutable
-		skip := b.Name.Lexeme == "_"
+		skip := b.Discards()
 
 		def, err := s.patternDefault(rest || skip)
 		if err != nil {

@@ -183,8 +183,8 @@ called as they are.
 
 ## Methods on built-in types
 
-`impl` also takes `string`, `number`, `boolean`, `array`, `object`,
-`function`, `Map`, `Set` and `bytes`. Their methods must take `self`, not
+`impl` also takes the built-in types `string`, `number`, `boolean`,
+`array`, `object`, `function`, `map`, `set`, `bytes` and `stream`. Their methods must take `self`, not
 `mut self`, and are seen by the whole program; a method of the program
 wins over a built-in one.
 Built-in structs, such as `IOError`, take no methods.

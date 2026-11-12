@@ -1,0 +1,9 @@
+[line: 2] Error at '_': Cannot read '_'.
+    2 | print(_); // Error at '_': Cannot read '_'.
+      |       ^
+[line: 3] Error at '_': Cannot assign to '_'.
+    3 | _ = 2; // Error at '_': Cannot assign to '_'.
+      | ^
+[line: 4] Error at '_': Cannot read '_'.
+    4 | let o = { _ }; // Error at '_': Cannot read '_'.
+      |           ^

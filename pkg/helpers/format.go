@@ -33,13 +33,13 @@ func TypeName(v value.Value) string {
 	case value.Type:
 		return "struct"
 	case value.Map:
-		return "Map"
+		return "map"
 	case value.Set:
-		return "Set"
+		return "set"
 	case value.Bytes:
 		return "bytes"
 	case value.Stream:
-		return "Stream"
+		return "stream"
 	default:
 		return "function"
 	}

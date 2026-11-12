@@ -19,7 +19,7 @@ print(User { name, role: "admin" }); // User {name: "bob", role: "admin", tags: 
 `User { name }` is shorthand for `User { name: name }`.
 
 A default is a constant: a literal or operators on literals (`60 * 60`), an
-array or object of them, `Map()` or `Set()`. Each struct made gets its own copy of an array, object, map or
+array or object of them, `map()` or `set()`. Each struct made gets its own copy of an array, object, map or
 set, so `tags = []` is never shared:
 
 ```rune
@@ -126,8 +126,8 @@ Config({ port: 80 }); // KeyError: Missing field 'host' of Config.
 
 ## Type checks, equality, iteration
 
-`v is User` is `true` only for a `User`; it has the precedence of `==`,
-and its right operand must be a struct type.
+`v is User` is `true` only for a `User`, never for an object; see
+[Type Tests](../language/values.md#type-tests).
 
 `==` compares structs field by field and only if they are of the same
 struct, so a struct never equals an object. `for k, v in s` walks the

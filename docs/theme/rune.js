@@ -15,7 +15,7 @@ hljs.registerLanguage("rune", function (hljs) {
       "let mut fun return struct impl import export as match is in if else for while break continue try catch throw step self",
     literal: "true false nil",
     built_in:
-      "print len type object str number int Map Set string math regex bytes json http time fs io os array module",
+      "print type object str number int map set string math regex bytes json http time fs io os array module",
   };
   SUBST.keywords = KEYWORDS;
   const NUMBER = {
@@ -34,7 +34,6 @@ hljs.registerLanguage("rune", function (hljs) {
     keywords: KEYWORDS,
     contains: [
       hljs.C_LINE_COMMENT_MODE,
-      hljs.C_BLOCK_COMMENT_MODE,
       STRING,
       NUMBER,
       { className: "title", begin: /\b(?<=fun\s+)[A-Za-z_]\w*/ },

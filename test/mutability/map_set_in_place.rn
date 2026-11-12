@@ -1,17 +1,17 @@
-let m = Map([["a", 1]]);
-let s = Set([1]);
+let m = map([["a", 1]]);
+let s = set([1]);
 print(m.get("a")); // expect: 1
-print(s.has(1)); // expect: true
+print(s.contains(1)); // expect: true
 
 let mut mm = m;
 mm.set("b", 2);
-print(m); // expect: Map {"a": 1, "b": 2}
+print(m); // expect: map {"a": 1, "b": 2}
 
 let a = [2, 1];
 try { let f = a.push; } catch e is TypeError { print(e.message); } // expect: Cannot take in-place method 'push' of array as a value.
 
 // A temporary has no variable to protect.
-print([3, 1, 2].sort()); // expect: [1, 2, 3]
+print([3, 1, 2].sort()); // expect: nil
 let mut b = a;
 b.push(0);
 print(a); // expect: [2, 1, 0]

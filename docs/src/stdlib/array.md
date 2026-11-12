@@ -1,21 +1,22 @@
 # Array Methods
 
 Methods marked **in place** change the array, so it must be held by a
-mutable variable; the others return a new value and leave it as it is.
+mutable variable, and return `nil`, unless they take an element out; the
+others return a new value and leave the array as it is.
 
 ## Adding and removing
 
-- `push(v1, ...)` — appends **in place** (amortized O(1) each) and returns the new length.
+- `push(v1, ...)` — appends **in place** (amortized O(1) each).
 - `pop()` — removes the last element in place and returns it; an empty array is a `ValueError`.
-- `insert(i, v)` — inserts `v` before index `i` **in place** (`xs.len()` appends) and returns the new length.
+- `insert(i, v)` — inserts `v` before index `i` **in place** (`xs.len()` appends).
 - `remove(i)` — removes element `i` in place and returns it. A negative `i` counts from the end; one out of bounds is an `IndexError`.
 - `append(v1, ...)` — a new array with the values appended. It copies, so building an array with it in a loop is quadratic; use `push` for that.
 
 ```rune
 let mut queue = ["build", "test"];
-print(queue.push("deploy"));        // 3
+queue.push("deploy");
 print(queue.pop());                 // deploy
-print(queue.insert(0, "lint"));     // 3
+queue.insert(0, "lint");
 print(queue);                       // ["lint", "build", "test"]
 print(queue.remove(-1));            // test
 print(queue.append("release"));     // ["lint", "build", "release"]
@@ -49,17 +50,21 @@ print(["10", "2"].map(int));                             // [10, 2]
 
 ## Sorting
 
-`sort([cmp])` sorts **in place** and returns the array; it is stable.
+`sort([cmp])` sorts **in place**, stably; `reverse()` and the rest return a
+new array.
 Without `cmp` the elements must be all numbers or all strings; with it,
 `cmp(a, b) < 0` puts `a` first.
 
 ```rune
 let mut scores = [5, 3, 10, 1];
-print(scores.sort());                     // [1, 3, 5, 10]
+scores.sort();
+print(scores);                            // [1, 3, 5, 10]
 
 let mut fruits = ["pear", "Apple", "fig"];
-print(fruits.sort());                     // ["Apple", "fig", "pear"]
-print(fruits.sort((a, b) => a.len() - b.len())); // ["fig", "pear", "Apple"]
+fruits.sort();
+print(fruits);                            // ["Apple", "fig", "pear"]
+fruits.sort((a, b) => a.len() - b.len());
+print(fruits);                            // ["fig", "pear", "Apple"]
 
 let mut people = [{ name: "bob", age: 25 }, { name: "ann", age: 31 }];
 people.sort((a, b) => b.age - a.age);

@@ -6,7 +6,7 @@ An array is an ordered list of values of any type. `xs[i]` reads element
 ```rune
 let langs = ["go", "rust", "rune"];
 print(langs[0]);     // go
-print(langs.len());   // 3
+print(langs.len());  // 3
 
 let row = [1, 2.5, "three", true, nil, [4]];
 print(row);          // [1, 2.5, "three", true, nil, [4]]

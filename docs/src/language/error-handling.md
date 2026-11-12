@@ -57,8 +57,8 @@ error at all: `try` does not stop it.
 
 ## Catching by Type
 
-`catch e is T | U` catches only the struct types it names, the same
-test as `v is T`. Clauses are tried in
+`catch e is T | U` catches only the types it names, the same
+[test](values.md#type-tests) as `v is T`. Clauses are tried in
 order, and an error none of them catches goes on up with its trace intact.
 A clause without types catches everything and must come last.
 

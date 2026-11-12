@@ -1,0 +1,32 @@
+struct P { x }
+
+print(5 is number); // expect: true
+print("a" is number); // expect: false
+print("a" is string); // expect: true
+print(true is boolean); // expect: true
+print([1] is array); // expect: true
+print({} is object); // expect: true
+print(P { x: 1 } is object); // expect: false
+print(print is function); // expect: true
+print((x => x) is function); // expect: true
+print(map() is map); // expect: true
+print(set() is set); // expect: true
+print(b"" is bytes); // expect: true
+print(nil is object); // expect: false
+
+fun kind(v) {
+    return match v {
+        n is number => "number {n}",
+        _ is string | array => "sequence",
+        _ is P => "point",
+        _ => "other",
+    };
+}
+
+print(kind(1)); // expect: number 1
+print(kind("a")); // expect: sequence
+print(kind([1])); // expect: sequence
+print(kind(P { x: 1 })); // expect: point
+print(kind(nil)); // expect: other
+
+try { [].pop(); } catch e is string { print("string"); } catch e is ValueError { print("value"); } // expect: value
