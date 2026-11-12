@@ -15,5 +15,5 @@ arr[0] = 10;
 print(arr[0]); // expect: 10
 
 // Test array length
-let arrLen = len(arr);
+let arrLen = arr.len();
 print(arrLen); // expect: 6

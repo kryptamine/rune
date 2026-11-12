@@ -1,6 +1,6 @@
 print(r"\d{3}\n"); // expect: \d{3}\n
 print(regex.test(r"^\d{3}$", "123")); // expect: true
-print(len(r"")); // expect: 0
+print(r"".len()); // expect: 0
 print(r"a\b" + "!"); // expect: a\b!
 print(r"two
 lines");

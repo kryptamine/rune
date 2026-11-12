@@ -1,1 +1,1 @@
-len(1); // expect runtime error: [line: 1] TypeError: len() expects a string, an array, an object, a struct, a Map, a Set or bytes as argument 1, got number.
+object(1); // expect runtime error: [line: 1] TypeError: object() expects a struct as argument 1, got number.

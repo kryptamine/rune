@@ -1,6 +1,6 @@
 let b = b"hi\x00\xff";
 print(b);         // expect: b"hi\x00\xff"
-print(len(b));    // expect: 4
+print(b.len());    // expect: 4
 print(type(b));   // expect: bytes
 print(b[0]);      // expect: 104
 print(b[3]);      // expect: 255

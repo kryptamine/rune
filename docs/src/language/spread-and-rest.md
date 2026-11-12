@@ -58,7 +58,7 @@ fun log(level, ...parts) {
 
 log("info", "started", "in", 3, "ms"); // [info] started in 3 ms
 
-let count = (...args) => len(args);
+let count = (...args) => args.len();
 print(count(1, 2, 3)); // 3
 print(count());        // 0
 ```

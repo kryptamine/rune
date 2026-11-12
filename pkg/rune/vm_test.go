@@ -13,7 +13,7 @@ func TestProgramRunsConcurrently(t *testing.T) {
 		let mut s = "";
 		fun f(n) { if n < 2 { return n; } return f(n - 1) + f(n - 2); }
 		for i in 0..50 { s = s + "ab"; }
-		print(len(s) + f(15));
+		print(s.len() + f(15));
 		print([1, 2].map(fun (x) { return x * 2; }));
 	`))
 	if len(errs) > 0 {

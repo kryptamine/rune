@@ -15,7 +15,7 @@ export fun render(src) {
     let mut doc = Doc {};
     let mut i = 0;
 
-    while i < len(lines) {
+    while i < lines.len() {
         let line = lines[i];
 
         if line.trim() == "" {
@@ -27,7 +27,7 @@ export fun render(src) {
             let lang = line.slice(3).trim();
             let mut code = [];
             i++;
-            while i < len(lines) && !lines[i].startsWith("```") code.push(lines[i++]);
+            while i < lines.len() && !lines[i].startsWith("```") code.push(lines[i++]);
             i++;
             let cls = lang == "" ? "" : " class=\"lang-{lang}\"";
             doc.html.push("<pre><code{cls}>{inline.escape(code.join("\n"))}</code></pre>");
@@ -37,7 +37,7 @@ export fun render(src) {
         let h = regex.find(r"^(#{1,6})\s+(.*)$", line);
         if h != nil {
             let [hashes, text] = h.groups;
-            let level = len(hashes);
+            let level = hashes.len();
             let id = slug(text);
             doc.headings.push(Heading { level, text, id });
             doc.html.push("""<h{level} id="{id}">{inline.render(text)}</h{level}>""");
@@ -53,7 +53,7 @@ export fun render(src) {
 
         if line.startsWith(">") {
             let mut quote = [];
-            while i < len(lines) && lines[i].startsWith(">") quote.push(lines[i++].slice(1).trim());
+            while i < lines.len() && lines[i].startsWith(">") quote.push(lines[i++].slice(1).trim());
             doc.html.push("<blockquote><p>{inline.render(quote.join(" "))}</p></blockquote>");
             continue;
         }
@@ -62,7 +62,7 @@ export fun render(src) {
         if item != nil {
             let tag = item.ordered ? "ol" : "ul";
             let mut items = [];
-            while i < len(lines) {
+            while i < lines.len() {
                 let it = listItem(lines[i]);
                 if it == nil || it.ordered != item.ordered break;
                 items.push("<li>{inline.render(it.text)}</li>");
@@ -73,7 +73,7 @@ export fun render(src) {
         }
 
         let mut para = [];
-        while i < len(lines) && !startsBlock(lines[i]) para.push(lines[i++].trim());
+        while i < lines.len() && !startsBlock(lines[i]) para.push(lines[i++].trim());
         doc.html.push("<p>{inline.render(para.join(" "))}</p>");
     }
 

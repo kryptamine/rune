@@ -12,8 +12,8 @@ print(type({})); // expect: object
 print(type(type)); // expect: function
 print(type(fun () {})); // expect: function
 
-print(len(p)); // expect: 2
-print(len(Empty {})); // expect: 0
+print(object(p).len()); // expect: 2
+print(object(Empty {}).len()); // expect: 0
 
 let mut o = object(p);
 print(o); // expect: {x: 1, y: 0}

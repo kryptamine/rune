@@ -3,14 +3,14 @@
 `bytes` are immutable binary data: a `b"..."` literal, which takes
 `\xNN` escapes and no interpolation, or `bytes.from` a string (its UTF-8),
 an array of integers from 0 to 255, or bytes. `b[i]` is the integer byte,
-`len(b)` the size; `+` joins and `<` compares bytes, `==` by content, and
+`b.len()` the size; `+` joins and `<` compares bytes, `==` by content, and
 `for i, x in b` walks them. Bytes are hashable, and print as a literal.
 
 ```rune
 let header = b"\x89PNG";
 print(header);           // b"\x89PNG"
 print(header[0]);        // 137
-print(len(header));      // 4
+print(header.len());      // 4
 print(header.hex());     // 89504e47
 
 print(bytes.from("é"));           // b"\xc3\xa9"

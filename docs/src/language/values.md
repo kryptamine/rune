@@ -33,7 +33,7 @@ for v in [nil, false, 0, "", [], {}, "0"] {
 // "0" is truthy
 ```
 
-So `or` gives a fallback for an empty string, and an empty array needs `len`:
+So `or` gives a fallback for an empty string, and an empty array needs `.len()`:
 
 ```rune
 let user = { name: "ann", nickname: "" };
@@ -41,7 +41,7 @@ print(user.nickname || user.name);   // ann
 
 let cart = [];
 if cart { print("has a cart"); }     // has a cart
-if len(cart) == 0 { print("cart is empty"); }  // cart is empty
+if cart.len() == 0 { print("cart is empty"); }  // cart is empty
 ```
 
 ## Equality

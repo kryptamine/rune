@@ -19,7 +19,7 @@ fun main(args) {
             let tags = p.tags.map(t => "#" + t).join(" ");
             print("  %s  %-32s %4d words  %s".format(p.date, p.title, p.words, tags));
         }
-        if len(site.skipped) > 0 print("  skipped drafts: {site.skipped.join(", ")}");
+        if site.skipped.len() > 0 print("  skipped drafts: {site.skipped.join(", ")}");
 
         print("\n{n} files → {out} in %.1f ms".format((time.now() - started) * 1000));
     } catch e is fm.FrontMatterError {

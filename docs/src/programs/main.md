@@ -7,7 +7,7 @@ It returns `nil` to exit with 0, or an exit code from 0 to 255.
 ```rune
 // greet.rn
 fun main(args) {
-    if len(args) == 0 {
+    if args.len() == 0 {
         io.eprint("usage: greet <name>...");
         return 2;
     }

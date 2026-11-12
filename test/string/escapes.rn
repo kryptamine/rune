@@ -3,4 +3,4 @@ print("say \"hi\""); // expect: say "hi"
 print("back\\slash"); // expect: back\slash
 print("two\nlines"); // expect: two
 // expect: lines
-print(len("\n")); // expect: 1
+print("\n".len()); // expect: 1

@@ -15,7 +15,7 @@ print(number("42"));             // expect: 42
 print(math.isInt(number("42"))); // expect: true
 print(math.isInt(number("42.0"))); // expect: false
 print(number("99999999999999999999")); // expect: 100000000000000000000
-print(math.isInt(len([1, 2])));  // expect: true
+print(math.isInt([1, 2].len()));  // expect: true
 print("%d %x %b".format(9007199254740993, 255, 5)); // expect: 9007199254740993 ff 101
 
 let parsed = json.parse("\{\"id\": 9007199254740993, \"x\": 1.0, \"y\": 2}");

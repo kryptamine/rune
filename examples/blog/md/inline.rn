@@ -15,7 +15,7 @@ export fun render(text) {
         if m == nil break;
         out.push(spans(rest.slice(0, m.index)));
         out.push("<code>{escape(m.groups[0])}</code>");
-        rest = rest.slice(m.index + len(m.text));
+        rest = rest.slice(m.index + m.text.len());
     }
     out.push(spans(rest));
 

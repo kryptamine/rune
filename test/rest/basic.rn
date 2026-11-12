@@ -12,7 +12,7 @@ print(head(1)); // expect: [1, []]
 print(head(1, 2, 3)); // expect: [1, [2, 3]]
 print(head(...[4, 5])); // expect: [4, [5]]
 
-let count = (...args) => len(args);
+let count = (...args) => args.len();
 print(count(1, nil)); // expect: 2
 print([1, 2].map((...a) => a)); // expect: [[1], [2]]
 

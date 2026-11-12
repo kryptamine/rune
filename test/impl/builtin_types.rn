@@ -11,7 +11,7 @@ impl number {
 }
 
 impl object {
-  fun size(self) { return len(self); }
+  fun size(self) { return self.len(); }
 }
 
 impl boolean {

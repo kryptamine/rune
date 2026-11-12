@@ -30,7 +30,7 @@ Arguments after the file go to the program's [`main`](programs/main.md):
 
 ```rune
 fun main(args) {
-    let name = len(args) > 0 ? args[0] : "world";
+    let name = args.len() > 0 ? args[0] : "world";
     print("hello, {name}!");
 }
 ```

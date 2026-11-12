@@ -11,5 +11,5 @@ zs.push(9);
 print(xs); // expect: [1, 2]
 
 let mut acc = [1];
-acc = [...acc, len(acc) + 1];
+acc = [...acc, acc.len() + 1];
 print(acc); // expect: [1, 2]

@@ -37,7 +37,7 @@ total: 42
 ```rune
 // count.rn
 let words = regex.split(r"\s+", io.read().trim());
-print("{len(words)} words");
+print("{words.len()} words");
 ```
 
 ```sh

@@ -26,7 +26,7 @@ export fun toc(headings) {
     let items = headings
         .filter(h => h.level == 2)
         .map(h => """<li><a href="#{h.id}">{inline.escape(h.text)}</a></li>""");
-    return len(items) < 2 ? "" : """<nav class="toc"><ul>{items.join("")}</ul></nav>""";
+    return items.len() < 2 ? "" : """<nav class="toc"><ul>{items.join("")}</ul></nav>""";
 }
 
 export fun postLink(p, root = ".") {

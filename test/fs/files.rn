@@ -35,4 +35,4 @@ print(fs.exists(dir)); // expect: false
 print(fs.base("/x/y.tar.gz") + " " + fs.dir("/x/y.tar.gz") + " " + fs.ext("/x/y.tar.gz")); // expect: y.tar.gz /x .gz
 print(fs.stem("/x/y.tar.gz") + " " + fs.stem("post.md") + " " + fs.stem("/x/.bashrc") + " " + fs.stem("/x/y")); // expect: y.tar post .bashrc y
 print(fs.join("a", "..", "b", "c")); // expect: b/c
-print(len(fs.cwd()) > 0); // expect: true
+print(fs.cwd().len() > 0); // expect: true
