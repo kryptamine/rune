@@ -1,0 +1,37 @@
+let dir = fs.tempDir();
+let p = fs.join(dir, "a.txt");
+
+print fs.exists(p); // expect: false
+fs.write(p, "one\r\ntwo\n");
+fs.append(p, "three\n");
+print fs.exists(p); // expect: true
+print fs.read(p) == "one\r\ntwo\nthree\n"; // expect: true
+print fs.lines(p); // expect: ["one", "two", "three"]
+
+fs.write(p, "");
+print fs.lines(p); // expect: []
+fs.write(p, "x");
+print fs.lines(p); // expect: ["x"]
+
+let info = fs.stat(p);
+print info is FileInfo; // expect: true
+print [info.name, info.size, info.isDir]; // expect: ["a.txt", 1, false]
+print info.modified > 0; // expect: true
+print info.mode; // expect: 420
+
+let q = fs.join(dir, "b.txt");
+fs.copy(p, q);
+fs.rename(q, fs.join(dir, "c.txt"));
+fs.mkdir(fs.join(dir, "sub", "deep"));
+fs.mkdir(fs.join(dir, "sub"));
+print array.map(fs.list(dir), fun (e) { return e.name; }); // expect: ["a.txt", "c.txt", "sub"]
+print fs.stat(fs.join(dir, "sub")).isDir; // expect: true
+
+fs.remove(p);
+print fs.exists(p); // expect: false
+fs.removeAll(dir);
+print fs.exists(dir); // expect: false
+
+print fs.base("/x/y.tar.gz") + " " + fs.dir("/x/y.tar.gz") + " " + fs.ext("/x/y.tar.gz"); // expect: y.tar.gz /x .gz
+print fs.join("a", "..", "b", "c"); // expect: b/c
+print len(fs.cwd()) > 0; // expect: true

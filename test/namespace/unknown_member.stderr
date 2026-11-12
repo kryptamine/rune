@@ -1,0 +1,6 @@
+[line: 1] Error at 'flor': math has no member 'flor'.
+    1 | math.flor(1); // [line: 1] Error at 'flor': math has no member 'flor'.
+      |      ^
+[line: 2] Error at ']': string has no member 'nope'.
+    2 | string["nope"]; // [line: 2] Error at ']': string has no member 'nope'.
+      |              ^

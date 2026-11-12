@@ -1,1 +1,1 @@
-floor(1, 2); // expect runtime error: [line: 1] ArgumentError: floor() expects 1 argument, got 2.
+math.floor(1, 2); // expect runtime error: [line: 1] ArgumentError: math.floor() expects 1 argument, got 2.

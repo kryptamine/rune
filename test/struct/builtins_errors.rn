@@ -2,12 +2,12 @@ struct Point { x }
 
 let mut p = Point { x: 1 };
 
-try { push(p, 1); } catch (e) { print e.message; }
-// expect: push() expects an array as argument 1, got Point.
-try { pop(p); } catch (e) { print e.message; }
-// expect: pop() expects an array as argument 1, got Point.
-try { sort(p); } catch (e) { print e.message; }
-// expect: sort() expects an array as argument 1, got Point.
+try { array.push(p, 1); } catch (e) { print e.message; }
+// expect: array.push() expects an array as argument 1, got Point.
+try { array.pop(p); } catch (e) { print e.message; }
+// expect: array.pop() expects an array as argument 1, got Point.
+try { array.sort(p); } catch (e) { print e.message; }
+// expect: array.sort() expects an array as argument 1, got Point.
 try { object({x: 1}); } catch (e) { print e.message; }
 // expect: object() expects a struct as argument 1, got object.
 try { len(Point); } catch (e) { print e.message; }

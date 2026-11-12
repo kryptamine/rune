@@ -1,5 +1,5 @@
 fun fill(mut arr, n) {
-  for i in 0..n { push(arr, i * i); }
+  for i in 0..n { array.push(arr, i * i); }
 }
 
 let squares = [];

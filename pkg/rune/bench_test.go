@@ -8,9 +8,9 @@ var benchSources = map[string]string{
 	"loop": `let mut i = 0; let mut s = 0; while i < 100000 { s = s + i; i = i + 1; }`,
 	"closure": `fun counter() { let mut n = 0; fun inc() { n = n + 1; return n; } return inc; }
 		let c = counter(); for i in 0..50000 { c(); }`,
-	"array": `let mut a = []; for i in 0..2000 { a = append(a, i); }
+	"array": `let mut a = []; for i in 0..2000 { a = array.append(a, i); }
 		let mut s = 0; for i in 0..len(a) { s = s + a[i]; }`,
-	"push": `let mut a = []; for i in 0..2000 { push(a, i); }
+	"push": `let mut a = []; for i in 0..2000 { array.push(a, i); }
 		let mut s = 0; for x in a { s += x; }`,
 	"update":  `let mut s = 0; let mut i = 0; while i < 100000 { i++; s++; } let mut a = [0]; let mut j = 0; while j < 20000 { ++j; a[0]++; }`,
 	"locals":  `fun run() { let mut s = 0; for i in 0..100000 { s = s + i % 7; } return s; } run();`,

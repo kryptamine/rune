@@ -1,10 +1,10 @@
 let mut arr = [[1], 2];
 arr[0][0] = 3;
 arr[1]++;
-push(arr, 4);
-sort(arr, fun (a, b) { return 0; });
+array.push(arr, 4);
+array.sort(arr, fun (a, b) { return 0; });
 print arr; // expect: [[3], 3, 4]
 let mut obj = {x: 1};
 obj.x += 1;
 print obj.x; // expect: 2
-print append(arr, 5); // expect: [[3], 3, 4, 5]
+print array.append(arr, 5); // expect: [[3], 3, 4, 5]

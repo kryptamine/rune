@@ -9,15 +9,13 @@ import (
 	"rune/pkg/helpers"
 	"rune/pkg/value"
 	"slices"
+	"strings"
 )
 
 // Caller lets a native call back into a Rune function value.
 type Caller interface {
 	CallValue(fn value.Value, args []value.Value, token *ast.Token) (value.Value, error)
 }
-
-// InPlace names the built-ins that mutate their first argument.
-var InPlace = map[string]bool{"push": true, "pop": true, "sort": true}
 
 // Native is a built-in taking between min and max arguments (max -1: no limit).
 type Native struct {
@@ -180,20 +178,109 @@ type Builtin struct {
 	Value value.Value
 }
 
+// Types are the built-in struct types, which programs see by name.
+var Types = slices.Concat(errors.Kinds, []*value.Shape{FileInfo})
+
+// FieldNames returns each field name of Types as its one string.
+func FieldNames() map[string]string {
+	names := map[string]string{}
+	for _, t := range Types {
+		for _, f := range t.Fields {
+			names[f] = f
+		}
+	}
+
+	return names
+}
+
+// namespace groups built-ins under one global, an immutable struct of them.
+// Its natives are named "<namespace>.<member>".
+type namespace struct {
+	name    string
+	natives []*Native
+	consts  []Builtin
+}
+
+var namespaces = []namespace{
+	{"array", slices.Concat(arrayNatives, arraySequenceNatives), nil},
+	{"string", slices.Concat(stringNatives, stringSequenceNatives), nil},
+	{"math", mathNatives, []Builtin{
+		{"PI", value.NewNumber(math.Pi)},
+		{"INF", value.NewNumber(math.Inf(1))},
+	}},
+	{"json", jsonNatives, nil},
+	{"http", httpNatives, nil},
+	{"time", timeNatives, nil},
+	{"fs", fsNatives, nil},
+}
+
+func (ns namespace) value() value.Value {
+	members := make([]Builtin, 0, len(ns.natives)+len(ns.consts))
+
+	for _, n := range ns.natives {
+		prefix, member, _ := strings.Cut(n.name, ".")
+		if prefix != ns.name {
+			panic("stdlib: " + n.name + " is not in namespace " + ns.name)
+		}
+
+		members = append(members, Builtin{member, value.NewFunction(n)})
+	}
+
+	members = append(members, ns.consts...)
+	decls := make([]value.Field, len(members))
+
+	for i, m := range members {
+		decls[i] = value.Field{Name: m.Name, Required: true}
+	}
+
+	v, fields := value.NewStruct(value.NewShape("namespace", decls))
+	for i, m := range members {
+		fields[i] = m.Value
+	}
+
+	return v
+}
+
+var namespaceValues = func() map[string]value.Value {
+	m := make(map[string]value.Value, len(namespaces))
+	for _, ns := range namespaces {
+		m[ns.name] = ns.value()
+	}
+
+	return m
+}()
+
+// Member returns member key of the namespace called name; isNamespace is
+// false when no namespace has that name.
+func Member(name, key string) (v value.Value, found, isNamespace bool) {
+	ns, ok := namespaceValues[name]
+	if !ok {
+		return value.NilValue, false, false
+	}
+
+	i := ns.Shape().Index(key)
+	if i < 0 {
+		return value.NilValue, false, true
+	}
+
+	return ns.Fields()[i], true, true
+}
+
 var Builtins = builtins()
 
 func builtins() []Builtin {
-	out := []Builtin{
-		{"PI", value.NewNumber(math.Pi)},
-		{"INF", value.NewNumber(math.Inf(1))},
-	}
+	var out []Builtin
 
-	for _, n := range slices.Concat(coreNatives, mathNatives, stringNatives, arrayNatives, sequenceNatives) {
+	for _, n := range preludeNatives {
 		out = append(out, Builtin{n.name, value.NewFunction(n)})
 	}
 
-	for _, k := range errors.Kinds {
-		out = append(out, Builtin{k.Name, value.NewType(k)})
+	for _, ns := range namespaces {
+		out = append(out, Builtin{ns.name, namespaceValues[ns.name]})
+	}
+
+	for _, t := range Types {
+		out = append(out, Builtin{t.Name, value.NewType(t)})
 	}
 
 	return out

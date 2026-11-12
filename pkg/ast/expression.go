@@ -138,6 +138,8 @@ type IndexExpr struct {
 	Array    Expr
 	Index    Expr
 	Property bool
+	// Member is the built-in a namespace member names, set by the resolver.
+	Member *value.Value
 }
 
 func NewIndexExpr(array Expr, index Expr, token Token) Expr {

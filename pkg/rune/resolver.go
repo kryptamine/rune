@@ -62,19 +62,8 @@ func NewResolver() *Resolver {
 		topLevel:      map[string]*ast.Local{},
 		builtins:      map[string]*ast.Local{},
 		structs:       map[*ast.Local]*value.Shape{},
-		fieldNames:    errorFieldNames(),
+		fieldNames:    stdlib.FieldNames(),
 	}
-}
-
-func errorFieldNames() map[string]string {
-	names := map[string]string{}
-	for _, k := range errors.Kinds {
-		for _, f := range k.Fields {
-			names[f] = f
-		}
-	}
-
-	return names
 }
 
 // ResolveStmts resolves a whole program and returns all errors found.
@@ -480,10 +469,31 @@ func (p *Resolver) VisitArrayExpr(expr *ast.ArrayExpr) (value.Value, error) {
 }
 
 func (p *Resolver) VisitIndexExpr(expr *ast.IndexExpr) (value.Value, error) {
+	p.resolveMember(expr)
 	p.resolveExpr(expr.Array)
 	p.resolveExpr(expr.Index)
 
 	return value.NilValue, nil
+}
+
+// resolveMember binds a literal member of an unshadowed namespace to the
+// built-in it names, so reading it costs nothing at run time.
+func (p *Resolver) resolveMember(expr *ast.IndexExpr) {
+	ns, ok := expr.Array.(*ast.VarExpr)
+	key, isLiteral := expr.Index.(*ast.LiteralExpr)
+
+	if !ok || !isLiteral || !key.Value.IsString() || !p.isBuiltin(ns.Name.Lexeme) {
+		return
+	}
+
+	v, found, isNamespace := stdlib.Member(ns.Name.Lexeme, key.Value.Str())
+
+	switch {
+	case found:
+		expr.Member = &v
+	case isNamespace:
+		p.error(expr.Token, ns.Name.Lexeme+" has no member '"+key.Value.Str()+"'.")
+	}
 }
 
 func (p *Resolver) VisitSetIndexExpr(expr *ast.SetIndexExpr) (value.Value, error) {
@@ -543,8 +553,8 @@ func (p *Resolver) requireMutableRoot(expr ast.Expr) {
 
 // requireMutableArg checks the first argument of a call to an in-place built-in.
 func (p *Resolver) requireMutableArg(call *ast.CallExpr) {
-	callee, ok := call.Callee.(*ast.VarExpr)
-	if ok && len(call.Args) > 0 && stdlib.InPlace[callee.Name.Lexeme] && p.isBuiltin(callee.Name.Lexeme) {
+	callee, ok := call.Callee.(*ast.IndexExpr)
+	if ok && callee.Member != nil && len(call.Args) > 0 && stdlib.InPlace(*callee.Member) {
 		p.requireMutableRoot(call.Args[0])
 	}
 }

@@ -1,5 +1,5 @@
 let mut out = [];
-for x in 1..4 push(out, x);
+for x in 1..4 array.push(out, x);
 print out; // expect: [1, 2, 3]
 
 for k, v in { "a": "b" } print k + v; // expect: ab

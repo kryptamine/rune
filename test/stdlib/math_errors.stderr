@@ -1,5 +1,5 @@
-[line: 1] TypeError: floor() expects a number as argument 1, got string.
-    1 | floor("x"); // expect runtime error: [line: 1] TypeError: floor() expects a number as argument 1, got string.
-      |          ^
-  at floor (native)
+[line: 1] TypeError: math.floor() expects a number as argument 1, got string.
+    1 | math.floor("x"); // expect runtime error: [line: 1] TypeError: math.floor() expects a number as argument 1, got string.
+      |               ^
+  at math.floor (native)
   at <script> (line 1)

@@ -2,6 +2,7 @@ package rune
 
 import (
 	"rune/pkg/ast"
+	"rune/pkg/stdlib"
 	"rune/pkg/value"
 	"slices"
 	"unsafe"
@@ -132,7 +133,7 @@ func newFunc(parent *funcState, name string) *funcState {
 	if parent != nil {
 		fs.unit = parent.unit
 	} else {
-		fs.unit = &unit{names: errorFieldNames()}
+		fs.unit = &unit{names: stdlib.FieldNames()}
 	}
 
 	return fs
@@ -276,7 +277,7 @@ func (fs *funcState) constant(v value.Value) int32 {
 		if name, ok := fs.unit.names[key.str]; ok {
 			v = value.NewString(name)
 		}
-	case value.Function, value.Type:
+	case value.Function, value.Type, value.Struct:
 		key.ptr = v.Ptr()
 	}
 

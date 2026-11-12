@@ -1,14 +1,14 @@
 let mut a = [1];
-print push(a, 2); // expect: 2
-print push(a, 3, 4); // expect: 4
+print array.push(a, 2); // expect: 2
+print array.push(a, 3, 4); // expect: 4
 print a; // expect: [1, 2, 3, 4]
 
 // Arrays are references: push is visible through every alias.
 let mut b = a;
-push(b, 5);
+array.push(b, 5);
 print a; // expect: [1, 2, 3, 4, 5]
 
 // append still returns a new array and leaves the input alone.
-let c = append(a, 6);
+let c = array.append(a, 6);
 print len(a); // expect: 5
 print len(c); // expect: 6

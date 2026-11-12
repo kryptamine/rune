@@ -1,6 +1,9 @@
 package errors
 
-import "rune/pkg/value"
+import (
+	"rune/pkg/value"
+	"slices"
+)
 
 // Every built-in error kind has these fields, in this order.
 var errorFields = []value.Field{
@@ -16,7 +19,9 @@ var (
 	IndexError    = value.NewShape("IndexError", errorFields)
 	KeyError      = value.NewShape("KeyError", errorFields)
 	NameError     = value.NewShape("NameError", errorFields)
-	IOError       = value.NewShape("IOError", errorFields)
+	// IOError also names the path and, for the common failures, a code:
+	// "notFound", "exists", "permission", "isDir", "notDir" or "notEmpty".
+	IOError = value.NewShape("IOError", append(slices.Clip(errorFields), value.Field{Name: "path"}, value.Field{Name: "code"}))
 )
 
 // Kinds lists the built-in error kinds, which programs see as struct types.
