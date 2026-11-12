@@ -1,5 +1,3 @@
-[line: 1] TypeError: array.push() expects an array as argument 1, got string.
-    1 | array.push("abc", 1); // expect runtime error: [line: 1] TypeError: array.push() expects an array as argument 1, got string.
-      |                    ^
-  at array.push (native)
-  at <script> (line 1)
+[line: 1] TypeError: Cannot read property 'push' of string.
+    1 | "abc".push(1); // expect runtime error: [line: 1] TypeError: Cannot read property 'push' of string.
+      |       ^

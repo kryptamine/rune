@@ -8,51 +8,10 @@ import (
 	"strings"
 )
 
-var inPlace = map[string]bool{"array.push": true, "array.pop": true, "array.sort": true}
-
-// InPlace reports whether v is a built-in that mutates its first argument.
-func InPlace(v value.Value) bool {
-	if v.Kind() != value.Function {
-		return false
-	}
-
-	n, ok := v.Fn().(*Native)
-
-	return ok && inPlace[n.name]
-}
-
-var arrayNatives = []*Native{
+var arrayMethods = []*Native{
 	// append copies, so the result never shares a backing array with the input.
 	{"array.append", 2, -1, func(c *call) value.Value {
 		return value.NewArray(slices.Concat(c.arr(0), c.args[1:]))
-	}},
-	{"array.push", 2, -1, func(c *call) value.Value {
-		if c.arr(0); !c.ok() {
-			return value.NilValue
-		}
-
-		arr := c.args[0].ArrRef()
-		*arr = append(*arr, c.args[1:]...)
-
-		return count(len(*arr))
-	}},
-	{"array.pop", 1, 1, func(c *call) value.Value {
-		if c.arr(0); !c.ok() {
-			return value.NilValue
-		}
-
-		arr := c.args[0].ArrRef()
-		n := len(*arr)
-
-		if n == 0 {
-			return c.fail(errors.ValueError, "got an empty array.")
-		}
-
-		last := (*arr)[n-1]
-		(*arr)[n-1] = value.NilValue
-		*arr = (*arr)[:n-1]
-
-		return last
 	}},
 	{"array.join", 2, 2, func(c *call) value.Value {
 		items, sep := c.arr(0), c.str(1)
@@ -120,6 +79,38 @@ var arrayNatives = []*Native{
 		}
 
 		return acc
+	}},
+}
+
+// arrayInPlace are the methods that change their array.
+var arrayInPlace = []*Native{
+	{"array.push", 2, -1, func(c *call) value.Value {
+		if c.arr(0); !c.ok() {
+			return value.NilValue
+		}
+
+		arr := c.args[0].ArrRef()
+		*arr = append(*arr, c.args[1:]...)
+
+		return count(len(*arr))
+	}},
+	{"array.pop", 1, 1, func(c *call) value.Value {
+		if c.arr(0); !c.ok() {
+			return value.NilValue
+		}
+
+		arr := c.args[0].ArrRef()
+		n := len(*arr)
+
+		if n == 0 {
+			return c.fail(errors.ValueError, "got an empty array.")
+		}
+
+		last := (*arr)[n-1]
+		(*arr)[n-1] = value.NilValue
+		*arr = (*arr)[:n-1]
+
+		return last
 	}},
 	// sort sorts in place, stably, and returns the array.
 	{"array.sort", 1, 2, func(c *call) value.Value {

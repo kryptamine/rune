@@ -8,5 +8,5 @@ print add(0, ...xs); // expect: 3
 print add(...[1, 2, 3]); // expect: 6
 print math.max(...xs, 0); // expect: 2
 print Point(...[{ x: 1, y: 2 }]); // expect: Point {x: 1, y: 2}
-print array.map([[1, 2, 3]], args => add(...args)); // expect: [6]
+print [[1, 2, 3]].map(args => add(...args)); // expect: [6]
 add(...xs); // expect runtime error: [line: 12] ArgumentError: Expected 3 arguments but got 2.

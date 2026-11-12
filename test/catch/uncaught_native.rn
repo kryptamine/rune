@@ -3,7 +3,7 @@ fun f(x) {
 }
 
 try {
-  array.map([1], f);
+  [1].map(f);
 } catch (e: KeyError) {
   print "unreachable";
 }

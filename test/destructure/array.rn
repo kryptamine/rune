@@ -22,7 +22,7 @@ print m; // expect: 11
 
 fun swap([u, v]) { return [v, u]; }
 print swap([1, 2]); // expect: [2, 1]
-print array.map([[1, 2], [3, 4]], ([i, j]) => i * j); // expect: [2, 12]
+print [[1, 2], [3, 4]].map(([i, j]) => i * j); // expect: [2, 12]
 
 fun capture([c]) { return () => c; }
 print capture([7])(); // expect: 7
@@ -37,5 +37,5 @@ print next(); // expect: 2
 
 let mut src = [1, 2];
 let [first, ...more] = src;
-array.push(src, 3);
+src.push(3);
 print more; // expect: [2]

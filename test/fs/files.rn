@@ -24,7 +24,7 @@ fs.copy(p, q);
 fs.rename(q, fs.join(dir, "c.txt"));
 fs.mkdir(fs.join(dir, "sub", "deep"));
 fs.mkdir(fs.join(dir, "sub"));
-print array.map(fs.list(dir), fun (e) { return e.name; }); // expect: ["a.txt", "c.txt", "sub"]
+print fs.list(dir).map(fun (e) { return e.name; }); // expect: ["a.txt", "c.txt", "sub"]
 print fs.stat(fs.join(dir, "sub")).isDir; // expect: true
 
 fs.remove(p);

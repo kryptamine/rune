@@ -34,12 +34,12 @@ fun loopy() {
 print loopy(); // expect: tctc
 
 try {
-  array.map([1, 2], fun (x) { if x == 2 { throw ValueError { message: "in map" }; } return x; });
+  [1, 2].map(fun (x) { if x == 2 { throw ValueError { message: "in map" }; } return x; });
 } catch (e) {
   print e.message; // expect: in map
 }
 
-let r = array.map([1, 2, 3], fun (x) {
+let r = [1, 2, 3].map(fun (x) {
   try {
     if x == 2 { throw ValueError { message: "skip" }; }
     return x;
@@ -48,4 +48,4 @@ let r = array.map([1, 2, 3], fun (x) {
   }
 });
 print r; // expect: [1, 0, 3]
-print array.map([1], fun (x) { return x + 1; }); // expect: [2]
+print [1].map(fun (x) { return x + 1; }); // expect: [2]

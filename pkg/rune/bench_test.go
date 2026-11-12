@@ -11,10 +11,11 @@ var benchSources = map[string]string{
 	"loop": `let mut i = 0; let mut s = 0; while i < 100000 { s = s + i; i = i + 1; }`,
 	"closure": `fun counter() { let mut n = 0; fun inc() { n = n + 1; return n; } return inc; }
 		let c = counter(); for i in 0..50000 { c(); }`,
-	"array": `let mut a = []; for i in 0..2000 { a = array.append(a, i); }
+	"array": `let mut a = []; for i in 0..2000 { a = a.append(i); }
 		let mut s = 0; for i in 0..len(a) { s = s + a[i]; }`,
-	"push": `let mut a = []; for i in 0..2000 { array.push(a, i); }
+	"push": `let mut a = []; for i in 0..2000 { a.push(i); }
 		let mut s = 0; for x in a { s += x; }`,
+	"map":      `let mut a = []; for i in 0..2000 { a.push(i); } for k in 0..20 { a.map(x => x * 2).filter(x => x % 3 == 0); }`,
 	"update":   `let mut s = 0; let mut i = 0; while i < 100000 { i++; s++; } let mut a = [0]; let mut j = 0; while j < 20000 { ++j; a[0]++; }`,
 	"locals":   `fun run() { let mut s = 0; for i in 0..100000 { s = s + i % 7; } return s; } run();`,
 	"strings":  `let mut s = ""; for i in 0..1000 { s = s + "ab"; } let mut n = 0; for c in s { if c == "a" { n += 1; } }`,

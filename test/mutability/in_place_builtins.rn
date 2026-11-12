@@ -1,6 +1,15 @@
 let a = [2, 1];
-array.push(a, 3); // [line: 2] Error at 'a': Cannot mutate immutable variable 'a'.
-array.pop(a); // [line: 3] Error at 'a': Cannot mutate immutable variable 'a'.
-array.sort(a); // [line: 4] Error at 'a': Cannot mutate immutable variable 'a'.
+try { a.push(3); } catch (e: TypeError) { print e.message; } // expect: Cannot call in-place method 'push' of array: its receiver is in an immutable variable.
+try { a.pop(); } catch (e: TypeError) { print e.message; } // expect: Cannot call in-place method 'pop' of array: its receiver is in an immutable variable.
+try { a.sort(); } catch (e: TypeError) { print e.message; } // expect: Cannot call in-place method 'sort' of array: its receiver is in an immutable variable.
 let o = {xs: []};
-array.push(o.xs, 1); // [line: 6] Error at 'o': Cannot mutate immutable variable 'o'.
+try { o.xs.push(1); } catch (e: TypeError) { print e.message; } // expect: Cannot call in-place method 'push' of array: its receiver is in an immutable variable.
+try { (o?.xs).push(1); } catch (e: TypeError) { print e.message; } // expect: Cannot call in-place method 'push' of array: its receiver is in an immutable variable.
+try { let f = a.push; } catch (e: TypeError) { print e.message; } // expect: Cannot take in-place method 'push' of array as a value.
+print a; // expect: [2, 1]
+
+// A temporary has no variable to protect.
+print [3, 1, 2].sort(); // expect: [1, 2, 3]
+let mut b = a;
+b.push(0);
+print a.sort(); // expect runtime error: [line: 15] TypeError: Cannot call in-place method 'sort' of array: its receiver is in an immutable variable.

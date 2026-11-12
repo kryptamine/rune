@@ -21,19 +21,7 @@ func stringPredicate(name string, f func(s, x string) bool) *Native {
 	}}
 }
 
-var stringNatives = []*Native{
-	{"string.fixed", 2, 2, func(c *call) value.Value {
-		n, digits := c.num(0), c.int(1)
-		if !c.ok() {
-			return value.NilValue
-		}
-
-		if digits < 0 || digits > 100 {
-			return c.fail(errors.ValueError, "expects 0 to 100 digits, got %d.", digits)
-		}
-
-		return value.NewString(string(helpers.AppendFixed(nil, n, digits)))
-	}},
+var stringMethods = []*Native{
 	unaryString("string.upper", strings.ToUpper),
 	unaryString("string.lower", strings.ToLower),
 	unaryString("string.trim", strings.TrimSpace),
@@ -84,6 +72,19 @@ var stringNatives = []*Native{
 
 		return count(int(r))
 	}},
+	pad("string.padStart", true),
+	pad("string.padEnd", false),
+	{"string.format", 1, -1, func(c *call) value.Value {
+		f := c.str(0)
+		if !c.ok() {
+			return value.NilValue
+		}
+
+		return format(c, f, c.args[1:])
+	}},
+}
+
+var stringNatives = []*Native{
 	{"string.fromCharCode", 1, -1, func(c *call) value.Value {
 		b := make([]byte, 0, len(c.args))
 
@@ -101,16 +102,6 @@ var stringNatives = []*Native{
 		}
 
 		return value.NewString(string(b))
-	}},
-	pad("string.padStart", true),
-	pad("string.padEnd", false),
-	{"string.format", 1, -1, func(c *call) value.Value {
-		f := c.str(0)
-		if !c.ok() {
-			return value.NilValue
-		}
-
-		return format(c, f, c.args[1:])
 	}},
 }
 

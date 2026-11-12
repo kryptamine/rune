@@ -1,5 +1,5 @@
 [line: 1] ValueError: string.repeat() count must not be negative.
-    1 | string.repeat("a", -1); // expect runtime error: [line: 1] ValueError: string.repeat() count must not be negative.
-      |                      ^
+    1 | "a".repeat(-1); // expect runtime error: [line: 1] ValueError: string.repeat() count must not be negative.
+      |     ^
   at string.repeat (native)
   at <script> (line 1)

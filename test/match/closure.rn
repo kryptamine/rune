@@ -3,7 +3,7 @@ struct Box { v }
 let mut fs = [];
 for i in 0..3 {
     match Box { v: i } {
-        Box { v } if v > 0 => array.push(fs, fun () { return v; }),
+        Box { v } if v > 0 => fs.push(fun () { return v; }),
         _ => nil,
     }
 }

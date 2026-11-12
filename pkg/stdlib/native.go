@@ -49,13 +49,23 @@ func (f *Host) Cancel() { f.cancel() }
 
 // Call runs n; it must not keep args.
 func (f *Host) Call(n *Native, caller Caller, args []value.Value, token *ast.Token) (value.Value, error) {
+	return f.call(n, caller, args, token, 0)
+}
+
+// CallMethod runs the method n with its receiver as args[0]; errors count
+// the arguments after it.
+func (f *Host) CallMethod(n *Native, caller Caller, args []value.Value, token *ast.Token) (value.Value, error) {
+	return f.call(n, caller, args, token, 1)
+}
+
+func (f *Host) call(n *Native, caller Caller, args []value.Value, token *ast.Token, self int) (value.Value, error) {
 	c := f.get()
-	*c = call{caller: caller, host: f, args: args, token: token, name: n.name}
+	*c = call{caller: caller, host: f, args: args, token: token, name: n.name, self: self}
 
 	var v value.Value
 
 	if len(args) < n.min || (n.max >= 0 && len(args) > n.max) {
-		c.fail(errors.ArgumentError, "expects %s, got %d.", n.arityText(), len(args))
+		c.fail(errors.ArgumentError, "expects %s, got %d.", n.arityText(self), len(args)-self)
 	} else {
 		v = n.fn(c)
 	}
@@ -82,14 +92,16 @@ func (f *Host) get() *call {
 	return c
 }
 
-func (n *Native) arityText() string {
+func (n *Native) arityText(self int) string {
+	lo, hi := n.min-self, n.max-self
+
 	switch {
 	case n.max < 0:
-		return "at least " + helpers.Plural(n.min, "argument")
-	case n.min == n.max:
-		return helpers.Plural(n.min, "argument")
+		return "at least " + helpers.Plural(lo, "argument")
+	case lo == hi:
+		return helpers.Plural(lo, "argument")
 	default:
-		return fmt.Sprintf("%d to %s", n.min, helpers.Plural(n.max, "argument"))
+		return fmt.Sprintf("%d to %s", lo, helpers.Plural(hi, "argument"))
 	}
 }
 
@@ -103,7 +115,9 @@ type call struct {
 	args   []value.Value
 	token  *ast.Token
 	name   string
-	err    error
+	// self is 1 for a method, whose receiver is args[0].
+	self int
+	err  error
 }
 
 func (c *call) ok() bool { return c.err == nil }
@@ -119,7 +133,7 @@ func (c *call) fail(kind *value.Shape, format string, a ...any) value.Value {
 }
 
 func (c *call) typeError(i int, want string) value.Value {
-	return c.fail(errors.TypeError, "expects %s as argument %d, got %s.", want, i+1, helpers.TypeName(c.args[i]))
+	return c.fail(errors.TypeError, "expects %s as argument %d, got %s.", want, i+1-c.self, helpers.TypeName(c.args[i]))
 }
 
 func (c *call) num(i int) float64 { return c.number(i).Num() }
@@ -216,8 +230,7 @@ type namespace struct {
 }
 
 var namespaces = []namespace{
-	{"array", slices.Concat(arrayNatives, arraySequenceNatives), nil},
-	{"string", slices.Concat(stringNatives, stringSequenceNatives), nil},
+	{"string", stringNatives, nil},
 	{"math", mathNatives, []Builtin{
 		{"PI", value.NewNumber(math.Pi)},
 		{"INF", value.NewNumber(math.Inf(1))},
@@ -286,25 +299,35 @@ func Member(name, key string) (v value.Value, found, isNamespace bool) {
 	return ns.Fields()[i], true, true
 }
 
-// kindMethods are the methods of the built-in types that have them, by
-// kind and name; each takes its receiver first.
-var kindMethods = func() (out [value.NumKinds]map[string]*Native) {
-	for kind, natives := range map[value.Kind][]*Native{
-		value.Map: mapMethods, value.Set: setMethods, value.Bytes: bytesMethods, value.Stream: streamMethods,
-	} {
-		out[kind] = map[string]*Native{}
+// Method is a method of a built-in type, whose native takes the receiver
+// first. An in-place one changes the receiver.
+type Method struct {
+	Kind    value.Kind
+	Name    string
+	Fn      value.Value
+	InPlace bool
+}
 
-		for _, n := range natives {
+// Methods are the methods of the built-in types.
+var Methods = func() (out []Method) {
+	add := func(kind value.Kind, inPlace bool, natives ...[]*Native) {
+		for _, n := range slices.Concat(natives...) {
 			_, name, _ := strings.Cut(n.name, ".")
-			out[kind][name] = n
+			out = append(out, Method{kind, name, value.NewFunction(n), inPlace})
 		}
 	}
 
+	add(value.Array, false, arrayMethods, arraySequenceMethods)
+	add(value.Array, true, arrayInPlace)
+	add(value.String, false, stringMethods, stringSequenceMethods)
+	add(value.Number, false, numberMethods)
+	add(value.Map, false, mapMethods)
+	add(value.Set, false, setMethods)
+	add(value.Bytes, false, bytesMethods)
+	add(value.Stream, false, streamMethods)
+
 	return out
 }()
-
-// Method returns the built-in method of kind called name, or nil.
-func Method(kind value.Kind, name string) *Native { return kindMethods[kind][name] }
 
 var Builtins = builtins()
 

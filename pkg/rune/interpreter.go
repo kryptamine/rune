@@ -76,7 +76,7 @@ func (p *Interpreter) Evaluate(expr ast.Expr) (value.Value, error) {
 		return value.NilValue, errs[0]
 	}
 
-	prog, err := compileExpr(expr, r.builtinLocals())
+	prog, err := compileExpr(expr, r.builtinLocals(), r.methodTable())
 	if err != nil {
 		return value.NilValue, err
 	}
@@ -114,6 +114,10 @@ func (p *Interpreter) exec(prog *Program, args []string) (value.Value, error) {
 	}
 
 	p.methods = make([]value.Value, prog.methods.n)
+	for i, m := range stdlib.Methods {
+		p.methods[i] = m.Fn
+	}
+
 	p.kinds = &prog.methods.kinds
 
 	p.grow(1 + cl.proto.nregs)
@@ -156,7 +160,7 @@ func (p *Interpreter) CallValue(fn value.Value, args []value.Value, token *ast.T
 		case *BoundMethod:
 			return p.CallValue(value.NewFunction(f.fn), append([]value.Value{f.recv}, args...), token)
 		case *BoundNative:
-			return p.host.Call(f.fn, p, append([]value.Value{f.recv}, args...), token)
+			return p.host.CallMethod(f.fn, p, append([]value.Value{f.recv}, args...), token)
 		case *stdlib.Native:
 			return p.host.Call(f, p, args, token)
 		}

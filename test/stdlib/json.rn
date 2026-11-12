@@ -11,5 +11,5 @@ try { json.stringify(fun () {}); } catch (e: TypeError) { print e.message; } // 
 try { json.stringify(math.INF); } catch (e: ValueError) { print e.message; } // expect: json.stringify() cannot encode a non-finite number.
 
 let mut xs = [];
-array.push(xs, xs);
+xs.push(xs);
 try { json.stringify(xs); } catch (e: ValueError) { print e.message; } // expect: json.stringify() cannot encode a cyclic or too deeply nested value.

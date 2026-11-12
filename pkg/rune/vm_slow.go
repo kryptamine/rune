@@ -323,14 +323,25 @@ func (p *Interpreter) callAt(at, n int, tok *ast.Token) error {
 	case *BoundNative:
 		p.grow(at + 2 + n)
 		copy(p.stack[at+2:], p.stack[at+1:at+1+n])
-		p.stack[at], p.stack[at+1] = value.NewFunction(f.fn), f.recv
+		p.stack[at+1] = f.recv
 
-		return p.callAt(at, n+1, tok)
+		return p.callNativeMethod(at, n, f.fn, tok)
 	}
 
 	v, err := p.host.Call(fn.Fn().(*stdlib.Native), p, p.stack[at+1:at+1+n], tok)
 	if err == nil {
 		// The call may have grown the stack.
+		p.stack[at] = v
+	}
+
+	return err
+}
+
+// callNativeMethod calls nat on the receiver at stack[at+1] with the n
+// arguments after it, leaving the result at stack[at].
+func (p *Interpreter) callNativeMethod(at, n int, nat *stdlib.Native, tok *ast.Token) error {
+	v, err := p.host.CallMethod(nat, p, p.stack[at+1:at+2+n], tok)
+	if err == nil {
 		p.stack[at] = v
 	}
 

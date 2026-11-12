@@ -1,1 +1,1 @@
-array.filter([1], 1); // expect runtime error: [line: 1] TypeError: array.filter() expects a function as argument 2, got number.
+[1].filter(1); // expect runtime error: [line: 1] TypeError: array.filter() expects a function as argument 1, got number.

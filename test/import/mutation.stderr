@@ -10,9 +10,6 @@
 [line: 6] Error at 'items': Cannot mutate immutable variable 'math.items'.
     6 | math.items[0] = 1; // Error at 'items': Cannot mutate immutable variable 'math.items'.
       |      ^
-[line: 7] Error at 'items': Cannot mutate immutable variable 'math.items'.
-    7 | array.push(math.items, 1); // Error at 'items': Cannot mutate immutable variable 'math.items'.
-      |                 ^
-[line: 8] Error at 'math': Cannot assign to immutable variable 'math'.
-    8 | math = 1; // Error at 'math': Cannot assign to immutable variable 'math'.
+[line: 7] Error at 'math': Cannot assign to immutable variable 'math'.
+    7 | math = 1; // Error at 'math': Cannot assign to immutable variable 'math'.
       | ^

@@ -5,7 +5,7 @@ print m; // expect: Match {text: "bob@site", index: 6, groups: ["bob", "site"], 
 print regex.find("x", "abc"); // expect: nil
 print regex.find("(a)|(b)", "b").groups; // expect: [nil, "b"]
 print regex.find("é(.)", "héllo").index; // expect: 1
-print array.map(regex.findAll("\\d+", "a1 b22 c333"), m => m.text); // expect: ["1", "22", "333"]
+print regex.findAll("\\d+", "a1 b22 c333").map(m => m.text); // expect: ["1", "22", "333"]
 print len(regex.findAll("\\d", "123", 2)); // expect: 2
 print regex.replace("(\\w+)@(\\w+)", "bob@site", "$2 at ${1}"); // expect: site at bob
 print regex.replace("\\d+", "a1b22", m => "<" + m.text + ">"); // expect: a<1>b<22>

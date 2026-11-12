@@ -120,13 +120,15 @@ func NewGroupingExpr(expr Expr) Expr {
 
 // CallExpr is callee(args); Optional is set for callee?.(args). For a
 // method call, Writable is set when the receiver can take the new self a
-// mutating method leaves.
+// mutating method leaves, and Frozen when an immutable variable holds it,
+// which an in-place method refuses.
 type CallExpr struct {
 	Token    Token
 	Callee   Expr
 	Args     []Expr
 	Optional bool
 	Writable bool
+	Frozen   bool
 }
 
 type ArrayExpr struct {

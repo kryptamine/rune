@@ -10,5 +10,5 @@ print Point.origin(); // expect: Point {x: 0, y: 0}
 print Point.of(1, 2).len(); // expect: 3
 print Point.len(Point.of(2, 3)); // expect: 5
 let f = Point.len;
-print array.map([Point.of(1, 1), Point.of(2, 2)], Point.len); // expect: [2, 4]
+print [Point.of(1, 1), Point.of(2, 2)].map(Point.len); // expect: [2, 4]
 print f; // expect: <fn Point.len>

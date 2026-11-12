@@ -61,7 +61,7 @@ type constKey struct {
 // made for the built-ins it names. The script takes the program's
 // arguments and returns what main, if any, returns.
 func compile(stmts []ast.Stmt, builtins []namedLocal, main *ast.FunctionStmt, methods methodTable) (*Program, error) {
-	prog, err := compileScript(func(fs *funcState, args *ast.Local) *ast.Token {
+	return compileScript(methods, func(fs *funcState, args *ast.Local) *ast.Token {
 		fs.declareStructs(stmts)
 		fs.declareTopLevel(stmts, builtins)
 		fs.declareMethods(stmts)
@@ -83,16 +83,11 @@ func compile(stmts []ast.Stmt, builtins []namedLocal, main *ast.FunctionStmt, me
 
 		return &main.Name
 	})
-	if prog != nil {
-		prog.methods = methods
-	}
-
-	return prog, err
 }
 
 // compileExpr compiles a lone expression into a program returning it.
-func compileExpr(expr ast.Expr, builtins []namedLocal) (*Program, error) {
-	return compileScript(func(fs *funcState, _ *ast.Local) *ast.Token {
+func compileExpr(expr ast.Expr, builtins []namedLocal, methods methodTable) (*Program, error) {
+	return compileScript(methods, func(fs *funcState, _ *ast.Local) *ast.Token {
 		fs.declareTopLevel(nil, builtins)
 		r := fs.alloc()
 		fs.expr(expr, r)
@@ -103,8 +98,9 @@ func compileExpr(expr ast.Expr, builtins []namedLocal) (*Program, error) {
 }
 
 // compileScript compiles the top level, whose one parameter is args; body
-// returns the name of main, if it calls one.
-func compileScript(body func(fs *funcState, args *ast.Local) *ast.Token) (prog *Program, err error) {
+// returns the name of main, if it calls one. A call names a method of a
+// built-in type by the string the method has.
+func compileScript(methods methodTable, body func(fs *funcState, args *ast.Local) *ast.Token) (prog *Program, err error) {
 	defer func() {
 		switch e := recover().(type) {
 		case nil:
@@ -117,6 +113,12 @@ func compileScript(body func(fs *funcState, args *ast.Local) *ast.Token) (prog *
 
 	fs := newFunc(nil, "<script>")
 
+	for _, ms := range methods.kinds {
+		for _, m := range ms {
+			fs.unit.names[m.Name] = m.Name
+		}
+	}
+
 	args := &ast.Local{}
 	fs.declare(args)
 	fs.proto.arity = 1
@@ -124,7 +126,7 @@ func compileScript(body func(fs *funcState, args *ast.Local) *ast.Token) (prog *
 	main := body(fs, args)
 	fs.finish()
 
-	return &Program{script: fs.proto, main: main}, nil
+	return &Program{script: fs.proto, main: main, methods: methods}, nil
 }
 
 func (fs *funcState) finish() {

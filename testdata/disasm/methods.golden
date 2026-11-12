@@ -4,9 +4,9 @@ exit: 0
     0  LOADK         1 0 0
     1  LOADK         2 0 1
     2  CLOSURE       3 0 0
-    3  METHOD        3 0 0
+    3  METHOD        3 0 59
     4  CLOSURE       3 0 1
-    5  METHOD        3 0 1
+    5  METHOD        3 0 60
     6  LOADK         3 0 2
     7  STRUCT        2 3 0
     8  MOVE          4 2 0

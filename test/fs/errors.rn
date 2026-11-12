@@ -6,7 +6,7 @@ try {
 } catch (e: IOError) {
     print e.code; // expect: notFound
     print e.path == missing; // expect: true
-    print string.endsWith(e.message, "nope: no such file or directory."); // expect: true
+    print e.message.endsWith("nope: no such file or directory."); // expect: true
 }
 
 try { fs.read(dir); } catch (e: IOError) { print e.code; } // expect: isDir

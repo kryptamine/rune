@@ -14,13 +14,13 @@ print head(...[4, 5]); // expect: [4, [5]]
 
 let count = (...args) => len(args);
 print count(1, nil); // expect: 2
-print array.map([1, 2], (...a) => a); // expect: [[1], [2]]
+print [1, 2].map((...a) => a); // expect: [[1], [2]]
 
 fun keep(...r) { return () => r; }
 print keep(1, 2)(); // expect: [1, 2]
 
 fun grow(...mut xs) {
-  array.push(xs, 0);
+  xs.push(0);
   return xs;
 }
 print grow(1); // expect: [1, 0]

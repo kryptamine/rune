@@ -4,6 +4,7 @@ import (
 	"math"
 	"math/rand/v2"
 	"rune/pkg/errors"
+	"rune/pkg/helpers"
 	"rune/pkg/value"
 )
 
@@ -93,5 +94,20 @@ var mathNatives = []*Native{
 	}},
 	{"math.random", 0, 0, func(*call) value.Value {
 		return value.NewNumber(rand.Float64())
+	}},
+}
+
+var numberMethods = []*Native{
+	{"number.fixed", 2, 2, func(c *call) value.Value {
+		n, digits := c.num(0), c.int(1)
+		if !c.ok() {
+			return value.NilValue
+		}
+
+		if digits < 0 || digits > 100 {
+			return c.fail(errors.ValueError, "expects 0 to 100 digits, got %d.", digits)
+		}
+
+		return value.NewString(string(helpers.AppendFixed(nil, n, digits)))
 	}},
 }

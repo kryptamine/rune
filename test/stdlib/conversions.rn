@@ -39,11 +39,10 @@ try { int("z", 37); } catch (e: ValueError) { print e.message; } // expect: int(
 try { int(10, 2); } catch (e: TypeError) { print e.message; } // expect: int() expects a string as argument 1, got number.
 try { int(math.INF); } catch (e: ValueError) { print e.message; } // expect: int() cannot convert +Inf to an integer.
 
-print string.fixed(3.14159, 2); // expect: 3.14
-print string.fixed(2, 3); // expect: 2.000
-print string.fixed(2.5, 0); // expect: 2
-print string.fixed(-0.001, 1); // expect: -0.0
-print string.fixed(-0, 2); // expect: 0.00
-try { string.fixed(1, 101); } catch (e: ValueError) { print e.message; } // expect: string.fixed() expects 0 to 100 digits, got 101.
-try { string.fixed(1, 1.5); } catch (e: TypeError) { print e.message; } // expect: string.fixed() expects an integer as argument 2, got number.
-try { string.fixed("1", 2); } catch (e: TypeError) { print e.message; } // expect: string.fixed() expects a number as argument 1, got string.
+print 3.14159.fixed(2); // expect: 3.14
+print 2.fixed(3); // expect: 2.000
+print 2.5.fixed(0); // expect: 2
+print (-0.001).fixed(1); // expect: -0.0
+print (-0).fixed(2); // expect: 0.00
+try { 1.fixed(101); } catch (e: ValueError) { print e.message; } // expect: number.fixed() expects 0 to 100 digits, got 101.
+try { 1.fixed(1.5); } catch (e: TypeError) { print e.message; } // expect: number.fixed() expects an integer as argument 1, got number.
