@@ -25,17 +25,17 @@ func extremum(name string, pick func(a, b float64) float64) *Native {
 }
 
 var mathNatives = []*Native{
-	unaryMath("floor", math.Floor),
-	unaryMath("ceil", math.Ceil),
-	unaryMath("round", math.Round),
-	unaryMath("abs", math.Abs),
-	unaryMath("sqrt", math.Sqrt),
-	extremum("min", math.Min),
-	extremum("max", math.Max),
-	{"pow", 2, 2, func(c *call) value.Value {
+	unaryMath("math.floor", math.Floor),
+	unaryMath("math.ceil", math.Ceil),
+	unaryMath("math.round", math.Round),
+	unaryMath("math.abs", math.Abs),
+	unaryMath("math.sqrt", math.Sqrt),
+	extremum("math.min", math.Min),
+	extremum("math.max", math.Max),
+	{"math.pow", 2, 2, func(c *call) value.Value {
 		return value.NewNumber(math.Pow(c.num(0), c.num(1)))
 	}},
-	{"random", 0, 0, func(*call) value.Value {
+	{"math.random", 0, 0, func(*call) value.Value {
 		return value.NewNumber(rand.Float64())
 	}},
 }

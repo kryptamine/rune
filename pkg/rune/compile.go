@@ -2,6 +2,7 @@ package rune
 
 import (
 	"rune/pkg/ast"
+	"rune/pkg/stdlib"
 	"rune/pkg/value"
 	"slices"
 	"unsafe"
@@ -132,7 +133,7 @@ func newFunc(parent *funcState, name string) *funcState {
 	if parent != nil {
 		fs.unit = parent.unit
 	} else {
-		fs.unit = &unit{names: builtinFieldNames()}
+		fs.unit = &unit{names: stdlib.FieldNames()}
 	}
 
 	return fs

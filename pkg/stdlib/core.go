@@ -44,7 +44,7 @@ var preludeNatives = []*Native{
 }
 
 var timeNatives = []*Native{
-	{"now", 0, 0, func(*call) value.Value {
+	{"time.now", 0, 0, func(*call) value.Value {
 		return value.NewNumber(float64(time.Now().UnixNano()) / 1e9)
 	}},
 }

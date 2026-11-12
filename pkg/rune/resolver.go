@@ -62,19 +62,8 @@ func NewResolver() *Resolver {
 		topLevel:      map[string]*ast.Local{},
 		builtins:      map[string]*ast.Local{},
 		structs:       map[*ast.Local]*value.Shape{},
-		fieldNames:    builtinFieldNames(),
+		fieldNames:    stdlib.FieldNames(),
 	}
-}
-
-func builtinFieldNames() map[string]string {
-	names := map[string]string{}
-	for _, k := range stdlib.Types {
-		for _, f := range k.Fields {
-			names[f] = f
-		}
-	}
-
-	return names
 }
 
 // ResolveStmts resolves a whole program and returns all errors found.
@@ -480,10 +469,7 @@ func (p *Resolver) VisitArrayExpr(expr *ast.ArrayExpr) (value.Value, error) {
 }
 
 func (p *Resolver) VisitIndexExpr(expr *ast.IndexExpr) (value.Value, error) {
-	if p.resolveMember(expr) {
-		return value.NilValue, nil
-	}
-
+	p.resolveMember(expr)
 	p.resolveExpr(expr.Array)
 	p.resolveExpr(expr.Index)
 
@@ -491,29 +477,23 @@ func (p *Resolver) VisitIndexExpr(expr *ast.IndexExpr) (value.Value, error) {
 }
 
 // resolveMember binds a literal member of an unshadowed namespace to the
-// built-in it names, so it costs nothing at run time.
-func (p *Resolver) resolveMember(expr *ast.IndexExpr) bool {
+// built-in it names, so reading it costs nothing at run time.
+func (p *Resolver) resolveMember(expr *ast.IndexExpr) {
 	ns, ok := expr.Array.(*ast.VarExpr)
-	if !ok || !p.isBuiltin(ns.Name.Lexeme) {
-		return false
+	key, isLiteral := expr.Index.(*ast.LiteralExpr)
+
+	if !ok || !isLiteral || !key.Value.IsString() || !p.isBuiltin(ns.Name.Lexeme) {
+		return
 	}
 
-	v := builtinValues()[ns.Name.Lexeme]
-	key, ok := expr.Index.(*ast.LiteralExpr)
+	v, found, isNamespace := stdlib.Member(ns.Name.Lexeme, key.Value.Str())
 
-	if v.Kind() != value.Struct || !ok || !key.Value.IsString() {
-		return false
-	}
-
-	i := v.Shape().Index(key.Value.Str())
-	if i < 0 {
+	switch {
+	case found:
+		expr.Member = &v
+	case isNamespace:
 		p.error(expr.Token, ns.Name.Lexeme+" has no member '"+key.Value.Str()+"'.")
-		return true
 	}
-
-	expr.Member = &v.Fields()[i]
-
-	return true
 }
 
 func (p *Resolver) VisitSetIndexExpr(expr *ast.SetIndexExpr) (value.Value, error) {
@@ -537,17 +517,13 @@ func (p *Resolver) VisitRangeExpr(expr *ast.RangeExpr) (value.Value, error) {
 }
 
 func (p *Resolver) VisitUpdateExpr(expr *ast.UpdateExpr) (value.Value, error) {
+	p.resolveExpr(expr.Target)
+
 	switch t := expr.Target.(type) {
 	case *ast.VarExpr:
-		p.resolveExpr(t)
 		p.requireMutable(t.Name, "assign to")
 	case *ast.IndexExpr:
-		// Not resolveExpr: a written member must stay a real lookup.
-		p.resolveExpr(t.Array)
-		p.resolveExpr(t.Index)
 		p.requireMutableRoot(t.Array)
-	default:
-		p.resolveExpr(t)
 	}
 
 	return value.NilValue, nil

@@ -2,53 +2,21 @@ package stdlib
 
 import (
 	"encoding/json"
-	"io"
 	"maps"
 	"math"
-	"net/http"
 	"rune/pkg/errors"
 	"rune/pkg/helpers"
 	"rune/pkg/value"
 	"slices"
 	"strconv"
-	"time"
 	"unicode/utf8"
 )
-
-var httpClient = http.Client{Timeout: 10 * time.Second}
-
-var httpNatives = []*Native{
-	{"get", 1, 1, func(c *call) value.Value {
-		url := c.str(0)
-		if !c.ok() {
-			return value.NilValue
-		}
-
-		res, err := httpClient.Get(url)
-		if err != nil {
-			return c.fail(errors.IOError, "could not fetch %s: %s", url, err)
-		}
-
-		defer res.Body.Close()
-
-		if res.StatusCode != http.StatusOK {
-			return c.fail(errors.IOError, "could not fetch %s: status code %d", url, res.StatusCode)
-		}
-
-		body, err := io.ReadAll(res.Body)
-		if err != nil {
-			return c.fail(errors.IOError, "could not read %s: %s", url, err)
-		}
-
-		return value.NewString(string(body))
-	}},
-}
 
 // maxJSONDepth bounds stringify's nesting, which also stops it on a cycle.
 const maxJSONDepth = 1000
 
 var jsonNatives = []*Native{
-	{"parse", 1, 1, func(c *call) value.Value {
+	{"json.parse", 1, 1, func(c *call) value.Value {
 		s := c.str(0)
 		if !c.ok() {
 			return value.NilValue
@@ -61,7 +29,7 @@ var jsonNatives = []*Native{
 
 		return value.FromGo(v)
 	}},
-	{"stringify", 1, 1, func(c *call) value.Value {
+	{"json.stringify", 1, 1, func(c *call) value.Value {
 		buf := appendJSON(c, nil, c.args[0], 0)
 		if !c.ok() {
 			return value.NilValue
@@ -102,41 +70,33 @@ func appendJSON(c *call, buf []byte, v value.Value, depth int) []byte {
 		return append(buf, ']')
 	case value.Object:
 		obj := v.Obj()
-		buf = append(buf, '{')
+		keys := slices.Sorted(maps.Keys(obj))
 
-		for i, k := range slices.Sorted(maps.Keys(obj)) {
-			if i > 0 {
-				buf = append(buf, ',')
-			}
-
-			buf = append(appendJSONString(buf, k), ':')
-			if buf = appendJSON(c, buf, obj[k], depth+1); !c.ok() {
-				return buf
-			}
-		}
-
-		return append(buf, '}')
+		return appendJSONPairs(c, buf, keys, func(i int) value.Value { return obj[keys[i]] }, depth)
 	case value.Struct:
-		names := v.Shape().Fields
-		buf = append(buf, '{')
-
-		for i, f := range v.Fields() {
-			if i > 0 {
-				buf = append(buf, ',')
-			}
-
-			buf = append(appendJSONString(buf, names[i]), ':')
-			if buf = appendJSON(c, buf, f, depth+1); !c.ok() {
-				return buf
-			}
-		}
-
-		return append(buf, '}')
+		return appendJSONPairs(c, buf, v.Shape().Fields, func(i int) value.Value { return v.Fields()[i] }, depth)
 	}
 
 	c.fail(errors.TypeError, "cannot encode %s.", helpers.TypeName(v))
 
 	return buf
+}
+
+func appendJSONPairs(c *call, buf []byte, keys []string, val func(i int) value.Value, depth int) []byte {
+	buf = append(buf, '{')
+
+	for i, k := range keys {
+		if i > 0 {
+			buf = append(buf, ',')
+		}
+
+		buf = append(appendJSONString(buf, k), ':')
+		if buf = appendJSON(c, buf, val(i), depth+1); !c.ok() {
+			return buf
+		}
+	}
+
+	return append(buf, '}')
 }
 
 // appendJSONNumber formats like JavaScript: exponents only outside [1e-6, 1e21).

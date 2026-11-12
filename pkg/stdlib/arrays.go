@@ -9,12 +9,25 @@ import (
 	"strings"
 )
 
+var inPlace = map[string]bool{"array.push": true, "array.pop": true, "array.sort": true}
+
+// InPlace reports whether v is a built-in that mutates its first argument.
+func InPlace(v value.Value) bool {
+	if v.Kind() != value.Function {
+		return false
+	}
+
+	n, ok := v.Fn().(*Native)
+
+	return ok && inPlace[n.name]
+}
+
 var arrayNatives = []*Native{
 	// append copies, so the result never shares a backing array with the input.
-	{"append", 2, -1, func(c *call) value.Value {
+	{"array.append", 2, -1, func(c *call) value.Value {
 		return value.NewArray(slices.Concat(c.arr(0), c.args[1:]))
 	}},
-	{"push", 2, -1, func(c *call) value.Value {
+	{"array.push", 2, -1, func(c *call) value.Value {
 		if c.arr(0); !c.ok() {
 			return value.NilValue
 		}
@@ -24,7 +37,7 @@ var arrayNatives = []*Native{
 
 		return count(len(*arr))
 	}},
-	{"pop", 1, 1, func(c *call) value.Value {
+	{"array.pop", 1, 1, func(c *call) value.Value {
 		if c.arr(0); !c.ok() {
 			return value.NilValue
 		}
@@ -42,7 +55,7 @@ var arrayNatives = []*Native{
 
 		return last
 	}},
-	{"join", 2, 2, func(c *call) value.Value {
+	{"array.join", 2, 2, func(c *call) value.Value {
 		items, sep := c.arr(0), c.str(1)
 
 		var buf []byte
@@ -57,7 +70,7 @@ var arrayNatives = []*Native{
 
 		return value.NewString(string(buf))
 	}},
-	{"map", 2, 2, func(c *call) value.Value {
+	{"array.map", 2, 2, func(c *call) value.Value {
 		items, f := c.arr(0), c.fn(1)
 		out := make([]value.Value, len(items))
 		buf := make([]value.Value, 1)
@@ -71,7 +84,7 @@ var arrayNatives = []*Native{
 
 		return value.NewArray(out)
 	}},
-	{"filter", 2, 2, func(c *call) value.Value {
+	{"array.filter", 2, 2, func(c *call) value.Value {
 		items, f := c.arr(0), c.fn(1)
 		buf := make([]value.Value, 1)
 
@@ -86,7 +99,7 @@ var arrayNatives = []*Native{
 
 		return value.NewArray(out)
 	}},
-	{"reduce", 2, 3, func(c *call) value.Value {
+	{"array.reduce", 2, 3, func(c *call) value.Value {
 		items, f := c.arr(0), c.fn(1)
 
 		var acc value.Value
@@ -110,7 +123,7 @@ var arrayNatives = []*Native{
 		return acc
 	}},
 	// sort sorts in place, stably, and returns the array.
-	{"sort", 1, 2, func(c *call) value.Value {
+	{"array.sort", 1, 2, func(c *call) value.Value {
 		items := c.arr(0)
 
 		compare := naturalOrder

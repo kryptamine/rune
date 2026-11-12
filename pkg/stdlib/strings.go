@@ -20,12 +20,12 @@ func stringPredicate(name string, f func(s, x string) bool) *Native {
 }
 
 var stringNatives = []*Native{
-	unaryString("upper", strings.ToUpper),
-	unaryString("lower", strings.ToLower),
-	unaryString("trim", strings.TrimSpace),
-	stringPredicate("startsWith", strings.HasPrefix),
-	stringPredicate("endsWith", strings.HasSuffix),
-	{"split", 2, 2, func(c *call) value.Value {
+	unaryString("string.upper", strings.ToUpper),
+	unaryString("string.lower", strings.ToLower),
+	unaryString("string.trim", strings.TrimSpace),
+	stringPredicate("string.startsWith", strings.HasPrefix),
+	stringPredicate("string.endsWith", strings.HasSuffix),
+	{"string.split", 2, 2, func(c *call) value.Value {
 		parts := strings.Split(c.str(0), c.str(1))
 		items := make([]value.Value, len(parts))
 
@@ -35,10 +35,10 @@ var stringNatives = []*Native{
 
 		return value.NewArray(items)
 	}},
-	{"replace", 3, 3, func(c *call) value.Value {
+	{"string.replace", 3, 3, func(c *call) value.Value {
 		return value.NewString(strings.ReplaceAll(c.str(0), c.str(1), c.str(2)))
 	}},
-	{"repeat", 2, 2, func(c *call) value.Value {
+	{"string.repeat", 2, 2, func(c *call) value.Value {
 		s, n := c.str(0), c.int(1)
 
 		switch {

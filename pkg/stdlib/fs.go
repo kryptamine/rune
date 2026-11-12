@@ -21,11 +21,8 @@ var FileInfo = value.NewShape("FileInfo", []value.Field{
 	{Name: "mode", Required: true},
 })
 
-// Types are the built-in struct types, which programs see by name.
-var Types = append(errors.Kinds[:len(errors.Kinds):len(errors.Kinds)], FileInfo)
-
 var fsNatives = []*Native{
-	{"read", 1, 1, func(c *call) value.Value {
+	{"fs.read", 1, 1, func(c *call) value.Value {
 		b, err := os.ReadFile(c.str(0))
 		if c.ok() && err != nil {
 			return c.ioFail(err)
@@ -33,7 +30,7 @@ var fsNatives = []*Native{
 
 		return value.NewString(bytesString(b))
 	}},
-	{"lines", 1, 1, func(c *call) value.Value {
+	{"fs.lines", 1, 1, func(c *call) value.Value {
 		b, err := os.ReadFile(c.str(0))
 		if c.ok() && err != nil {
 			return c.ioFail(err)
@@ -51,15 +48,16 @@ var fsNatives = []*Native{
 
 		return value.NewArray(items)
 	}},
-	{"write", 2, 2, func(c *call) value.Value {
+	{"fs.write", 2, 2, func(c *call) value.Value {
 		path, s := c.str(0), c.str(1)
 		if c.ok() {
+			// WriteFile only reads the bytes, so s need not be copied.
 			c.check(os.WriteFile(path, unsafe.Slice(unsafe.StringData(s), len(s)), 0o644))
 		}
 
 		return value.NilValue
 	}},
-	{"append", 2, 2, func(c *call) value.Value {
+	{"fs.append", 2, 2, func(c *call) value.Value {
 		path, s := c.str(0), c.str(1)
 		if !c.ok() {
 			return value.NilValue
@@ -75,7 +73,7 @@ var fsNatives = []*Native{
 
 		return value.NilValue
 	}},
-	{"exists", 1, 1, func(c *call) value.Value {
+	{"fs.exists", 1, 1, func(c *call) value.Value {
 		path := c.str(0)
 		if !c.ok() {
 			return value.NilValue
@@ -88,7 +86,7 @@ var fsNatives = []*Native{
 
 		return value.NewBool(err == nil)
 	}},
-	{"stat", 1, 1, func(c *call) value.Value {
+	{"fs.stat", 1, 1, func(c *call) value.Value {
 		path := c.str(0)
 		if !c.ok() {
 			return value.NilValue
@@ -102,7 +100,7 @@ var fsNatives = []*Native{
 		return fileInfo(info)
 	}},
 	// list returns the entries of a directory, sorted by name.
-	{"list", 1, 1, func(c *call) value.Value {
+	{"fs.list", 1, 1, func(c *call) value.Value {
 		path := c.str(0)
 		if !c.ok() {
 			return value.NilValue
@@ -126,21 +124,21 @@ var fsNatives = []*Native{
 
 		return value.NewArray(items)
 	}},
-	{"mkdir", 1, 1, func(c *call) value.Value {
+	{"fs.mkdir", 1, 1, func(c *call) value.Value {
 		if path := c.str(0); c.ok() {
 			c.check(os.MkdirAll(path, 0o755))
 		}
 
 		return value.NilValue
 	}},
-	{"remove", 1, 1, func(c *call) value.Value {
+	{"fs.remove", 1, 1, func(c *call) value.Value {
 		if path := c.str(0); c.ok() {
 			c.check(os.Remove(path))
 		}
 
 		return value.NilValue
 	}},
-	{"removeAll", 1, 1, func(c *call) value.Value {
+	{"fs.removeAll", 1, 1, func(c *call) value.Value {
 		path := c.str(0)
 		if !c.ok() {
 			return value.NilValue
@@ -154,21 +152,21 @@ var fsNatives = []*Native{
 
 		return value.NilValue
 	}},
-	{"rename", 2, 2, func(c *call) value.Value {
+	{"fs.rename", 2, 2, func(c *call) value.Value {
 		if from, to := c.str(0), c.str(1); c.ok() {
 			c.check(os.Rename(from, to))
 		}
 
 		return value.NilValue
 	}},
-	{"copy", 2, 2, func(c *call) value.Value {
+	{"fs.copy", 2, 2, func(c *call) value.Value {
 		if from, to := c.str(0), c.str(1); c.ok() {
 			c.check(copyFile(from, to))
 		}
 
 		return value.NilValue
 	}},
-	{"cwd", 0, 0, func(c *call) value.Value {
+	{"fs.cwd", 0, 0, func(c *call) value.Value {
 		dir, err := os.Getwd()
 		if err != nil {
 			return c.ioFail(err)
@@ -177,7 +175,7 @@ var fsNatives = []*Native{
 		return value.NewString(dir)
 	}},
 	// tempDir creates a new directory, which the program removes.
-	{"tempDir", 0, 0, func(c *call) value.Value {
+	{"fs.tempDir", 0, 0, func(c *call) value.Value {
 		dir, err := os.MkdirTemp("", "rune-")
 		if err != nil {
 			return c.ioFail(err)
@@ -185,7 +183,7 @@ var fsNatives = []*Native{
 
 		return value.NewString(dir)
 	}},
-	{"join", 1, -1, func(c *call) value.Value {
+	{"fs.join", 1, -1, func(c *call) value.Value {
 		parts := make([]string, len(c.args))
 		for i := range c.args {
 			parts[i] = c.str(i)
@@ -193,9 +191,9 @@ var fsNatives = []*Native{
 
 		return value.NewString(filepath.Join(parts...))
 	}},
-	pathNative("base", filepath.Base),
-	pathNative("dir", filepath.Dir),
-	pathNative("ext", filepath.Ext),
+	pathNative("fs.base", filepath.Base),
+	pathNative("fs.dir", filepath.Dir),
+	pathNative("fs.ext", filepath.Ext),
 }
 
 func pathNative(name string, f func(string) string) *Native {

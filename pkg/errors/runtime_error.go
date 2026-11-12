@@ -25,8 +25,8 @@ type RuntimeError struct {
 	errMsg string
 	value  value.Value
 	frames []Frame
-	// extra fills the fields the kind has beyond the common ones.
-	extra []value.Value
+	// extra holds fields the kind has beyond the common ones, by name.
+	extra map[string]value.Value
 }
 
 func (e RuntimeError) Error() string {
@@ -59,7 +59,10 @@ func (e RuntimeError) Value() value.Value {
 	v, fields := value.NewStruct(e.kind)
 	fields[0] = value.NewString(e.errMsg)
 	fields[1] = value.NewNumber(float64(e.token.Line))
-	copy(fields[len(errorFields):], e.extra)
+
+	for name, f := range e.extra {
+		fields[e.kind.Index(name)] = f
+	}
 
 	return v
 }
@@ -85,7 +88,7 @@ func NewRuntimeError(kind *value.Shape, token ast.Token, msg string) error {
 
 // NewIOError is an IOError about path with code; empty ones are nil.
 func NewIOError(token ast.Token, msg, path, code string) error {
-	return RuntimeError{token: token, kind: IOError, errMsg: msg, extra: []value.Value{optString(path), optString(code)}}
+	return RuntimeError{token: token, kind: IOError, errMsg: msg, extra: map[string]value.Value{"path": optString(path), "code": optString(code)}}
 }
 
 func optString(s string) value.Value {
