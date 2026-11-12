@@ -1,1 +1,1 @@
-for (i in 0.."x") print i; // expect runtime error: [line: 1] TypeError: Range end must be a number, got string.
+for i in 0.."x" { print i; } // expect runtime error: [line: 1] TypeError: Range end must be a number, got string.

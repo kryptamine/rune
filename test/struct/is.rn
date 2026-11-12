@@ -15,7 +15,7 @@ let T = Point;
 print p is T; // expect: true
 
 fun area(s) {
-  if (s is Point) return "point";
+  if s is Point { return "point"; }
   return "other";
 }
 

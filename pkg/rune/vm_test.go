@@ -10,8 +10,8 @@ import (
 func TestProgramRunsConcurrently(t *testing.T) {
 	prog, errs := loadSource([]byte(`
 		let mut s = "";
-		fun f(n) { if (n < 2) return n; return f(n - 1) + f(n - 2); }
-		for (i in 0..50) { s = s + "ab"; }
+		fun f(n) { if n < 2 { return n; } return f(n - 1) + f(n - 2); }
+		for i in 0..50 { s = s + "ab"; }
 		print len(s) + f(15);
 		print map([1, 2], fun (x) { return x * 2; });
 	`))
@@ -45,12 +45,12 @@ func TestProgramRunsConcurrently(t *testing.T) {
 
 func TestInterrupt(t *testing.T) {
 	srcs := map[string]string{
-		"while":     `while (true) {}`,
-		"for":       `for (i in 0..1e18) {}`,
-		"object":    `let o = {a: 1}; while (true) { for (k in o) {} }`,
-		"recursion": `fun f(n) { if (n < 2) return n; return f(n - 1) + f(n - 2); } f(100);`,
-		"try":       `while (true) { try { while (true) {} } catch (e) {} }`,
-		"native":    `map([1], fun (x) { while (true) {} });`,
+		"while":     `while true {}`,
+		"for":       `for i in 0..1e18 {}`,
+		"object":    `let o = {a: 1}; while true { for k in o {} }`,
+		"recursion": `fun f(n) { if n < 2 { return n; } return f(n - 1) + f(n - 2); } f(100);`,
+		"try":       `while true { try { while true {} } catch (e) {} }`,
+		"native":    `map([1], fun (x) { while true {} });`,
 	}
 
 	for name, src := range srcs {

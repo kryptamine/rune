@@ -1,4 +1,4 @@
-for (mut i, x in [[1]]) {
+for mut i, x in [[1]] {
   i = 1;
   x[0] = 2; // [line: 3] Error at 'x': Cannot mutate immutable variable 'x'.
 }

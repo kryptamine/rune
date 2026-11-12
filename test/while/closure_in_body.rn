@@ -3,13 +3,13 @@ let mut f2;
 let mut f3;
 
 let mut i = 1;
-while (i < 4) {
+while i < 4 {
   let j = i;
   fun f() { print j; }
 
-  if (j == 1) f1 = f;
-  else if (j == 2) f2 = f;
-  else f3 = f;
+  if j == 1 { f1 = f; }
+  else if j == 2 { f2 = f; }
+  else { f3 = f; }
 
   i = i + 1;
 }

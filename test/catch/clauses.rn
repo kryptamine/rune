@@ -44,7 +44,7 @@ try {
 }
 
 let mut fs = [];
-for (i in 0..2) {
+for i in 0..2 {
   try {
     [][i];
   } catch (e: IndexError) {
@@ -55,10 +55,10 @@ print fs[0](); // expect: Index out of bounds: 0 of 0
 print fs[1](); // expect: Index out of bounds: 1 of 0
 
 let mut seen = [];
-for (i in 0..4) {
+for i in 0..4 {
   try {
-    if (i == 1) [][0];
-    if (i == 3) throw "stop";
+    if i == 1 { [][0]; }
+    if i == 3 { throw "stop"; }
     push(seen, i);
   } catch (e: IndexError) {
     continue;

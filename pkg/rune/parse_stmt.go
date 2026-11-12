@@ -309,22 +309,12 @@ func (s *Parser) block() ([]ast.Stmt, error) {
 }
 
 func (s *Parser) ifStatement() (ast.Stmt, error) {
-	_, err := s.consume(ast.LEFT_PAREN, "Expect '(' after 'if'.")
+	condition, err := s.expressionWithStructs(false)
 	if err != nil {
 		return nil, err
 	}
 
-	condition, err := s.expression()
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = s.consume(ast.RIGHT_PAREN, "Expect ')' after condition.")
-	if err != nil {
-		return nil, err
-	}
-
-	then, err := s.statement()
+	then, err := s.body("if condition")
 	if err != nil {
 		return nil, err
 	}
@@ -332,7 +322,11 @@ func (s *Parser) ifStatement() (ast.Stmt, error) {
 	var el ast.Stmt
 
 	if s.match(ast.ELSE) {
-		el, err = s.statement()
+		if s.match(ast.IF) {
+			el, err = s.ifStatement()
+		} else {
+			el, err = s.body("'else'")
+		}
 
 		if err != nil {
 			return nil, err
@@ -342,23 +336,63 @@ func (s *Parser) ifStatement() (ast.Stmt, error) {
 	return ast.NewIfStmt(condition, then, el), nil
 }
 
+// body parses the "{ ... }" block that follows an if/while/for header.
+func (s *Parser) body(after string) (ast.Stmt, error) {
+	if _, err := s.consume(ast.LEFT_BRACE, fmt.Sprintf("Expect '{' after %s.", after)); err != nil {
+		return nil, err
+	}
+
+	stmts, err := s.block()
+	if err != nil {
+		return nil, err
+	}
+
+	return ast.NewBlockStmt(stmts), nil
+}
+
+// skipBadForHeader moves past a bad for header and its body, if it has one,
+// without leaving the enclosing block, so one bad header reports one error.
+func (s *Parser) skipBadForHeader() {
+	for depth := 0; !s.isAtEnd(); s.advance() {
+		switch s.peek().TokenType {
+		case ast.LEFT_PAREN, ast.LEFT_BRACKET:
+			depth++
+		case ast.RIGHT_PAREN, ast.RIGHT_BRACKET:
+			depth--
+		case ast.LEFT_BRACE:
+			if depth <= 0 {
+				s.skipBraces()
+				return
+			}
+		}
+
+		if depth <= 0 && s.peekAt(1) == ast.RIGHT_BRACE {
+			return
+		}
+	}
+}
+
+// skipBraces moves from a '{' to its matching '}'.
+func (s *Parser) skipBraces() {
+	for depth := 0; !s.isAtEnd(); s.advance() {
+		switch s.peek().TokenType {
+		case ast.LEFT_BRACE:
+			depth++
+		case ast.RIGHT_BRACE:
+			if depth--; depth == 0 {
+				return
+			}
+		}
+	}
+}
+
 func (s *Parser) whileStatement() (ast.Stmt, error) {
-	_, err := s.consume(ast.LEFT_PAREN, "Expect '(' after 'while'.")
+	condition, err := s.expressionWithStructs(false)
 	if err != nil {
 		return nil, err
 	}
 
-	condition, err := s.expression()
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = s.consume(ast.RIGHT_PAREN, "Expect ')' after condition.")
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := s.statement()
+	body, err := s.body("while condition")
 	if err != nil {
 		return nil, err
 	}
@@ -369,14 +403,9 @@ func (s *Parser) whileStatement() (ast.Stmt, error) {
 func (s *Parser) forStatement() (ast.Stmt, error) {
 	keyword := s.previous()
 
-	_, err := s.consume(ast.LEFT_PAREN, "Expect '(' after 'for'.")
-	if err != nil {
-		return nil, err
-	}
-
 	if !s.isForInStart() {
-		err := errors.NewSyntaxError(s.peek(), "Expect 'name in' after 'for ('.")
-		s.skipToCloseParen()
+		err := errors.NewSyntaxError(s.peek(), "Expect 'name in' after 'for'.")
+		s.skipBadForHeader()
 
 		return nil, err
 	}
@@ -384,24 +413,7 @@ func (s *Parser) forStatement() (ast.Stmt, error) {
 	return s.forInStatement(keyword)
 }
 
-// skipToCloseParen moves to the ')' closing the current header, so one bad
-// header reports one error.
-func (s *Parser) skipToCloseParen() {
-	for depth := 0; !s.isAtEnd(); s.advance() {
-		switch s.peek().TokenType {
-		case ast.LEFT_PAREN:
-			depth++
-		case ast.RIGHT_PAREN:
-			if depth == 0 {
-				return
-			}
-
-			depth--
-		}
-	}
-}
-
-// isForInStart reports whether the tokens after "for (" are "name in" or
+// isForInStart reports whether the tokens after "for" are "name in" or
 // "name, name in", each name optionally preceded by "mut".
 func (s *Parser) isForInStart() bool {
 	i := s.bindingEnd(0)
@@ -413,8 +425,8 @@ func (s *Parser) isForInStart() bool {
 	return i >= 0 && s.peekAt(i) == ast.IN
 }
 
-// forInStatement parses the rest of `for (x in expr) body` or
-// `for (k, v in expr) body` after "for (".
+// forInStatement parses the rest of `for x in expr { ... }` or
+// `for k, v in expr { ... }` after "for".
 func (s *Parser) forInStatement(keyword ast.Token) (ast.Stmt, error) {
 	// The bindings were checked by isForInStart, so they cannot fail.
 	var key *ast.Binding
@@ -429,16 +441,12 @@ func (s *Parser) forInStatement(keyword ast.Token) (ast.Stmt, error) {
 
 	s.advance() // "in", checked by isForInStart
 
-	iterable, err := s.expression()
+	iterable, err := s.expressionWithStructs(false)
 	if err != nil {
 		return nil, err
 	}
 
-	if _, err := s.consume(ast.RIGHT_PAREN, "Expect ')' after for-in clause."); err != nil {
-		return nil, err
-	}
-
-	body, err := s.statement()
+	body, err := s.body("for-in clause")
 	if err != nil {
 		return nil, err
 	}

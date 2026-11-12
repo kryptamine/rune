@@ -2,12 +2,12 @@ struct P { z, a, m }
 
 let p = P { a: "1", m: "2", z: "3" };
 
-for (k in p) print k;
+for k in p { print k; }
 // expect: z
 // expect: a
 // expect: m
 
-for (k, v in p) print k + "=" + v;
+for k, v in p { print k + "=" + v; }
 // expect: z=3
 // expect: a=1
 // expect: m=2

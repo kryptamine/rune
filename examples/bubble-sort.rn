@@ -3,9 +3,9 @@
 fun bubbleSort(mut arr) {
     let n = len(arr); 
 
-    for (i in 0..n) {
-        for (j in 1..n - i) {
-            if (arr[j-1] > arr[j]) {
+    for i in 0..n {
+        for j in 1..n - i {
+            if arr[j-1] > arr[j] {
                 let temp = arr[j-1];
                 arr[j-1] = arr[j];
                 arr[j] = temp;

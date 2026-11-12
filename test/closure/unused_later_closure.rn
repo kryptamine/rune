@@ -17,7 +17,7 @@ let mut closure;
 
     closure = returnA;
 
-    if (false) {
+    if false {
       fun returnB() {
         return b;
       }

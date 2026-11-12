@@ -20,7 +20,7 @@ Rune is a dynamically typed interpreted programming language inspired by [Lox](h
 - Immutable structs with required and default fields: `struct Point { x, y = 0 }`
 - Strings compare with `<`, `<=`, `>`, `>=` and index by character: `"héllo"[1]` is `"é"`
 - Error handling with `try`/`catch` and `throw`
-- Two loops only: `while` and `for (x in ...)` over arrays, strings, objects and ranges (`a..b`)
+- Two loops only: `while` and `for x in ...` over arrays, strings, objects and ranges (`a..b`)
 - `break` and `continue` in both
 - Anonymous functions: `fun (x) { return x * 2; }`
 - Modulo `%` and compound assignment: `+=`, `-=`, `*=`, `/=`, `%=`
@@ -152,7 +152,7 @@ fun fill(mut arr, n) {
 }
 
 let mut grid = [[0, 0], [0, 0]];
-for (i, mut row in grid) row[i] = 1;
+for i, mut row in grid { row[i] = 1; }
 ```
 
 The check is static and follows the variable, not the value: an array held by
@@ -227,7 +227,7 @@ Point({y: 1});       // Missing field 'x' of Point.
 
 `==` compares structs field by field and only if they are of the same
 struct, so `Point { x: 1, y: 2 } == { "x": 1, "y": 2 }` is `false`.
-`for (k, v in p)` walks the fields in declaration order. Reading a field
+`for k, v in p` walks the fields in declaration order. Reading a field
 that does not exist is a runtime error. `object(p)` copies a struct into
 a new object, `len(p)` is its number of fields and `type(p)` its name.
 
@@ -250,7 +250,7 @@ If the entry file declares `fun main`, it runs after the top level, with the pro
 
 ```
 fun main(args) {
-  if (len(args) == 0) {
+  if len(args) == 0 {
     print "usage: greet <name>";
     return 2;
   }
@@ -350,7 +350,7 @@ try {
 
 ```javascript
 fun parseAge(v) {
-    if (v < 0) throw { "code": "bad_age", "value": v };
+    if v < 0 { throw { "code": "bad_age", "value": v }; }
     return v;
 }
 
@@ -363,7 +363,7 @@ try {
 
 ## Loops
 
-`for (x in arr)` visits array elements, string characters or object keys
+`for x in arr { ... }` visits array elements, string characters or object keys
 (objects are iterated in sorted key order). With two variables you also get
 the index, or the key and the value. Each iteration has its own variable, so
 closures capture the current element. Array elements are taken when the loop
@@ -373,20 +373,20 @@ included), optionally `step n`; a `for`-`in` walks it without building the
 array. Outside a loop a range is an array. Anything else is a `while`.
 
 ```javascript
-for (i, name in ["ann", "bob"]) {
-    if (name == "ann") continue;
+for i, name in ["ann", "bob"] {
+    if name == "ann" { continue; }
     print name; // bob
 }
 
 let ages = { "ann": 31, "bob": 25 };
-for (name, age in ages) {
-    if (age < 30) break;
+for name, age in ages {
+    if age < 30 { break; }
     print name + " is 30+";
 }
 
-for (i in 1..4) print i;  // 1 2 3
-for (i in 1..=3) print i; // 1 2 3
-for (i in 10..0 step -2) print i; // 10 8 6 4 2
+for i in 1..4 { print i; }  // 1 2 3
+for i in 1..=3 { print i; } // 1 2 3
+for i in 10..0 step -2 { print i; } // 10 8 6 4 2
 ```
 
 ## Anonymous Functions
@@ -396,7 +396,7 @@ for (i in 10..0 step -2) print i; // 10 8 6 4 2
 ```javascript
 fun map(arr, f) {
     let mut out = [];
-    for (x in arr) push(out, f(x));
+    for x in arr { push(out, f(x)); }
     return out;
 }
 
@@ -410,7 +410,7 @@ Here’s a simple Rune script that calculates the sum of an array:
 ```javascript
 fun sumArray(arr) {
     let mut total = 0;
-    for (x in arr) total += x;
+    for x in arr { total += x; }
     return total;
 }
 

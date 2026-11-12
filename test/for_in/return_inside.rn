@@ -1,6 +1,6 @@
 fun find(arr, target) {
-  for (i, x in arr) {
-    if (x == target) return i;
+  for i, x in arr {
+    if x == target { return i; }
   }
   return -1;
 }
