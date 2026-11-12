@@ -431,7 +431,7 @@ func (s *Parser) ifStatement() (ast.Stmt, error) {
 		return nil, err
 	}
 
-	then, err := s.branch("if condition")
+	then, err := s.body("if condition")
 	if err != nil {
 		return nil, err
 	}
@@ -442,7 +442,7 @@ func (s *Parser) ifStatement() (ast.Stmt, error) {
 		if s.match(ast.IF) {
 			el, err = s.ifStatement()
 		} else {
-			el, err = s.branch("'else'")
+			el, err = s.body("'else'")
 		}
 
 		if err != nil {
@@ -453,32 +453,16 @@ func (s *Parser) ifStatement() (ast.Stmt, error) {
 	return ast.NewIfStmt(condition, then, el), nil
 }
 
-// branch parses an if/else body: a block, or a bare return/throw/break/continue.
-func (s *Parser) branch(after string) (ast.Stmt, error) {
+// body parses an if/else/while/for body: a block, or a bare statement
+// starting with a token that cannot continue the paren-free header.
+func (s *Parser) body(after string) (ast.Stmt, error) {
 	switch s.peek().TokenType {
-	case ast.RETURN, ast.THROW, ast.BREAK, ast.CONTINUE:
+	case ast.LEFT_BRACE, ast.IDENTIFIER, ast.PRINT, ast.RETURN, ast.THROW, ast.BREAK, ast.CONTINUE,
+		ast.IF, ast.WHILE, ast.FOR, ast.TRY:
 		return s.statement()
 	}
 
-	if !s.check(ast.LEFT_BRACE) {
-		return nil, errors.NewSyntaxError(s.peek(), fmt.Sprintf("Expect '{' or a jump statement after %s.", after))
-	}
-
-	return s.body(after)
-}
-
-// body parses the "{ ... }" block that follows an if/while/for header.
-func (s *Parser) body(after string) (ast.Stmt, error) {
-	if _, err := s.consume(ast.LEFT_BRACE, fmt.Sprintf("Expect '{' after %s.", after)); err != nil {
-		return nil, err
-	}
-
-	stmts, err := s.block()
-	if err != nil {
-		return nil, err
-	}
-
-	return ast.NewBlockStmt(stmts), nil
+	return nil, errors.NewSyntaxError(s.peek(), fmt.Sprintf("Expect '{' after %s.", after))
 }
 
 // skipBadForHeader moves past a bad for header and its body, if it has one,

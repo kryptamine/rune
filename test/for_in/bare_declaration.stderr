@@ -1,0 +1,3 @@
+[line: 1] Error at 'let': Expect '{' after for-in clause.
+    1 | for x in [1] let y = x; // [line: 1] Error at 'let': Expect '{' after for-in clause.
+      |              ^

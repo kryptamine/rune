@@ -1,1 +1,1 @@
-for x in [1] print x; // [line: 1] Error at 'print': Expect '{' after for-in clause.
+for x in [1] -x; // [line: 1] Error at ';': Expect '{' after for-in clause.

@@ -1,1 +1,1 @@
-while false print "x"; // [line: 1] Error at 'print': Expect '{' after while condition.
+while false "x"; // [line: 1] Error at '"x"': Expect '{' after while condition.
