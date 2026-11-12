@@ -140,6 +140,10 @@ func literalOf(e ast.Expr) (value.Value, bool) {
 	switch n := unwrap(e).(type) {
 	case *ast.LiteralExpr:
 		return n.Value, true
+	case *ast.IndexExpr:
+		if n.Member != nil && n.Member.IsNumber() {
+			return *n.Member, true
+		}
 	case *ast.UnaryExpr:
 		if v, ok := literalOf(n.Right); ok && n.Operator.TokenType == ast.MINUS && v.IsNumber() {
 			return value.NewNumber(-v.Num()), true
@@ -464,6 +468,11 @@ func (fs *funcState) call(n *ast.CallExpr, dst int32) {
 }
 
 func (fs *funcState) index(n *ast.IndexExpr, dst int32) {
+	if n.Member != nil {
+		fs.emit(ins{op: opLoadK, a: dst, c: fs.constant(*n.Member)}, nil)
+		return
+	}
+
 	if n.Property {
 		t := fs.exprAny(n.Array)
 		fs.emit(ins{op: opGetProp, a: dst, b: t, c: fs.constant(value.NewString(n.Token.Lexeme))}, &n.Token)

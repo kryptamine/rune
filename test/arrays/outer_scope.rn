@@ -2,7 +2,7 @@ let mut arr = [];
 
 fun foo() {
   for i in 0..3 {
-    arr = append(arr, i);
+    arr = array.append(arr, i);
   }
 
   return arr;

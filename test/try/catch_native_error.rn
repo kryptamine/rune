@@ -1,7 +1,13 @@
 try {
-  json(123);
+  http.get(123);
 } catch (err) {
-  print err.message; // expect: json() expects a string as argument 1, got number.
+  print err.message; // expect: http.get() expects a string as argument 1, got number.
+}
+
+try {
+  json.parse("{");
+} catch (e: ValueError) {
+  print e.message; // expect: json.parse() could not parse JSON: unexpected end of JSON input
 }
 
 try {

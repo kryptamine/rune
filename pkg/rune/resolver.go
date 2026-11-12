@@ -480,10 +480,40 @@ func (p *Resolver) VisitArrayExpr(expr *ast.ArrayExpr) (value.Value, error) {
 }
 
 func (p *Resolver) VisitIndexExpr(expr *ast.IndexExpr) (value.Value, error) {
+	if p.resolveMember(expr) {
+		return value.NilValue, nil
+	}
+
 	p.resolveExpr(expr.Array)
 	p.resolveExpr(expr.Index)
 
 	return value.NilValue, nil
+}
+
+// resolveMember binds a literal member of an unshadowed namespace to the
+// built-in it names, so it costs nothing at run time.
+func (p *Resolver) resolveMember(expr *ast.IndexExpr) bool {
+	ns, ok := expr.Array.(*ast.VarExpr)
+	if !ok || !p.isBuiltin(ns.Name.Lexeme) {
+		return false
+	}
+
+	v := builtinValues()[ns.Name.Lexeme]
+	key, ok := expr.Index.(*ast.LiteralExpr)
+
+	if v.Kind() != value.Struct || !ok || !key.Value.IsString() {
+		return false
+	}
+
+	i := v.Shape().Index(key.Value.Str())
+	if i < 0 {
+		p.error(expr.Token, ns.Name.Lexeme+" has no member '"+key.Value.Str()+"'.")
+		return true
+	}
+
+	expr.Member = &v.Fields()[i]
+
+	return true
 }
 
 func (p *Resolver) VisitSetIndexExpr(expr *ast.SetIndexExpr) (value.Value, error) {
@@ -507,13 +537,17 @@ func (p *Resolver) VisitRangeExpr(expr *ast.RangeExpr) (value.Value, error) {
 }
 
 func (p *Resolver) VisitUpdateExpr(expr *ast.UpdateExpr) (value.Value, error) {
-	p.resolveExpr(expr.Target)
-
 	switch t := expr.Target.(type) {
 	case *ast.VarExpr:
+		p.resolveExpr(t)
 		p.requireMutable(t.Name, "assign to")
 	case *ast.IndexExpr:
+		// Not resolveExpr: a written member must stay a real lookup.
+		p.resolveExpr(t.Array)
+		p.resolveExpr(t.Index)
 		p.requireMutableRoot(t.Array)
+	default:
+		p.resolveExpr(t)
 	}
 
 	return value.NilValue, nil
@@ -543,8 +577,8 @@ func (p *Resolver) requireMutableRoot(expr ast.Expr) {
 
 // requireMutableArg checks the first argument of a call to an in-place built-in.
 func (p *Resolver) requireMutableArg(call *ast.CallExpr) {
-	callee, ok := call.Callee.(*ast.VarExpr)
-	if ok && len(call.Args) > 0 && stdlib.InPlace[callee.Name.Lexeme] && p.isBuiltin(callee.Name.Lexeme) {
+	callee, ok := call.Callee.(*ast.IndexExpr)
+	if ok && callee.Member != nil && len(call.Args) > 0 && stdlib.InPlace(*callee.Member) {
 		p.requireMutableRoot(call.Args[0])
 	}
 }

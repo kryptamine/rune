@@ -1,5 +1,5 @@
-[line: 1] TypeError: sort() without a comparator needs all numbers or all strings.
-    1 | sort([1, "a"]); // expect runtime error: [line: 1] TypeError: sort() without a comparator needs all numbers or all strings.
-      |              ^
-  at sort (native)
+[line: 1] TypeError: array.sort() without a comparator needs all numbers or all strings.
+    1 | array.sort([1, "a"]); // expect runtime error: [line: 1] TypeError: array.sort() without a comparator needs all numbers or all strings.
+      |                    ^
+  at array.sort (native)
   at <script> (line 1)

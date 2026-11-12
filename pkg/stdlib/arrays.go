@@ -10,6 +10,53 @@ import (
 )
 
 var arrayNatives = []*Native{
+	// append copies, so the result never shares a backing array with the input.
+	{"append", 2, -1, func(c *call) value.Value {
+		return value.NewArray(slices.Concat(c.arr(0), c.args[1:]))
+	}},
+	{"push", 2, -1, func(c *call) value.Value {
+		if c.arr(0); !c.ok() {
+			return value.NilValue
+		}
+
+		arr := c.args[0].ArrRef()
+		*arr = append(*arr, c.args[1:]...)
+
+		return count(len(*arr))
+	}},
+	{"pop", 1, 1, func(c *call) value.Value {
+		if c.arr(0); !c.ok() {
+			return value.NilValue
+		}
+
+		arr := c.args[0].ArrRef()
+		n := len(*arr)
+
+		if n == 0 {
+			return c.fail(errors.ValueError, "got an empty array.")
+		}
+
+		last := (*arr)[n-1]
+		(*arr)[n-1] = value.NilValue
+		*arr = (*arr)[:n-1]
+
+		return last
+	}},
+	{"join", 2, 2, func(c *call) value.Value {
+		items, sep := c.arr(0), c.str(1)
+
+		var buf []byte
+
+		for i, item := range items {
+			if i > 0 {
+				buf = append(buf, sep...)
+			}
+
+			buf = helpers.AppendValue(buf, item)
+		}
+
+		return value.NewString(string(buf))
+	}},
 	{"map", 2, 2, func(c *call) value.Value {
 		items, f := c.arr(0), c.fn(1)
 		out := make([]value.Value, len(items))

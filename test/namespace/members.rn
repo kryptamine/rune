@@ -1,0 +1,29 @@
+print type(math); // expect: namespace
+print math.floor; // expect: <native fn math.floor>
+print math["sqrt"](16); // expect: 4
+print math.PI * 2 > 6; // expect: true
+
+let m = math;
+print m.abs(-2); // expect: 2
+
+for k in string { if k == "upper" print k; } // expect: upper
+
+{
+    let array = {push: fun (a, b) { return "mine"; }};
+    print array.push([], 1); // expect: mine
+}
+
+let key = "ceil";
+print math[key](1.2); // expect: 2
+
+try {
+    math.PI = 3;
+} catch (e: TypeError) {
+    print e.message; // expect: Cannot set field 'PI' of namespace: structs are immutable.
+}
+
+try {
+    math.PI++;
+} catch (e: TypeError) {
+    print e.message; // expect: Cannot set field 'PI' of namespace: structs are immutable.
+}

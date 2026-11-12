@@ -1,17 +1,17 @@
-print split("a,b,c", ","); // expect: ["a", "b", "c"]
-print split("héj", ""); // expect: ["h", "é", "j"]
-print join([1, "b", true], "-"); // expect: 1-b-true
-print join([], ","); // expect: 
-print upper("abc"); // expect: ABC
-print lower("ABC"); // expect: abc
-print trim("  hi  ") + "|"; // expect: hi|
-print startsWith("rune", "ru"); // expect: true
-print endsWith("rune", "ne"); // expect: true
-print replace("a-b-c", "-", "+"); // expect: a+b+c
-print repeat("ab", 3); // expect: ababab
-print contains("héllo", "llo"); // expect: true
-print indexOf("héllo", "llo"); // expect: 2
-print indexOf("abc", "z"); // expect: -1
-print slice("héllo", 1, 3); // expect: él
-print slice("héllo", -3); // expect: llo
-print reverse("héj"); // expect: jéh
+print string.split("a,b,c", ","); // expect: ["a", "b", "c"]
+print string.split("héj", ""); // expect: ["h", "é", "j"]
+print array.join([1, "b", true], "-"); // expect: 1-b-true
+print array.join([], ","); // expect: 
+print string.upper("abc"); // expect: ABC
+print string.lower("ABC"); // expect: abc
+print string.trim("  hi  ") + "|"; // expect: hi|
+print string.startsWith("rune", "ru"); // expect: true
+print string.endsWith("rune", "ne"); // expect: true
+print string.replace("a-b-c", "-", "+"); // expect: a+b+c
+print string.repeat("ab", 3); // expect: ababab
+print string.contains("héllo", "llo"); // expect: true
+print string.indexOf("héllo", "llo"); // expect: 2
+print string.indexOf("abc", "z"); // expect: -1
+print string.slice("héllo", 1, 3); // expect: él
+print string.slice("héllo", -3); // expect: llo
+print string.reverse("héj"); // expect: jéh

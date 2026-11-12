@@ -1,1 +1,1 @@
-floor("x"); // expect runtime error: [line: 1] TypeError: floor() expects a number as argument 1, got string.
+math.floor("x"); // expect runtime error: [line: 1] TypeError: math.floor() expects a number as argument 1, got string.

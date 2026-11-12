@@ -1,5 +1,5 @@
-[line: 1] ArgumentError: min() expects at least 1 argument, got 0.
-    1 | min(); // expect runtime error: [line: 1] ArgumentError: min() expects at least 1 argument, got 0.
-      |     ^
-  at min (native)
+[line: 1] ArgumentError: math.min() expects at least 1 argument, got 0.
+    1 | math.min(); // expect runtime error: [line: 1] ArgumentError: math.min() expects at least 1 argument, got 0.
+      |          ^
+  at math.min (native)
   at <script> (line 1)

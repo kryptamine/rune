@@ -11,7 +11,7 @@ Rune is a dynamically typed interpreted programming language inspired by [Lox](h
 - Dynamically typed language with a simple syntax
 - Supports expressions, statements, variables, and functions
 - Variables are immutable by default (`let`); `let mut` makes them mutable
-- Built-in functions for array manipulation, JSON parsing, and timing
+- Standard library in namespaces: `array`, `string`, `math`, `json`, `http`, `time`
 - Recursive descent parser; the resolved AST is compiled to register bytecode run by a VM
 - Parser recovers from syntax errors and reports all of them in one run
 - String escapes: `\n`, `\t`, `\r`, `\"`, `\\`
@@ -23,7 +23,7 @@ Rune is a dynamically typed interpreted programming language inspired by [Lox](h
 - Error handling with `try`/`catch` and `throw`
 - Two loops only: `while` and `for x in ...` over arrays, strings, objects and ranges (`a..b`)
 - `break` and `continue` in both
-- `if`/`else`, `while` and `for` bodies are blocks, or a bare statement starting with a name or keyword: `if v < 0 return;`, `for x in xs push(out, x);`
+- `if`/`else`, `while` and `for` bodies are blocks, or a bare statement starting with a name or keyword: `if v < 0 return;`, `for x in xs array.push(out, x);`
 - Anonymous functions: `fun (x) { return x * 2; }`
 - Modulo `%` and compound assignment: `+=`, `-=`, `*=`, `/=`, `%=`
 - Increment and decrement, prefix and postfix: `++i`, `i++`, `--i`, `i--` (on variables, array elements and properties)
@@ -110,7 +110,7 @@ arrays and objects, is truthy.
 
 `==` compares numbers, strings, booleans and `nil` by value, functions by identity,
 and arrays and objects structurally (element by element, cycles included), so
-`[1, 2] == [1, 2]` is `true`. `contains` and `indexOf` use the same equality.
+`[1, 2] == [1, 2]` is `true`. `array.contains` and `array.indexOf` use the same equality.
 Values of different types are never equal: `1 == "1"` is `false`.
 
 `print` shows strings inside arrays and objects quoted, so `["1", 1]` and `[1, 1]`
@@ -132,17 +132,17 @@ name = "bob"; // Error at 'name': Cannot assign to immutable variable 'name'.
 
 Through an immutable variable the array or object it holds cannot be changed
 either: index and property assignment (`a[0] = 1`, `o.x += 1`, `a[0]++`, also
-nested like `o.xs[0] = 1`) and the in-place built-ins `push`, `pop` and `sort`
-are errors. Built-ins that return a new value (`append`, `reverse`, `map`, ...)
+nested like `o.xs[0] = 1`) and the in-place built-ins `array.push`, `array.pop` and `array.sort`
+are errors. Built-ins that return a new value (`array.append`, `array.map`, ...)
 work as usual.
 
 ```javascript
 let a = [1];
 a[0] = 3;   // Error at 'a': Cannot mutate immutable variable 'a'.
-push(a, 2); // Error at 'a': Cannot mutate immutable variable 'a'.
+array.push(a, 2); // Error at 'a': Cannot mutate immutable variable 'a'.
 
 let mut b = [1];
-push(b, 2); // ok
+array.push(b, 2); // ok
 ```
 
 Function parameters, `for`-`in` variables, `catch` variables and functions are
@@ -150,7 +150,7 @@ immutable too. Parameters and `for`-`in` variables are made mutable with `mut`:
 
 ```javascript
 fun fill(mut arr, n) {
-    push(arr, n);
+    array.push(arr, n);
 }
 
 let mut grid = [[0, 0], [0, 0]];
@@ -167,12 +167,12 @@ Built-ins are not declarations, so a program may still redefine them.
 
 ## Arrays
 
-Arrays are references: assigning an array or passing it to a function does not copy it, so `push`, `pop` and index assignment are visible through every reference.
+Arrays are references: assigning an array or passing it to a function does not copy it, so `array.push`, `array.pop` and index assignment are visible through every reference.
 
 ```javascript
 let a = [1, 2];
 let mut b = a;
-push(b, 3);
+array.push(b, 3);
 print a; // [1, 2, 3]
 ```
 
@@ -284,38 +284,50 @@ fun main(args) {
 
 ## Built-in Functions
 
-Rune provides several built-in functions:
+`len`, `type` and `object` are global; everything else lives in a namespace,
+used as `math.floor(x)`:
 
 - **`len(value)`** — Returns the length of an array, object or string (in characters), or the number of fields of a struct.
-- **`type(value)`** — Returns `"nil"`, `"boolean"`, `"number"`, `"string"`, `"array"`, `"object"`, `"function"`, a struct's name, or `"struct"` for a struct type.
+- **`type(value)`** — Returns `"nil"`, `"boolean"`, `"number"`, `"string"`, `"array"`, `"object"`, `"function"`, a struct's name, `"struct"` for a struct type, or `"namespace"`.
 - **`object(s)`** — Returns a new object with the fields of struct `s`.
-- **`append(arr, value1, value2, ...)`** — Returns a new array with the values appended; the original array is not modified. It copies the array, so building an array with it in a loop takes quadratic time; use `push` for that.
-- **`push(arr, value1, value2, ...)`** — Appends the values to the array in place (amortized O(1) each) and returns its new length.
-- **`pop(arr)`** — Removes the last element of the array in place and returns it; an empty array is a runtime error.
-- **`json(url)`** — Fetches and parses JSON from a URL (object, array or primitive); network, HTTP status and parse errors are reported as runtime errors.
-- **`clock()`** — Returns the current time in seconds (with sub-second precision).
 
-### Math
+A namespace is an immutable struct of its members. Unless a program declares
+a variable of its name, `ns.member` is bound when the program is compiled:
+it costs nothing at run time, and a misspelled member is a compile error.
 
-`floor(x)`, `ceil(x)`, `round(x)`, `abs(x)`, `sqrt(x)`, `pow(x, y)`, `min(a, ...)`, `max(a, ...)`, `random()` (in `[0, 1)`), constants `PI` and `INF`.
+```javascript
+math.flor(1); // Error at 'flor': math has no member 'flor'.
+```
 
-### Strings
+### array
 
-`split(s, sep)` (`""` splits into characters), `join(arr, sep)`, `upper(s)`, `lower(s)`, `trim(s)`, `startsWith(s, p)`, `endsWith(s, p)`, `replace(s, old, new)` (all occurrences), `repeat(s, n)`.
-
-### Arrays and strings
-
+- `push(arr, v1, ...)` — appends **in place** (amortized O(1) each) and returns the new length.
+- `pop(arr)` — removes the last element in place and returns it; an empty array is a runtime error.
+- `append(arr, v1, ...)` — returns a new array with the values appended. It copies, so building an array with it in a loop is quadratic; use `push` for that.
 - `map(arr, f)`, `filter(arr, f)`, `reduce(arr, f[, init])` — return new values; `f` may be any function, built-ins included.
 - `sort(arr[, cmp])` — sorts **in place** and returns `arr`; stable. Without `cmp` the elements must be all numbers or all strings; `cmp(a, b) < 0` puts `a` first.
-- `slice(x, start[, end])`, `reverse(x)`, `contains(x, item)`, `indexOf(x, item)` — work on arrays and strings; string indices count characters, negative slice bounds count from the end.
+- `slice(arr, start[, end])` (negative bounds count from the end), `reverse(arr)`, `contains(arr, item)`, `indexOf(arr, item)`, `join(arr, sep)`.
 
 ```javascript
 let mut people = [{name: "bob", age: 25}, {name: "ann", age: 31}];
-sort(people, fun (a, b) { return a.age - b.age; });
-print join(map(people, fun (p) { return p.name; }), ", "); // bob, ann
+array.sort(people, fun (a, b) { return a.age - b.age; });
+print array.join(array.map(people, fun (p) { return p.name; }), ", "); // bob, ann
 ```
 
-Built-ins are ordinary globals, so a program may redefine them.
+### string
+
+`split(s, sep)` (`""` splits into characters), `upper(s)`, `lower(s)`, `trim(s)`, `startsWith(s, p)`, `endsWith(s, p)`, `replace(s, old, new)` (all occurrences), `repeat(s, n)`, and `slice`, `reverse`, `contains`, `indexOf` as for arrays, counting characters.
+
+### math
+
+`floor(x)`, `ceil(x)`, `round(x)`, `abs(x)`, `sqrt(x)`, `pow(x, y)`, `min(a, ...)`, `max(a, ...)`, `random()` (in `[0, 1)`), constants `PI` and `INF`.
+
+### json, http, time
+
+- `json.parse(s)` — parses JSON (object, array or primitive); malformed input is a `ValueError`.
+- `json.stringify(v)` — encodes `nil`, booleans, numbers, strings, arrays, objects (keys sorted) and structs (fields in order) compactly; a function is a `TypeError`, a non-finite number or a cycle a `ValueError`.
+- `http.get(url)` — fetches a URL and returns the body; network errors and a status other than 200 are an `IOError`.
+- `time.now()` — the current time in seconds, with sub-second precision.
 
 ## Performance
 
@@ -332,21 +344,21 @@ Before running, the resolved AST is compiled to bytecode for a register machine,
 
 ## Error Handling
 
-Runtime errors (including those from built-ins like `json()`) can be caught with `try`/`catch`. The catch variable is optional (`catch { ... }`). An error raised by the language is a struct of one of the built-in error types, each with fields `{ message, line = nil, cause = nil }`:
+Runtime errors (including those from built-ins like `http.get()`) can be caught with `try`/`catch`. The catch variable is optional (`catch { ... }`). An error raised by the language is a struct of one of the built-in error types, each with fields `{ message, line = nil, cause = nil }`:
 
 - `TypeError` — a value of the wrong type (`1 + nil`, calling a number)
 - `ArgumentError` — the wrong number of arguments
-- `ValueError` — the right type but a bad value (`step 0`, `pop([])`)
+- `ValueError` — the right type but a bad value (`step 0`, `array.pop([])`)
 - `IndexError` — an index out of bounds
 - `KeyError` — a missing property or struct field
 - `NameError` — an undefined variable
-- `IOError` — `json()` failing to fetch or parse
+- `IOError` — `http.get()` failing to fetch
 
 A stack overflow is fatal and cannot be caught.
 
 ```javascript
 try {
-    let todos = json("https://dummyjson.com/todos");
+    let todos = json.parse(http.get("https://dummyjson.com/todos"));
     print len(todos.todos);
 } catch (err) {
     print "request failed: " + err.message;
@@ -421,7 +433,7 @@ for i in 10..0 step -2 { print i; } // 10 8 6 4 2
 ```javascript
 fun map(arr, f) {
     let mut out = [];
-    for x in arr { push(out, f(x)); }
+    for x in arr { array.push(out, f(x)); }
     return out;
 }
 

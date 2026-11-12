@@ -1,7 +1,7 @@
 // Fetching data from URL
 
 try {
-    let res = json("https://dummyjson.com/todos");
+    let res = json.parse(http.get("https://dummyjson.com/todos"));
     print(res);
 } catch (err) {
     print "Failed to fetch todos: " + err.message;

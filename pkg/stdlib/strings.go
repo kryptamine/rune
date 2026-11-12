@@ -3,7 +3,6 @@ package stdlib
 import (
 	"math"
 	"rune/pkg/errors"
-	"rune/pkg/helpers"
 	"rune/pkg/value"
 	"strings"
 )
@@ -35,21 +34,6 @@ var stringNatives = []*Native{
 		}
 
 		return value.NewArray(items)
-	}},
-	{"join", 2, 2, func(c *call) value.Value {
-		items, sep := c.arr(0), c.str(1)
-
-		var buf []byte
-
-		for i, item := range items {
-			if i > 0 {
-				buf = append(buf, sep...)
-			}
-
-			buf = helpers.AppendValue(buf, item)
-		}
-
-		return value.NewString(string(buf))
 	}},
 	{"replace", 3, 3, func(c *call) value.Value {
 		return value.NewString(strings.ReplaceAll(c.str(0), c.str(1), c.str(2)))

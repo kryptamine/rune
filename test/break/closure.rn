@@ -2,7 +2,7 @@ let mut fs = [];
 for i in 0..10 {
   let j = i;
   if i == 2 { break; }
-  fs = append(fs, fun () { return j; });
+  fs = array.append(fs, fun () { return j; });
 }
 print fs[0](); // expect: 0
 print fs[1](); // expect: 1

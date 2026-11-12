@@ -2,5 +2,5 @@
     2 |   return x.y; // expect runtime error: [line: 2] TypeError: Cannot read property 'y' of number.
       |            ^
   at f (line 2)
-  at map (native)
+  at array.map (native)
   at <script> (line 6)

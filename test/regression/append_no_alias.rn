@@ -1,6 +1,6 @@
-let a = append([1, 2, 3], 0);
-let b = append(a, 4);
-let c = append(a, 5);
+let a = array.append([1, 2, 3], 0);
+let b = array.append(a, 4);
+let c = array.append(a, 5);
 print b[4]; // expect: 4
 print c[4]; // expect: 5
 print len(a); // expect: 4

@@ -46,12 +46,12 @@ func TestReport(t *testing.T) {
 		},
 		{
 			"runtime error unwinds through closures and natives",
-			"fun g(x) {\n  return x.y;\n}\nlet a = fun (f) { return map([1], f); };\na(g);\n",
+			"fun g(x) {\n  return x.y;\n}\nlet a = fun (f) { return array.map([1], f); };\na(g);\n",
 			"[line: 2] TypeError: Cannot read property 'y' of number.\n" +
 				"    2 |   return x.y;\n" +
 				"      |            ^\n" +
 				"  at g (line 2)\n" +
-				"  at map (native)\n" +
+				"  at array.map (native)\n" +
 				"  at <anonymous> (line 4)\n" +
 				"  at <script> (line 5)\n",
 		},

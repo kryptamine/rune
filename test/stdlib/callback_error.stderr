@@ -2,5 +2,5 @@
     2 |   throw ValueError { message: "boom" }; // expect runtime error: [line: 2] ValueError: boom
       |   ^
   at <anonymous> (line 2)
-  at map (native)
+  at array.map (native)
   at <script> (line 3)

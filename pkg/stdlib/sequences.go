@@ -8,43 +8,51 @@ import (
 	"unicode/utf8"
 )
 
-// Sequence natives take an array or a string; string positions count characters.
-var sequenceNatives = []*Native{
+var arraySequenceNatives = []*Native{
 	{"slice", 2, 3, func(c *call) value.Value {
-		switch v := c.args[0]; v.Kind() {
-		case value.Array:
-			start, end := sliceBounds(c, len(v.Arr()))
-			return value.NewArray(slices.Clone(v.Arr()[start:end]))
-		case value.String:
-			s := v.Str()
-			start, end := sliceBounds(c, utf8.RuneCountInString(s))
+		items := c.arr(0)
+		start, end := sliceBounds(c, len(items))
 
-			return value.NewString(s[helpers.ByteOffset(s, start):helpers.ByteOffset(s, end)])
-		}
-
-		return c.typeError(0, "an array or a string")
+		return value.NewArray(slices.Clone(items[start:end]))
 	}},
 	{"reverse", 1, 1, func(c *call) value.Value {
-		switch v := c.args[0]; v.Kind() {
-		case value.Array:
-			out := slices.Clone(v.Arr())
-			slices.Reverse(out)
+		out := slices.Clone(c.arr(0))
+		slices.Reverse(out)
 
-			return value.NewArray(out)
-		case value.String:
-			r := []rune(v.Str())
-			slices.Reverse(r)
-
-			return value.NewString(string(r))
-		}
-
-		return c.typeError(0, "an array or a string")
+		return value.NewArray(out)
 	}},
 	{"contains", 2, 2, func(c *call) value.Value {
-		return value.NewBool(indexOf(c) >= 0)
+		return value.NewBool(arrayIndex(c) >= 0)
 	}},
 	{"indexOf", 2, 2, func(c *call) value.Value {
-		return count(indexOf(c))
+		return count(arrayIndex(c))
+	}},
+}
+
+// String positions count characters.
+var stringSequenceNatives = []*Native{
+	{"slice", 2, 3, func(c *call) value.Value {
+		s := c.str(0)
+		start, end := sliceBounds(c, utf8.RuneCountInString(s))
+
+		return value.NewString(s[helpers.ByteOffset(s, start):helpers.ByteOffset(s, end)])
+	}},
+	{"reverse", 1, 1, func(c *call) value.Value {
+		r := []rune(c.str(0))
+		slices.Reverse(r)
+
+		return value.NewString(string(r))
+	}},
+	{"contains", 2, 2, func(c *call) value.Value {
+		return value.NewBool(strings.Contains(c.str(0), c.str(1)))
+	}},
+	{"indexOf", 2, 2, func(c *call) value.Value {
+		s, sub := c.str(0), c.str(1)
+		if i := strings.Index(s, sub); i >= 0 {
+			return count(utf8.RuneCountInString(s[:i]))
+		}
+
+		return count(-1)
 	}},
 }
 
@@ -68,22 +76,7 @@ func clampIndex(i, n int) int {
 	return max(0, min(i, n))
 }
 
-// indexOf finds args[1] in args[0]; -1 if absent.
-func indexOf(c *call) int {
-	switch v := c.args[0]; v.Kind() {
-	case value.Array:
-		return slices.IndexFunc(v.Arr(), func(x value.Value) bool { return helpers.IsEqual(x, c.args[1]) })
-	case value.String:
-		s := v.Str()
-
-		if i := strings.Index(s, c.str(1)); i >= 0 {
-			return utf8.RuneCountInString(s[:i])
-		}
-
-		return -1
-	}
-
-	c.typeError(0, "an array or a string")
-
-	return -1
+// arrayIndex finds args[1] in the array args[0]; -1 if absent.
+func arrayIndex(c *call) int {
+	return slices.IndexFunc(c.arr(0), func(x value.Value) bool { return helpers.IsEqual(x, c.args[1]) })
 }

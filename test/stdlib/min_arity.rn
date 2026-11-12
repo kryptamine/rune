@@ -1,1 +1,1 @@
-min(); // expect runtime error: [line: 1] ArgumentError: min() expects at least 1 argument, got 0.
+math.min(); // expect runtime error: [line: 1] ArgumentError: math.min() expects at least 1 argument, got 0.
