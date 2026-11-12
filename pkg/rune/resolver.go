@@ -468,6 +468,14 @@ func (p *Resolver) VisitArrayExpr(expr *ast.ArrayExpr) (value.Value, error) {
 	return value.NilValue, nil
 }
 
+func (p *Resolver) VisitInterpolationExpr(expr *ast.InterpolationExpr) (value.Value, error) {
+	for _, part := range expr.Parts {
+		p.resolveExpr(part)
+	}
+
+	return value.NilValue, nil
+}
+
 func (p *Resolver) VisitIndexExpr(expr *ast.IndexExpr) (value.Value, error) {
 	p.resolveMember(expr)
 	p.resolveExpr(expr.Array)

@@ -25,6 +25,7 @@ type ExprVisitor interface {
 	VisitWithExpr(withExpr *WithExpr) (value.Value, error)
 	VisitIsExpr(isExpr *IsExpr) (value.Value, error)
 	VisitMatchExpr(matchExpr *MatchExpr) (value.Value, error)
+	VisitInterpolationExpr(interpolationExpr *InterpolationExpr) (value.Value, error)
 }
 
 type Expr interface {
@@ -258,6 +259,16 @@ func NewIsExpr(v, typ Expr, token Token) Expr {
 
 func (n *IsExpr) Accept(v ExprVisitor) (value.Value, error) {
 	return v.VisitIsExpr(n)
+}
+
+// InterpolationExpr is a string with "{expr}" parts: string literals and
+// the expressions between them, in order.
+type InterpolationExpr struct {
+	Parts []Expr
+}
+
+func (n *InterpolationExpr) Accept(v ExprVisitor) (value.Value, error) {
+	return v.VisitInterpolationExpr(n)
 }
 
 // ObjectPair is a single "key: value" entry of an object literal.

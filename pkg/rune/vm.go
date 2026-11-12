@@ -526,6 +526,19 @@ func (p *Interpreter) slow(in Instr) error {
 			*arr = append(*arr, items...)
 		}
 
+	case opConcat:
+		buf := p.buf[:0]
+		if in.x() != 0 {
+			buf = append(buf, regs[in.a()].Str()...)
+		}
+
+		for _, v := range regs[in.b() : in.b()+in.c()] {
+			buf = helpers.AppendValue(buf, v)
+		}
+
+		p.buf = buf
+		regs[in.a()] = value.NewString(string(buf))
+
 	case opObject:
 		keys := f.keys[in.c()]
 
@@ -645,8 +658,8 @@ func (p *Interpreter) slow(in Instr) error {
 		return err
 
 	case opPrint:
-		p.line = append(helpers.AppendValue(p.line[:0], regs[in.a()]), '\n')
-		p.write(p.line)
+		p.buf = append(helpers.AppendValue(p.buf[:0], regs[in.a()]), '\n')
+		p.write(p.buf)
 
 	case opThrow:
 		v := regs[in.a()]

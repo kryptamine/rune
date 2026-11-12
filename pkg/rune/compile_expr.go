@@ -79,6 +79,8 @@ func assigns(e ast.Expr) bool {
 		return assigns(n.Callee) || anyAssigns(n.Args)
 	case *ast.ArrayExpr:
 		return anyAssigns(n.Items)
+	case *ast.InterpolationExpr:
+		return anyAssigns(n.Parts)
 	case *ast.ObjectExpr:
 		for _, p := range n.Pairs {
 			if assigns(p.Value) {
@@ -191,6 +193,10 @@ func (fs *funcState) expr(e ast.Expr, dst int32) {
 	case *ast.ArrayExpr:
 		fs.literal(dst, len(n.Items), func(i int) ast.Expr { return n.Items[i] }, func(from, to int, base int32) ins {
 			return ins{op: opArray, b: base, c: int32(to - from)}
+		})
+	case *ast.InterpolationExpr:
+		fs.literal(dst, len(n.Parts), func(i int) ast.Expr { return n.Parts[i] }, func(from, to int, base int32) ins {
+			return ins{op: opConcat, b: base, c: int32(to - from)}
 		})
 	case *ast.ObjectExpr:
 		fs.literal(dst, len(n.Pairs), func(i int) ast.Expr { return n.Pairs[i].Value }, func(from, to int, base int32) ins {

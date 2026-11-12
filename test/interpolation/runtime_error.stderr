@@ -1,0 +1,3 @@
+[line: 2] KeyError: Undefined property 'missing'.
+    2 | print "x {o.missing} y"; // expect runtime error: [line: 2] KeyError: Undefined property 'missing'.
+      |             ^

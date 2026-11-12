@@ -1,0 +1,8 @@
+let foo = "x";
+let o = {k: [1, 2]};
+print "a {"b {foo} c"} d"; // expect: a b x c d
+print "{o["k"][1]}"; // expect: 2
+print "{match foo { "x" => "yes", _ => "no" }}"; // expect: yes
+print "{(v => v * 2)(3)}"; // expect: 6
+struct P { x }
+print "{P { x: 1 }}"; // expect: P {x: 1}
