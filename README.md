@@ -11,7 +11,7 @@ Rune is a dynamically typed interpreted programming language inspired by [Lox](h
 - Dynamically typed language with a simple syntax
 - Supports expressions, statements, variables, and functions
 - Variables are immutable by default (`let`); `let mut` makes them mutable
-- Standard library in namespaces: `array`, `string`, `math`, `json`, `http`, `time`
+- Standard library in namespaces: `array`, `string`, `math`, `json`, `http`, `time`, `fs`
 - Recursive descent parser; the resolved AST is compiled to register bytecode run by a VM
 - Parser recovers from syntax errors and reports all of them in one run
 - String escapes: `\n`, `\t`, `\r`, `\"`, `\\`
@@ -329,6 +329,30 @@ print array.join(array.map(people, fun (p) { return p.name; }), ", "); // bob, a
 - `http.get(url)` — fetches a URL and returns the body; network errors and a status other than 200 are an `IOError`.
 - `time.now()` — the current time in seconds, with sub-second precision.
 
+### fs
+
+Files are read and written whole, as strings; relative paths are taken from the
+current directory, not the script's.
+
+- `read(path)`, `lines(path)` — the contents, or its lines without `\n` or `\r\n`.
+- `write(path, s)` (creates or truncates), `append(path, s)`.
+- `exists(path)`, `stat(path)` — a `FileInfo { name, size, isDir, modified, mode }`, `modified` in seconds like `time.now()`.
+- `list(dir)` — the entries as `FileInfo`s, sorted by name.
+- `mkdir(path)` (with parents; an existing directory is fine), `remove(path)` (a file or an empty directory), `removeAll(path)`, `rename(from, to)`, `copy(from, to)`.
+- `cwd()`, `tempDir()` — a new directory, for the program to remove.
+- `join(a, ...)`, `base(p)`, `dir(p)`, `ext(p)`.
+
+A failure is an `IOError` with `path` and `code`: `"notFound"`, `"exists"`,
+`"permission"`, `"isDir"`, `"notDir"`, `"notEmpty"`, or `nil` for anything else.
+
+```javascript
+try {
+    for line in fs.lines("todo.txt") { print line; }
+} catch (e: IOError) {
+    if e.code != "notFound" throw e;
+}
+```
+
 ## Performance
 
 Before running, the resolved AST is compiled to bytecode for a register machine, in the style of Lua. In particular:
@@ -352,7 +376,7 @@ Runtime errors (including those from built-ins like `http.get()`) can be caught 
 - `IndexError` — an index out of bounds
 - `KeyError` — a missing property or struct field
 - `NameError` — an undefined variable
-- `IOError` — `http.get()` failing to fetch
+- `IOError` — a file system call or `http.get()` failing; it also has `path` and `code` (see `fs`)
 
 A stack overflow is fatal and cannot be caught.
 

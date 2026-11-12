@@ -207,6 +207,7 @@ var namespaces = []namespace{
 	{"json", [][]*Native{jsonNatives}, nil},
 	{"http", [][]*Native{httpNatives}, nil},
 	{"time", [][]*Native{timeNatives}, nil},
+	{"fs", [][]*Native{fsNatives}, nil},
 }
 
 // value qualifies the natives' names with the namespace's, for errors.
@@ -245,8 +246,8 @@ func builtins() []Builtin {
 		out = append(out, Builtin{ns.name, ns.value()})
 	}
 
-	for _, k := range errors.Kinds {
-		out = append(out, Builtin{k.Name, value.NewType(k)})
+	for _, t := range Types {
+		out = append(out, Builtin{t.Name, value.NewType(t)})
 	}
 
 	return out

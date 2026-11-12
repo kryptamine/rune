@@ -1,6 +1,7 @@
 package rune
 
 import (
+	"bytes"
 	"io"
 	"os"
 	"testing"
@@ -21,6 +22,11 @@ func FuzzRun(f *testing.F) {
 	}
 
 	f.Fuzz(func(t *testing.T, src []byte) {
+		// A mutated fs call could touch any file; fs is reached only by name.
+		if bytes.Contains(src, []byte("fs")) {
+			return
+		}
+
 		if o := execute(fstest.MapFS{"main.rn": {Data: src}}, "main.rn", io.Discard, 50*time.Millisecond); o.prog != nil {
 			_ = o.prog.Disassemble()
 		}

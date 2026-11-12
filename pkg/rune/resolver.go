@@ -62,13 +62,13 @@ func NewResolver() *Resolver {
 		topLevel:      map[string]*ast.Local{},
 		builtins:      map[string]*ast.Local{},
 		structs:       map[*ast.Local]*value.Shape{},
-		fieldNames:    errorFieldNames(),
+		fieldNames:    builtinFieldNames(),
 	}
 }
 
-func errorFieldNames() map[string]string {
+func builtinFieldNames() map[string]string {
 	names := map[string]string{}
-	for _, k := range errors.Kinds {
+	for _, k := range stdlib.Types {
 		for _, f := range k.Fields {
 			names[f] = f
 		}

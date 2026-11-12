@@ -132,7 +132,7 @@ func newFunc(parent *funcState, name string) *funcState {
 	if parent != nil {
 		fs.unit = parent.unit
 	} else {
-		fs.unit = &unit{names: errorFieldNames()}
+		fs.unit = &unit{names: builtinFieldNames()}
 	}
 
 	return fs

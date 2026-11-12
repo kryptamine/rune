@@ -25,6 +25,8 @@ type RuntimeError struct {
 	errMsg string
 	value  value.Value
 	frames []Frame
+	// extra fills the fields the kind has beyond the common ones.
+	extra []value.Value
 }
 
 func (e RuntimeError) Error() string {
@@ -57,6 +59,7 @@ func (e RuntimeError) Value() value.Value {
 	v, fields := value.NewStruct(e.kind)
 	fields[0] = value.NewString(e.errMsg)
 	fields[1] = value.NewNumber(float64(e.token.Line))
+	copy(fields[len(errorFields):], e.extra)
 
 	return v
 }
@@ -78,6 +81,19 @@ func WithFrame(err error, f Frame) error {
 
 func NewRuntimeError(kind *value.Shape, token ast.Token, msg string) error {
 	return RuntimeError{token: token, kind: kind, errMsg: msg}
+}
+
+// NewIOError is an IOError about path with code; empty ones are nil.
+func NewIOError(token ast.Token, msg, path, code string) error {
+	return RuntimeError{token: token, kind: IOError, errMsg: msg, extra: []value.Value{optString(path), optString(code)}}
+}
+
+func optString(s string) value.Value {
+	if s == "" {
+		return value.NilValue
+	}
+
+	return value.NewString(s)
 }
 
 func NewFatalError(token ast.Token, msg string) error {
