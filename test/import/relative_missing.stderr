@@ -1,0 +1,3 @@
+[line: 1] Error at '.': Cannot find module '.nope'.
+    1 | import .nope; // Error at '.': Cannot find module '.nope'.
+      |        ^

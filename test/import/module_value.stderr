@@ -1,0 +1,3 @@
+[line: 1] Error at 'name': module has no member 'name'.
+    1 | print module.name; // Error at 'name': module has no member 'name'.
+      |              ^

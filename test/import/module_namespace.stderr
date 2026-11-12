@@ -1,0 +1,3 @@
+[line: 4] TypeError: Cannot set field 'dir' of namespace: only a mut self method can set the fields of self.
+    4 | module.dir = "x"; // expect runtime error: [line: 4] TypeError: Cannot set field 'dir' of namespace: only a mut self method can set the fields of self.
+      |        ^

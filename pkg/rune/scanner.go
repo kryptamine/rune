@@ -7,6 +7,7 @@ import (
 	rerrors "rune/pkg/errors"
 	"rune/pkg/helpers"
 	"strconv"
+	"strings"
 	"unicode/utf8"
 )
 
@@ -201,7 +202,7 @@ func (s *Scanner) scanToken() {
 			s.addToken(helpers.If(s.match('='), ast.SLASH_EQUAL, ast.SLASH))
 		}
 	case '"':
-		s.string(false)
+		s.string(false, s.tripleQuote())
 
 		break
 		// Ignore whitespace.
@@ -271,16 +272,19 @@ var escapes = map[byte]byte{
 // string scans a string literal. Each "{expr}" in it ends a piece as an
 // INTERPOLATION token, followed by the tokens of expr; the piece after
 // the last one is a STRING_END. A bytes literal, after its b, takes no
-// interpolation and takes \xNN escapes.
-func (s *Scanner) string(isBytes bool) {
+// interpolation and takes \xNN escapes. A triple-quoted one is dedented.
+func (s *Scanner) string(isBytes, triple bool) {
 	var value []byte
 	var badEscape string
 	end := helpers.If(isBytes, ast.BYTES, ast.STRING)
 	line, col := s.startLine, s.startCol
 
+	text := newMultiline(s, triple)
+
 	piece := func(tokenType ast.TokenType) {
 		s.addTokenWithLiteral(tokenType, string(value))
 		value = value[:0]
+		text.piece(s)
 
 		if badEscape != "" {
 			s.errorAt(badEscape)
@@ -288,7 +292,7 @@ func (s *Scanner) string(isBytes bool) {
 		}
 	}
 
-	for s.peek() != '"' && !s.isAtEnd() {
+	for !s.closing(triple) && !s.isAtEnd() {
 		c := s.source[s.current]
 		s.current++
 
@@ -311,6 +315,10 @@ func (s *Scanner) string(isBytes bool) {
 
 		if c != '\\' {
 			value = append(value, c)
+			if c == '\n' {
+				text.line(len(value))
+			}
+
 			continue
 		}
 
@@ -341,20 +349,47 @@ func (s *Scanner) string(isBytes bool) {
 		return
 	}
 
-	s.advance()
+	s.current += helpers.If(triple, 3, 1)
 	piece(end)
+	text.dedent(s, line, col)
+}
+
+// tripleQuote reports whether the '"' just scanned opens a """ string,
+// consuming the other two quotes.
+func (s *Scanner) tripleQuote() bool {
+	if !strings.HasPrefix(s.source[s.current:], `""`) {
+		return false
+	}
+
+	s.current += 2
+
+	return true
+}
+
+// closing reports whether a string's closing quote comes next.
+func (s *Scanner) closing(triple bool) bool {
+	if triple {
+		return strings.HasPrefix(s.source[s.current:], `"""`)
+	}
+
+	return s.peek() == '"'
 }
 
 // rawString scans r"...", taken as written: no escapes, no interpolation.
 func (s *Scanner) rawString() {
+	triple := s.tripleQuote()
+	line, col := s.startLine, s.startCol
+
+	text := newMultiline(s, triple)
 	from := s.current
 
-	for s.peek() != '"' && !s.isAtEnd() {
+	for !s.closing(triple) && !s.isAtEnd() {
 		c := s.source[s.current]
 		s.current++
 
 		if c == '\n' {
 			s.newline()
+			text.line(s.current - from)
 		}
 	}
 
@@ -363,9 +398,11 @@ func (s *Scanner) rawString() {
 		return
 	}
 
-	text := s.source[from:s.current]
-	s.advance()
-	s.addTokenWithLiteral(ast.STRING, text)
+	lit := s.source[from:s.current]
+	s.current += helpers.If(triple, 3, 1)
+	s.addTokenWithLiteral(ast.STRING, lit)
+	text.piece(s)
+	text.dedent(s, line, col)
 }
 
 // unterminated reports a literal that started at line, col and ran to the end.
@@ -445,7 +482,7 @@ func (s *Scanner) identifier() {
 
 	if text == "b" && s.peek() == '"' {
 		s.advance()
-		s.string(true)
+		s.string(true, false)
 
 		return
 	}

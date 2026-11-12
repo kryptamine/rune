@@ -1,0 +1,2 @@
+print """never closed;
+// [line: 1] Error: Unterminated string.

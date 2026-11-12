@@ -119,7 +119,8 @@ func (fs *funcState) destructure(s *ast.DestructureStmt) {
 	for i := range s.Fields {
 		f := &s.Fields[i]
 		fs.initialize(f.Local, func(dst int32) {
-			fs.emit(ins{op: opGetProp, a: dst, b: src, c: fs.constant(value.NewString(f.Key.Lexeme))}, &f.Key)
+			fs.emit(ins{op: opGetProp, a: dst, b: src, c: fs.constant(value.NewString(f.Key.Lexeme)), x: uint8(boolNum(f.Default != nil))}, &f.Key)
+			fs.orDefault(dst, f.Default)
 		})
 	}
 }
@@ -139,17 +140,36 @@ func (fs *funcState) unpack(s *ast.ArrayDestructureStmt) {
 		fs.alloc()
 	}
 
-	fs.emit(ins{op: opUnpack, a: base, b: src, c: int32(n), x: uint8(boolNum(rest))}, &s.Bracket)
+	if n > maxUnpack {
+		panic(tooLarge{fs.proto.name})
+	}
 
-	for i, b := range s.Elems {
-		if b != nil {
-			fs.initialize(b.Local, func(dst int32) { fs.move(dst, base+int32(i)) })
+	fs.emit(ins{op: opUnpack, a: base, b: src, c: int32(n | s.Required()<<unpackShift), x: uint8(boolNum(rest))}, &s.Bracket)
+
+	for i, e := range s.Elems {
+		if e != nil {
+			fs.initialize(e.Local, func(dst int32) {
+				fs.move(dst, base+int32(i))
+				fs.orDefault(dst, e.Default)
+			})
 		}
 	}
 
 	if rest {
 		fs.initialize(s.Rest.Local, func(dst int32) { fs.move(dst, base+int32(n)) })
 	}
+}
+
+// orDefault computes def into dst if dst is undefined, for a missing element
+// or property.
+func (fs *funcState) orDefault(dst int32, def ast.Expr) {
+	if def == nil {
+		return
+	}
+
+	skip := fs.emit(ins{op: opJmpDefined, a: dst}, nil)
+	fs.expr(def, dst)
+	fs.patch([]int{skip})
 }
 
 // predeclare gives a local its register before its value is computed, in

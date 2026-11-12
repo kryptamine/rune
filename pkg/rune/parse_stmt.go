@@ -296,6 +296,8 @@ func (s *Parser) bindingOrPattern(hiddenName, msg string) (ast.Binding, ast.Stmt
 func (s *Parser) arrayPattern(mutable bool) (*ast.ArrayDestructureStmt, error) {
 	d := &ast.ArrayDestructureStmt{Bracket: s.previous()}
 
+	sawDefault := false
+
 	for !s.check(ast.RIGHT_BRACKET) && !s.isAtEnd() {
 		rest := s.match(ast.DOT_DOT_DOT)
 
@@ -305,14 +307,28 @@ func (s *Parser) arrayPattern(mutable bool) (*ast.ArrayDestructureStmt, error) {
 		}
 
 		b.Mutable = b.Mutable || mutable
+		skip := b.Name.Lexeme == "_"
+
+		def, err := s.patternDefault(rest || skip)
+		if err != nil {
+			return nil, err
+		}
+
+		if def == nil && sawDefault && !rest {
+			s.errors = append(s.errors, errors.NewSyntaxError(b.Name, "An element without a default cannot follow one with a default."))
+		}
+
+		sawDefault = sawDefault || def != nil
+
+		v := &ast.PatternVar{Binding: b, Default: def}
 
 		switch {
 		case rest:
-			d.Rest = &b
-		case b.Name.Lexeme == "_":
+			d.Rest = v
+		case skip:
 			d.Elems = append(d.Elems, nil)
 		default:
-			d.Elems = append(d.Elems, &b)
+			d.Elems = append(d.Elems, v)
 		}
 
 		if rest && !s.check(ast.RIGHT_BRACKET) {
@@ -362,10 +378,35 @@ func (s *Parser) pattern(mutable bool) ([]ast.DestructureField, error) {
 	return fields, err
 }
 
+// patternDefault parses the "= value" of the pattern element just parsed,
+// if any; a rest element or _ cannot have one.
+func (s *Parser) patternDefault(notAllowed bool) (ast.Expr, error) {
+	if !s.match(ast.EQUAL) {
+		return nil, nil
+	}
+
+	if notAllowed {
+		return nil, errors.NewSyntaxError(s.previous(), "A rest element or _ cannot have a default.")
+	}
+
+	return s.expressionWithStructs(structsAll)
+}
+
 func (s *Parser) patternField() (ast.DestructureField, error) {
+	f, err := s.patternKey()
+	if err != nil {
+		return f, err
+	}
+
+	f.Default, err = s.patternDefault(false)
+
+	return f, err
+}
+
+func (s *Parser) patternKey() (ast.DestructureField, error) {
 	if s.check(ast.MUT) {
 		b, err := s.binding("Expect property name.")
-		return ast.DestructureField{Key: b.Name, Binding: b}, err
+		return ast.DestructureField{Key: b.Name, PatternVar: ast.PatternVar{Binding: b}}, err
 	}
 
 	if !s.match(ast.IDENTIFIER, ast.STRING) {
@@ -384,12 +425,12 @@ func (s *Parser) patternField() (ast.DestructureField, error) {
 			return ast.DestructureField{}, errors.NewSyntaxError(s.peek(), "Expect ':' after string key.")
 		}
 
-		return ast.DestructureField{Key: key, Binding: ast.Binding{Name: key}}, nil
+		return ast.DestructureField{Key: key, PatternVar: ast.PatternVar{Binding: ast.Binding{Name: key}}}, nil
 	}
 
 	b, err := s.binding("Expect variable name.")
 
-	return ast.DestructureField{Key: key, Binding: b}, err
+	return ast.DestructureField{Key: key, PatternVar: ast.PatternVar{Binding: b}}, err
 }
 
 // binding parses "name" or "mut name".
@@ -602,6 +643,10 @@ func (s *Parser) braceBody() (stmts []ast.Stmt, ok bool, err error) {
 
 func (s *Parser) block() ([]ast.Stmt, error) {
 	var stmts []ast.Stmt
+
+	outer := s.blockDepth
+	s.blockDepth = s.depth[s.current]
+	defer func() { s.blockDepth = outer }()
 
 	for !s.check(ast.RIGHT_BRACE) && !s.isAtEnd() {
 		if stmt := s.safeDeclaration(); stmt != nil {

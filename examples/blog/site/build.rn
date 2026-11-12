@@ -1,0 +1,82 @@
+// Load posts from a directory and write the site
+
+import ..md.block as md;
+import .frontmatter as fm;
+import .template as tpl;
+
+export struct Post { slug, title, date, tags = [], draft = false, html, headings, words }
+
+export struct Site { posts = [], skipped = [] }
+
+export fun load(dir, drafts = false) {
+    let mut site = Site {};
+
+    for f in fs.list(dir) {
+        if f.isDir or fs.ext(f.name) != ".md" continue;
+        let path = fs.join(dir, f.name);
+        let { meta, body } = fm.parse(fs.read(path), path);
+
+        if meta?.draft == true and !drafts {
+            site.skipped.push(f.name);
+            continue;
+        }
+
+        let { html, headings } = md.render(body);
+        site.posts.push(Post {
+            slug: fs.stem(f.name),
+            title: meta?.title ?? headings[0]?.text ?? f.name,
+            date: meta?.date ?? "0000-00-00",
+            tags: meta?.tags ?? [],
+            draft: meta?.draft ?? false,
+            html,
+            headings,
+            words: len(regex.split(r"\s+", body.trim())),
+        });
+    }
+
+    site.posts.sort((a, b) => a.date < b.date ? 1 : a.date > b.date ? -1 : 0);
+    return site;
+}
+
+export fun write(site, out) {
+    fs.mkdir(fs.join(out, "posts"));
+    fs.write(fs.join(out, "style.css"), tpl.STYLE);
+
+    for p in site.posts {
+        let minutes = math.max(1, math.round(p.words / 200));
+        let body = """
+            <article>
+            <p class="meta"><time>{p.date}</time> · {minutes} min read</p>
+            {tpl.toc(p.headings)}
+            {p.html}
+            </article>
+            """;
+        fs.write(fs.join(out, "posts", p.slug + ".html"), tpl.page({ title: p.title, body, root: ".." }));
+    }
+
+    let list = site.posts.map(p => tpl.postLink(p)).join("\n");
+    fs.write(fs.join(out, "index.html"), tpl.page({ title: "Posts", body: "<h1>Posts</h1>\n<ul>\n{list}\n</ul>" }));
+
+    let tags = byTag(site.posts);
+    let mut sections = [];
+    let mut names = tags.keys();
+    for tag in names.sort() {
+        let items = tags[tag].map(p => tpl.postLink(p)).join("\n");
+        sections.push("<h2 id=\"{tag}\">#{tag}</h2>\n<ul>\n{items}\n</ul>");
+    }
+    fs.write(fs.join(out, "tags.html"), tpl.page({ title: "Tags", body: "<h1>Tags</h1>\n" + sections.join("\n") }));
+
+    return 3 + len(site.posts);
+}
+
+fun byTag(posts) {
+    let mut tags = Map();
+    for p in posts {
+        for t in p.tags {
+            let mut list = tags.get(t) ?? [];
+            list.push(p);
+            tags.set(t, list);
+        }
+    }
+    return tags;
+}

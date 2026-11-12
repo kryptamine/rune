@@ -130,7 +130,7 @@ type outcome struct {
 
 // loadSource loads src as a program of one file.
 func loadSource(src []byte) (*Program, []error) {
-	prog, _, errs := Load(fstest.MapFS{"main.rn": {Data: src}}, "main.rn")
+	prog, _, errs := Load(fstest.MapFS{"main.rn": {Data: src}}, "", "main.rn")
 	return prog, errs
 }
 
@@ -141,7 +141,7 @@ func execute(fsys fs.FS, name string, out io.Writer, timeout time.Duration) outc
 	var stderr strings.Builder
 	var files []errors.File
 
-	o.prog, files, o.compileErrors = Load(fsys, name)
+	o.prog, files, o.compileErrors = Load(fsys, "", name)
 	for _, err := range o.compileErrors {
 		stderr.WriteString(errors.Report(err, files))
 	}

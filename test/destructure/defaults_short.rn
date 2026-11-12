@@ -1,0 +1,1 @@
+let [a, b = 1] = []; // expect runtime error: [line: 1] IndexError: Expected at least 1 element but got 0.

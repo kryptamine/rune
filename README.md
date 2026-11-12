@@ -12,10 +12,11 @@ Rune is a dynamically typed interpreted programming language inspired by [Lox](h
 - Supports expressions, statements, variables, and functions
 - Variables are immutable by default (`let`); `let mut` makes them mutable
 - Standard library in namespaces: `array`, `string`, `regex`, `math`, `json`, `http`, `time`, `fs`, `io`, `os`
-- Modules with their own top level, `export` and `import a.b as m;`
+- Modules with their own top level, `export` and `import a.b as m;`, relative `import ..lib.x;`
 - Recursive descent parser; the resolved AST is compiled to register bytecode run by a VM
 - Parser recovers from syntax errors and reports all of them in one run
 - String escapes: `\n`, `\t`, `\r`, `\"`, `\\`, `\{`, `\}`; raw strings take neither: `r"\d{3}"`
+- Multi-line strings, dedented, with quotes inside: `"""..."""`, raw `r"""..."""`
 - String interpolation: `"x = {x}, sum = {a + b}"`
 - 64-bit integers and floats, both of type `number`: `7 / 2` is `3.5`, `7 % 2` is `1`, and overflow is an error
 - Number literals with exponents, hex, octal, binary and `_`: `1e3`, `0xff`, `0o17`, `0b1010`, `1_000_000`
@@ -26,7 +27,7 @@ Rune is a dynamically typed interpreted programming language inspired by [Lox](h
 - Object property access with `obj.name` as sugar for `obj["name"]`; shorthand `{ ip, hits }` for `{ ip: ip, hits: hits }`
 - Structs with required and default fields, read-only outside their `mut self` methods: `struct Point { x, y = 0 }`
 - Methods in `impl` blocks, on structs and built-in types: `p.len()`, `Point.origin()`, `fun move(mut self)`
-- Destructuring of objects, structs and arrays, in `let`, parameters and `for`: `let { x, y } = p;`, `let [head, ...tail] = xs;`
+- Destructuring of objects, structs and arrays, in `let`, parameters and `for`, with defaults: `let { x, y = 0 } = p;`, `let [head, ...tail] = xs;`
 - Nil-safe access and defaults: `resp?.data?.items ?? []`
 - Conditional expressions: `n > 0 ? "pos" : "neg"`
 - Spread and rest: `[...a, ...b]`, `{...o, x: 1}`, `f(...args)`, `fun log(level, ...parts)`
@@ -238,10 +239,31 @@ print "\{name}";                          // {name}
 
 A raw string, `r"..."`, is taken as written: no escapes and no
 interpolation, so it suits regular expressions. It cannot hold `"`; in a
-pattern write it `\x22`.
+pattern write it `\x22`, or use `r"""..."""`.
 
 ```javascript
 regex.test(r"^\d{3}-\d{4}$", "555-1234"); // true
+```
+
+`"""..."""` is a string that may hold `"` and span lines, with escapes and
+interpolation; `r"""..."""` is its raw form. When the opening quotes end
+their line and the closing ones start theirs, those two newlines are
+dropped and the whitespace before the closing quotes is taken off every
+line; a line indented less, unless blank, is an error.
+
+```javascript
+fun link(url, text) {
+    return """<a href="{url}">{text}</a>""";
+}
+
+let page = """
+    <h1 class="title">{title}</h1>
+      <p>indented by two</p>
+    """;                   // "<h1 class=\"title\">...</h1>\n  <p>indented by two</p>"
+
+let css = r"""
+    a { color: red; }
+    """;
 ```
 
 ## Variables
@@ -454,6 +476,19 @@ takes the rest as a new array and must come last. The array may be longer
 than the pattern; a shorter one is an `IndexError`, anything but an array
 a `TypeError`.
 
+A variable may have a default, `name = expression`, taken when the
+property, field or element is missing, not when it is `nil`; it is
+evaluated only then, and may use the variables before it. In an array
+pattern every element after one with a default needs one too; `_` and
+`...rest` take none.
+
+```javascript
+let { title, root = ".", depth = root == "." ? 0 : 1 } = opts;
+let [src = "content", out = "site"] = args;
+
+fun page({ title, root = "." }) { ... }
+```
+
 ```javascript
 let [a, _, mut c, ...rest] = [1, 2, 3, 4, 5]; // a = 1, c = 3, rest = [4, 5]
 let mut [x, y] = [1, 2];
@@ -586,7 +621,13 @@ matches everything is an error.
 ## Modules
 
 `import a.b;` loads `a/b.rn`, named from the directory of the file passed to `rune`, and binds it as `b`;
-`import a.b as m;` binds it as `m`. Imports come first in a file.
+`import a.b as m;` binds it as `m`. Leading dots make it relative to the importing file: `import .b;` is
+`b.rn` next to it, `import ..c.d;` is `c/d.rn` in its parent directory, one more dot per level up; the
+program's directory cannot be left. Imports come first in a file.
+
+`module.dir` is the directory of the file it is in, and `module.file` its path, so a program finds the
+files it comes with wherever it is run from: `fs.join(module.dir, "content")`. They are absolute;
+`module` is a namespace of each file's own.
 
 Each file has its own top level: names it declares are private unless marked `export` (`fun`, `let`, `struct`),
 and another file reaches them only through the module, as `m.name`. Two modules may declare the same name.
@@ -673,7 +714,10 @@ print people.map(({ name }) => name).join(", "); // bob, ann
 
 ### String and number methods
 
-`split(sep)` (`""` splits into characters), `upper()`, `lower()`, `trim()`, `startsWith(p)`, `endsWith(p)`, `replace(old, new)` (all occurrences), `repeat(n)`, and `slice`, `reverse`, `contains`, `indexOf` as for arrays, counting characters.
+`split(sep)` (`""` splits into characters), `upper()`, `lower()`, `startsWith(p)`, `endsWith(p)`, `replace(old, new)` (all occurrences), `repeat(n)`, and `slice`, `reverse`, `contains`, `indexOf` as for arrays, counting characters.
+
+- `trim([chars])`, `trimStart([chars])`, `trimEnd([chars])` — the string without whitespace, or any of the characters of `chars`, at both ends, the start or the end: `"--a--".trim("-")` is `"a"`.
+- `removePrefix(p)`, `removeSuffix(s)` — the string without `p` at its start or `s` at its end, if there.
 
 - `charCode([i])` — the code point of character `i` (default 0); `string.fromCharCode(c, ...)` — the string of those code points.
 - `padStart(width[, pad])`, `padEnd(width[, pad])` — the string filled to `width` characters with `pad` (default `" "`), repeated and cut.
@@ -734,7 +778,7 @@ current directory, not the script's.
 - `list(dir)` — the entries as `FileInfo`s, sorted by name.
 - `mkdir(path)` (with parents; an existing directory is fine), `remove(path)` (a file or an empty directory), `removeAll(path)`, `rename(from, to)`, `copy(from, to)`.
 - `cwd()`, `tempDir()` — a new directory, for the program to remove.
-- `join(a, ...)`, `base(p)`, `dir(p)`, `ext(p)` — paths.
+- `join(a, ...)`, `base(p)`, `dir(p)`, `ext(p)`, `stem(p)` (the base without its extension: `post` for `a/post.md`) — paths.
 
 ### Streams
 

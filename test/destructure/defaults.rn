@@ -1,0 +1,46 @@
+let [a, b = 2, c = a + b] = [1];
+print [a, b, c]; // expect: [1, 2, 3]
+
+let [x = 1] = [nil];
+print x; // expect: nil
+
+let { title, root = ".", n = len(title) } = { title: "hi" };
+print [title, root, n]; // expect: ["hi", ".", 2]
+
+fun page({ title, root = "." }, [w = 80, h = w / 2] = []) {
+    return "{title} {root} {w} {h}";
+}
+
+print page({ title: "t" }); // expect: t . 80 40
+print page({ title: "t", root: ".." }, [10]); // expect: t .. 10 5
+
+let mut [p = 0, ...rest] = [];
+print [p, rest]; // expect: [0, []]
+
+let [q, r = 5, ...more] = [1, 2, 3, 4];
+print [q, r, more]; // expect: [1, 2, [3, 4]]
+
+let mut calls = 0;
+let { v = calls++ } = { v: 1 };
+print calls; // expect: 0
+
+let g = k => {
+    let { v = "dflt" } = k;
+    return v;
+};
+print g({}); // expect: dflt
+print g({ v: nil }); // expect: nil
+
+for { k = "none" } in [{ k: 1 }, {}] print k;
+// expect: 1
+// expect: none
+
+struct P { x, y = 0 }
+let { y: yy = 9, z = 3 } = P { x: 1 };
+print [yy, z]; // expect: [0, 3]
+
+{
+    let { w = 4 } = {};
+    let [u = 5] = [];
+    print (() => w + u)(); // expect: 9
+}

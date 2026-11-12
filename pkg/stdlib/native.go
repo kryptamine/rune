@@ -259,7 +259,11 @@ func (ns namespace) value() value.Value {
 		members = append(members, Builtin{member, value.NewFunction(n)})
 	}
 
-	members = append(members, ns.consts...)
+	return NewNamespace(append(members, ns.consts...))
+}
+
+// NewNamespace makes a namespace of members, an immutable struct.
+func NewNamespace(members []Builtin) value.Value {
 	decls := make([]value.Field, len(members))
 
 	for i, m := range members {
@@ -291,12 +295,19 @@ func Member(name, key string) (v value.Value, found, isNamespace bool) {
 		return value.NilValue, false, false
 	}
 
+	v, found = NamespaceMember(ns, key)
+
+	return v, found, true
+}
+
+// NamespaceMember returns member key of the namespace ns.
+func NamespaceMember(ns value.Value, key string) (value.Value, bool) {
 	i := ns.Shape().Index(key)
 	if i < 0 {
-		return value.NilValue, false, true
+		return value.NilValue, false
 	}
 
-	return ns.Fields()[i], true, true
+	return ns.Fields()[i], true
 }
 
 // Owner returns the first namespace that has member key, or "".

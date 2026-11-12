@@ -1,0 +1,32 @@
+// Static blog generator: markdown posts with front matter → HTML site
+//
+//   ./rune run examples/blog/main.rn                         build the bundled posts into a temp dir
+//   ./rune run examples/blog/main.rn [content dir] [out dir] [--drafts]
+
+import site.build;
+import site.frontmatter as fm;
+
+fun main(args) {
+    let started = time.now();
+    let drafts = args.contains("--drafts");
+    let [src = fs.join(module.dir, "content"), out = fs.join(fs.tempDir(), "site")] = args.filter(a => !a.startsWith("--"));
+
+    try {
+        let site = build.load(src, drafts);
+        let n = build.write(site, out);
+
+        for p in site.posts {
+            let tags = p.tags.map(t => "#" + t).join(" ");
+            print "  %s  %-32s %4d words  %s".format(p.date, p.title, p.words, tags);
+        }
+        if len(site.skipped) > 0 print "  skipped drafts: {site.skipped.join(", ")}";
+
+        print "\n{n} files → {out} in %.1f ms".format((time.now() - started) * 1000);
+    } catch (e: fm.FrontMatterError) {
+        io.eprint("{e.path}:{e.line}: {e.message}");
+        return 1;
+    } catch (e: IOError) {
+        io.eprint(e.message);
+        return 1;
+    }
+}

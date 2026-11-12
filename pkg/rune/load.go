@@ -4,6 +4,7 @@ import (
 	stderrors "errors"
 	"fmt"
 	"io/fs"
+	"path"
 	"rune/pkg/ast"
 	"rune/pkg/errors"
 	"slices"
@@ -12,11 +13,12 @@ import (
 
 // Load scans, parses and resolves the program whose entry file is name in
 // fsys, along with the files it imports, which are named from the root of
-// fsys. Each file has its own top level, sees another's exports through
-// the name it imports it as, and runs once, after the files it imports;
-// then main, if the entry file declares it. The files come back even on
-// error, for reporting it.
-func Load(fsys fs.FS, name string) (*Program, []errors.File, []error) {
+// fsys, or relative to the importing file. Each file has its own top level,
+// sees another's exports through the name it imports it as, and runs once,
+// after the files it imports; then main, if the entry file declares it.
+// root is where fsys is on disk, for module.dir. The files come back even
+// on error, for reporting it.
+func Load(fsys fs.FS, root, name string) (*Program, []errors.File, []error) {
 	l := loader{fsys: fsys, index: map[string]int{}}
 	l.visit(name, nil)
 
@@ -25,6 +27,7 @@ func Load(fsys fs.FS, name string) (*Program, []errors.File, []error) {
 	}
 
 	r := NewResolver()
+	r.root = root
 	if errs := r.ResolveModules(l.modules); len(errs) > 0 {
 		return nil, l.files, errs
 	}
@@ -90,18 +93,37 @@ func (l *loader) visit(path string, from *importDecl) {
 		return
 	}
 
-	file.file = i
+	file.file, file.path = i, path
 
 	l.stack = append(l.stack, i)
 	for j := range file.imports {
 		imp := &file.imports[j]
-		path := strings.ReplaceAll(imp.name, ".", "/") + ".rn"
-		l.visit(path, imp)
-		imp.file = l.index[path]
+
+		p, ok := modulePath(path, imp)
+		if !ok {
+			l.errors = append(l.errors, errors.NewSyntaxError(imp.tok, fmt.Sprintf("Module '%s' is outside the program's directory.", imp.name)))
+			continue
+		}
+
+		l.visit(p, imp)
+		imp.file = l.index[p]
 	}
 	l.stack = l.stack[:len(l.stack)-1]
 
 	l.modules = append(l.modules, file)
+}
+
+// modulePath is the file imp names, imported from the file at from; ok is
+// false if it is outside the root.
+func modulePath(from string, imp *importDecl) (p string, ok bool) {
+	file := strings.ReplaceAll(imp.name[imp.dots:], ".", "/") + ".rn"
+	if imp.dots == 0 {
+		return file, true
+	}
+
+	p = path.Join(path.Dir(from), strings.Repeat("../", imp.dots-1), file)
+
+	return p, p != ".." && !strings.HasPrefix(p, "../")
 }
 
 func readError(err error, from *importDecl) error {

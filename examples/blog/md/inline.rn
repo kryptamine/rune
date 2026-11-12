@@ -1,0 +1,31 @@
+// Inline markdown: `code`, **strong**, *em*, [text](url), with HTML escaping
+
+export fun escape(s) {
+    return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
+}
+
+let CODE_RE = r"`([^`]+)`";
+
+export fun render(text) {
+    let mut out = [];
+    let mut rest = text;
+
+    while true {
+        let m = regex.find(CODE_RE, rest);
+        if m == nil break;
+        out.push(spans(rest.slice(0, m.index)));
+        out.push("<code>{escape(m.groups[0])}</code>");
+        rest = rest.slice(m.index + len(m.text));
+    }
+    out.push(spans(rest));
+
+    return out.join("");
+}
+
+fun spans(text) {
+    let mut s = escape(text);
+    s = regex.replace(r"\*\*([^*]+)\*\*", s, "<strong>$1</strong>");
+    s = regex.replace(r"\*([^*]+)\*", s, "<em>$1</em>");
+    s = regex.replace(r"\[([^\]]+)\]\(([^)\s]+)\)", s, r"""<a href="$2">$1</a>""");
+    return s;
+}

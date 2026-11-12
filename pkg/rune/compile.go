@@ -222,7 +222,7 @@ func (fs *funcState) declareTopLevel(stmts []ast.Stmt, builtins []namedLocal) {
 	}
 
 	for _, b := range builtins {
-		fs.declareTopLevelVar(b.local, b.name)
+		fs.declareAs(b.local, b.value)
 		fs.defined[b.local] = true
 	}
 }

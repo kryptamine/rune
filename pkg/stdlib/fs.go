@@ -202,6 +202,14 @@ var fsNatives = []*Native{
 	pathNative("fs.base", filepath.Base),
 	pathNative("fs.dir", filepath.Dir),
 	pathNative("fs.ext", filepath.Ext),
+	pathNative("fs.stem", func(p string) string {
+		base := filepath.Base(p)
+		if stem := strings.TrimSuffix(base, filepath.Ext(base)); stem != "" {
+			return stem
+		}
+
+		return base
+	}),
 }
 
 func pathNative(name string, f func(string) string) *Native {

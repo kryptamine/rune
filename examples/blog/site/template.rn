@@ -1,0 +1,46 @@
+// Page layout and the pieces of the index
+
+import ..md.inline;
+
+export fun page({ title, body, root = "." }) {
+    return """
+        <!doctype html>
+        <html lang="en">
+        <head>
+        <meta charset="utf-8">
+        <title>{inline.escape(title)}</title>
+        <link rel="stylesheet" href="{root}/style.css">
+        </head>
+        <body>
+        <nav><a href="{root}/index.html">home</a> · <a href="{root}/tags.html">tags</a></nav>
+        <main>
+        {body}
+        </main>
+        </body>
+        </html>
+
+        """;
+}
+
+export fun toc(headings) {
+    let items = headings
+        .filter(h => h.level == 2)
+        .map(h => """<li><a href="#{h.id}">{inline.escape(h.text)}</a></li>""");
+    return len(items) < 2 ? "" : """<nav class="toc"><ul>{items.join("")}</ul></nav>""";
+}
+
+export fun postLink(p, root = ".") {
+    let tags = p.tags.map(t => """<a class="tag" href="{root}/tags.html#{t}">#{t}</a>""").join(" ");
+    return """<li><time>{p.date}</time> <a href="{root}/posts/{p.slug}.html">{inline.escape(p.title)}</a> {tags}</li>""";
+}
+
+export let STYLE = r"""
+    body { font: 16px/1.6 system-ui, sans-serif; max-width: 42rem; margin: 2rem auto; padding: 0 1rem; }
+    pre { background: #f4f4f4; padding: .75rem; overflow-x: auto; }
+    code { font-family: ui-monospace, monospace; }
+    blockquote { border-left: 3px solid #ccc; margin: 0; padding-left: 1rem; color: #555; }
+    .tag { font-size: .85em; color: #777; }
+    .toc { font-size: .9em; }
+    time { color: #777; font-variant-numeric: tabular-nums; }
+
+    """;

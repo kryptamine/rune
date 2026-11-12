@@ -1,0 +1,9 @@
+[line: 1] Error at 'b': An element without a default cannot follow one with a default.
+    1 | let [a = 1, b] = [1, 2]; // Error at 'b': An element without a default cannot follow one with a default.
+      |             ^
+[line: 2] Error at '=': A rest element or _ cannot have a default.
+    2 | let [_ = 1] = []; // Error at '=': A rest element or _ cannot have a default.
+      |        ^
+[line: 3] Error at '=': A rest element or _ cannot have a default.
+    3 | let [...r = 1] = []; // Error at '=': A rest element or _ cannot have a default.
+      |           ^

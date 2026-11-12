@@ -6,12 +6,25 @@ import (
 	"rune/pkg/helpers"
 	"rune/pkg/value"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 )
 
 func unaryString(name string, f func(string) string) *Native {
 	return &Native{name, 1, 1, func(c *call) value.Value {
 		return value.NewString(f(c.str(0)))
+	}}
+}
+
+// trim takes whitespace, or with an argument any of its characters, off
+// the ends of the string: whitespace and cutset get one end or both.
+func trim(name string, whitespace func(string) string, cutset func(s, chars string) string) *Native {
+	return &Native{name, 1, 2, func(c *call) value.Value {
+		if !c.has(1) {
+			return value.NewString(whitespace(c.str(0)))
+		}
+
+		return value.NewString(cutset(c.str(0), c.str(1)))
 	}}
 }
 
@@ -24,7 +37,15 @@ func stringPredicate(name string, f func(s, x string) bool) *Native {
 var stringMethods = []*Native{
 	unaryString("string.upper", strings.ToUpper),
 	unaryString("string.lower", strings.ToLower),
-	unaryString("string.trim", strings.TrimSpace),
+	trim("string.trim", strings.TrimSpace, strings.Trim),
+	trim("string.trimStart", func(s string) string { return strings.TrimLeftFunc(s, unicode.IsSpace) }, strings.TrimLeft),
+	trim("string.trimEnd", func(s string) string { return strings.TrimRightFunc(s, unicode.IsSpace) }, strings.TrimRight),
+	{"string.removePrefix", 2, 2, func(c *call) value.Value {
+		return value.NewString(strings.TrimPrefix(c.str(0), c.str(1)))
+	}},
+	{"string.removeSuffix", 2, 2, func(c *call) value.Value {
+		return value.NewString(strings.TrimSuffix(c.str(0), c.str(1)))
+	}},
 	stringPredicate("string.startsWith", strings.HasPrefix),
 	stringPredicate("string.endsWith", strings.HasSuffix),
 	{"string.split", 2, 2, func(c *call) value.Value {

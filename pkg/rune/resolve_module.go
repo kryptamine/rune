@@ -26,10 +26,13 @@ type moduleScope struct {
 	// imports holds the modules the file imports, by the name it binds.
 	imports map[string]*moduleScope
 	exports map[string]*ast.Local
+	// file is the file's namespace, module.
+	file value.Value
 }
 
-func newModuleScope() *moduleScope {
+func newModuleScope(file value.Value) *moduleScope {
 	return &moduleScope{
+		file:          file,
 		globals:       map[string]*localVar{},
 		globalMutable: map[string]bool{},
 		topLevel:      map[string]*ast.Local{},
@@ -39,13 +42,24 @@ func newModuleScope() *moduleScope {
 	}
 }
 
+// builtinValue is the built-in called name in the file.
+func (m *moduleScope) builtinValue(name string) (value.Value, bool) {
+	if name == fileNamespace {
+		return m.file, true
+	}
+
+	v, ok := builtinValues()[name]
+
+	return v, ok
+}
+
 // ResolveModules resolves a program's files, each after the ones it
 // imports, and returns all errors found.
 func (p *Resolver) ResolveModules(files []*fileAST) []error {
 	p.modules = make([]*moduleScope, len(files))
 
 	for _, f := range files {
-		p.mod = newModuleScope()
+		p.mod = newModuleScope(newFileNamespace(p.root, f.path))
 		p.modules[f.file] = p.mod
 
 		for _, imp := range f.imports {
@@ -93,6 +107,7 @@ func (p *Resolver) bindModule(name ast.Token, m *moduleScope) {
 type namedLocal struct {
 	name  string
 	local *ast.Local
+	value value.Value
 }
 
 // builtinLocals lists the declarations made for the built-ins each file
@@ -109,7 +124,8 @@ func (p *Resolver) builtinLocals() []namedLocal {
 		slices.Sort(names)
 
 		for _, name := range names {
-			out = append(out, namedLocal{name, m.builtins[name]})
+			v, _ := m.builtinValue(name)
+			out = append(out, namedLocal{name, m.builtins[name], v})
 		}
 	}
 

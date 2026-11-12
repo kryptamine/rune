@@ -39,25 +39,68 @@ func NewVarStmt(initializer Expr, binding Binding) Stmt {
 	return &VarStmt{Initializer: initializer, Binding: binding}
 }
 
+// PatternVar is a variable a pattern binds, and its default, if any, taken
+// when the value has no such property or element.
+type PatternVar struct {
+	Binding
+	Default Expr
+}
+
 // DestructureField binds the property Key (by its Lexeme) of the value.
 type DestructureField struct {
 	Key Token
-	Binding
+	PatternVar
 }
 
-// DestructureStmt is let { a, mut b, c: d } = value;
+// DestructureStmt is let { a, mut b = 1, c: d } = value;
 type DestructureStmt struct {
 	Fields      []DestructureField
 	Initializer Expr
 }
 
-// ArrayDestructureStmt is let [a, _, mut b, ...rest] = value; Elems
+// ArrayDestructureStmt is let [a, _, mut b = 1, ...rest] = value; Elems
 // binds the elements in order, nil for _, and Rest, if any, the others.
 type ArrayDestructureStmt struct {
 	Bracket     Token
-	Elems       []*Binding
-	Rest        *Binding
+	Elems       []*PatternVar
+	Rest        *PatternVar
 	Initializer Expr
+}
+
+// Required is the number of elements the value must have: those before
+// the first with a default.
+func (s *ArrayDestructureStmt) Required() int {
+	for i, e := range s.Elems {
+		if e != nil && e.Default != nil {
+			return i
+		}
+	}
+
+	return len(s.Elems)
+}
+
+// PatternVars returns the variables a destructuring stmt binds, in order.
+func PatternVars(stmt Stmt) []*PatternVar {
+	var vs []*PatternVar
+
+	switch s := stmt.(type) {
+	case *DestructureStmt:
+		for i := range s.Fields {
+			vs = append(vs, &s.Fields[i].PatternVar)
+		}
+	case *ArrayDestructureStmt:
+		for _, e := range s.Elems {
+			if e != nil {
+				vs = append(vs, e)
+			}
+		}
+
+		if s.Rest != nil {
+			vs = append(vs, s.Rest)
+		}
+	}
+
+	return vs
 }
 
 // Declared returns the variables stmt declares, structs aside.
@@ -67,23 +110,11 @@ func Declared(stmt Stmt) []*Binding {
 		return []*Binding{&s.Binding}
 	case *FunctionStmt:
 		return []*Binding{&s.Binding}
-	case *DestructureStmt:
-		bs := make([]*Binding, len(s.Fields))
-		for i := range s.Fields {
-			bs[i] = &s.Fields[i].Binding
-		}
-
-		return bs
-	case *ArrayDestructureStmt:
-		var bs []*Binding
-		for _, b := range s.Elems {
-			if b != nil {
-				bs = append(bs, b)
-			}
-		}
-
-		if s.Rest != nil {
-			bs = append(bs, s.Rest)
+	case *DestructureStmt, *ArrayDestructureStmt:
+		vs := PatternVars(s)
+		bs := make([]*Binding, len(vs))
+		for i, v := range vs {
+			bs[i] = &v.Binding
 		}
 
 		return bs
