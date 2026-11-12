@@ -308,6 +308,9 @@ print p;      // Point {x: 1, y: 0}
 print p.x;    // 1
 print p["y"]; // 0
 
+let x = 5;
+Point { x };          // shorthand for Point { x: x }
+
 Point { x: 1, z: 2 }; // Error at 'z': Point has no field 'z'.
 Point { y: 2 };       // Error at 'Point': Missing field 'x' of Point.
 ```

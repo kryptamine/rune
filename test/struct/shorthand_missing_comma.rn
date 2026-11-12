@@ -1,0 +1,5 @@
+struct P { x }
+
+let a = 1;
+let b = 2;
+P { a, b 1 }; // [line: 5] Error at '1': Expect '}' after struct fields.

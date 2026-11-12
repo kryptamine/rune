@@ -576,7 +576,8 @@ func (s *Parser) structLiteral(module *ast.Token, name ast.Token) (ast.Expr, err
 	return &ast.StructExpr{Type: &ast.VarExpr{Module: module, Name: name}, Pairs: pairs}, nil
 }
 
-// structPairs parses field: value, ... up to "}"; the "{" has already been consumed.
+// structPairs parses field: value, ... up to "}"; the "{" has already been
+// consumed. A bare field takes the variable of the same name.
 func (s *Parser) structPairs() ([]ast.StructPair, error) {
 	var pairs []ast.StructPair
 
@@ -586,8 +587,10 @@ func (s *Parser) structPairs() ([]ast.StructPair, error) {
 			return "", key, err
 		}
 
-		if _, err := s.consume(ast.COLON, "Expect ':' after field name."); err != nil {
-			return "", key, err
+		if !s.match(ast.COLON) {
+			pairs = append(pairs, ast.StructPair{Key: key, Value: ast.NewVarExpr(key)})
+
+			return key.Lexeme, key, nil
 		}
 
 		v, err := s.expressionWithStructs(structsAll)
@@ -599,19 +602,21 @@ func (s *Parser) structPairs() ([]ast.StructPair, error) {
 	return pairs, err
 }
 
-// isStructLiteralStart reports whether "{ }" or "{ field :" starts at
-// offset tokens ahead, where the mode allows a struct literal.
+// isStructLiteralStart reports whether "Name {" at offset starts a struct literal.
 func (s *Parser) isStructLiteralStart(offset int) bool {
 	if s.structs == structsNone || s.peekAt(offset) != ast.LEFT_BRACE {
 		return false
 	}
 
-	next := s.peekAt(offset + 1)
-	if next == ast.RIGHT_BRACE {
+	switch s.peekAt(offset + 1) {
+	case ast.RIGHT_BRACE:
 		return s.structs == structsAll
+	case ast.IDENTIFIER:
+		after := s.peekAt(offset + 2)
+		return after == ast.COLON || after == ast.COMMA || after == ast.RIGHT_BRACE
 	}
 
-	return next == ast.IDENTIFIER && s.peekAt(offset+2) == ast.COLON
+	return false
 }
 
 // arrayLiteral parses [a, b, ...]; the "[" has already been consumed.

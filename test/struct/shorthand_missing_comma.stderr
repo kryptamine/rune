@@ -1,0 +1,3 @@
+[line: 5] Error at '1': Expect '}' after struct fields.
+    5 | P { a, b 1 }; // [line: 5] Error at '1': Expect '}' after struct fields.
+      |          ^
