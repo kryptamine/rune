@@ -1,0 +1,8 @@
+[line: 1] Error at 'print': Expect declaration after 'export'.
+  --> _lib/bad_export.rn:1:8
+    1 | export print 1;
+      |        ^
+[line: 3] Error at 'export': Only top-level declarations can be exported.
+  --> _lib/bad_export.rn:3:3
+    3 |   export let x = 1;
+      |   ^

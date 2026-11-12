@@ -1,6 +1,16 @@
 import _lib.math;
 import _lib.nested.greet;
 
-print square(3); // expect: 9
-print pi; // expect: 3
-print greet("bob"); // expect: hi bob
+print math.square(3); // expect: 9
+print math.pi; // expect: 3
+print greet.greet("bob"); // expect: hi bob
+print math["square"](4); // expect: 16
+print math.call(); // expect: private
+
+fun inner() {
+  return math.square(5) + math.pi;
+}
+
+print inner(); // expect: 28
+let f = x => math.square(x);
+print f(6); // expect: 36

@@ -62,6 +62,7 @@ const (
 	WITH
 	IS
 	IMPORT
+	EXPORT
 	MATCH
 
 	// Single tokens
@@ -139,6 +140,7 @@ var Keywords = map[string]TokenType{
 	"with":     WITH,
 	"is":       IS,
 	"import":   IMPORT,
+	"export":   EXPORT,
 	"match":    MATCH,
 }
 
@@ -233,6 +235,8 @@ func (tokenType TokenType) String() string {
 		return "MATCH"
 	case IMPORT:
 		return "IMPORT"
+	case EXPORT:
+		return "EXPORT"
 	case CONTINUE:
 		return "CONTINUE"
 	case IN:

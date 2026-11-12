@@ -1,0 +1,3 @@
+[line: 1] Error at ';': Expect name after 'as'.
+    1 | import _lib.math as; // Error at ';': Expect name after 'as'.
+      |                    ^

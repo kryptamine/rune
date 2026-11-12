@@ -1,3 +1,0 @@
-import _lib.math;
-
-pi = 4; // Error at 'pi': Cannot assign to immutable variable 'pi'.

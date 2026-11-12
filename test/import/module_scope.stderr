@@ -1,0 +1,3 @@
+[line: 4] NameError: Undefined variable 'g'.
+    4 | print g; // expect runtime error: [line: 4] NameError: Undefined variable 'g'.
+      |       ^

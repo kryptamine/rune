@@ -1,5 +1,3 @@
 import _lib.math;
 
-fun square(x) { // Error at 'square': Variable with this name already declared in this scope.
-  return x;
-}
+fun math() {} // Error at 'math': Variable with this name already declared in this scope.

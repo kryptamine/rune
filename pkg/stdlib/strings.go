@@ -6,6 +6,7 @@ import (
 	"rune/pkg/helpers"
 	"rune/pkg/value"
 	"strings"
+	"unicode/utf8"
 )
 
 func unaryString(name string, f func(string) string) *Native {
@@ -65,4 +66,101 @@ var stringNatives = []*Native{
 
 		return value.NewString(strings.Repeat(s, n))
 	}},
+	{"string.charCode", 1, 2, func(c *call) value.Value {
+		s, i := c.str(0), 0
+		if c.has(1) {
+			i = c.int(1)
+		}
+
+		if !c.ok() {
+			return value.NilValue
+		}
+
+		if n := utf8.RuneCountInString(s); i < 0 || i >= n {
+			return c.fail(errors.IndexError, "index %d out of bounds of %d characters.", i, n)
+		}
+
+		r, _ := utf8.DecodeRuneInString(s[helpers.ByteOffset(s, i):])
+
+		return count(int(r))
+	}},
+	{"string.fromCharCode", 1, -1, func(c *call) value.Value {
+		b := make([]byte, 0, len(c.args))
+
+		for i := range c.args {
+			code := c.int(i)
+			if !c.ok() {
+				return value.NilValue
+			}
+
+			if code < 0 || code > utf8.MaxRune || (code >= 0xD800 && code <= 0xDFFF) {
+				return c.fail(errors.ValueError, "%d is not a valid character code.", code)
+			}
+
+			b = utf8.AppendRune(b, rune(code))
+		}
+
+		return value.NewString(string(b))
+	}},
+	pad("string.padStart", true),
+	pad("string.padEnd", false),
+	{"string.format", 1, -1, func(c *call) value.Value {
+		f := c.str(0)
+		if !c.ok() {
+			return value.NilValue
+		}
+
+		return format(c, f, c.args[1:])
+	}},
+}
+
+// pad fills s with pad, repeated and cut, to width characters.
+func pad(name string, start bool) *Native {
+	return &Native{name, 2, 3, func(c *call) value.Value {
+		s, width, fill := c.str(0), c.int(1), " "
+		if c.has(2) {
+			fill = c.str(2)
+		}
+
+		switch {
+		case !c.ok():
+			return value.NilValue
+		case fill == "":
+			return c.fail(errors.ValueError, "pad must not be empty.")
+		case width > math.MaxInt32/utf8.UTFMax:
+			return c.fail(errors.ValueError, "result is too large.")
+		}
+
+		return value.NewString(padded(s, width, fill, start))
+	}}
+}
+
+func padded(s string, width int, fill string, start bool) string {
+	n := width - utf8.RuneCountInString(s)
+	if n <= 0 {
+		return s
+	}
+
+	var b strings.Builder
+
+	if !start {
+		b.WriteString(s)
+	}
+
+	for n > 0 {
+		for _, r := range fill {
+			if n == 0 {
+				break
+			}
+
+			b.WriteRune(r)
+			n--
+		}
+	}
+
+	if start {
+		b.WriteString(s)
+	}
+
+	return b.String()
 }

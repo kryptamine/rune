@@ -1,8 +1,8 @@
 import _lib.math;
 
-let mut count = 0;
+export let mut count = 0;
 
-fun bump() {
-  count += square(1);
+export fun bump() {
+  count += math.square(1);
   return count;
 }

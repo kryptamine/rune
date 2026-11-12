@@ -1,0 +1,9 @@
+[line: 3] Error at 'math': Module 'math' is not a value; use its members, as in math.name.
+    3 | print math; // Error at 'math': Module 'math' is not a value; use its members, as in math.name.
+      |       ^
+[line: 5] Error at ']': Module members must be named, as in math.name.
+    5 | math[k]; // Error at ']': Module members must be named, as in math.name.
+      |       ^
+[line: 6] Error at 'nope': Module 'math' has no export 'nope'.
+    6 | math.nope.x; // Error at 'nope': Module 'math' has no export 'nope'.
+      |      ^

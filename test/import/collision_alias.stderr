@@ -1,0 +1,4 @@
+[line: 2] Error at 'math': Variable with this name already declared in this scope.
+    2 | import _lib.math_clash as math; // Error at 'math': Variable with this name already declared in this scope.
+      |                           ^
+  note: first declared at line 1

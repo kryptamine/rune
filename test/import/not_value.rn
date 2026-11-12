@@ -1,0 +1,6 @@
+import _lib.math;
+
+print math; // Error at 'math': Module 'math' is not a value; use its members, as in math.name.
+let k = "pi";
+math[k]; // Error at ']': Module members must be named, as in math.name.
+math.nope.x; // Error at 'nope': Module 'math' has no export 'nope'.

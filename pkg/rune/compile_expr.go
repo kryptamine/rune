@@ -476,6 +476,11 @@ func (fs *funcState) call(n *ast.CallExpr, dst int32) {
 }
 
 func (fs *funcState) index(n *ast.IndexExpr, dst int32) {
+	if n.Export != nil {
+		fs.varExpr(n.Export, dst)
+		return
+	}
+
 	if n.Member != nil {
 		fs.emit(ins{op: opLoadK, a: dst, c: fs.constant(*n.Member)}, nil)
 		return

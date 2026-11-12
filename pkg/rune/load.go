@@ -12,9 +12,10 @@ import (
 
 // Load scans, parses and resolves the program whose entry file is name in
 // fsys, along with the files it imports, which are named from the root of
-// fsys. All files share one top level, and each runs once, after the files
-// it imports; then main, if the entry file declares it. The files come
-// back even on error, for reporting it.
+// fsys. Each file has its own top level, sees another's exports through
+// the name it imports it as, and runs once, after the files it imports;
+// then main, if the entry file declares it. The files come back even on
+// error, for reporting it.
 func Load(fsys fs.FS, name string) (*Program, []errors.File, []error) {
 	l := loader{fsys: fsys, index: map[string]int{}}
 	l.visit(name, nil)
@@ -24,11 +25,16 @@ func Load(fsys fs.FS, name string) (*Program, []errors.File, []error) {
 	}
 
 	r := NewResolver()
-	if errs := r.ResolveStmts(l.stmts); len(errs) > 0 {
+	if errs := r.ResolveModules(l.modules); len(errs) > 0 {
 		return nil, l.files, errs
 	}
 
-	prog, err := compile(l.stmts, r.builtins, r.main)
+	var stmts []ast.Stmt
+	for _, m := range l.modules {
+		stmts = append(stmts, m.stmts...)
+	}
+
+	prog, err := compile(stmts, r.builtinLocals(), r.main)
 	if err != nil {
 		return nil, l.files, []error{err}
 	}
@@ -36,15 +42,16 @@ func Load(fsys fs.FS, name string) (*Program, []errors.File, []error) {
 	return prog, l.files, nil
 }
 
-// loader walks the imports depth first; stack holds the files still
-// loading, the importers of the one being loaded.
+// loader walks the imports depth first, so modules come after the ones
+// they import; stack holds the files still loading, the importers of the
+// one being loaded.
 type loader struct {
-	fsys   fs.FS
-	files  []errors.File
-	index  map[string]int
-	stack  []int
-	stmts  []ast.Stmt
-	errors []error
+	fsys    fs.FS
+	files   []errors.File
+	index   map[string]int
+	stack   []int
+	modules []*fileAST
+	errors  []error
 }
 
 // visit loads the file at path and, before it, the files it imports. The
@@ -76,16 +83,25 @@ func (l *loader) visit(path string, from *importDecl) {
 		return
 	}
 
-	imports, stmts, parseErrors := parseFile(scanner.tokens, from != nil)
+	file, parseErrors := parseFile(scanner.tokens, from != nil)
 	l.errors = append(append(l.errors, scanner.errors...), parseErrors...)
 
+	if file == nil {
+		return
+	}
+
+	file.file = i
+
 	l.stack = append(l.stack, i)
-	for _, imp := range imports {
-		l.visit(strings.ReplaceAll(imp.name, ".", "/")+".rn", &imp)
+	for j := range file.imports {
+		imp := &file.imports[j]
+		path := strings.ReplaceAll(imp.name, ".", "/") + ".rn"
+		l.visit(path, imp)
+		imp.file = l.index[path]
 	}
 	l.stack = l.stack[:len(l.stack)-1]
 
-	l.stmts = append(l.stmts, stmts...)
+	l.modules = append(l.modules, file)
 }
 
 func readError(err error, from *importDecl) error {

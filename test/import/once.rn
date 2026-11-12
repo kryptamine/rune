@@ -1,6 +1,8 @@
 import _lib.math;
 import _lib.counter;
-import _lib.math;
+import _lib.math as again;
 
-print bump(); // expect: 1
-print bump(); // expect: 2
+print counter.bump(); // expect: 1
+print counter.bump(); // expect: 2
+print counter.count; // expect: 2
+print again.pi; // expect: 3

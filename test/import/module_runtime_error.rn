@@ -1,3 +1,3 @@
 import _lib.fail;
 
-boom(1); // expect runtime error: [line: 2] TypeError: Cannot read property 'y' of number.
+fail.boom(1); // expect runtime error: [line: 2] TypeError: Cannot read property 'y' of number.

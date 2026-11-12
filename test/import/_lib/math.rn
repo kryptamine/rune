@@ -1,5 +1,20 @@
-fun square(x) {
+export fun square(x) {
   return x * x;
 }
 
-let pi = 3;
+export let pi = 3;
+export let items = [];
+export let mut log = [];
+export let mut calls = 0;
+
+fun helper() {
+  return "private";
+}
+
+export fun call() {
+  calls += 1;
+  return helper();
+}
+
+export struct Vec { x, y = 0 }
+export struct MathError { message }

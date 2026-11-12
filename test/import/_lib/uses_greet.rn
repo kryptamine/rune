@@ -1,3 +1,5 @@
-fun welcome() {
-  return greet("all");
+import _lib.nested.greet as g;
+
+export fun welcome() {
+  return g.greet("all");
 }

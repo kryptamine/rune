@@ -1,4 +1,4 @@
-[line: 3] Error at 'square': Variable with this name already declared in this scope.
-    3 | fun square(x) { // Error at 'square': Variable with this name already declared in this scope.
+[line: 3] Error at 'math': Variable with this name already declared in this scope.
+    3 | fun math() {} // Error at 'math': Variable with this name already declared in this scope.
       |     ^
-  note: first declared at _lib/math.rn:1
+  note: first declared at line 1

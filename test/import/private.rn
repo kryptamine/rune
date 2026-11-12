@@ -1,0 +1,4 @@
+import _lib.math;
+
+math.helper(); // Error at 'helper': Module 'math' has no export 'helper'.
+

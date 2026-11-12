@@ -153,9 +153,26 @@ func (s *Parser) patternAlt() (ast.Pattern, error) {
 			return &ast.WildcardPattern{Token: name}, nil
 		}
 
+		pat := &ast.StructPattern{Name: name}
+
+		if s.match(ast.DOT) {
+			typ, err := s.consume(ast.IDENTIFIER, "Expect struct name after '.'.")
+			if err != nil {
+				return nil, err
+			}
+
+			pat.Module, pat.Name = &name, typ
+		}
+
 		if s.match(ast.LEFT_BRACE) {
 			fields, err := s.fieldPatterns(false)
-			return &ast.StructPattern{Name: name, Fields: fields}, err
+			pat.Fields = fields
+
+			return pat, err
+		}
+
+		if pat.Module != nil {
+			return pat, nil
 		}
 
 		return &ast.NamePattern{Name: name}, nil
