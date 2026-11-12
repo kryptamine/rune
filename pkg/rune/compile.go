@@ -121,7 +121,7 @@ func compileScript(methods methodTable, body func(fs *funcState, args *ast.Local
 
 	args := &ast.Local{}
 	fs.declare(args)
-	fs.proto.arity = 1
+	fs.proto.arity, fs.proto.required = 1, 1
 
 	main := body(fs, args)
 	fs.finish()
@@ -264,10 +264,22 @@ func (fs *funcState) functionNamed(decl *ast.FunctionStmt, name string, mutSelf 
 		f.proto.arity, f.proto.rest = f.proto.arity-1, true
 	}
 
-	for _, param := range decl.Parameters {
-		r := f.declare(param.Local)
+	f.proto.required = decl.Required()
+
+	regs := make([]int32, len(decl.Parameters))
+	for i, param := range decl.Parameters {
+		regs[i] = f.declare(param.Local)
+	}
+
+	for i, param := range decl.Parameters {
+		if decl.Defaults[i] != nil {
+			skip := f.emit(ins{op: opJmpDefined, a: regs[i]}, nil)
+			f.expr(decl.Defaults[i], regs[i])
+			f.patch([]int{skip})
+		}
+
 		if param.Local.Captured {
-			f.emit(ins{op: opNewCell, a: r, b: r}, nil)
+			f.emit(ins{op: opNewCell, a: regs[i], b: regs[i]}, nil)
 		}
 	}
 

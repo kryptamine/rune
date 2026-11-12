@@ -180,8 +180,12 @@ func (p *Interpreter) enter(cl *Closure, base, nargs int, tok *ast.Token) error 
 		p.grow(need)
 	}
 
+	for i := nargs; i < f.arity; i++ {
+		p.stack[base+i] = value.UndefinedValue
+	}
+
 	if f.rest {
-		rest := p.stack[base+f.arity : base+nargs]
+		rest := p.stack[base+f.arity : base+max(nargs, f.arity)]
 		p.stack[base+f.arity] = value.NewArray(append([]value.Value(nil), rest...))
 	}
 
@@ -202,8 +206,11 @@ func (p *Interpreter) callError(cl *Closure, nargs int, tok *ast.Token) error {
 // first skip parameters, which the call passes itself.
 func argumentError(f *Proto, nargs, skip int, tok *ast.Token) error {
 	want := fmt.Sprintf("%d arguments", f.arity-skip)
-	if f.rest {
-		want = "at least " + helpers.Plural(f.arity-skip, "argument")
+	switch {
+	case f.rest:
+		want = "at least " + helpers.Plural(f.required-skip, "argument")
+	case f.required < f.arity:
+		want = fmt.Sprintf("%d to %d arguments", f.required-skip, f.arity-skip)
 	}
 
 	return errors.NewRuntimeError(errors.ArgumentError, *tok, fmt.Sprintf("Expected %s but got %d.", want, nargs-skip))

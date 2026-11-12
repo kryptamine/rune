@@ -54,6 +54,7 @@ const (
 	opJmpCmpK    // if (R[A] <X> K[B]) == Y: pc = C
 	opJmpNotType // if R[A] is not a struct of type K[B]: pc = C
 	opJmpNil     // if (R[A] is nil) == Y: pc = C
+	opJmpDefined // if R[A] is defined: pc = C
 
 	opArray    // R[A] = [R[B], ..., R[B+C-1]]
 	opConcat   // R[A] = R[B] .. R[B+C-1] as printed, appended to R[A] if X
@@ -161,9 +162,11 @@ type upvalDesc struct {
 // Proto is a compiled function. toks[i] locates errors of code[i].
 type Proto struct {
 	name string
-	// arity counts the parameters, except a rest one, if rest.
-	arity int
-	rest  bool
+	// arity counts the parameters, except a rest one, if rest; the
+	// first required of them have no default.
+	arity    int
+	required int
+	rest     bool
 	// exact is the argument count the inlined call takes: arity, or -1
 	// with a rest parameter, so it checks one field.
 	exact  int
@@ -178,7 +181,7 @@ type Proto struct {
 
 // accepts reports whether f takes n arguments.
 func (f *Proto) accepts(n int) bool {
-	return n == f.arity || f.rest && n > f.arity
+	return n >= f.required && (n <= f.arity || f.rest)
 }
 
 func (f *Proto) displayName() string {
@@ -225,7 +228,7 @@ var opNames = [...]string{
 	"MOVE", "LOADK", "NEWCELL", "GETCELL", "SETCELL", "GETUPVAL", "SETUPVAL",
 	"CHECKDEFINED", "SETCELL!", "SETUPVAL!", "UNDEFINED",
 	"ADD", "SUB", "MUL", "DIV", "MOD", "ADDK", "SUBK", "MULK", "DIVK", "MODK", "CMP", "CMPK", "IS", "NEG", "NOT", "INCR", "BITWISE", "BITNOT",
-	"JMP", "JMPIF", "JMPCMP", "JMPCMPK", "JMPNOTTYPE", "JMPNIL",
+	"JMP", "JMPIF", "JMPCMP", "JMPCMPK", "JMPNOTTYPE", "JMPNIL", "JMPDEFINED",
 	"ARRAY", "CONCAT", "OBJECT", "STRUCT", "GETINDEX", "GETPROP", "GETINDEX?", "GETPROP?", "SETINDEX", "SETPROP", "CHECKPROP", "TESTPROP", "RANGE", "SPREAD", "UNPACK",
 	"CLOSURE", "CALL", "CALLARRAY", "INVOKE", "METHOD", "RETURN", "RETURNNIL", "PRINT", "THROW", "RETHROW", "NOMATCH", "TRY", "ENDTRY",
 	"FORRANGE", "FORRANGENEXT", "FORITER", "FORITERNEXT",
@@ -267,6 +270,10 @@ func (prog *Program) Disassemble() string {
 	var walk func(f *Proto)
 	walk = func(f *Proto) {
 		arity := fmt.Sprint(f.arity)
+		if f.required < f.arity {
+			arity = fmt.Sprintf("%d-%d", f.required, f.arity)
+		}
+
 		if f.rest {
 			arity += "+"
 		}

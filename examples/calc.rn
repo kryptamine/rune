@@ -1,0 +1,256 @@
+// Calculator: tokenizer, Pratt parser and evaluator with variables and functions
+//
+//   ./rune run examples/calc.rn          demo
+//   ./rune run examples/calc.rn repl     read lines from stdin
+
+struct Token { kind, text, pos }
+
+struct Num { value }
+struct Var { name }
+struct Unary { op, expr }
+struct Binary { op, left, right }
+struct Call { name, args }
+struct Assign { name, expr }
+struct FunDef { name, params, body }
+
+struct CalcError { message, pos = nil }
+
+let TOKEN_RE = "(?P<num>\\d+(?:\\.\\d+)?)|(?P<id>[a-zA-Z_]\\w*)|(?P<op>\\*\\*|[-+*/%^(),=])|(?P<bad>\\S)";
+
+fun tokenize(src) {
+    let mut tokens = [];
+
+    for m in regex.findAll(TOKEN_RE, src) {
+        let { bad } = m.named;
+        let kind = match m.named {
+            { num } if num != nil => "num",
+            { id } if id != nil => "id",
+            { op } if op != nil => "op",
+            _ => throw CalcError { message: "unexpected '{bad}'", pos: m.index },
+        };
+        tokens.push(Token { kind, text: m.text, pos: m.index });
+    }
+
+    tokens.push(Token { kind: "eof", text: "end of input", pos: len(src) });
+    return tokens;
+}
+
+let PRECEDENCE = Map({ "+": 10, "-": 10, "*": 20, "/": 20, "%": 20, "^": 30, "**": 30 });
+let RIGHT_ASSOC = Set(["^", "**"]);
+
+struct Parser { tokens, i = 0 }
+
+impl Parser {
+    fun peek(self) { return self.tokens[self.i]; }
+
+    fun next(mut self) {
+        let t = self.tokens[self.i];
+        self.i++;
+        return t;
+    }
+
+    fun expect(mut self, text) {
+        let t = self.next();
+        if t.text != text throw CalcError { message: "expected '{text}', got '{t.text}'", pos: t.pos };
+        return t;
+    }
+
+    fun statement(mut self) {
+        let [a, b] = [self.peek(), self.tokens?.[self.i + 1]];
+
+        if a.kind == "id" and b?.text == "=" {
+            self.i += 2;
+            return Assign { name: a.text, expr: self.expr(0) };
+        }
+
+        if a.text == "fn" {
+            self.next();
+            let name = self.next().text;
+            self.expect("(");
+            let mut params = [];
+            while self.peek().text != ")" {
+                params.push(self.next().text);
+                if self.peek().text == "," self.next();
+            }
+            self.expect(")");
+            self.expect("=");
+            return FunDef { name, params, body: self.expr(0) };
+        }
+
+        return self.expr(0);
+    }
+
+    fun expr(mut self, minPrec) {
+        let mut left = self.prefix();
+
+        while true {
+            let op = self.peek().text;
+            let prec = PRECEDENCE.get(op, -1);
+            if prec < minPrec or prec < 0 break;
+
+            self.next();
+            let nextMin = RIGHT_ASSOC.has(op) ? prec : prec + 1;
+            left = Binary { op, left, right: self.expr(nextMin) };
+        }
+
+        return left;
+    }
+
+    fun prefix(mut self) {
+        let t = self.next();
+
+        return match t {
+            Token { kind: "num", text } => Num { value: number(text) },
+            Token { kind: "op", text: "-" } => Unary { op: "-", expr: self.expr(25) },
+            Token { kind: "op", text: "(" } => {
+                let e = self.expr(0);
+                self.expect(")");
+                return e;
+            },
+            Token { kind: "id", text: name } if self.peek().text == "(" => {
+                self.next();
+                let mut args = [];
+                while self.peek().text != ")" {
+                    args.push(self.expr(0));
+                    if self.peek().text == "," self.next();
+                }
+                self.expect(")");
+                return Call { name, args };
+            },
+            Token { kind: "id", text: name } => Var { name },
+            _ => throw CalcError { message: "unexpected '{t.text}'", pos: t.pos },
+        };
+    }
+}
+
+fun parse(src) {
+    let mut p = Parser { tokens: tokenize(src) };
+    let ast = p.statement();
+    let end = p.peek();
+    if end.kind != "eof" throw CalcError { message: "unexpected '{end.text}'", pos: end.pos };
+    return ast;
+}
+
+let BUILTINS = {
+    sqrt: math.sqrt,
+    abs: math.abs,
+    floor: math.floor,
+    max: math.max,
+    min: math.min,
+    sum: (...xs) => xs.reduce((a, b) => a + b, 0),
+};
+
+struct Env { vars, funs }
+
+impl Env {
+    fun new() {
+        return Env { vars: Map({ pi: math.PI }), funs: Map() };
+    }
+
+    fun eval(self, node, locals = {}) {
+        let ev = n => self.eval(n, locals);
+
+        return match node {
+            Num { value } => value,
+            Var { name } => locals?.[name] ?? self.vars.get(name) ?? throw CalcError { message: "unknown variable '{name}'" },
+            Unary { expr } => -ev(expr),
+            Binary { op, left, right } => {
+                let [a, b] = [ev(left), ev(right)];
+                return match op {
+                    "+" => a + b,
+                    "-" => a - b,
+                    "*" => a * b,
+                    "/" => b == 0 ? throw CalcError { message: "division by zero" } : a / b,
+                    "%" => a % b,
+                    "^" | "**" => math.pow(a, b),
+                };
+            },
+            Call { name, args } => self.call(name, args.map(ev)),
+            Assign { name, expr } => {
+                let v = ev(expr);
+                self.vars.set(name, v);
+                return v;
+            },
+            FunDef { name, params } => {
+                self.funs.set(name, node);
+                return "{name}({params.join(", ")})";
+            },
+        };
+    }
+
+    fun call(self, name, args) {
+        let f = self.funs.get(name);
+        if f != nil {
+            if len(args) != len(f.params) throw CalcError { message: "{name} takes {len(f.params)} arguments, got {len(args)}" };
+            let mut locals = {};
+            for i, p in f.params locals[p] = args[i];
+            return self.eval(f.body, locals);
+        }
+
+        let builtin = BUILTINS?.[name] ?? throw CalcError { message: "unknown function '{name}'" };
+        return builtin(...args);
+    }
+}
+
+fun show(v, digits = 6) {
+    return match v {
+        _ if type(v) == "string" => v,
+        _ if math.isInt(v) => str(v),
+        _ => regex.replace("\\.?0+$", v.fixed(digits), ""),
+    };
+}
+
+fun run(env, line) {
+    try {
+        print "{line.padEnd(32)} => {show(env.eval(parse(line)))}";
+    } catch (e: CalcError) {
+        print "{line.padEnd(32)} !! {e.message}";
+        if e.pos != nil print " ".repeat(e.pos) + "^";
+    } catch (e: ValueError, TypeError) {
+        print "{line.padEnd(32)} !! {type(e)}: {e.message}";
+    }
+}
+
+let DEMO = [
+    "1 + 2 * 3",
+    "(1 + 2) * 3",
+    "2 ^ 3 ^ 2",
+    "-2 ** 2",
+    "7 / 2",
+    "r = 3",
+    "area = pi * r ^ 2",
+    "fn hyp(a, b) = sqrt(a*a + b*b)",
+    "hyp(3, 4)",
+    "fn sq(x) = x * x",
+    "sq(hyp(3, 4)) + r",
+    "sum(1, 2, 3, 4, max(5, 10))",
+    "x + 1",
+    "1 / 0",
+    "2 * (3 + 4",
+    "3 $ 4",
+    "hyp(1)",
+];
+
+fun main(args) {
+    let env = Env.new();
+
+    if args?.[0] == "repl" {
+        let mut line = io.readLine();
+        while line != nil {
+            if line.trim() != "" run(env, line);
+            line = io.readLine();
+        }
+        return;
+    }
+
+    for line in DEMO run(env, line);
+
+    let stats = Map();
+    for line in DEMO {
+        try {
+            let kind = type(parse(line));
+            stats.set(kind, stats.get(kind, 0) + 1);
+        } catch {}
+    }
+    print "\nparsed node kinds: {stats}";
+}

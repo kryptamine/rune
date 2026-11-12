@@ -1,0 +1,3 @@
+[line: 36] E: stmt
+   36 |     5 => throw E { message: "stmt" };
+      |          ^

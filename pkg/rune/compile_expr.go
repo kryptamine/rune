@@ -71,6 +71,10 @@ func assigns(e ast.Expr) bool {
 		return assigns(n.Left) || assigns(n.Right)
 	case *ast.LogicalExpr:
 		return assigns(n.Left) || assigns(n.Right)
+	case *ast.ConditionalExpr:
+		return assigns(n.Cond) || assigns(n.Then) || assigns(n.Else)
+	case *ast.ThrowExpr:
+		return assigns(n.Value)
 	case *ast.UnaryExpr:
 		return assigns(n.Right)
 	case *ast.CallExpr:
@@ -230,6 +234,16 @@ func (fs *funcState) expr(e ast.Expr, dst int32) {
 		fs.emit(ins{op: opClosure, a: dst, c: fs.function(n.Decl)}, nil)
 	case *ast.MatchExpr:
 		fs.match(n, dst)
+	case *ast.ConditionalExpr:
+		toElse := fs.jumpIf(n.Cond, false)
+		fs.expr(n.Then, dst)
+		end := fs.emit(ins{op: opJmp}, nil)
+		fs.patch(toElse)
+		fs.expr(n.Else, dst)
+		fs.patch([]int{end})
+	case *ast.ThrowExpr:
+		fs.expr(n.Value, dst)
+		fs.emit(ins{op: opThrow, a: dst}, &n.Keyword)
 	default:
 		panic(fmt.Sprintf("compile: unknown expression %T", e))
 	}
@@ -340,10 +354,12 @@ func (fs *funcState) structLiteral(n *ast.StructExpr, dst int32) {
 // before e is fully evaluated, so it must not target a live variable.
 func writesEarly(e ast.Expr) bool {
 	switch n := unwrap(e).(type) {
-	case *ast.LogicalExpr, *ast.AssignExpr, *ast.SetIndexExpr:
+	case *ast.LogicalExpr, *ast.AssignExpr, *ast.SetIndexExpr, *ast.ThrowExpr:
 		return true
 	case *ast.UpdateExpr:
 		return !n.Prefix
+	case *ast.ConditionalExpr:
+		return writesEarly(n.Then) || writesEarly(n.Else)
 	}
 
 	return false

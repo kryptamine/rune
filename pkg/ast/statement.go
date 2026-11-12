@@ -14,7 +14,6 @@ type StmtVisitor interface {
 	VisitFunctionStmt(functionStmt *FunctionStmt) error
 	VisitReturnStmt(returnStmt *ReturnStmt) error
 	VisitTryStmt(tryStmt *TryStmt) error
-	VisitThrowStmt(throwStmt *ThrowStmt) error
 	VisitBreakStmt(breakStmt *BreakStmt) error
 	VisitContinueStmt(continueStmt *ContinueStmt) error
 	VisitForInStmt(forInStmt *ForInStmt) error
@@ -178,11 +177,29 @@ func NewContinueStmt(keyword Token) Stmt {
 
 // FunctionStmt declares a function; its Binding is never mutable. With
 // Rest, the last parameter takes the arguments after the others as an array.
+// Defaults holds each parameter's default, nil for a required one.
 type FunctionStmt struct {
 	Binding
 	Parameters []Binding
+	Defaults   []Expr
 	Rest       bool
 	Body       []Stmt
+}
+
+// Required counts the parameters before the first with a default, a rest
+// one excluded.
+func (n *FunctionStmt) Required() int {
+	for i, d := range n.Defaults {
+		if d != nil {
+			return i
+		}
+	}
+
+	if n.Rest {
+		return len(n.Parameters) - 1
+	}
+
+	return len(n.Parameters)
 }
 
 func NewFunctionStmt(name Token, parameters []Binding, body []Stmt) *FunctionStmt {
@@ -208,15 +225,6 @@ type CatchClause struct {
 
 func NewTryStmt(body Stmt, catches []CatchClause) Stmt {
 	return &TryStmt{Body: body, Catches: catches}
-}
-
-type ThrowStmt struct {
-	Value   Expr
-	Keyword Token
-}
-
-func NewThrowStmt(value Expr, keyword Token) Stmt {
-	return &ThrowStmt{Value: value, Keyword: keyword}
 }
 
 // StructField is a field of a struct declaration; Default is a literal,
@@ -296,10 +304,6 @@ func (n *ReturnStmt) Accept(v StmtVisitor) error {
 
 func (n *TryStmt) Accept(v StmtVisitor) error {
 	return v.VisitTryStmt(n)
-}
-
-func (n *ThrowStmt) Accept(v StmtVisitor) error {
-	return v.VisitThrowStmt(n)
 }
 
 func (n *BreakStmt) Accept(v StmtVisitor) error {

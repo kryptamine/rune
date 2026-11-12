@@ -27,6 +27,8 @@ type ExprVisitor interface {
 	VisitInterpolationExpr(interpolationExpr *InterpolationExpr) (value.Value, error)
 	VisitOptionalExpr(optionalExpr *OptionalExpr) (value.Value, error)
 	VisitSpreadExpr(spreadExpr *SpreadExpr) (value.Value, error)
+	VisitConditionalExpr(conditionalExpr *ConditionalExpr) (value.Value, error)
+	VisitThrowExpr(throwExpr *ThrowExpr) (value.Value, error)
 }
 
 type Expr interface {
@@ -406,4 +408,33 @@ func (n *RangeExpr) String() string {
 	}
 
 	return fmt.Sprintf("(%s %v %v)", n.Operator.Lexeme, n.Start, n.End)
+}
+
+// ConditionalExpr is cond ? then : else.
+type ConditionalExpr struct {
+	Cond Expr
+	Then Expr
+	Else Expr
+}
+
+func (n *ConditionalExpr) Accept(v ExprVisitor) (value.Value, error) {
+	return v.VisitConditionalExpr(n)
+}
+
+func (n *ConditionalExpr) String() string {
+	return fmt.Sprintf("(? %v %v %v)", n.Cond, n.Then, n.Else)
+}
+
+// ThrowExpr is throw in an expression; it has no value.
+type ThrowExpr struct {
+	Value   Expr
+	Keyword Token
+}
+
+func (n *ThrowExpr) Accept(v ExprVisitor) (value.Value, error) {
+	return v.VisitThrowExpr(n)
+}
+
+func (n *ThrowExpr) String() string {
+	return fmt.Sprintf("(throw %v)", n.Value)
 }

@@ -1,0 +1,8 @@
+struct E { message }
+
+let mut x = 1;
+try {
+    x = false ? 2 : throw E { message: "m" };
+} catch {
+    print x; // expect: 1
+}

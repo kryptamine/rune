@@ -1,0 +1,61 @@
+fun greet(name, greeting = "hi", punct = greeting == "hi" ? "!" : ".") {
+    return "{greeting} {name}{punct}";
+}
+
+print greet("ann"); // expect: hi ann!
+print greet("ann", "hello"); // expect: hello ann.
+print greet("ann", "yo", "?"); // expect: yo ann?
+print greet("ann", nil); // expect: nil ann.
+
+let mut evals = 0;
+fun next() { evals++; return evals; }
+fun f(a = next()) { return a; }
+print f(); // expect: 1
+print f(); // expect: 2
+print f(9); // expect: 9
+print evals; // expect: 2
+
+fun fresh(mut xs = []) { xs.push(1); return xs; }
+print fresh(); // expect: [1]
+print fresh(); // expect: [1]
+
+fun g(a, b = 0, ...rest) { return [a, b, rest]; }
+print g(1); // expect: [1, 0, []]
+print g(1, 2); // expect: [1, 2, []]
+print g(1, 2, 3, 4); // expect: [1, 2, [3, 4]]
+print g(...[5]); // expect: [5, 0, []]
+
+fun captured(x, n = 2) { return () => x * n; }
+print captured(3)(); // expect: 6
+print captured(3, 5)(); // expect: 15
+
+fun point({ x, y } = { x: 0, y: 0 }) { return [x, y]; }
+print point(); // expect: [0, 0]
+print point({ x: 1, y: 2 }); // expect: [1, 2]
+
+fun pair([a, b] = [1, 2]) { return a + b; }
+print pair(); // expect: 3
+
+let add = (a, b = 10) => a + b;
+print add(1); // expect: 11
+print [1, 2].map(add); // expect: [11, 12]
+
+fun mutable(mut xs = []) { xs.push(0); return xs; }
+print mutable(); // expect: [0]
+
+struct P { x }
+
+impl P {
+    fun add(self, d = 1) { return self.x + d; }
+    fun make(x = 0) { return P { x }; }
+}
+
+let p = P { x: 1 };
+print p.add(); // expect: 2
+print p.add(5); // expect: 6
+print [p].map(P.add); // expect: [2]
+let bound = p.add;
+print bound(); // expect: 2
+print P.make(); // expect: P {x: 0}
+
+fun main(args = ["unused"]) { print args; } // expect: []

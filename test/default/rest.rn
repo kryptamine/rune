@@ -1,0 +1,1 @@
+fun f(...a = []) {} // [line: 1] Error at '=': A rest parameter cannot have a default.

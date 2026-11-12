@@ -33,8 +33,8 @@ func (s *Parser) matchExpr() (*ast.MatchExpr, error) {
 
 		arms = append(arms, arm)
 
-		// Only an expression needs a comma to end it.
-		if _, isExpr := arm.Body.(*ast.ExprStmt); !s.match(ast.COMMA) && isExpr {
+		// Only an expression needs a comma, or a semicolon, to end it.
+		if _, isExpr := arm.Body.(*ast.ExprStmt); !s.match(ast.COMMA) && isExpr && !s.match(ast.SEMICOLON) {
 			break
 		}
 	}
@@ -77,7 +77,7 @@ func (s *Parser) matchArm() (ast.MatchArm, error) {
 // armBody parses a statement starting with a keyword, a block, or an
 // expression, which the arm's comma ends.
 func (s *Parser) armBody() (ast.Stmt, error) {
-	if stmtKeyword(s.peek().TokenType) {
+	if t := s.peek().TokenType; stmtKeyword(t) && t != ast.THROW {
 		return s.statement()
 	}
 

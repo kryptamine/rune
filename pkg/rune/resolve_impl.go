@@ -66,6 +66,8 @@ func (p *Resolver) declareImpl(stmt *ast.ImplStmt) {
 		switch {
 		case m.Self && fn.Rest && len(fn.Parameters) == 1:
 			p.error(fn.Parameters[0].Name, "'self' cannot be a rest parameter.")
+		case m.Self && fn.Defaults[0] != nil:
+			p.error(fn.Parameters[0].Name, "'self' cannot have a default.")
 		case shape == nil && !m.Self:
 			p.error(fn.Name, "Methods of "+name+" must take self.")
 		case shape == nil && m.Mut:
