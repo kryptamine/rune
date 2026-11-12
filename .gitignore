@@ -6,3 +6,6 @@ program.rn
 
 # Coverage.
 cover.out
+
+# Docs.
+/docs/book
