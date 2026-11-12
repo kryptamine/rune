@@ -1,0 +1,2 @@
+let mut xs = [];
+array.push(...[xs], 1); // Error at '...': Cannot spread the first argument of an in-place built-in.

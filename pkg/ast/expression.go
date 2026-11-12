@@ -26,6 +26,8 @@ type ExprVisitor interface {
 	VisitIsExpr(isExpr *IsExpr) (value.Value, error)
 	VisitMatchExpr(matchExpr *MatchExpr) (value.Value, error)
 	VisitInterpolationExpr(interpolationExpr *InterpolationExpr) (value.Value, error)
+	VisitOptionalExpr(optionalExpr *OptionalExpr) (value.Value, error)
+	VisitSpreadExpr(spreadExpr *SpreadExpr) (value.Value, error)
 }
 
 type Expr interface {
@@ -117,14 +119,12 @@ func NewGroupingExpr(expr Expr) Expr {
 	return &GroupingExpr{Expr: expr}
 }
 
+// CallExpr is callee(args); Optional is set for callee?.(args).
 type CallExpr struct {
-	Token  Token
-	Callee Expr
-	Args   []Expr
-}
-
-func NewCallExpr(token Token, callee Expr, args []Expr) Expr {
-	return &CallExpr{Token: token, Callee: callee, Args: args}
+	Token    Token
+	Callee   Expr
+	Args     []Expr
+	Optional bool
 }
 
 type ArrayExpr struct {
@@ -142,18 +142,16 @@ type IndexExpr struct {
 	Array    Expr
 	Index    Expr
 	Property bool
+	// Optional is set for arr?.[i] and obj?.name.
+	Optional bool
 	// Member is the built-in a namespace member names, set by the resolver.
 	Member *value.Value
 	// Export is the variable a module member names, set by the resolver.
 	Export *VarExpr
 }
 
-func NewIndexExpr(array Expr, index Expr, token Token) Expr {
-	return &IndexExpr{Array: array, Index: index, Token: token}
-}
-
-func NewPropertyExpr(object Expr, name Token) Expr {
-	return &IndexExpr{Array: object, Index: NewLiteralExpr(STRING, name.Lexeme), Token: name, Property: true}
+func NewPropertyExpr(object Expr, name Token, optional bool) Expr {
+	return &IndexExpr{Array: object, Index: NewLiteralExpr(STRING, name.Lexeme), Token: name, Property: true, Optional: optional}
 }
 
 // SetIndexExpr assigns to an array element or object property. For a
@@ -270,7 +268,34 @@ func (n *InterpolationExpr) Accept(v ExprVisitor) (value.Value, error) {
 	return v.VisitInterpolationExpr(n)
 }
 
-// ObjectPair is a single "key: value" entry of an object literal.
+// OptionalExpr is a chain with a ?. in it: when the value before one is
+// nil, the whole chain is nil.
+type OptionalExpr struct {
+	Expr Expr
+}
+
+func (n *OptionalExpr) Accept(v ExprVisitor) (value.Value, error) {
+	return v.VisitOptionalExpr(n)
+}
+
+// SpreadExpr is ...expr, an item of an array or object literal or an argument.
+type SpreadExpr struct {
+	Token Token
+	Expr  Expr
+}
+
+func (n *SpreadExpr) Accept(v ExprVisitor) (value.Value, error) {
+	return v.VisitSpreadExpr(n)
+}
+
+// IsSpread reports whether e is a SpreadExpr.
+func IsSpread(e Expr) bool {
+	_, ok := e.(*SpreadExpr)
+	return ok
+}
+
+// ObjectPair is a single "key: value" entry of an object literal, or a
+// spread, whose Value is a *SpreadExpr.
 type ObjectPair struct {
 	Key   string
 	Value Expr

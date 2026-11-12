@@ -48,14 +48,18 @@ const (
 	opJmpCmp     // if (R[A] <X> R[B]) == Y: pc = C
 	opJmpCmpK    // if (R[A] <X> K[B]) == Y: pc = C
 	opJmpNotType // if R[A] is not a struct of type K[B]: pc = C
+	opJmpNil     // if (R[A] is nil) == Y: pc = C
 
-	opArray     // R[A] = [R[B], ..., R[B+C-1]]
-	opConcat    // R[A] = R[B] .. R[B+C-1] as printed, appended to R[A] if X
-	opObject    // R[A] = {keys[C][i]: R[B+i]}
-	opStruct    // R[A] = struct of type K[C] with fields R[B...]
-	opWith      // R[A] = R[B] with {keys[C][i]: R[B+1+i]}
-	opGetIndex  // R[A] = R[B][R[C]]
-	opGetProp   // R[A] = R[B].K[C]
+	opArray    // R[A] = [R[B], ..., R[B+C-1]]
+	opConcat   // R[A] = R[B] .. R[B+C-1] as printed, appended to R[A] if X
+	opObject   // R[A] = {keys[C][i]: R[B+i]}
+	opStruct   // R[A] = struct of type K[C] with fields R[B...]
+	opWith     // R[A] = R[B] with {keys[C][i]: R[B+1+i]}
+	opGetIndex // R[A] = R[B][R[C]]
+	opGetProp  // R[A] = R[B].K[C]
+	// The optional forms give nil for a missing element, property or field.
+	opGetIndexOpt
+	opGetPropOpt
 	opSetIndex  // R[A][R[B]] = R[C]
 	opSetProp   // R[A].K[B] = R[C]
 	opCheckProp // R[A] must be an object to set a property on
@@ -63,9 +67,12 @@ const (
 	// it, a jump to the mismatch, instead of taking a target.
 	opTestProp // if R[B] is an object or struct with K[C]: R[A] = R[B].K[C], pc++
 	opRange    // R[A] = array of R[B]..R[B+1] step R[B+2], inclusive if X
+	opSpread   // append the elements of array R[B] to array R[A], or merge R[B] into object R[A]
+	opUnpack   // R[A+i] = R[B][i] for i < C, and if X R[A+C] = R[B][C:]
 
 	opClosure   // R[A] = closure of protos[C]
 	opCall      // R[A] = R[A](R[A+1], ..., R[A+B])
+	opCallArray // R[A] = R[A](the elements of array R[A+1])
 	opReturn    // return R[A]
 	opReturnNil // return nil
 	opPrint     // print R[A]
@@ -141,8 +148,13 @@ type upvalDesc struct {
 
 // Proto is a compiled function. toks[i] locates errors of code[i].
 type Proto struct {
-	name   string
-	arity  int
+	name string
+	// arity counts the parameters, except a rest one, if rest.
+	arity int
+	rest  bool
+	// exact is the argument count the inlined call takes: arity, or -1
+	// with a rest parameter, so it checks one field.
+	exact  int
 	nregs  int
 	code   []Instr
 	toks   []*ast.Token
@@ -150,6 +162,11 @@ type Proto struct {
 	protos []*Proto
 	keys   [][]string
 	upvals []upvalDesc
+}
+
+// accepts reports whether f takes n arguments.
+func (f *Proto) accepts(n int) bool {
+	return n == f.arity || f.rest && n > f.arity
 }
 
 func (f *Proto) displayName() string {
@@ -188,9 +205,9 @@ var opNames = [...]string{
 	"MOVE", "LOADK", "NEWCELL", "GETCELL", "SETCELL", "GETUPVAL", "SETUPVAL",
 	"CHECKDEFINED", "SETCELL!", "SETUPVAL!", "UNDEFINED",
 	"ADD", "SUB", "MUL", "DIV", "MOD", "ADDK", "SUBK", "MULK", "DIVK", "MODK", "CMP", "CMPK", "IS", "NEG", "NOT", "INCR",
-	"JMP", "JMPIF", "JMPCMP", "JMPCMPK", "JMPNOTTYPE",
-	"ARRAY", "CONCAT", "OBJECT", "STRUCT", "WITH", "GETINDEX", "GETPROP", "SETINDEX", "SETPROP", "CHECKPROP", "TESTPROP", "RANGE",
-	"CLOSURE", "CALL", "RETURN", "RETURNNIL", "PRINT", "THROW", "RETHROW", "NOMATCH", "TRY", "ENDTRY",
+	"JMP", "JMPIF", "JMPCMP", "JMPCMPK", "JMPNOTTYPE", "JMPNIL",
+	"ARRAY", "CONCAT", "OBJECT", "STRUCT", "WITH", "GETINDEX", "GETPROP", "GETINDEX?", "GETPROP?", "SETINDEX", "SETPROP", "CHECKPROP", "TESTPROP", "RANGE", "SPREAD", "UNPACK",
+	"CLOSURE", "CALL", "CALLARRAY", "RETURN", "RETURNNIL", "PRINT", "THROW", "RETHROW", "NOMATCH", "TRY", "ENDTRY",
 	"FORRANGE", "FORRANGENEXT", "FORITER", "FORITERNEXT",
 }
 
@@ -200,7 +217,12 @@ func (prog *Program) Disassemble() string {
 
 	var walk func(f *Proto)
 	walk = func(f *Proto) {
-		fmt.Fprintf(&b, "%s: arity %d, %d registers, %d upvalues\n", f.displayName(), f.arity, f.nregs, len(f.upvals))
+		arity := fmt.Sprint(f.arity)
+		if f.rest {
+			arity += "+"
+		}
+
+		fmt.Fprintf(&b, "%s: arity %s, %d registers, %d upvalues\n", f.displayName(), arity, f.nregs, len(f.upvals))
 
 		for i, in := range f.code {
 			fmt.Fprintf(&b, "%5d  %-13s %d %d %d", i, opNames[in.op()], in.a(), in.b(), in.c())

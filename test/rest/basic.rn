@@ -1,0 +1,28 @@
+fun sum(...ns) {
+  let mut t = 0;
+  for n in ns { t += n; }
+  return t;
+}
+
+print sum(); // expect: 0
+print sum(1, 2, 3); // expect: 6
+
+fun head(h, ...t) { return [h, t]; }
+print head(1); // expect: [1, []]
+print head(1, 2, 3); // expect: [1, [2, 3]]
+print head(...[4, 5]); // expect: [4, [5]]
+
+let count = (...args) => len(args);
+print count(1, nil); // expect: 2
+print array.map([1, 2], (...a) => a); // expect: [[1], [2]]
+
+fun keep(...r) { return () => r; }
+print keep(1, 2)(); // expect: [1, 2]
+
+fun grow(...mut xs) {
+  array.push(xs, 0);
+  return xs;
+}
+print grow(1); // expect: [1, 0]
+
+head(); // expect runtime error: [line: 28] ArgumentError: Expected at least 1 argument but got 0.

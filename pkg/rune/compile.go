@@ -23,6 +23,8 @@ type funcState struct {
 	code    []ins
 	loops   []*loop
 	tries   int
+	// chain holds the jumps of the ?. of the optional chain being compiled.
+	chain []int
 	// defined holds the top-level variables whose declaration the script
 	// has passed, so reading them needs no check.
 	defined map[*ast.Local]bool
@@ -113,6 +115,11 @@ func compileScript(body func(fs *funcState, args *ast.Local) *ast.Token) (prog *
 }
 
 func (fs *funcState) finish() {
+	fs.proto.exact = fs.proto.arity
+	if fs.proto.rest {
+		fs.proto.exact = -1
+	}
+
 	fs.proto.code = make([]Instr, len(fs.code))
 	for i, in := range fs.code {
 		fs.proto.code[i] = in.encode(fs.proto.displayName())
@@ -201,6 +208,9 @@ func (fs *funcState) checked(l *ast.Local) bool {
 func (fs *funcState) function(decl *ast.FunctionStmt) int32 {
 	f := newFunc(fs, decl.Name.Lexeme)
 	f.proto.arity = len(decl.Parameters)
+	if decl.Rest {
+		f.proto.arity, f.proto.rest = f.proto.arity-1, true
+	}
 
 	for _, param := range decl.Parameters {
 		r := f.declare(param.Local)

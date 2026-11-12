@@ -1,0 +1,15 @@
+struct Point { x, y = 0 }
+
+let base = { a: 1, b: 2 };
+
+print { ...base }; // expect: {a: 1, b: 2}
+print { ...base, b: 3, c: 4 }; // expect: {a: 1, b: 3, c: 4}
+print { b: 3, ...base }; // expect: {a: 1, b: 2}
+print { ...Point { x: 1 }, z: 2 }; // expect: {x: 1, y: 0, z: 2}
+print { ...base, ...{ a: 0 } }; // expect: {a: 0, b: 2}
+
+let f = () => { ...base, d: 1 };
+print f(); // expect: {a: 1, b: 2, d: 1}
+
+{...base};
+print { ...base, ...base }; // expect: {a: 1, b: 2}

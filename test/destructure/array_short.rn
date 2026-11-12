@@ -1,0 +1,1 @@
+let [a, b, c] = [1]; // expect runtime error: [line: 1] IndexError: Expected at least 3 elements but got 1.

@@ -1,0 +1,3 @@
+[line: 2] Error at '...': Cannot spread the first argument of an in-place built-in.
+    2 | array.push(...[xs], 1); // Error at '...': Cannot spread the first argument of an in-place built-in.
+      |            ^

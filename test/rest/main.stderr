@@ -1,0 +1,3 @@
+[line: 1] Error at 'main': main cannot take a rest parameter.
+    1 | fun main(...args) {} // Error at 'main': main cannot take a rest parameter.
+      |     ^

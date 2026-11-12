@@ -1,0 +1,15 @@
+let xs = [1, 2];
+
+print [...xs]; // expect: [1, 2]
+print [...xs, 3, ...xs]; // expect: [1, 2, 3, 1, 2]
+print [0, ...[], ...xs]; // expect: [0, 1, 2]
+print [...1..4]; // expect: [1, 2, 3]
+
+let ys = [...xs];
+let mut zs = ys;
+array.push(zs, 9);
+print xs; // expect: [1, 2]
+
+let mut acc = [1];
+acc = [...acc, len(acc) + 1];
+print acc; // expect: [1, 2]

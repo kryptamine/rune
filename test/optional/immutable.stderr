@@ -1,0 +1,3 @@
+[line: 2] Error at 'o': Cannot mutate immutable variable 'o'.
+    2 | array.push(o?.xs, 1); // Error at 'o': Cannot mutate immutable variable 'o'.
+      |            ^

@@ -119,10 +119,21 @@ func (s *Scanner) scanToken() {
 		switch {
 		case !s.match('.'):
 			s.addToken(ast.DOT)
+		case s.match('.'):
+			s.addToken(ast.DOT_DOT_DOT)
 		case s.match('='):
 			s.addToken(ast.DOT_DOT_EQUAL)
 		default:
 			s.addToken(ast.DOT_DOT)
+		}
+	case '?':
+		switch {
+		case s.match('.'):
+			s.addToken(ast.QUESTION_DOT)
+		case s.match('?'):
+			s.addToken(ast.QUESTION_QUESTION)
+		default:
+			s.errorAt("Unexpected character: ?")
 		}
 	case '-':
 		switch {

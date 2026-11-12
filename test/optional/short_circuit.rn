@@ -1,0 +1,14 @@
+let o = { n: nil };
+
+fun side() {
+  print "side";
+  return 0;
+}
+
+// The rest of the chain does not run.
+print o.n?.b.c.d; // expect: nil
+print o.n?.[side()]; // expect: nil
+print o.n?.(side()).x; // expect: nil
+
+// A grouping ends the chain.
+(o.n?.b).c; // expect runtime error: [line: 14] TypeError: Cannot read property 'c' of nil.

@@ -1,0 +1,3 @@
+[line: 2] TypeError: Cannot spread string into an array.
+    2 | f(..."ab"); // expect runtime error: [line: 2] TypeError: Cannot spread string into an array.
+      |          ^

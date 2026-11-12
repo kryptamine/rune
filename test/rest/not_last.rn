@@ -1,0 +1,1 @@
+fun f(...a, b) {} // Error at 'b': Rest parameter must be last.

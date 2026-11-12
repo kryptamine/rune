@@ -156,12 +156,18 @@ func (p *Interpreter) CallValue(fn value.Value, args []value.Value, token *ast.T
 
 // enter pushes a frame calling cl with the nargs arguments at stack[base:].
 func (p *Interpreter) enter(cl *Closure, base, nargs int, tok *ast.Token) error {
-	if nargs != cl.proto.arity || len(p.frames) > p.maxRecursion {
+	f := cl.proto
+	if !f.accepts(nargs) || len(p.frames) > p.maxRecursion {
 		return p.callError(cl, nargs, tok)
 	}
 
-	if need := base + cl.proto.nregs; need > len(p.stack) {
+	if need := base + f.nregs; need > len(p.stack) {
 		p.grow(need)
+	}
+
+	if f.rest {
+		rest := p.stack[base+f.arity : base+nargs]
+		p.stack[base+f.arity] = value.NewArray(append([]value.Value(nil), rest...))
 	}
 
 	p.frames = append(p.frames, frame{cl: cl, base: base})
@@ -170,8 +176,13 @@ func (p *Interpreter) enter(cl *Closure, base, nargs int, tok *ast.Token) error 
 }
 
 func (p *Interpreter) callError(cl *Closure, nargs int, tok *ast.Token) error {
-	if nargs != cl.proto.arity {
-		return errors.NewRuntimeError(errors.ArgumentError, *tok, fmt.Sprintf("Expected %d arguments but got %d.", cl.proto.arity, nargs))
+	if f := cl.proto; !f.accepts(nargs) {
+		want := fmt.Sprintf("%d arguments", f.arity)
+		if f.rest {
+			want = "at least " + helpers.Plural(f.arity, "argument")
+		}
+
+		return errors.NewRuntimeError(errors.ArgumentError, *tok, fmt.Sprintf("Expected %s but got %d.", want, nargs))
 	}
 
 	return errors.NewFatalError(*tok, "Stack overflow.")

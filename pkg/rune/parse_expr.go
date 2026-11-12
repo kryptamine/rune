@@ -68,14 +68,14 @@ var compoundOps = map[ast.TokenType]ast.TokenType{
 }
 
 func (s *Parser) rangeExpr() (ast.Expr, error) {
-	expr, err := s.or()
+	expr, err := s.nullish()
 	if err != nil || !s.match(ast.DOT_DOT, ast.DOT_DOT_EQUAL) {
 		return expr, err
 	}
 
 	operator := s.previous()
 
-	end, err := s.or()
+	end, err := s.nullish()
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +86,7 @@ func (s *Parser) rangeExpr() (ast.Expr, error) {
 	if s.check(ast.IDENTIFIER) && s.peek().Lexeme == "step" {
 		s.advance()
 
-		if step, err = s.or(); err != nil {
+		if step, err = s.nullish(); err != nil {
 			return nil, err
 		}
 	}
@@ -96,6 +96,22 @@ func (s *Parser) rangeExpr() (ast.Expr, error) {
 	}
 
 	return ast.NewRangeExpr(expr, end, step, operator), nil
+}
+
+// nullish parses a ?? b, which is b only if a is nil.
+func (s *Parser) nullish() (ast.Expr, error) {
+	expr, err := s.or()
+
+	for err == nil && s.match(ast.QUESTION_QUESTION) {
+		operator := s.previous()
+
+		var right ast.Expr
+		if right, err = s.or(); err == nil {
+			expr = ast.NewLogicalExpr(expr, right, operator)
+		}
+	}
+
+	return expr, err
 }
 
 func (s *Parser) or() (ast.Expr, error) {
@@ -310,47 +326,77 @@ func (s *Parser) call() (ast.Expr, error) {
 		return nil, err
 	}
 
+	chain := false
+
 	for {
-		if s.match(ast.LEFT_PAREN) {
-			expr, err = s.finishCall(expr)
+		optional := s.match(ast.QUESTION_DOT)
+		chain = chain || optional
 
-			if err != nil {
-				return nil, err
-			}
-		} else if s.match(ast.LEFT_BRACKET) {
-			index, err := s.expressionWithStructs(structsAll)
-			if err != nil {
-				return nil, err
-			}
+		switch {
+		case s.match(ast.LEFT_PAREN):
+			expr, err = s.finishCall(expr, optional)
+		case s.match(ast.LEFT_BRACKET):
+			expr, err = s.finishIndex(expr, optional)
+		case optional || s.match(ast.DOT):
+			expr, err = s.property(expr, optional)
+		case chain:
+			return &ast.OptionalExpr{Expr: expr}, nil
+		default:
+			return expr, nil
+		}
 
-			_, err = s.consume(ast.RIGHT_BRACKET, "Expect ']' after index.")
-			if err != nil {
-				return nil, err
-			}
-
-			expr = ast.NewIndexExpr(expr, index, s.previous())
-		} else if s.match(ast.DOT) {
-			// obj.name is sugar for obj["name"].
-			name, err := s.consume(ast.IDENTIFIER, "Expect property name after '.'.")
-			if err != nil {
-				return nil, err
-			}
-
-			expr = ast.NewPropertyExpr(expr, name)
-		} else {
-			break
+		if err != nil {
+			return nil, err
 		}
 	}
-
-	return expr, nil
 }
 
-func (s *Parser) finishCall(expr ast.Expr) (ast.Expr, error) {
+// finishIndex parses the rest of arr[i] after "[".
+func (s *Parser) finishIndex(expr ast.Expr, optional bool) (ast.Expr, error) {
+	index, err := s.expressionWithStructs(structsAll)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err = s.consume(ast.RIGHT_BRACKET, "Expect ']' after index."); err != nil {
+		return nil, err
+	}
+
+	return &ast.IndexExpr{Array: expr, Index: index, Token: s.previous(), Optional: optional}, nil
+}
+
+// property parses the name of obj.name, sugar for obj["name"], after the dot.
+func (s *Parser) property(expr ast.Expr, optional bool) (ast.Expr, error) {
+	name, err := s.consume(ast.IDENTIFIER, "Expect property name after '"+s.previous().Lexeme+"'.")
+	if err != nil {
+		return nil, err
+	}
+
+	return ast.NewPropertyExpr(expr, name, optional), nil
+}
+
+// item parses an element of a list, or ...expr if spread allows it.
+func (s *Parser) item(spread bool) (ast.Expr, error) {
+	if !spread || !s.match(ast.DOT_DOT_DOT) {
+		return s.expressionWithStructs(structsAll)
+	}
+
+	tok := s.previous()
+
+	e, err := s.expressionWithStructs(structsAll)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ast.SpreadExpr{Token: tok, Expr: e}, nil
+}
+
+func (s *Parser) finishCall(expr ast.Expr, optional bool) (ast.Expr, error) {
 	args := []ast.Expr{}
 
 	if !s.check(ast.RIGHT_PAREN) {
 		for {
-			arg, err := s.expressionWithStructs(structsAll)
+			arg, err := s.item(true)
 			if err != nil {
 				return nil, err
 			}
@@ -367,7 +413,7 @@ func (s *Parser) finishCall(expr ast.Expr) (ast.Expr, error) {
 		return nil, err
 	}
 
-	return ast.NewCallExpr(s.previous(), expr, args), nil
+	return &ast.CallExpr{Token: s.previous(), Callee: expr, Args: args, Optional: optional}, nil
 }
 
 func (s *Parser) primary() (ast.Expr, error) {
@@ -470,7 +516,8 @@ func (s *Parser) braceList(dup, closeMsg string, item func() (string, ast.Token,
 		}
 
 		// Report but keep parsing: the parser is not in a confused state.
-		if seen[name] {
+		// A spread has no name.
+		if seen[name] && tok.TokenType != ast.DOT_DOT_DOT {
 			s.errors = append(s.errors, errors.NewSyntaxError(tok, dup))
 		}
 
@@ -492,6 +539,14 @@ func (s *Parser) objectLiteral() (ast.Expr, error) {
 
 	err := s.braceList("Duplicate property name.", "Expect '}' after object properties.", func() (string, ast.Token, error) {
 		var key string
+
+		if s.check(ast.DOT_DOT_DOT) {
+			tok := s.peek()
+			v, err := s.item(true)
+			pairs = append(pairs, ast.ObjectPair{Value: v})
+
+			return "", tok, err
+		}
 
 		switch {
 		case s.match(ast.IDENTIFIER):
@@ -574,7 +629,7 @@ func (s *Parser) arrayLiteral() (ast.Expr, error) {
 
 	if !s.check(ast.RIGHT_BRACKET) {
 		for {
-			elem, err := s.expressionWithStructs(structsAll)
+			elem, err := s.item(true)
 			if err != nil {
 				return nil, err
 			}
@@ -616,7 +671,7 @@ func (s *Parser) arrowFunction() (fn ast.Expr, ok bool, err error) {
 	start, nerrs := s.current, len(s.errors)
 	name := anonName(s.peek())
 
-	params, patterns, ok := s.arrowParams()
+	params, ok := s.arrowParams()
 	if !ok || !s.check(ast.ARROW) {
 		s.current, s.errors = start, s.errors[:nerrs]
 		return nil, false, nil
@@ -627,22 +682,22 @@ func (s *Parser) arrowFunction() (fn ast.Expr, ok bool, err error) {
 		return nil, true, err
 	}
 
-	return ast.NewFunctionExpr(ast.NewFunctionStmt(name, params, append(patterns, body...))), true, nil
+	return ast.NewFunctionExpr(params.function(name, body)), true, nil
 }
 
-func (s *Parser) arrowParams() ([]ast.Binding, []ast.Stmt, bool) {
+func (s *Parser) arrowParams() (params, bool) {
 	if s.match(ast.LEFT_PAREN) {
-		params, patterns, err := s.parameters()
-		return params, patterns, err == nil
+		ps, err := s.parameters()
+		return ps, err == nil
 	}
 
 	if s.bindingEnd(0) < 0 {
-		return nil, nil, false
+		return params{}, false
 	}
 
 	b, _ := s.binding("")
 
-	return []ast.Binding{b}, nil, true
+	return params{list: []ast.Binding{b}}, true
 }
 
 // arrowBody parses a block, or an expression whose value is returned.
@@ -663,15 +718,16 @@ func anonName(at ast.Token) ast.Token {
 	return name
 }
 
-// isObjectLiteralStart reports whether the upcoming tokens are "{", a property name and ":".
+// isObjectLiteralStart reports whether the upcoming tokens are "{" and
+// a property name and ":", or "...".
 func (s *Parser) isObjectLiteralStart() bool {
-	if !s.check(ast.LEFT_BRACE) || s.current+2 >= len(s.tokens) {
+	if !s.check(ast.LEFT_BRACE) {
 		return false
 	}
 
-	key := s.tokens[s.current+1].TokenType
+	key := s.peekAt(1)
 
-	return (key == ast.IDENTIFIER || key == ast.STRING) && s.tokens[s.current+2].TokenType == ast.COLON
+	return key == ast.DOT_DOT_DOT || (key == ast.IDENTIFIER || key == ast.STRING) && s.peekAt(2) == ast.COLON
 }
 
 // interpolation parses the pieces of a string after its first one,

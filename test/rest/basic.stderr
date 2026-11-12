@@ -1,0 +1,3 @@
+[line: 28] ArgumentError: Expected at least 1 argument but got 0.
+   28 | head(); // expect runtime error: [line: 28] ArgumentError: Expected at least 1 argument but got 0.
+      |      ^

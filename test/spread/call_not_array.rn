@@ -1,0 +1,2 @@
+fun f(a) {}
+f(..."ab"); // expect runtime error: [line: 2] TypeError: Cannot spread string into an array.

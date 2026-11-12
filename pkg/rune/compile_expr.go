@@ -5,6 +5,7 @@ import (
 	"rune/pkg/ast"
 	"rune/pkg/helpers"
 	"rune/pkg/value"
+	"slices"
 )
 
 var arithOps = map[ast.TokenType]Op{
@@ -68,6 +69,10 @@ func assigns(e ast.Expr) bool {
 		_, ok := n.Target.(*ast.VarExpr)
 		return ok || assigns(n.Target)
 	case *ast.GroupingExpr:
+		return assigns(n.Expr)
+	case *ast.OptionalExpr:
+		return assigns(n.Expr)
+	case *ast.SpreadExpr:
 		return assigns(n.Expr)
 	case *ast.BinaryExpr:
 		return assigns(n.Left) || assigns(n.Right)
@@ -183,17 +188,24 @@ func (fs *funcState) expr(e ast.Expr, dst int32) {
 		fs.binary(n, dst)
 	case *ast.LogicalExpr:
 		fs.expr(n.Left, dst)
-		j := fs.emit(ins{op: opJmpIf, a: dst, y: uint8(boolNum(n.Op.TokenType == ast.OR))}, nil)
+
+		var j int
+		if n.Op.TokenType == ast.QUESTION_QUESTION {
+			j = fs.emit(ins{op: opJmpNil, a: dst}, nil)
+		} else {
+			j = fs.emit(ins{op: opJmpIf, a: dst, y: uint8(boolNum(n.Op.TokenType == ast.OR))}, nil)
+		}
+
 		fs.expr(n.Right, dst)
 		fs.patch([]int{j})
+	case *ast.OptionalExpr:
+		fs.optional(n, dst)
 	case *ast.UnaryExpr:
 		fs.unary(n, dst)
 	case *ast.CallExpr:
 		fs.call(n, dst)
 	case *ast.ArrayExpr:
-		fs.literal(dst, len(n.Items), func(i int) ast.Expr { return n.Items[i] }, func(from, to int, base int32) ins {
-			return ins{op: opArray, b: base, c: int32(to - from)}
-		})
+		fs.literal(dst, len(n.Items), func(i int) ast.Expr { return n.Items[i] }, arrayChunk)
 	case *ast.InterpolationExpr:
 		fs.literal(dst, len(n.Parts), func(i int) ast.Expr { return n.Parts[i] }, func(from, to int, base int32) ins {
 			return ins{op: opConcat, b: base, c: int32(to - from)}
@@ -234,11 +246,22 @@ func (fs *funcState) expr(e ast.Expr, dst int32) {
 	}
 }
 
+func arrayChunk(from, to int, base int32) ins {
+	return ins{op: opArray, b: base, c: int32(to - from)}
+}
+
 // literalChunk caps the registers an array or object literal takes; a
 // longer one is built a chunk at a time, each adding to the first (X).
 const literalChunk = 256
 
 func (fs *funcState) literal(dst int32, n int, item func(i int) ast.Expr, build func(from, to int, base int32) ins) {
+	for i := range n {
+		if ast.IsSpread(item(i)) {
+			fs.spreadLiteral(dst, n, item, build)
+			return
+		}
+	}
+
 	target := dst
 	if n > literalChunk {
 		target = fs.alloc()
@@ -255,6 +278,43 @@ func (fs *funcState) literal(dst int32, n int, item func(i int) ast.Expr, build 
 		in := build(from, to, base)
 		in.a, in.x = target, uint8(boolNum(from > 0))
 		fs.emit(in, nil)
+		fs.free = base
+	}
+
+	fs.move(dst, target)
+}
+
+// spreadLiteral builds a literal with spreads from an empty one, adding
+// each run of plain items a chunk at a time and each spread on its own.
+func (fs *funcState) spreadLiteral(dst int32, n int, item func(i int) ast.Expr, build func(from, to int, base int32) ins) {
+	target := dst
+	if dst < fs.nactive {
+		target = fs.alloc()
+	}
+
+	empty := build(0, 0, fs.free)
+	empty.a = target
+	fs.emit(empty, nil)
+
+	for from := 0; from < n; {
+		base := fs.free
+
+		if sp, ok := item(from).(*ast.SpreadExpr); ok {
+			fs.emit(ins{op: opSpread, a: target, b: fs.exprAny(sp.Expr)}, &sp.Token)
+			from++
+		} else {
+			to := from
+			for to < n && to-from < literalChunk && !ast.IsSpread(item(to)) {
+				fs.expr(item(to), fs.alloc())
+				to++
+			}
+
+			in := build(from, to, base)
+			in.a, in.x = target, 1
+			fs.emit(in, nil)
+			from = to
+		}
+
 		fs.free = base
 	}
 
@@ -467,12 +527,51 @@ func (fs *funcState) call(n *ast.CallExpr, dst int32) {
 
 	fs.expr(n.Callee, base)
 
-	for _, arg := range n.Args {
-		fs.expr(arg, fs.alloc())
+	if n.Optional {
+		fs.nilJump(base)
 	}
 
-	fs.emit(ins{op: opCall, a: base, b: int32(len(n.Args))}, &n.Token)
+	if !slices.ContainsFunc(n.Args, ast.IsSpread) {
+		for _, arg := range n.Args {
+			fs.expr(arg, fs.alloc())
+		}
+
+		fs.emit(ins{op: opCall, a: base, b: int32(len(n.Args))}, &n.Token)
+		fs.move(dst, base)
+
+		return
+	}
+
+	// The arguments go in an array, unless a lone spread gives one.
+	args := fs.alloc()
+	if sp, ok := n.Args[0].(*ast.SpreadExpr); ok && len(n.Args) == 1 {
+		fs.expr(sp.Expr, args)
+	} else {
+		fs.literal(args, len(n.Args), func(i int) ast.Expr { return n.Args[i] }, arrayChunk)
+	}
+
+	fs.emit(ins{op: opCallArray, a: base}, &n.Token)
 	fs.move(dst, base)
+}
+
+// nilJump makes the optional chain being compiled nil if R[r] is.
+func (fs *funcState) nilJump(r int32) {
+	fs.chain = append(fs.chain, fs.emit(ins{op: opJmpNil, a: r, y: 1}, nil))
+}
+
+func (fs *funcState) optional(n *ast.OptionalExpr, dst int32) {
+	outer := fs.chain
+	fs.chain = nil
+
+	fs.expr(n.Expr, dst)
+
+	jumps := fs.chain
+	fs.chain = outer
+
+	end := fs.emit(ins{op: opJmp}, nil)
+	fs.patch(jumps)
+	fs.emit(ins{op: opLoadK, a: dst, c: fs.constant(value.NilValue)}, nil)
+	fs.patch([]int{end})
 }
 
 func (fs *funcState) index(n *ast.IndexExpr, dst int32) {
@@ -488,14 +587,22 @@ func (fs *funcState) index(n *ast.IndexExpr, dst int32) {
 
 	if n.Property {
 		t := fs.exprAny(n.Array)
-		fs.emit(ins{op: opGetProp, a: dst, b: t, c: fs.constant(value.NewString(n.Token.Lexeme))}, &n.Token)
+		if n.Optional {
+			fs.nilJump(t)
+		}
+
+		fs.emit(ins{op: pick(n.Optional, opGetPropOpt, opGetProp), a: dst, b: t, c: fs.constant(value.NewString(n.Token.Lexeme))}, &n.Token)
 
 		return
 	}
 
 	t := fs.operand(n.Array, n.Index)
+	if n.Optional {
+		fs.nilJump(t)
+	}
+
 	i := fs.exprAny(n.Index)
-	fs.emit(ins{op: opGetIndex, a: dst, b: t, c: i}, &n.Token)
+	fs.emit(ins{op: pick(n.Optional, opGetIndexOpt, opGetIndex), a: dst, b: t, c: i}, &n.Token)
 }
 
 // place is the target of a write: t[i], or for a property t.K[i].
@@ -658,6 +765,10 @@ func (fs *funcState) jumpIf(e ast.Expr, sense bool) []int {
 		}
 
 	case *ast.LogicalExpr:
+		if n.Op.TokenType == ast.QUESTION_QUESTION {
+			break
+		}
+
 		// "a and b" jumps on false when either does; on true when b does,
 		// once a has not jumped past it. "or" mirrors that.
 		if (n.Op.TokenType == ast.OR) == sense {

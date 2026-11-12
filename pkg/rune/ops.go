@@ -163,62 +163,70 @@ func propertyError(verb string, token *ast.Token, target value.Value) error {
 		"Cannot %s property '%s' of %s.", verb, token.Lexeme, helpers.TypeName(target)))
 }
 
-// getIndex reads target[index] for an array, string or object target.
+// getIndex reads target[index] for an array, string, object or struct target.
 func getIndex(token *ast.Token, target, index value.Value) (value.Value, error) {
+	v, found, err := lookup(token, target, index)
+	if found || err != nil {
+		return v, err
+	}
+
 	switch target.Kind() {
-	case value.Array:
-		idx, err := checkIndex(token, target, index)
-		if err != nil {
-			return value.NilValue, err
+	case value.Object:
+		return v, undefinedProperty(token, index.Str())
+	case value.Struct:
+		return v, undefinedField(token, target.Shape(), index.Str())
+	default:
+		return v, outOfBounds(token, target, index)
+	}
+}
+
+// lookup is getIndex, but reports a missing element, property or field
+// by found instead of an error.
+func lookup(token *ast.Token, target, index value.Value) (value.Value, bool, error) {
+	switch target.Kind() {
+	case value.Array, value.String:
+		idx, ok, err := elementIndex(token, target, index)
+		switch {
+		case !ok || err != nil:
+			return value.NilValue, false, err
+		case target.IsString():
+			return value.NewString(helpers.CharAt(target.Str(), idx)), true, nil
+		default:
+			return target.Arr()[idx], true, nil
 		}
-
-		return target.Arr()[idx], nil
-
-	case value.String:
-		idx, err := checkIndex(token, target, index)
-		if err != nil {
-			return value.NilValue, err
-		}
-
-		return value.NewString(helpers.CharAt(target.Str(), idx)), nil
 
 	case value.Object:
 		if !index.IsString() {
-			return value.NilValue, errors.NewRuntimeError(errors.TypeError, *token, "Object keys must be strings.")
+			return value.NilValue, false, errors.NewRuntimeError(errors.TypeError, *token, "Object keys must be strings.")
 		}
 
-		key := index.Str()
+		v, found := target.Obj()[index.Str()]
 
-		v, exists := target.Obj()[key]
-		if !exists {
-			return value.NilValue, undefinedProperty(token, key)
-		}
-
-		return v, nil
+		return v, found, nil
 
 	case value.Struct:
 		if !index.IsString() {
-			return value.NilValue, errors.NewRuntimeError(errors.TypeError, *token, "Struct fields must be accessed with string keys.")
+			return value.NilValue, false, errors.NewRuntimeError(errors.TypeError, *token, "Struct fields must be accessed with string keys.")
 		}
 
 		i := target.Shape().Index(index.Str())
 		if i < 0 {
-			return value.NilValue, undefinedField(token, target.Shape(), index.Str())
+			return value.NilValue, false, nil
 		}
 
-		return target.Fields()[i], nil
+		return target.Fields()[i], true, nil
 	}
 
-	return value.NilValue, errors.NewRuntimeError(errors.TypeError, *token, fmt.Sprintf(
+	return value.NilValue, false, errors.NewRuntimeError(errors.TypeError, *token, fmt.Sprintf(
 		"Can only index arrays, strings, objects and structs, got %s.", helpers.TypeName(target)))
 }
 
 func setIndex(token *ast.Token, target, index, v value.Value) error {
 	switch target.Kind() {
 	case value.Array:
-		idx, err := checkIndex(token, target, index)
-		if err != nil {
-			return err
+		idx, ok, err := elementIndex(token, target, index)
+		if !ok {
+			return cmp.Or(err, outOfBounds(token, target, index))
 		}
 
 		target.Arr()[idx] = v
@@ -250,26 +258,37 @@ func setIndex(token *ast.Token, target, index, v value.Value) error {
 	}
 }
 
-// checkIndex validates that v is an integer index into the array or string target.
-func checkIndex(token *ast.Token, target, v value.Value) (int, error) {
-	if !v.IsNumber() || v.Num() != math.Trunc(v.Num()) {
-		kind := helpers.TypeName(target)
-		return 0, errors.NewRuntimeError(errors.TypeError, *token, strings.ToUpper(kind[:1])+kind[1:]+" index must be an integer.")
-	}
-
-	var length int
-	if target.IsString() {
-		length = utf8.RuneCountInString(target.Str())
-	} else {
-		length = len(target.Arr())
-	}
-
+// elementIndex checks that v is an integer and reports whether it is in
+// bounds of the array or string target.
+func elementIndex(token *ast.Token, target, v value.Value) (int, bool, error) {
 	f := v.Num()
-	if f < 0 || f >= float64(length) {
-		return 0, errors.NewRuntimeError(errors.IndexError, *token, fmt.Sprintf("Index out of bounds: %v of %v", f, length))
+	if !v.IsNumber() || f != math.Trunc(f) {
+		return 0, false, notInteger(token, target)
 	}
 
-	return int(f), nil
+	if f < 0 || f >= float64(length(target)) {
+		return 0, false, nil
+	}
+
+	return int(f), true, nil
+}
+
+func notInteger(token *ast.Token, target value.Value) error {
+	kind := helpers.TypeName(target)
+	return errors.NewRuntimeError(errors.TypeError, *token, strings.ToUpper(kind[:1])+kind[1:]+" index must be an integer.")
+}
+
+func outOfBounds(token *ast.Token, target, v value.Value) error {
+	return errors.NewRuntimeError(errors.IndexError, *token, fmt.Sprintf("Index out of bounds: %v of %v", v.Num(), length(target)))
+}
+
+// length is the number of elements of an array, or characters of a string.
+func length(target value.Value) int {
+	if target.Kind() == value.Array {
+		return len(target.Arr())
+	}
+
+	return utf8.RuneCountInString(target.Str())
 }
 
 const maxExactInt = 1 << 53
