@@ -22,6 +22,7 @@ Rune is a dynamically typed interpreted programming language inspired by [Lox](h
 - Error handling with `try`/`catch` and `throw`
 - Two loops only: `while` and `for x in ...` over arrays, strings, objects and ranges (`a..b`)
 - `break` and `continue` in both
+- `if`/`else` bodies are blocks, or a bare `return`, `throw`, `break` or `continue`: `if v < 0 return;`
 - Anonymous functions: `fun (x) { return x * 2; }`
 - Modulo `%` and compound assignment: `+=`, `-=`, `*=`, `/=`, `%=`
 - Increment and decrement, prefix and postfix: `++i`, `i++`, `--i`, `i--` (on variables, array elements and properties)
@@ -354,7 +355,7 @@ reported as `Name: message` when the struct has a string `message`.
 struct AgeError { message, value }
 
 fun parseAge(v) {
-    if v < 0 { throw AgeError { message: "negative age", value: v }; }
+    if v < 0 throw AgeError { message: "negative age", value: v };
     return v;
 }
 
@@ -378,13 +379,13 @@ array. Outside a loop a range is an array. Anything else is a `while`.
 
 ```javascript
 for i, name in ["ann", "bob"] {
-    if name == "ann" { continue; }
+    if name == "ann" continue;
     print name; // bob
 }
 
 let ages = { "ann": 31, "bob": 25 };
 for name, age in ages {
-    if age < 30 { break; }
+    if age < 30 break;
     print name + " is 30+";
 }
 

@@ -314,7 +314,7 @@ func (s *Parser) ifStatement() (ast.Stmt, error) {
 		return nil, err
 	}
 
-	then, err := s.body("if condition")
+	then, err := s.branch("if condition")
 	if err != nil {
 		return nil, err
 	}
@@ -325,7 +325,7 @@ func (s *Parser) ifStatement() (ast.Stmt, error) {
 		if s.match(ast.IF) {
 			el, err = s.ifStatement()
 		} else {
-			el, err = s.body("'else'")
+			el, err = s.branch("'else'")
 		}
 
 		if err != nil {
@@ -334,6 +334,20 @@ func (s *Parser) ifStatement() (ast.Stmt, error) {
 	}
 
 	return ast.NewIfStmt(condition, then, el), nil
+}
+
+// branch parses an if/else body: a block, or a bare return/throw/break/continue.
+func (s *Parser) branch(after string) (ast.Stmt, error) {
+	switch s.peek().TokenType {
+	case ast.RETURN, ast.THROW, ast.BREAK, ast.CONTINUE:
+		return s.statement()
+	}
+
+	if !s.check(ast.LEFT_BRACE) {
+		return nil, errors.NewSyntaxError(s.peek(), fmt.Sprintf("Expect '{' or a jump statement after %s.", after))
+	}
+
+	return s.body(after)
 }
 
 // body parses the "{ ... }" block that follows an if/while/for header.
