@@ -1,8 +1,8 @@
-fun size() { return len("abc"); }
-print(size()); // expect: 3
-len = fun (x) { return 42; };
-print(size()); // expect: 42
-print(len("z")); // expect: 42
+fun kind() { return type("abc"); }
+print(kind()); // expect: string
+type = fun (x) { return 42; };
+print(kind()); // expect: 42
+print(type("z")); // expect: 42
 
 let s = "a";
 if s == "a" { print("eq"); } else { print("ne"); } // expect: eq

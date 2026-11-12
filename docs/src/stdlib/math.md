@@ -43,7 +43,7 @@ let die = math.floor(math.random() * 6) + 1;
 print(die >= 1 && die <= 6);   // true
 
 let colors = ["red", "green", "blue"];
-let pick = colors[math.floor(math.random() * len(colors))];
+let pick = colors[math.floor(math.random() * colors.len())];
 print(colors.contains(pick));   // true
 ```
 

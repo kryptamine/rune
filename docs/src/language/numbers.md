@@ -102,7 +102,7 @@ fraction or an exponent are integers; `math.floor`, `ceil` and `round` give
 integers when one holds the result.
 
 ```rune
-print(math.isInt(len("abc")));              // true
+print(math.isInt("abc".len()));              // true
 print(math.isInt(math.floor(3.7)));         // true
 print(math.isInt(json.parse("2")));         // true
 print(math.isInt(json.parse("2.0")));       // false

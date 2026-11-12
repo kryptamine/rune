@@ -6,4 +6,4 @@ for i in 0..10 {
 }
 print(fs[0]()); // expect: 0
 print(fs[1]()); // expect: 1
-print(len(fs)); // expect: 2
+print(fs.len()); // expect: 2

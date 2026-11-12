@@ -9,7 +9,6 @@ import (
 // preludeNatives stay global; every other built-in lives in a namespace.
 var preludeNatives = []*Native{
 	writer("print", true, (*Stdio).Out),
-	{"len", 1, 1, length},
 	{"type", 1, 1, func(c *call) value.Value {
 		return value.NewString(helpers.TypeName(c.args[0]))
 	}},
@@ -38,15 +37,13 @@ func length(c *call) value.Value {
 		return count(len(v.Obj()))
 	case value.String:
 		return count(utf8.RuneCountInString(v.Str()))
-	case value.Struct:
-		return count(len(v.Shape().Fields))
 	case value.Map, value.Set:
 		return count(v.HashMap().Len())
 	case value.Bytes:
 		return count(len(v.Bytes()))
 	}
 
-	return c.typeError(0, "a string, an array, an object, a struct, a Map, a Set or bytes")
+	return c.typeError(0, "a string, an array, an object, a Map, a Set or bytes")
 }
 
 // lenMethod is the len method of the type called name.

@@ -1,5 +1,5 @@
 let s = "héllo";
 print(s[0]); // expect: h
 print(s[1]); // expect: é
-print(s[len(s) - 1]); // expect: o
+print(s[s.len() - 1]); // expect: o
 print(s[5]); // expect runtime error: [line: 5] IndexError: Index out of bounds: 5 of 5

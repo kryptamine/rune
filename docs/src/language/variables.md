@@ -103,8 +103,8 @@ let total = 10;
 }
 print(total);        // 10
 
-let len = 3;         // shadows the built-in len
-print(len);          // 3
+let type = 3;        // shadows the built-in type
+print(type);         // 3
 ```
 
 ```rune

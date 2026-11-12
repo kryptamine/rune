@@ -61,7 +61,7 @@ let label = stock > 10 ? "in stock" : stock > 0 ? "low" : "sold out";
 print(label);    // low
 
 let cart = ["tea", "milk"];
-print("{len(cart)} item{len(cart) == 1 ? "" : "s"}");    // 2 items
+print("{cart.len()} item{cart.len() == 1 ? "" : "s"}");    // 2 items
 
 let parity = n => n % 2 == 0 ? "even" : "odd";
 print(parity(7));    // odd

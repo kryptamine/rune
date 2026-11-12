@@ -2,12 +2,12 @@ let mut a = "";
 for i in 0..70 { a += "a"; }
 let b = a + "x";
 let c = a + "y";
-print(len(a)); // expect: 70
+print(a.len()); // expect: 70
 print(b[70]); // expect: x
 print(c[70]); // expect: y
-print(len(b + b)); // expect: 142
+print((b + b).len()); // expect: 142
 print((b + b)[141]); // expect: x
 let mut d = a;
 d += "z";
 print(a == d); // expect: false
-print(len(a)); // expect: 70
+print(a.len()); // expect: 70

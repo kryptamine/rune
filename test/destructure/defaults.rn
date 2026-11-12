@@ -4,7 +4,7 @@ print([a, b, c]); // expect: [1, 2, 3]
 let [x = 1] = [nil];
 print(x); // expect: nil
 
-let { title, root = ".", n = len(title) } = { title: "hi" };
+let { title, root = ".", n = title.len() } = { title: "hi" };
 print([title, root, n]); // expect: ["hi", ".", 2]
 
 fun page({ title, root = "." }, [w = 80, h = w / 2] = []) {

@@ -12,7 +12,7 @@ var benchSources = map[string]string{
 	"closure": `fun counter() { let mut n = 0; fun inc() { n = n + 1; return n; } return inc; }
 		let c = counter(); for i in 0..50000 { c(); }`,
 	"array": `let mut a = []; for i in 0..2000 { a = a.append(i); }
-		let mut s = 0; for i in 0..len(a) { s = s + a[i]; }`,
+		let mut s = 0; for i in 0..a.len() { s = s + a[i]; }`,
 	"push": `let mut a = []; for i in 0..2000 { a.push(i); }
 		let mut s = 0; for x in a { s += x; }`,
 	"map":       `let mut a = []; for i in 0..2000 { a.push(i); } for k in 0..20 { a.map(x => x * 2).filter(x => x % 3 == 0); }`,

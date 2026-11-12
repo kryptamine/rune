@@ -30,7 +30,7 @@ export fun load(dir, drafts = false) {
             draft: meta?.draft ?? false,
             html,
             headings,
-            words: len(regex.split(r"\s+", body.trim())),
+            words: regex.split(r"\s+", body.trim()).len(),
         });
     }
 
@@ -66,7 +66,7 @@ export fun write(site, out) {
     }
     fs.write(fs.join(out, "tags.html"), tpl.page({ title: "Tags", body: "<h1>Tags</h1>\n" + sections.join("\n") }));
 
-    return 3 + len(site.posts);
+    return 3 + site.posts.len();
 }
 
 fun byTag(posts) {

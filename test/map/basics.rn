@@ -6,7 +6,7 @@ m[nil] = "nothing";
 print(m);      // expect: Map {1: "one", "1": "string one", true: "yes", nil: "nothing"}
 print(m[1]);   // expect: one
 print(m[1.0]); // expect: one
-print(len(m)); // expect: 4
+print(m.len()); // expect: 4
 print(type(m)); // expect: Map
 
 m[1] = "uno";
@@ -23,7 +23,7 @@ print(m.entries());       // expect: [[1, "uno"], [true, "yes"], [nil, "nothing"
 print(m.set(5, "five").get(5)); // expect: five
 m.clear();
 print(m);      // expect: Map {}
-print(len(m)); // expect: 0
+print(m.len()); // expect: 0
 
 // Insertion order is kept, a deleted key goes to the end when added back.
 let mut o = Map([["b", 1], ["a", 2], ["c", 3]]);

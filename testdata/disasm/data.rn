@@ -3,5 +3,5 @@ o.x = o.x + 1;
 o["y"][0] += 5;
 let a = [1, 2, 3];
 a[1]++;
-print(len(a) + o.x * 2 - 1 / 3);
+print(a.len() + o.x * 2 - 1 / 3);
 print("a" + "b" == "ab");

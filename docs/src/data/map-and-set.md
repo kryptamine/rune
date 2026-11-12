@@ -16,7 +16,7 @@ visitors.add("ann");
 visitors.add("bob");
 visitors.add("ann");
 print(visitors);         // Set {"ann", "bob"}
-print(len(visitors));    // 2
+print(visitors.len());    // 2
 ```
 
 ## Making one
@@ -98,7 +98,7 @@ print(backend.difference(frontend));     // Set {"ann", "eve"}
 
 ## Iterating
 
-`len` counts the entries; `for k, v in m` walks a map's keys and values,
+`m.len()` counts the entries; `for k, v in m` walks a map's keys and values,
 `for k in m` its keys, and `for x in s` or `for i, x in s` a set, always
 in insertion order.
 

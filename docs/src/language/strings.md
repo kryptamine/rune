@@ -10,14 +10,14 @@ print("ticket #" + str(ticket));    // ticket #42
 print("ticket #" + ticket);         // TypeError: Operands must be two numbers, two strings or two bytes.
 ```
 
-A string indexes by character, a negative index from the end, `len`
+A string indexes by character, a negative index from the end, `s.len()`
 counts characters, and `<`, `<=`, `>`, `>=` compare strings by their
 characters' code points:
 
 ```rune
 print("héllo"[1]);       // é
 print("héllo"[-1]);      // o
-print(len("héllo"));     // 5
+print("héllo".len());     // 5
 print("ann" < "bob");    // true
 print("Zed" < "ann");    // true
 ```
@@ -45,7 +45,7 @@ let total = 59.97;
 
 print("hi {user.name}");                                  // hi ann
 print("roles: {user.roles}");                             // roles: ["admin", "ops"]
-print("{len(user.roles)} roles, total {total.fixed(1)}"); // 2 roles, total 60.0
+print("{user.roles.len()} roles, total {total.fixed(1)}"); // 2 roles, total 60.0
 print("order is {total > 50 ? "big" : "small"}");         // order is big
 print("set \{name} in the template");                     // set {name} in the template
 ```

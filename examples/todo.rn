@@ -127,7 +127,7 @@ fun parseTask(words, now) {
 
     for w in words {
         match w {
-            _ if w.startsWith("+") && len(w) > 1 => task.tags.push(w.slice(1));
+            _ if w.startsWith("+") && w.len() > 1 => task.tags.push(w.slice(1));
             _ if w.startsWith("!") && PRIORITIES.has(w.slice(1)) => task.priority = w.slice(1);
             _ if w.startsWith("due:") => task.due = parseDate(w.removePrefix("due:"), now);
             _ => text.push(w);
@@ -139,7 +139,7 @@ fun parseTask(words, now) {
 }
 
 fun ids(args) {
-    if len(args) == 0 throw UsageError { message: "which task? give an id" };
+    if args.len() == 0 throw UsageError { message: "which task? give an id" };
     return args.map(a => {
         if !regex.test(r"^\d+$", a) throw UsageError { message: "bad id '{a}'" };
         return int(a);
@@ -286,7 +286,7 @@ fun demo() {
 
 fun main(args) {
     try {
-        if len(args) == 0 demo(); else exec(defaultPath(), args, today());
+        if args.len() == 0 demo(); else exec(defaultPath(), args, today());
     } catch e is UsageError {
         io.eprint("todo: {e.message}");
         io.eprint(usage());

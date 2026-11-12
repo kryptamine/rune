@@ -1,12 +1,12 @@
 # Arrays
 
 An array is an ordered list of values of any type. `xs[i]` reads element
-`i`, counting from `0`, and `len(xs)` is the number of elements.
+`i`, counting from `0`, and `xs.len()` is the number of elements.
 
 ```rune
 let langs = ["go", "rust", "rune"];
 print(langs[0]);     // go
-print(len(langs));   // 3
+print(langs.len());   // 3
 
 let row = [1, 2.5, "three", true, nil, [4]];
 print(row);          // [1, 2.5, "three", true, nil, [4]]
@@ -15,7 +15,7 @@ let grid = [[1, 2], [3, 4]];
 print(grid[1][0]);   // 3
 ```
 
-An index must be an integer from `-len` to `len - 1`; a negative one
+An index must be an integer from `-xs.len()` to `xs.len() - 1`; a negative one
 counts from the end, as in strings, bytes, `slice` and `remove`. One out of
 bounds is an `IndexError`, for reading and writing alike. To grow an array,
 `push` to it.

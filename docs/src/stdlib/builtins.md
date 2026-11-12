@@ -1,6 +1,6 @@
 # Built-in Functions
 
-`print`, `len`, `type`, `object`, `str`, `number`, `int`, `Map` and `Set`
+`print`, `type`, `object`, `str`, `number`, `int`, `Map` and `Set`
 are global; the operations on a value are its methods, as `xs.map(f)` or
 `s.split(",")`; everything else lives in a namespace, used as
 `math.floor(x)`.
@@ -17,24 +17,6 @@ print([1, "two", nil]);  // [1, "two", nil]
 ["a", "b"].map(print);
 // a
 // b
-```
-
-## len
-
-`len(value)`, also the method `v.len()` of each type but structs, is the
-length of an array, object or string (in characters), the number of fields
-of a struct, the entries of a Map or Set, or the size of bytes.
-
-```rune
-struct User { name, role = "guest" }
-
-print(len([10, 20, 30]));             // 3
-print(len("héllo"));                  // 5
-print(len({ id: 1, name: "ann" }));   // 2
-print(len(User { name: "ann" }));     // 2
-print(len(Set(["a", "b", "a"])));     // 2
-print(len(b"\x00\xff"));              // 2
-print("héllo".len());                 // 5
 ```
 
 ## type

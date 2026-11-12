@@ -56,7 +56,7 @@ impl Stats {
     fun percentiles(self, ...ps) {
         let mut xs = self.latencies.slice(0);
         xs.sort();
-        return ps.map(p => xs[math.min(len(xs) - 1, math.floor(len(xs) * p / 100))]);
+        return ps.map(p => xs[math.min(xs.len() - 1, math.floor(xs.len() * p / 100))]);
     }
 
     fun errorRate(self) {
@@ -94,7 +94,7 @@ impl Report {
 
         self.slowest.push(e);
         self.slowest.sort((a, b) => b.latency - a.latency);
-        if len(self.slowest) > TOP_SLOW self.slowest.pop();
+        if self.slowest.len() > TOP_SLOW self.slowest.pop();
     }
 
     fun skip(mut self, err) {
@@ -103,7 +103,7 @@ impl Report {
 
     fun topClients(self, n = 3) {
         let mut rows = [];
-        for ip, { hits, paths } in self.clients rows.push({ ip, hits, distinct: len(paths) });
+        for ip, { hits, paths } in self.clients rows.push({ ip, hits, distinct: paths.len() });
         rows.sort((a, b) => b.hits - a.hits);
         return rows.slice(0, n);
     }
@@ -131,9 +131,9 @@ fun bar(value, max, width = 24) {
 
 // The first column is aligned left, the others, numbers, right.
 fun table(headers, rows) {
-    let mut widths = headers.map(h => len(h));
+    let mut widths = headers.map(h => h.len());
     for row in rows {
-        for i, cell in row widths[i] = math.max(widths[i], len(str(cell)));
+        for i, cell in row widths[i] = math.max(widths[i], str(cell).len());
     }
 
     let fmt = cells => {
@@ -151,7 +151,7 @@ fun table(headers, rows) {
 }
 
 fun printReport(r) {
-    print("== {r.total} requests, {len(r.skipped)} malformed lines skipped" + (len(r.skipped) > 0 ? " (lines {r.skipped.slice(0, 5).join(", ")})" : ""));
+    print("== {r.total} requests, {r.skipped.len()} malformed lines skipped" + (r.skipped.len() > 0 ? " (lines {r.skipped.slice(0, 5).join(", ")})" : ""));
     print("");
 
     let mut rows = [];
@@ -219,7 +219,7 @@ impl Rng {
 
     fun int(mut self, n) { return self.next() % n; }
 
-    fun pick(mut self, xs) { return xs[self.int(len(xs))]; }
+    fun pick(mut self, xs) { return xs[self.int(xs.len())]; }
 }
 
 let IPS = ["203.0.113.7", "198.51.100.23", "192.0.2.44", "203.0.113.90", "198.51.100.5"];
@@ -280,7 +280,7 @@ fun run(path, flags) {
 
 fun main(args) {
     let started = time.now();
-    let [path, ...flags] = len(args) > 0 ? args : [nil];
+    let [path, ...flags] = args.len() > 0 ? args : [nil];
     let mut code = nil;
 
     if path == nil {

@@ -7,7 +7,7 @@ mutable variable; the others return a new value and leave it as it is.
 
 - `push(v1, ...)` — appends **in place** (amortized O(1) each) and returns the new length.
 - `pop()` — removes the last element in place and returns it; an empty array is a `ValueError`.
-- `insert(i, v)` — inserts `v` before index `i` **in place** (`len` appends) and returns the new length.
+- `insert(i, v)` — inserts `v` before index `i` **in place** (`xs.len()` appends) and returns the new length.
 - `remove(i)` — removes element `i` in place and returns it. A negative `i` counts from the end; one out of bounds is an `IndexError`.
 - `append(v1, ...)` — a new array with the values appended. It copies, so building an array with it in a loop is quadratic; use `push` for that.
 
@@ -59,7 +59,7 @@ print(scores.sort());                     // [1, 3, 5, 10]
 
 let mut fruits = ["pear", "Apple", "fig"];
 print(fruits.sort());                     // ["Apple", "fig", "pear"]
-print(fruits.sort((a, b) => len(a) - len(b))); // ["fig", "pear", "Apple"]
+print(fruits.sort((a, b) => a.len() - b.len())); // ["fig", "pear", "Apple"]
 
 let mut people = [{ name: "bob", age: 25 }, { name: "ann", age: 31 }];
 people.sort((a, b) => b.age - a.age);

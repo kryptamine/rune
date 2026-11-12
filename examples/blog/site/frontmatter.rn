@@ -4,10 +4,10 @@ export struct FrontMatterError { message, path, line }
 
 export fun parse(src, path) {
     let lines = src.split("\n");
-    if len(lines) == 0 || lines[0].trim() != "---" return { meta: {}, body: src };
+    if lines.len() == 0 || lines[0].trim() != "---" return { meta: {}, body: src };
 
     let mut meta = {};
-    for i in 1..len(lines) {
+    for i in 1..lines.len() {
         let line = lines[i];
         if line.trim() == "---" {
             return { meta, body: lines.slice(i + 1).join("\n") };

@@ -132,7 +132,7 @@ and its right operand must be a struct type.
 `==` compares structs field by field and only if they are of the same
 struct, so a struct never equals an object. `for k, v in s` walks the
 fields in declaration order. `object(s)` copies a struct into a new
-object, `len(s)` is its number of fields and `type(s)` its name.
+object, `object(s).len()` its number of fields and `type(s)` its name.
 
 ```rune
 struct User { name, role = "member" }
@@ -150,7 +150,7 @@ for field, value in ann {
 // role: member
 
 print(object(ann)); // {name: "ann", role: "member"}
-print(len(ann));    // 2
+print(object(ann).len()); // 2
 print(type(ann));   // User
 print(type(User));  // struct
 ```

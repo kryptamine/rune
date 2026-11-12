@@ -10,5 +10,5 @@ print(a); // expect: [1, 2, 3, 4, 5]
 
 // append still returns a new array and leaves the input alone.
 let c = a.append(6);
-print(len(a)); // expect: 5
-print(len(c)); // expect: 6
+print(a.len()); // expect: 5
+print(c.len()); // expect: 6

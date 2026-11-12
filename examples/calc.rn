@@ -31,7 +31,7 @@ fun tokenize(src) {
         tokens.push(Token { kind, text: m.text, pos: m.index });
     }
 
-    tokens.push(Token { kind: "eof", text: "end of input", pos: len(src) });
+    tokens.push(Token { kind: "eof", text: "end of input", pos: src.len() });
     return tokens;
 }
 
@@ -181,7 +181,7 @@ impl Env {
     fun call(mut self, name, args) {
         let f = self.funs.get(name);
         if f != nil {
-            if len(args) != len(f.params) throw CalcError { message: "{name} takes {len(f.params)} arguments, got {len(args)}" };
+            if args.len() != f.params.len() throw CalcError { message: "{name} takes {f.params.len()} arguments, got {args.len()}" };
             let mut locals = {};
             for i, p in f.params locals[p] = args[i];
             return self.eval(f.body, locals);
