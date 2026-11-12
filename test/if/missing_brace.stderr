@@ -1,0 +1,3 @@
+[line: 1] Error at 'print': Expect '{' after if condition.
+    1 | if true print "x"; // [line: 1] Error at 'print': Expect '{' after if condition.
+      |         ^

@@ -1,6 +1,6 @@
 fun fail(n) {
   let local = n;
-  if (n == 0) throw "boom";
+  if n == 0 { throw "boom"; }
   return fail(n - 1) + local;
 }
 

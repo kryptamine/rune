@@ -1,9 +1,9 @@
-for (x in [1, 2, 3]) print x;
+for x in [1, 2, 3] { print x; }
 // expect: 1
 // expect: 2
 // expect: 3
 
-for (i, x in ["a", "b"]) {
+for i, x in ["a", "b"] {
   print i;
   print x;
 }
@@ -12,4 +12,4 @@ for (i, x in ["a", "b"]) {
 // expect: 1
 // expect: b
 
-for (x in []) print "never";
+for x in [] { print "never"; }

@@ -1,6 +1,6 @@
 // Pooled frames of a recursive function must not share slots.
 fun sum(n) {
-  if (n == 0) return 0;
+  if n == 0 { return 0; }
   let here = n;
   let rest = sum(n - 1);
   return here + rest;

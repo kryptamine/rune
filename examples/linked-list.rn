@@ -11,9 +11,9 @@ fun createList(arr) {
     let mut head = nil;
     let mut tail = nil;
 
-    for (x in arr) {
+    for x in arr {
         let node = createNode(x);
-        if (head == nil) {
+        if head == nil {
             head = node;
             tail = node;
         } else {
@@ -30,7 +30,7 @@ fun createList(arr) {
 fun printList(list) {
     let mut current = list;
 
-    while (current != nil) {
+    while current != nil {
         print(current["data"]);
         current = current["next"];
     }
@@ -41,7 +41,7 @@ fun reverseList(list) {
     let mut current = list;
     let mut next = nil;
 
-    while (current != nil) {
+    while current != nil {
         next = current["next"];
         current["next"] = prev;
         prev = current;

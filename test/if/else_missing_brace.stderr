@@ -1,0 +1,3 @@
+[line: 1] Error at 'print': Expect '{' after 'else'.
+    1 | if false { } else print "x"; // [line: 1] Error at 'print': Expect '{' after 'else'.
+      |                   ^

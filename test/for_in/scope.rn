@@ -1,5 +1,5 @@
 let x = "outer";
-for (x in [1]) {
+for x in [1] {
   let x = "body";
   print x; // expect: body
 }

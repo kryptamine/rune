@@ -1,0 +1,17 @@
+fun sign(n) {
+  if n < 0 {
+    return "neg";
+  } else if n == 0 {
+    return "zero";
+  } else {
+    return "pos";
+  }
+}
+
+print sign(-1); // expect: neg
+print sign(0); // expect: zero
+print sign(1); // expect: pos
+
+// Parentheses are plain grouping.
+if (1 < 2) { print "paren"; } // expect: paren
+if (1 < 2) == true { print "group"; } // expect: group

@@ -1,5 +1,5 @@
 let mut a = "";
-for (i in 0..70) { a += "a"; }
+for i in 0..70 { a += "a"; }
 let b = a + "x";
 let c = a + "y";
 print len(a); // expect: 70

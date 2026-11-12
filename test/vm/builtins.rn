@@ -5,8 +5,8 @@ print size(); // expect: 42
 print len("z"); // expect: 42
 
 let s = "a";
-if (s == "a") print "eq"; else print "ne"; // expect: eq
-if (s != "b") print "ne"; // expect: ne
+if s == "a" { print "eq"; } else { print "ne"; } // expect: eq
+if s != "b" { print "ne"; } // expect: ne
 print s + "b"; // expect: ab
 print s == nil; // expect: false
 

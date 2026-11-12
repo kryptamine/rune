@@ -1,4 +1,4 @@
-while (true) {
+while true {
   fun f() {
     break; // [line: 3] Error at 'break': Cannot use 'break' outside of a loop.
   }

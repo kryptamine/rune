@@ -1,5 +1,5 @@
 fun thrower(n) {
-  if (n == 0) throw "bottom";
+  if n == 0 { throw "bottom"; }
   return thrower(n - 1);
 }
 
@@ -15,10 +15,10 @@ print catcher(); // expect: caught bottom
 
 fun loopy() {
   let mut out = "";
-  for (i in 0..4) {
+  for i in 0..4 {
     try {
-      if (i == 1) continue;
-      if (i == 3) break;
+      if i == 1 { continue; }
+      if i == 3 { break; }
       out += "t";
       try {
         throw "x";
@@ -34,14 +34,14 @@ fun loopy() {
 print loopy(); // expect: tctc
 
 try {
-  map([1, 2], fun (x) { if (x == 2) throw "in map"; return x; });
+  map([1, 2], fun (x) { if x == 2 { throw "in map"; } return x; });
 } catch (e) {
   print e; // expect: in map
 }
 
 let r = map([1, 2, 3], fun (x) {
   try {
-    if (x == 2) throw "skip";
+    if x == 2 { throw "skip"; }
     return x;
   } catch {
     return 0;

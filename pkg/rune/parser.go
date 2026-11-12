@@ -11,6 +11,8 @@ type Parser struct {
 	tokens  []ast.Token
 	errors  []error
 	current int
+	// noStruct is set in an if/while/for header, where "Name {" opens the body.
+	noStruct bool
 }
 
 // ParseExpr parses a single expression and stops at the first error.

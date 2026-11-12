@@ -1,0 +1,3 @@
+struct P { x }
+
+if (fun () { return P { x: 1 }; })().x == 1 { print "ok"; } // expect: ok

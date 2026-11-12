@@ -1,5 +1,5 @@
 fun check(n) {
-  if (n < 0) throw ValueError { message: "negative" };
+  if n < 0 { throw ValueError { message: "negative" }; }
   return n;
 }
 

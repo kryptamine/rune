@@ -283,6 +283,24 @@ func update(target ast.Expr, operator ast.Token, prefix bool) (ast.Expr, error) 
 	return nil, errors.NewSyntaxError(operator, "Invalid increment target.")
 }
 
+// allowStructs sets whether "Name {" starts a struct literal and returns a
+// func restoring the previous setting.
+func (s *Parser) allowStructs(on bool) (restore func()) {
+	prev := s.noStruct
+	s.noStruct = !on
+
+	return func() { s.noStruct = prev }
+}
+
+// expressionWithStructs parses an expression with struct literals allowed or
+// not: not in an if/while/for header, where "Name {" opens the body, and
+// again inside brackets.
+func (s *Parser) expressionWithStructs(on bool) (ast.Expr, error) {
+	defer s.allowStructs(on)()
+
+	return s.expression()
+}
+
 func (s *Parser) call() (ast.Expr, error) {
 	expr, err := s.primary()
 	if err != nil {
@@ -297,7 +315,7 @@ func (s *Parser) call() (ast.Expr, error) {
 				return nil, err
 			}
 		} else if s.match(ast.LEFT_BRACKET) {
-			index, err := s.expression()
+			index, err := s.expressionWithStructs(true)
 			if err != nil {
 				return nil, err
 			}
@@ -329,7 +347,7 @@ func (s *Parser) finishCall(expr ast.Expr) (ast.Expr, error) {
 
 	if !s.check(ast.RIGHT_PAREN) {
 		for {
-			arg, err := s.expression()
+			arg, err := s.expressionWithStructs(true)
 			if err != nil {
 				return nil, err
 			}
@@ -394,7 +412,7 @@ func (s *Parser) primary() (ast.Expr, error) {
 	if s.match(ast.IDENTIFIER) {
 		prev := s.previous()
 
-		if s.isStructLiteralStart() {
+		if !s.noStruct && s.isStructLiteralStart() {
 			s.advance()
 			return s.structLiteral(prev)
 		}
@@ -403,7 +421,7 @@ func (s *Parser) primary() (ast.Expr, error) {
 	}
 
 	if s.match(ast.LEFT_PAREN) {
-		expr, err := s.expression()
+		expr, err := s.expressionWithStructs(true)
 
 		if err != nil {
 			return nil, err
@@ -471,7 +489,7 @@ func (s *Parser) objectLiteral() (ast.Expr, error) {
 			return "", tok, err
 		}
 
-		v, err := s.expression()
+		v, err := s.expressionWithStructs(true)
 		pairs = append(pairs, ast.ObjectPair{Key: key, Value: v})
 
 		return key, tok, err
@@ -507,7 +525,7 @@ func (s *Parser) structPairs() ([]ast.StructPair, error) {
 			return "", key, err
 		}
 
-		v, err := s.expression()
+		v, err := s.expressionWithStructs(true)
 		pairs = append(pairs, ast.StructPair{Key: key, Value: v})
 
 		return key.Lexeme, key, err
@@ -533,7 +551,7 @@ func (s *Parser) arrayLiteral() (ast.Expr, error) {
 
 	if !s.check(ast.RIGHT_BRACKET) {
 		for {
-			elem, err := s.expression()
+			elem, err := s.expressionWithStructs(true)
 			if err != nil {
 				return nil, err
 			}
@@ -556,6 +574,8 @@ func (s *Parser) arrayLiteral() (ast.Expr, error) {
 
 // functionExpr parses an anonymous function: fun (params) { body }.
 func (s *Parser) functionExpr() (ast.Expr, error) {
+	defer s.allowStructs(true)()
+
 	keyword := s.advance()
 	s.advance()
 
