@@ -1,0 +1,34 @@
+impl string {
+  fun shout(self) { return string.upper(self) + "!"; }
+}
+
+impl array {
+  fun sum(self) { return array.reduce(self, (a, b) => a + b, 0); }
+}
+
+impl number {
+  fun double(self) { return self * 2; }
+}
+
+impl object {
+  fun size(self) { return len(self); }
+}
+
+impl boolean {
+  fun flip(self) { return !self; }
+}
+
+impl function {
+  fun twice(self, x) { return self(self(x)); }
+}
+
+print "hi".shout(); // expect: HI!
+print [1, 2, 3].sum(); // expect: 6
+let n = 4;
+print n.double(); // expect: 8
+print { a: 1, b: 2 }.size(); // expect: 2
+print { size: () => "own" }.size(); // expect: own
+print true.flip(); // expect: false
+print (x => x + 3).twice(1); // expect: 7
+let s = "a".shout;
+print s(); // expect: A!

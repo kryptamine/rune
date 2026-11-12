@@ -25,6 +25,7 @@ const (
 	Struct
 	// Type is a struct type, the value of its name.
 	Type
+	NumKinds
 )
 
 // Value is a Rune runtime value in two words; the zero Value is nil.
@@ -103,8 +104,28 @@ type Shape struct {
 	Name   string
 	Fields []string
 	// Keys holds Fields as values, for iteration.
-	Keys  []Value
-	decls []Field
+	Keys    []Value
+	Methods []Method
+	decls   []Field
+}
+
+// Method is a method of an impl block; ID indexes the program's closures.
+// Without Self it is static; Mut takes mut self.
+type Method struct {
+	Name      string
+	ID        int
+	Self, Mut bool
+}
+
+// FindMethod returns the method of ms named name, or nil.
+func FindMethod(ms []Method, name string) *Method {
+	for i := range ms {
+		if ms[i].Name == name {
+			return &ms[i]
+		}
+	}
+
+	return nil
 }
 
 func NewShape(name string, decls []Field) *Shape {
@@ -134,6 +155,18 @@ func (s *Shape) Index(name string) int {
 	}
 
 	return -1
+}
+
+// InternedMethod is FindMethod for a key sharing the name's storage, as
+// the compiler arranges; a miss does not mean there is no such method.
+func InternedMethod(ms []Method, key Value) *Method {
+	for i := range ms {
+		if unsafe.Pointer(unsafe.StringData(ms[i].Name)) == key.p {
+			return &ms[i]
+		}
+	}
+
+	return nil
 }
 
 // NewStruct allocates an instance of s and returns it with its fields to
@@ -271,17 +304,35 @@ func (v Value) Fields() []Value {
 	return unsafe.Slice((*Value)(unsafe.Add(v.p, unsafe.Sizeof(Value{}))), n)
 }
 
-// InternedField returns the field named by key, matching the string data
-// pointer: it finds the field only if key shares the name's storage, as
-// the compiler arranges, so a miss does not mean there is no such field.
-func (v Value) InternedField(key Value) (Value, bool) {
+// InternedSlot returns the slot of the field named by key, matching the
+// string data pointer: it finds the field only if key shares the name's
+// storage, as the compiler arranges, so -1 does not mean there is none.
+func (v Value) InternedSlot(key Value) int {
 	for i, f := range v.Shape().Fields {
 		if unsafe.Pointer(unsafe.StringData(f)) == key.p {
-			return v.Fields()[i], true
+			return i
 		}
 	}
 
+	return -1
+}
+
+// InternedField returns the field InternedSlot finds.
+func (v Value) InternedField(key Value) (Value, bool) {
+	if i := v.InternedSlot(key); i >= 0 {
+		return v.Fields()[i], true
+	}
+
 	return NilValue, false
+}
+
+// With returns a copy of v with field slot set to x.
+func (v Value) With(slot int, x Value) Value {
+	c, fields := NewStruct(v.Shape())
+	copy(fields, v.Fields())
+	fields[slot] = x
+
+	return c
 }
 
 // TypeShape returns the shape a struct type describes; only meaningful when Kind() == Type.

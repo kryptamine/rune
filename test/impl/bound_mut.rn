@@ -1,0 +1,8 @@
+struct Counter { n = 0 }
+
+impl Counter {
+  fun incr(mut self) { self.n++; }
+}
+
+let mut c = Counter {};
+let f = c.incr; // expect runtime error: [line: 8] TypeError: Cannot take mutating method 'incr' of Counter as a value.

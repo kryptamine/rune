@@ -1,0 +1,3 @@
+impl IOError { // [line: 1] Error at 'IOError': Cannot add methods to built-in struct 'IOError'.
+  fun f(self) {}
+}

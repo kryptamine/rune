@@ -45,9 +45,12 @@ func (fs *funcState) stmt(stmt ast.Stmt) {
 		fs.functionStmt(s)
 	case *ast.ReturnStmt:
 		if s.Value == nil {
+			fs.returnSelf()
 			fs.emit(ins{op: opReturnNil}, nil)
 		} else {
-			fs.emit(ins{op: opReturn, a: fs.exprAny(s.Value)}, nil)
+			v := fs.exprAny(s.Value)
+			fs.returnSelf()
+			fs.emit(ins{op: opReturn, a: v}, nil)
 		}
 	case *ast.TryStmt:
 		fs.tryStmt(s)
@@ -55,7 +58,7 @@ func (fs *funcState) stmt(stmt ast.Stmt) {
 		fs.emit(ins{op: opThrow, a: fs.exprAny(s.Value)}, &s.Keyword)
 	case *ast.MatchStmt:
 		fs.match(s.Match, noReg)
-	case *ast.StructStmt:
+	case *ast.StructStmt, *ast.ImplStmt:
 	case *ast.BreakStmt:
 		l := fs.leaveLoop()
 		l.breaks = append(l.breaks, fs.emit(ins{op: opJmp}, nil))

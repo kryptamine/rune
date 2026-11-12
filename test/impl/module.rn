@@ -1,0 +1,8 @@
+import _geo.shapes as g;
+
+let mut p = g.Point { x: 1, y: 2 };
+print p.len(); // expect: 3
+p.shift();
+print p; // expect: Point {x: 2, y: 2}
+print g.Point.origin(); // expect: Point {x: 0, y: 0}
+print "ab".twice(); // expect: abab

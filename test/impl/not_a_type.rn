@@ -1,0 +1,9 @@
+let Point = 1;
+
+impl Point { // [line: 3] Error at 'Point': 'Point' is not a struct of this file or a built-in type.
+  fun f(self) {}
+}
+
+impl Nope { // [line: 7] Error at 'Nope': 'Nope' is not a struct of this file or a built-in type.
+  fun f(self) {}
+}

@@ -54,15 +54,17 @@ const (
 	opConcat   // R[A] = R[B] .. R[B+C-1] as printed, appended to R[A] if X
 	opObject   // R[A] = {keys[C][i]: R[B+i]}
 	opStruct   // R[A] = struct of type K[C] with fields R[B...]
-	opWith     // R[A] = R[B] with {keys[C][i]: R[B+1+i]}
 	opGetIndex // R[A] = R[B][R[C]]
 	opGetProp  // R[A] = R[B].K[C]
 	// The optional forms give nil for a missing element, property or field.
 	opGetIndexOpt
 	opGetPropOpt
+	// The sets take a struct only with Y, for a mut self, copying it into
+	// R[A]; with X they resume past the jump that follows, over code
+	// writing R[A] back.
 	opSetIndex  // R[A][R[B]] = R[C]
 	opSetProp   // R[A].K[B] = R[C]
-	opCheckProp // R[A] must be an object to set a property on
+	opCheckProp // R[A] must take property K[B]: an object, or with Y a struct with that field
 	// TestProp needs four operands, so it skips over the instruction after
 	// it, a jump to the mismatch, instead of taking a target.
 	opTestProp // if R[B] is an object or struct with K[C]: R[A] = R[B].K[C], pc++
@@ -73,6 +75,11 @@ const (
 	opClosure   // R[A] = closure of protos[C]
 	opCall      // R[A] = R[A](R[A+1], ..., R[A+B])
 	opCallArray // R[A] = R[A](the elements of array R[A+1])
+	// Invoke calls method K[C] of R[A+1] with it and R[A+2], ..., R[A+1+B].
+	// With Y the next instruction jumps over code that writes R[A+1] back
+	// to the receiver; a mutating method resumes after that jump.
+	opInvoke
+	opMethod    // methods[C] = R[A]
 	opReturn    // return R[A]
 	opReturnNil // return nil
 	opPrint     // print R[A]
@@ -198,7 +205,15 @@ func (c *Closure) String() string {
 type Program struct {
 	script *Proto
 	// main is the name of the entry point, nil without one.
-	main *ast.Token
+	main    *ast.Token
+	methods methodTable
+}
+
+// methodTable holds the methods of the built-in types, by kind, and the
+// number of methods in the program.
+type methodTable struct {
+	kinds [value.NumKinds][]value.Method
+	n     int
 }
 
 var opNames = [...]string{
@@ -206,8 +221,8 @@ var opNames = [...]string{
 	"CHECKDEFINED", "SETCELL!", "SETUPVAL!", "UNDEFINED",
 	"ADD", "SUB", "MUL", "DIV", "MOD", "ADDK", "SUBK", "MULK", "DIVK", "MODK", "CMP", "CMPK", "IS", "NEG", "NOT", "INCR",
 	"JMP", "JMPIF", "JMPCMP", "JMPCMPK", "JMPNOTTYPE", "JMPNIL",
-	"ARRAY", "CONCAT", "OBJECT", "STRUCT", "WITH", "GETINDEX", "GETPROP", "GETINDEX?", "GETPROP?", "SETINDEX", "SETPROP", "CHECKPROP", "TESTPROP", "RANGE", "SPREAD", "UNPACK",
-	"CLOSURE", "CALL", "CALLARRAY", "RETURN", "RETURNNIL", "PRINT", "THROW", "RETHROW", "NOMATCH", "TRY", "ENDTRY",
+	"ARRAY", "CONCAT", "OBJECT", "STRUCT", "GETINDEX", "GETPROP", "GETINDEX?", "GETPROP?", "SETINDEX", "SETPROP", "CHECKPROP", "TESTPROP", "RANGE", "SPREAD", "UNPACK",
+	"CLOSURE", "CALL", "CALLARRAY", "INVOKE", "METHOD", "RETURN", "RETURNNIL", "PRINT", "THROW", "RETHROW", "NOMATCH", "TRY", "ENDTRY",
 	"FORRANGE", "FORRANGENEXT", "FORITER", "FORITERNEXT",
 }
 

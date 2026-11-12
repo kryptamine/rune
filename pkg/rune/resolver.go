@@ -45,6 +45,11 @@ type Resolver struct {
 	fieldNames map[string]string
 	// main is the program's entry point, if it declares one.
 	main *ast.FunctionStmt
+	// kinds holds the methods of the built-in types; nmethods counts all.
+	kinds    [value.NumKinds][]value.Method
+	nmethods int
+	// impls holds the impl blocks at the top level of a file.
+	impls map[*ast.ImplStmt]bool
 }
 
 func NewResolver() *Resolver {
@@ -55,6 +60,7 @@ func NewResolver() *Resolver {
 		modules:    []*moduleScope{mod},
 		structs:    map[*ast.Local]*value.Shape{},
 		fieldNames: stdlib.FieldNames(),
+		impls:      map[*ast.ImplStmt]bool{},
 	}
 }
 
@@ -75,6 +81,13 @@ func (p *Resolver) resolveTopLevel(stmts []ast.Stmt) {
 			p.mod.topLevel[s.Name.Lexeme] = l
 			s.Shape = p.shape(s)
 			p.structs[l] = s.Shape
+		}
+	}
+
+	for _, stmt := range stmts {
+		if s, ok := stmt.(*ast.ImplStmt); ok {
+			p.impls[s] = true
+			p.declareImpl(s)
 		}
 	}
 
@@ -291,17 +304,24 @@ func (p *Resolver) shape(s *ast.StructStmt) *value.Shape {
 	fields := make([]value.Field, len(s.Fields))
 
 	for i, f := range s.Fields {
-		name, ok := p.fieldNames[f.Name.Lexeme]
-		if !ok {
-			name = f.Name.Lexeme
-			p.fieldNames[name] = name
-		}
+		name := p.intern(f.Name.Lexeme)
 
 		def, _ := literalOf(f.Default)
 		fields[i] = value.Field{Name: name, Default: def, Required: f.Default == nil}
 	}
 
 	return value.NewShape(s.Name.Lexeme, fields)
+}
+
+// intern returns the one string of a field or method name.
+func (p *Resolver) intern(name string) string {
+	if s, ok := p.fieldNames[name]; ok {
+		return s
+	}
+
+	p.fieldNames[name] = name
+
+	return name
 }
 
 func (p *Resolver) VisitStructExpr(expr *ast.StructExpr) (value.Value, error) {
@@ -334,16 +354,6 @@ func (p *Resolver) VisitStructExpr(expr *ast.StructExpr) (value.Value, error) {
 		if _, optional := shape.Default(i); !given[i] && !optional {
 			p.error(expr.Type.Name, errors.MissingField(shape.Name, f))
 		}
-	}
-
-	return value.NilValue, nil
-}
-
-func (p *Resolver) VisitWithExpr(expr *ast.WithExpr) (value.Value, error) {
-	p.resolveExpr(expr.Target)
-
-	for _, pair := range expr.Pairs {
-		p.resolveExpr(pair.Value)
 	}
 
 	return value.NilValue, nil
@@ -443,6 +453,10 @@ func (p *Resolver) VisitCallExpr(callExpr *ast.CallExpr) (value.Value, error) {
 	}
 
 	p.requireMutableArg(callExpr)
+
+	if prop, ok := callExpr.Callee.(*ast.IndexExpr); ok && isMethodCall(prop) {
+		callExpr.Writable = p.writable(prop.Array)
+	}
 
 	return value.NilValue, nil
 }

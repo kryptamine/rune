@@ -46,6 +46,9 @@ type Interpreter struct {
 	maxRecursion int
 	buf          []byte
 	halted       atomic.Bool
+	// methods holds the closure of each method; kinds the built-in types'.
+	methods []value.Value
+	kinds   *[value.NumKinds][]value.Method
 }
 
 func NewInterpreter(stdio *stdlib.Stdio) *Interpreter {
@@ -109,6 +112,9 @@ func (p *Interpreter) exec(prog *Program, args []string) (value.Value, error) {
 		items[i] = value.NewString(a)
 	}
 
+	p.methods = make([]value.Value, prog.methods.n)
+	p.kinds = &prog.methods.kinds
+
 	p.grow(1 + cl.proto.nregs)
 	p.stack[0] = value.NewFunction(cl)
 	p.stack[1] = value.NewArray(items)
@@ -146,6 +152,8 @@ func (p *Interpreter) CallValue(fn value.Value, args []value.Value, token *ast.T
 			}
 
 			return p.run(len(p.frames) - 1)
+		case *BoundMethod:
+			return p.CallValue(value.NewFunction(f.fn), append([]value.Value{f.recv}, args...), token)
 		case *stdlib.Native:
 			return p.host.Call(f, p, args, token)
 		}
@@ -177,15 +185,21 @@ func (p *Interpreter) enter(cl *Closure, base, nargs int, tok *ast.Token) error 
 
 func (p *Interpreter) callError(cl *Closure, nargs int, tok *ast.Token) error {
 	if f := cl.proto; !f.accepts(nargs) {
-		want := fmt.Sprintf("%d arguments", f.arity)
-		if f.rest {
-			want = "at least " + helpers.Plural(f.arity, "argument")
-		}
-
-		return errors.NewRuntimeError(errors.ArgumentError, *tok, fmt.Sprintf("Expected %s but got %d.", want, nargs))
+		return argumentError(f, nargs, 0, tok)
 	}
 
 	return errors.NewFatalError(*tok, "Stack overflow.")
+}
+
+// argumentError reports a call of f with nargs arguments, not counting the
+// first skip parameters, which the call passes itself.
+func argumentError(f *Proto, nargs, skip int, tok *ast.Token) error {
+	want := fmt.Sprintf("%d arguments", f.arity-skip)
+	if f.rest {
+		want = "at least " + helpers.Plural(f.arity-skip, "argument")
+	}
+
+	return errors.NewRuntimeError(errors.ArgumentError, *tok, fmt.Sprintf("Expected %s but got %d.", want, nargs-skip))
 }
 
 // unwind handles err raised in the top frame of a run that started at

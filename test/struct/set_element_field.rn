@@ -1,0 +1,4 @@
+struct Point { x, y }
+
+let mut ps = [Point { x: 1, y: 2 }];
+ps[0].x = 3; // expect runtime error: [line: 4] TypeError: Cannot set field 'x' of Point: only a mut self method can set the fields of self.

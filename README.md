@@ -19,7 +19,8 @@ Rune is a dynamically typed interpreted programming language inspired by [Lox](h
 - String interpolation: `"x = {x}, sum = {a + b}"`
 - Number literals with exponents: `1e3`, `2.5E-2`
 - Object property access with `obj.name` as sugar for `obj["name"]`
-- Immutable structs with required and default fields: `struct Point { x, y = 0 }`
+- Structs with required and default fields, read-only outside their `mut self` methods: `struct Point { x, y = 0 }`
+- Methods in `impl` blocks, on structs and built-in types: `p.len()`, `Point.origin()`, `fun move(mut self)`
 - Destructuring of objects, structs and arrays, in `let` and parameters: `let { x, y } = p;`, `let [head, ...tail] = xs;`
 - Nil-safe access and defaults: `resp?.data?.items ?? []`
 - Spread and rest: `[...a, ...b]`, `{...o, x: 1}`, `f(...args)`, `fun log(level, ...parts)`
@@ -211,23 +212,15 @@ Point { x: 1, z: 2 }; // Error at 'z': Point has no field 'z'.
 Point { y: 2 };       // Error at 'Point': Missing field 'x' of Point.
 ```
 
-Fields are immutable, whatever the variable: `p.x = 2` is a runtime error.
-To change a field, build a new struct; `let mut` only lets the variable be
-rebound to it. An array or object held in a field stays mutable.
+Fields are read-only: only a `mut self` method of the struct can set them,
+on `self` (see [Methods](#methods)). Anywhere else `p.x = 2` is a runtime
+error, whatever the variable. An array or object held in a field stays
+mutable.
 
 ```javascript
 let mut q = Point { x: 1, y: 2 };
-q = Point { x: q.x + 1, y: q.y };
-q.x = 5; // Cannot set field 'x' of Point: structs are immutable.
-```
-
-`with` copies a struct, changing the fields it lists; it binds tighter
-than unary operators and looser than calls, so `(p with { x: 2 }).x`
-needs the parentheses. The fields are checked at run time.
-
-```javascript
-let q = p with { x: 3 }; // Point {x: 3, y: 0}; p is unchanged
-p with { z: 1 };         // Point has no field 'z'.
+q.x = 5; // Cannot set field 'x' of Point: only a mut self method can set the fields of self.
+q = Point { x: q.x + 1, y: q.y }; // rebinding is fine
 ```
 
 `v is Point` is `true` only for a `Point`; it has the precedence of `==`,
@@ -249,6 +242,75 @@ struct, so `Point { x: 1, y: 2 } == { "x": 1, "y": 2 }` is `false`.
 `for k, v in p` walks the fields in declaration order. Reading a field
 that does not exist is a runtime error. `object(p)` copies a struct into
 a new object, `len(p)` is its number of fields and `type(p)` its name.
+
+## Methods
+
+An `impl` block adds methods to a struct declared in the same file. A
+method taking `self` first is called on an instance, `self` being the
+instance; one without is static and called on the type. Impl blocks are
+top-level only, may come before the struct and there may be several; a
+method cannot share a name with a field or another method of the type.
+
+```javascript
+struct Point { x, y = 0 }
+
+impl Point {
+  fun origin() { return Point { x: 0 }; }
+  fun len(self) { return math.sqrt(self.x * self.x + self.y * self.y); }
+  fun moved(self, dx) { return Point { x: self.x + dx, y: self.y }; }
+}
+
+let p = Point { x: 3, y: 4 };
+p.len();           // 5
+p.moved(1).len();  // methods chain; p is unchanged
+Point.origin();    // Point {x: 0, y: 0}
+Point.origin().origin(); // 'origin' is a static method of Point; call it as Point.origin().
+```
+
+`mut self` makes a mutating method, the only code that can set fields:
+those of `self` (`self.x += 1`, `self["x"] = 1`), or `self` as a whole.
+Structs are values, so the method works on a copy, which replaces the
+receiver when it returns; nothing else holding the old struct sees the
+change, and if the method throws, the receiver keeps its old value. The
+receiver must be a mutable variable, or an element or property of an array
+or object one holds; a struct's field changes only through that struct's
+own `mut self` method. Without `mut`, `self` is immutable.
+
+```javascript
+struct Counter { n = 0 }
+
+impl Counter {
+  fun incr(mut self) { self.n++; }
+}
+
+let mut c = Counter {};
+let old = c;
+c.incr();         // c is Counter {n: 1}; old is unchanged
+let mut cs = [Counter {}];
+cs[0].incr();     // cs is [Counter {n: 1}]
+c.n = 5;          // Cannot set field 'n' of Counter: only a mut self method can set the fields of self.
+
+let d = Counter {};
+d.incr(); // Cannot call mutating method 'incr' of Counter: the receiver is not a mutable variable, element or property.
+```
+
+`p.len` without a call is the method bound to `p`, a function taking the
+rest of the arguments; `Point.len` is the plain function, taking the
+instance first, so `array.map(points, Point.len)` works. A mutating method
+cannot be taken as a value.
+
+`impl` also takes `string`, `number`, `boolean`, `array`, `object` and
+`function`. Their methods must take `self`, not `mut self`, and are seen
+by the whole program; an object's own property of the same name wins.
+Built-in structs, such as `IOError`, take no methods.
+
+```javascript
+impl string {
+  fun shout(self) { return string.upper(self) + "!"; }
+}
+
+print "hi".shout(); // HI!
+```
 
 ## Destructuring
 

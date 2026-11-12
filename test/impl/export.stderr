@@ -1,0 +1,3 @@
+[line: 3] Error at 'impl': Cannot export an impl block; methods go wherever their type does.
+    3 | export impl Point { // [line: 3] Error at 'impl': Cannot export an impl block; methods go wherever their type does.
+      |        ^

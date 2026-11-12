@@ -59,11 +59,11 @@ const (
 	CONTINUE
 	IN
 	STRUCT
-	WITH
 	IS
 	IMPORT
 	EXPORT
 	MATCH
+	IMPL
 
 	// Single tokens
 	COLON
@@ -140,11 +140,11 @@ var Keywords = map[string]TokenType{
 	"continue": CONTINUE,
 	"in":       IN,
 	"struct":   STRUCT,
-	"with":     WITH,
 	"is":       IS,
 	"import":   IMPORT,
 	"export":   EXPORT,
 	"match":    MATCH,
+	"impl":     IMPL,
 }
 
 func (tokenType TokenType) String() string {
@@ -236,8 +236,6 @@ func (tokenType TokenType) String() string {
 		return "BREAK"
 	case STRUCT:
 		return "STRUCT"
-	case WITH:
-		return "WITH"
 	case IS:
 		return "IS"
 	case MATCH:
@@ -246,6 +244,8 @@ func (tokenType TokenType) String() string {
 		return "IMPORT"
 	case EXPORT:
 		return "EXPORT"
+	case IMPL:
+		return "IMPL"
 	case CONTINUE:
 		return "CONTINUE"
 	case IN:

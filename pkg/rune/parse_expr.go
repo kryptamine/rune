@@ -272,21 +272,6 @@ func (s *Parser) postfix() (ast.Expr, error) {
 		return nil, err
 	}
 
-	for s.match(ast.WITH) {
-		keyword := s.previous()
-
-		if _, err := s.consume(ast.LEFT_BRACE, "Expect '{' after 'with'."); err != nil {
-			return nil, err
-		}
-
-		pairs, err := s.structPairs()
-		if err != nil {
-			return nil, err
-		}
-
-		expr = ast.NewWithExpr(expr, keyword, pairs)
-	}
-
 	if s.match(ast.PLUS_PLUS, ast.MINUS_MINUS) {
 		return update(expr, s.previous(), false)
 	}

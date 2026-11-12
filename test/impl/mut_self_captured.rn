@@ -1,0 +1,14 @@
+struct Counter { n = 0 }
+
+impl Counter {
+  fun incr(mut self) {
+    let get = () => self.n;
+    self.n = get() + 1;
+    return get();
+  }
+}
+
+let mut c = Counter {};
+print c.incr(); // expect: 1
+print c.incr(); // expect: 2
+print c.n; // expect: 2

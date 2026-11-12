@@ -105,32 +105,23 @@ func undefinedField(token *ast.Token, shape *value.Shape, key string) error {
 	return errors.NewRuntimeError(errors.KeyError, *token, errors.NoField(shape.Name, key))
 }
 
-func immutableField(token *ast.Token, shape *value.Shape, key string) error {
+func readOnlyField(token *ast.Token, shape *value.Shape, key string) error {
 	return errors.NewRuntimeError(errors.TypeError, *token, fmt.Sprintf(
-		"Cannot set field '%s' of %s: structs are immutable.", key, shape.Name))
+		"Cannot set field '%s' of %s: only a mut self method can set the fields of self.", key, shape.Name))
 }
 
-// with copies target, a struct, setting the fields keys to vals.
-func with(token *ast.Token, target value.Value, keys []string, vals []value.Value) (value.Value, error) {
-	if target.Kind() != value.Struct {
-		return value.NilValue, errors.NewRuntimeError(errors.TypeError, *token, fmt.Sprintf(
-			"Can only use 'with' on structs, got %s.", helpers.TypeName(target)))
+// setField copies the struct target with the field key names set to v.
+func setField(token *ast.Token, target, key, v value.Value) (value.Value, error) {
+	if !key.IsString() {
+		return value.NilValue, errors.NewRuntimeError(errors.TypeError, *token, "Struct fields must be accessed with string keys.")
 	}
 
-	shape := target.Shape()
-	v, fields := value.NewStruct(shape)
-	copy(fields, target.Fields())
-
-	for i, k := range keys {
-		slot := shape.Index(k)
-		if slot < 0 {
-			return value.NilValue, undefinedField(token, shape, k)
-		}
-
-		fields[slot] = vals[i]
+	slot := target.Shape().Index(key.Str())
+	if slot < 0 {
+		return value.NilValue, undefinedField(token, target.Shape(), key.Str())
 	}
 
-	return v, nil
+	return target.With(slot, v), nil
 }
 
 // convert is a call of the struct type shape, which takes one value.
@@ -150,7 +141,7 @@ func propertyTarget(token *ast.Token, target value.Value) error {
 	case value.Object:
 		return nil
 	case value.Struct:
-		return immutableField(token, target.Shape(), token.Lexeme)
+		return readOnlyField(token, target.Shape(), token.Lexeme)
 	default:
 		return propertyError("set", token, target)
 	}
@@ -250,7 +241,7 @@ func setIndex(token *ast.Token, target, index, v value.Value) error {
 			return errors.NewRuntimeError(errors.TypeError, *token, "Struct fields must be accessed with string keys.")
 		}
 
-		return immutableField(token, target.Shape(), index.Str())
+		return readOnlyField(token, target.Shape(), index.Str())
 
 	default:
 		return errors.NewRuntimeError(errors.TypeError, *token, fmt.Sprintf(

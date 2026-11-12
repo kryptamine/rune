@@ -1,0 +1,3 @@
+[line: 8] TypeError: Cannot call mutating method 'incr' of Counter: the receiver is not a mutable variable, element or property.
+    8 | c.incr(); // expect runtime error: [line: 8] TypeError: Cannot call mutating method 'incr' of Counter: the receiver is not a mutable variable, element or property.
+      |   ^

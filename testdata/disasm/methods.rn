@@ -1,0 +1,10 @@
+struct C { n }
+
+impl C {
+  fun get(self) { return self.n; }
+  fun incr(mut self) { self.n++; }
+}
+
+let mut c = C { n: 0 };
+c.incr();
+print c.get();

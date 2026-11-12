@@ -20,6 +20,7 @@ type StmtVisitor interface {
 	VisitForInStmt(forInStmt *ForInStmt) error
 	VisitStructStmt(structStmt *StructStmt) error
 	VisitMatchStmt(matchStmt *MatchStmt) error
+	VisitImplStmt(implStmt *ImplStmt) error
 }
 
 // Binding is a declared name; Mutable is set for names declared with "mut".
@@ -237,6 +238,18 @@ func NewStructStmt(name Token, fields []StructField) Stmt {
 	return &StructStmt{Name: name, Fields: fields}
 }
 
+// ImplStmt adds methods to a struct of its file or a built-in type.
+type ImplStmt struct {
+	Type    Token
+	Methods []ImplMethod
+}
+
+// ImplMethod is a method declaration; the resolver sets Method.
+type ImplMethod struct {
+	Fn *FunctionStmt
+	value.Method
+}
+
 type Stmt interface {
 	Accept(v StmtVisitor) error
 }
@@ -303,4 +316,8 @@ func (n *ForInStmt) Accept(v StmtVisitor) error {
 
 func (n *StructStmt) Accept(v StmtVisitor) error {
 	return v.VisitStructStmt(n)
+}
+
+func (n *ImplStmt) Accept(v StmtVisitor) error {
+	return v.VisitImplStmt(n)
 }

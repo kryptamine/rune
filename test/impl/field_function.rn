@@ -1,0 +1,11 @@
+struct Handler { on }
+
+impl Handler {
+  fun fire(self, x) { return self.on(x); }
+}
+
+let h = Handler { on: x => x * 2 };
+print h.on(4); // expect: 8
+print h.fire(5); // expect: 10
+let o = { f: x => x + 1 };
+print o.f(1); // expect: 2

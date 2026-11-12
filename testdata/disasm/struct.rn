@@ -1,6 +1,6 @@
 struct Point { x, y = 0 }
 let p = Point { y: 2, x: 1 };
 print p.x;
-let q = p with { x: 2 };
+let q = Point { x: 2, y: p.y };
 print q is Point;
 print Point({x: 3});

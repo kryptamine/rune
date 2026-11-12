@@ -1,0 +1,5 @@
+struct Point { x }
+
+impl Point {
+  fun bad(self) { self.x = 1; } // [line: 4] Error at 'self': Cannot mutate immutable variable 'self'.
+}

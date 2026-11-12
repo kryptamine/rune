@@ -1,4 +1,4 @@
 struct Point { x, y }
 
 let mut p = Point { x: 1, y: 2 };
-p.x = 3; // expect runtime error: [line: 4] TypeError: Cannot set field 'x' of Point: structs are immutable.
+p.x = 3; // expect runtime error: [line: 4] TypeError: Cannot set field 'x' of Point: only a mut self method can set the fields of self.
