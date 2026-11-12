@@ -18,6 +18,7 @@ type StmtVisitor interface {
 	VisitContinueStmt(continueStmt *ContinueStmt) error
 	VisitForInStmt(forInStmt *ForInStmt) error
 	VisitStructStmt(structStmt *StructStmt) error
+	VisitMatchStmt(matchStmt *MatchStmt) error
 }
 
 // Binding is a declared name; Mutable is set for names declared with "mut".

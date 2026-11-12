@@ -1,0 +1,4 @@
+struct P { x }
+let Q = P;
+match 1 { Q { x } => 1 }; // [line: 3] Error at 'Q': 'Q' is not a struct.
+match 1 { P { z } => 1 }; // [line: 4] Error at 'z': P has no field 'z'.

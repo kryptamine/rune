@@ -1,0 +1,6 @@
+[line: 1] Error at 'n': Cannot bind variables in '|' patterns.
+    1 | match 1 { 1 | n => 1 }; // [line: 1] Error at 'n': Cannot bind variables in '|' patterns.
+      |               ^
+[line: 2] Error at 'a': Cannot bind variables in '|' patterns.
+    2 | match {} { { a } | { b: 1 } => 1 }; // [line: 2] Error at 'a': Cannot bind variables in '|' patterns.
+      |              ^

@@ -145,8 +145,14 @@ func (s *Scanner) scanToken() {
 		s.addToken(helpers.If(s.match('='), ast.PERCENT_EQUAL, ast.PERCENT))
 		// Operators
 	case '=':
-		s.addToken(helpers.If(s.match('='), ast.EQUAL_EQUAL, ast.EQUAL))
-		break
+		switch {
+		case s.match('='):
+			s.addToken(ast.EQUAL_EQUAL)
+		case s.match('>'):
+			s.addToken(ast.ARROW)
+		default:
+			s.addToken(ast.EQUAL)
+		}
 	case '!':
 		s.addToken(helpers.If(s.match('='), ast.BANG_EQUAL, ast.BANG))
 		break
@@ -187,6 +193,11 @@ func (s *Scanner) scanToken() {
 			s.errorAt(fmt.Sprintf("Unexpected '%c%c'; use '%s'.", char, char, word))
 			s.addToken(helpers.If(char == '&', ast.AND, ast.OR))
 
+			break
+		}
+
+		if char == '|' {
+			s.addToken(ast.PIPE)
 			break
 		}
 

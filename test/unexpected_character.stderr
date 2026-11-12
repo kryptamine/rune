@@ -1,6 +1,6 @@
-[line: 3] Error: Unexpected character: |
-    3 | foo(a | b);
+[line: 3] Error: Unexpected character: @
+    3 | foo(a @ b);
       |       ^
 [line: 3] Error at 'b': Expect ')' after arguments.
-    3 | foo(a | b);
+    3 | foo(a @ b);
       |         ^

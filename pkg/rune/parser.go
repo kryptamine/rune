@@ -11,9 +11,19 @@ type Parser struct {
 	tokens  []ast.Token
 	errors  []error
 	current int
-	// noStruct is set in an if/while/for header, where "Name {" opens the body.
-	noStruct bool
+	structs structMode
 }
+
+// structMode says which "Name {" start a struct literal.
+type structMode uint8
+
+const (
+	structsAll structMode = iota
+	// structsNonEmpty is for a match head, where "Name { }" is an empty body.
+	structsNonEmpty
+	// structsNone is for an if/while/for header, where "Name {" opens the body.
+	structsNone
+)
 
 // ParseExpr parses a single expression and stops at the first error.
 func ParseExpr(tokens []ast.Token) (ast.Expr, error) {
@@ -131,10 +141,13 @@ func (s *Parser) synchronize() {
 			return
 		}
 
-		switch s.peek().TokenType {
-		case ast.FUN, ast.LET, ast.FOR, ast.IF, ast.WHILE, ast.PRINT, ast.RETURN, ast.TRY, ast.THROW,
-			ast.BREAK, ast.CONTINUE, ast.STRUCT, ast.IMPORT:
+		switch t := s.peek().TokenType; t {
+		case ast.FUN, ast.LET, ast.STRUCT, ast.IMPORT, ast.MATCH:
 			return
+		default:
+			if stmtKeyword(t) {
+				return
+			}
 		}
 
 		s.advance()

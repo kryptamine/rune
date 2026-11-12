@@ -1,0 +1,20 @@
+let x = 4;
+
+print match x { n => n * 2 };              // expect: 8
+print match x { n if n > 10 => "big", n => n }; // expect: 4
+print 1 + match x { 4 => 10, _ => 0 } + 100;    // expect: 111
+
+let mut y = 5;
+y = match y { 5 => y + 1, _ => 0 };
+print y; // expect: 6
+
+match y { mut z => { z += 1; print z; } } // expect: 7
+print y; // expect: 6
+
+// A binding shadows an outer name only inside its arm.
+let n = "outer";
+print match 1 { n => n }; // expect: 1
+print n;                  // expect: outer
+
+let o = { "full name": "ann", age: 3 };
+print match o { { "full name": who, age: 3 | 4 } => who, _ => "?" }; // expect: ann

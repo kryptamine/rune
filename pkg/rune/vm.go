@@ -291,6 +291,30 @@ reload:
 				}
 			}
 
+		case opJmpNotType:
+			if v := regs[in.a()]; v.Kind() != value.Struct || v.Shape() != consts[in.b()].TypeShape() {
+				pc = in.c()
+			}
+
+		case opTestProp:
+			t := regs[in.b()]
+			if k := t.Kind(); k == value.Struct {
+				if v, ok := t.InternedField(consts[in.c()]); ok {
+					regs[in.a()] = v
+					pc++
+				}
+			} else if k == value.Object {
+				fr.pc = pc
+				dst := &regs[in.a()]
+
+				if v, ok := t.Obj()[consts[in.c()].Str()]; ok {
+					*dst = v
+					fr.pc++
+				}
+
+				goto reload
+			}
+
 		case opGetIndex:
 			if t, i := regs[in.b()], regs[in.c()]; t.Kind() == value.Array && i.IsNumber() {
 				arr := t.Arr()
@@ -631,6 +655,9 @@ func (p *Interpreter) slow(in Instr) error {
 		}
 
 		return errors.NewThrownError(*tok, v)
+
+	case opNoMatch:
+		return errors.NewRuntimeError(errors.ValueError, *tok, "No match arm for "+helpers.Quoted(regs[in.a()])+".")
 
 	case opRethrow:
 		return *regs[in.a()].Internal().(*errors.RuntimeError)

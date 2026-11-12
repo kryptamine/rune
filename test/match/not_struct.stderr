@@ -1,0 +1,6 @@
+[line: 3] Error at 'Q': 'Q' is not a struct.
+    3 | match 1 { Q { x } => 1 }; // [line: 3] Error at 'Q': 'Q' is not a struct.
+      |           ^
+[line: 4] Error at 'z': P has no field 'z'.
+    4 | match 1 { P { z } => 1 }; // [line: 4] Error at 'z': P has no field 'z'.
+      |               ^

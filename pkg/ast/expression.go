@@ -24,6 +24,7 @@ type ExprVisitor interface {
 	VisitStructExpr(structExpr *StructExpr) (value.Value, error)
 	VisitWithExpr(withExpr *WithExpr) (value.Value, error)
 	VisitIsExpr(isExpr *IsExpr) (value.Value, error)
+	VisitMatchExpr(matchExpr *MatchExpr) (value.Value, error)
 }
 
 type Expr interface {
