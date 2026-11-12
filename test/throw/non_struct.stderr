@@ -1,0 +1,3 @@
+[line: 2] TypeError: Can only throw struct instances.
+    2 | throw "boom"; // expect runtime error: [line: 2] TypeError: Can only throw struct instances.
+      | ^

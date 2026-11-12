@@ -1,45 +1,49 @@
 exit: 0
 -- stdout --
-<script>: arity 1, 6 registers, 0 upvalues
+<script>: arity 1, 8 registers, 0 upvalues
     0  LOADK         1 0 0
     1  LOADK         2 0 1
-    2  TRY           3 0 7  x=0 y=true
-    3  LOADK         3 0 2
-    4  THROW         3 0 0
-    5  ENDTRY        0 1 0
-    6  JMP           0 0 8
-    7  PRINT         3 0 0
-    8  TRY           3 0 13
-    9  LOADK         3 0 3
-   10  PRINT         3 0 0
-   11  ENDTRY        0 1 0
-   12  JMP           0 0 13
-   13  TRY           3 0 19  x=0 y=true
-   14  ARRAY         4 5 0
-   15  LOADK         5 0 4
-   16  GETINDEX      3 4 5
-   17  ENDTRY        0 1 0
-   18  JMP           0 0 28
-   19  IS            4 3 1
-   20  JMPIF         4 0 24  x=0 y=true
-   21  IS            4 3 2
-   22  JMPIF         4 0 24  x=0 y=true
-   23  JMP           0 0 26
-   24  PRINT         3 0 0
-   25  JMP           0 0 28
-   26  LOADK         4 0 4
-   27  PRINT         4 0 0
-   28  TRY           3 0 34  x=1 y=true
-   29  ARRAY         4 5 0
-   30  LOADK         5 0 4
-   31  GETINDEX      3 4 5
-   32  ENDTRY        0 1 0
-   33  JMP           0 0 40
-   34  IS            5 3 1
-   35  JMPIF         5 0 37  x=0 y=true
-   36  JMP           0 0 39
-   37  PRINT         3 0 0
-   38  JMP           0 0 40
-   39  RETHROW       4 0 0
-   40  RETURNNIL     0 0 0
+    2  LOADK         3 0 2
+    3  TRY           4 0 11  x=0 y=true
+    4  LOADK         5 0 3
+    5  LOADK         6 0 4
+    6  LOADK         7 0 4
+    7  STRUCT        4 5 2
+    8  THROW         4 0 0
+    9  ENDTRY        0 1 0
+   10  JMP           0 0 12
+   11  PRINT         4 0 0
+   12  TRY           4 0 17
+   13  LOADK         4 0 5
+   14  PRINT         4 0 0
+   15  ENDTRY        0 1 0
+   16  JMP           0 0 17
+   17  TRY           4 0 23  x=0 y=true
+   18  ARRAY         5 6 0
+   19  LOADK         6 0 6
+   20  GETINDEX      4 5 6
+   21  ENDTRY        0 1 0
+   22  JMP           0 0 32
+   23  IS            5 4 1
+   24  JMPIF         5 0 28  x=0 y=true
+   25  IS            5 4 2
+   26  JMPIF         5 0 28  x=0 y=true
+   27  JMP           0 0 30
+   28  PRINT         4 0 0
+   29  JMP           0 0 32
+   30  LOADK         5 0 6
+   31  PRINT         5 0 0
+   32  TRY           4 0 38  x=1 y=true
+   33  ARRAY         5 6 0
+   34  LOADK         6 0 6
+   35  GETINDEX      4 5 6
+   36  ENDTRY        0 1 0
+   37  JMP           0 0 44
+   38  IS            6 4 1
+   39  JMPIF         6 0 41  x=0 y=true
+   40  JMP           0 0 43
+   41  PRINT         4 0 0
+   42  JMP           0 0 44
+   43  RETHROW       5 0 0
+   44  RETURNNIL     0 0 0
 -- stderr --

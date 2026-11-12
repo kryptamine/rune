@@ -1,9 +1,12 @@
-try { throw 42; } catch (e) { print e + 1; } // expect: 43
-try { throw nil; } catch (e) { print e; } // expect: nil
-try { throw [1, 2]; } catch (e) { print len(e); } // expect: 2
+struct HttpError { code, message }
 try {
-  throw { "code": 404, "message": "not found" };
-} catch (e) {
+  throw HttpError { code: 404, message: "not found" };
+} catch (e: HttpError) {
   print e.code; // expect: 404
   print e.message; // expect: not found
 }
+
+struct Stop { at }
+try { throw Stop { at: 3 }; } catch (e) { print e.at; } // expect: 3
+
+try { throw 42; } catch (e: TypeError) { print e.message; } // expect: Can only throw struct instances.

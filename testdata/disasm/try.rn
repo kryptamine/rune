@@ -1,5 +1,5 @@
 try {
-  throw "x";
+  throw ValueError { message: "x" };
 } catch (e) {
   print e;
 }

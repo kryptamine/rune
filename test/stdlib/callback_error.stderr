@@ -1,5 +1,5 @@
-[line: 2] boom
-    2 |   throw "boom"; // expect runtime error: [line: 2] boom
+[line: 2] ValueError: boom
+    2 |   throw ValueError { message: "boom" }; // expect runtime error: [line: 2] ValueError: boom
       |   ^
   at <anonymous> (line 2)
   at map (native)

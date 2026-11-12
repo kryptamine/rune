@@ -1,1 +1,2 @@
-throw {code: 1};
+struct Stop { at }
+throw Stop { at: 1 };

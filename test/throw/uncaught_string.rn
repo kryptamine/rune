@@ -1,3 +1,0 @@
-print "start"; // expect: start
-throw "boom"; // expect runtime error: [line: 2] boom
-print "unreachable";

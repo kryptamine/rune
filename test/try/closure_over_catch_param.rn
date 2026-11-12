@@ -1,8 +1,8 @@
 let mut f;
 try {
-  throw "captured";
+  throw ValueError { message: "captured" };
 } catch (e) {
-  fun show() { print e; }
+  fun show() { print e.message; }
   f = show;
 }
 f(); // expect: captured

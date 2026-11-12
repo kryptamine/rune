@@ -1,3 +1,0 @@
-[line: 2] boom
-    2 | throw "boom"; // expect runtime error: [line: 2] boom
-      | ^

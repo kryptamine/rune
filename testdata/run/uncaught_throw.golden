@@ -1,6 +1,6 @@
 exit: 70
 -- stdout --
 -- stderr --
-[line: 1] {code: 1}
-    1 | throw {code: 1};
+[line: 2] Stop {at: 1}
+    2 | throw Stop { at: 1 };
       | ^
