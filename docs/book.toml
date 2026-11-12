@@ -1,0 +1,15 @@
+[book]
+title = "Rune"
+description = "A dynamically typed scripting language compiled to register bytecode"
+authors = ["Alexander Satretdinov"]
+language = "en"
+src = "src"
+
+[output.html]
+git-repository-url = "https://github.com/kryptamine/rune"
+edit-url-template = "https://github.com/kryptamine/rune/edit/master/docs/{path}"
+site-url = "/rune/"
+additional-js = ["theme/rune.js"]
+
+[output.html.search]
+limit-results = 20
