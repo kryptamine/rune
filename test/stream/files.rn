@@ -49,6 +49,6 @@ try { closed.readLine(); } catch (e: IOError) { print "closed"; } // expect: clo
 try { fs.open(path).write("x"); } catch (e: IOError) { print "read only"; } // expect: read only
 try { fs.open(path, "w").readLine(); } catch (e: IOError) { print "write only"; } // expect: write only
 try { fs.open(path, "x"); } catch (e: ValueError) { print e.message; } // expect: fs.open() expects mode "r", "w" or "a", got "x".
-try { fs.open(path, "w").write(1); } catch (e: TypeError) { print e.message; } // expect: Stream.write() expects a string or bytes as argument 2, got number.
+try { fs.open(path, "w").write(1); } catch (e: TypeError) { print e.message; } // expect: Stream.write() expects a string or bytes as argument 1, got number.
 
 fs.removeAll(dir);

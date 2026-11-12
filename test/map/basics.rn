@@ -47,4 +47,4 @@ print json.stringify(Map([["b", 1], ["a", [2]]])); // expect: {"b":1,"a":[2]}
 
 let get = o.get;
 print get("a"); // expect: 2
-print array.map([Map([[1, "x"]])], m => m[1]); // expect: ["x"]
+print [Map([[1, "x"]])].map(m => m[1]); // expect: ["x"]

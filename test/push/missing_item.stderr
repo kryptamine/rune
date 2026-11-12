@@ -1,5 +1,5 @@
-[line: 1] ArgumentError: array.push() expects at least 2 arguments, got 1.
-    1 | array.push([1]); // expect runtime error: [line: 1] ArgumentError: array.push() expects at least 2 arguments, got 1.
-      |               ^
+[line: 1] ArgumentError: array.push() expects at least 1 argument, got 0.
+    1 | [1].push(); // expect runtime error: [line: 1] ArgumentError: array.push() expects at least 1 argument, got 0.
+      |     ^
   at array.push (native)
   at <script> (line 1)

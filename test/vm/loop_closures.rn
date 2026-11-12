@@ -1,7 +1,7 @@
 let mut fs = [];
 for i in 0..3 {
   let j = i * 10;
-  array.push(fs, fun () { return i + j; });
+  fs.push(fun () { return i + j; });
 }
 for f in fs { print f(); } // expect: 0
 // expect: 11
@@ -11,7 +11,7 @@ let mut gs = [];
 let mut k = 0;
 while k < 3 {
   let c = k;
-  array.push(gs, fun () { return c; });
+  gs.push(fun () { return c; });
   k++;
 }
 for g in gs { print g(); } // expect: 0
@@ -19,6 +19,6 @@ for g in gs { print g(); } // expect: 0
 // expect: 2
 
 let mut hs = [];
-for key, val in {a: "1", b: "2"} { array.push(hs, fun () { return key + val; }); }
+for key, val in {a: "1", b: "2"} { hs.push(fun () { return key + val; }); }
 print hs[0](); // expect: a1
 print hs[1](); // expect: b2

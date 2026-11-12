@@ -34,7 +34,7 @@ Rune is a dynamically typed interpreted programming language inspired by [Lox](h
 - Error handling with `try`/`catch` and `throw`
 - Two loops only: `while` and `for x in ...` over arrays, strings, objects and ranges (`a..b`)
 - `break` and `continue` in both
-- `if`/`else`, `while` and `for` bodies are blocks, or a bare statement starting with a name or keyword: `if v < 0 return;`, `for x in xs array.push(out, x);`
+- `if`/`else`, `while` and `for` bodies are blocks, or a bare statement starting with a name or keyword: `if v < 0 return;`, `for x in xs out.push(x);`
 - Anonymous functions: `fun (x) { return x * 2; }`, or arrow functions: `x => x * 2`
 - Modulo `%` and compound assignment: `+=`, `-=`, `*=`, `/=`, `%=`
 - Increment and decrement, prefix and postfix: `++i`, `i++`, `--i`, `i--` (on variables, array elements and properties)
@@ -121,7 +121,7 @@ arrays and objects, is truthy.
 
 `==` compares numbers (an integer with a float too), strings, bytes, booleans and `nil` by value, functions and streams by identity,
 and arrays, objects, maps and sets structurally (element by element, cycles included), so
-`[1, 2] == [1, 2]` is `true`. `array.contains` and `array.indexOf` use the same equality.
+`[1, 2] == [1, 2]` is `true`. `contains` and `indexOf` use the same equality.
 Values of different types are never equal: `1 == "1"` is `false`.
 
 `print` shows strings inside arrays and objects quoted, so `["1", 1]` and `[1, 1]`
@@ -218,8 +218,7 @@ print b"hi".toString();      // hi
 ```
 
 The `bytes` namespace has `from(v)`, `alloc(n[, fill])`, `fromHex(s)` and
-`fromBase64(s)`, and these, which bytes also have as methods:
-`toString()` (UTF-8; anything else is a `ValueError`), `toArray()`,
+`fromBase64(s)`; bytes have the methods `toString()` (UTF-8; anything else is a `ValueError`), `toArray()`,
 `slice(start[, end])` (sharing the data), `indexOf(sub)`, `concat(b, ...)`,
 `hex()` and `base64()`.
 
@@ -251,17 +250,17 @@ name = "bob"; // Error at 'name': Cannot assign to immutable variable 'name'.
 
 Through an immutable variable the array or object it holds cannot be changed
 either: index and property assignment (`a[0] = 1`, `o.x += 1`, `a[0]++`, also
-nested like `o.xs[0] = 1`) and the in-place built-ins `array.push`, `array.pop` and `array.sort`
-are errors. Built-ins that return a new value (`array.append`, `array.map`, ...)
-work as usual.
+nested like `o.xs[0] = 1`) is a compile error, and the in-place methods
+`push`, `pop` and `sort` a runtime `TypeError`, as is taking one as a value.
+Methods that return a new value (`append`, `map`, ...) work as usual.
 
 ```javascript
 let a = [1];
 a[0] = 3;   // Error at 'a': Cannot mutate immutable variable 'a'.
-array.push(a, 2); // Error at 'a': Cannot mutate immutable variable 'a'.
+a.push(2);  // TypeError: Cannot call in-place method 'push' of array: its receiver is in an immutable variable.
 
 let mut b = [1];
-array.push(b, 2); // ok
+b.push(2); // ok
 ```
 
 Function parameters, `for`-`in` variables, `catch` variables and functions are
@@ -269,7 +268,7 @@ immutable too. Parameters and `for`-`in` variables are made mutable with `mut`:
 
 ```javascript
 fun fill(mut arr, n) {
-    array.push(arr, n);
+    arr.push(n);
 }
 
 let mut grid = [[0, 0], [0, 0]];
@@ -286,12 +285,12 @@ Built-ins are not declarations, so a program may still redefine them.
 
 ## Arrays
 
-Arrays are references: assigning an array or passing it to a function does not copy it, so `array.push`, `array.pop` and index assignment are visible through every reference.
+Arrays are references: assigning an array or passing it to a function does not copy it, so `push`, `pop` and index assignment are visible through every reference.
 
 ```javascript
 let a = [1, 2];
 let mut b = a;
-array.push(b, 3);
+b.push(3);
 print a; // [1, 2, 3]
 ```
 
@@ -397,7 +396,7 @@ d.incr(); // Cannot call mutating method 'incr' of Counter: the receiver is not 
 
 `p.len` without a call is the method bound to `p`, a function taking the
 rest of the arguments; `Point.len` is the plain function, taking the
-instance first, so `array.map(points, Point.len)` works. A mutating method
+instance first, so `points.map(Point.len)` works. A mutating method
 cannot be taken as a value.
 
 `impl` also takes `string`, `number`, `boolean`, `array`, `object`,
@@ -408,7 +407,7 @@ Built-in structs, such as `IOError`, take no methods.
 
 ```javascript
 impl string {
-  fun shout(self) { return string.upper(self) + "!"; }
+  fun shout(self) { return self.upper() + "!"; }
 }
 
 print "hi".shout(); // HI!
@@ -443,7 +442,7 @@ let [a, _, mut c, ...rest] = [1, 2, 3, 4, 5]; // a = 1, c = 3, rest = [4, 5]
 let mut [x, y] = [1, 2];
 
 fun swap([p, q]) { return [q, p]; }
-array.map(pairs, ([k, v]) => k + "=" + v);
+pairs.map(([k, v]) => k + "=" + v);
 ```
 
 ## Nil Safety
@@ -485,14 +484,12 @@ others as an array, possibly empty; fewer than the others is an `ArgumentError`.
 
 ```javascript
 fun log(level, ...parts) {
-    io.eprint(level + ": " + array.join(parts, " "));
+    io.eprint(level + ": " + parts.join(" "));
 }
 
 log("info", "started", "in", 3, "ms");
 let count = (...args) => len(args);
 ```
-
-The first argument of an in-place built-in (`array.push(...)`) cannot be spread.
 
 ## Pattern Matching
 
@@ -592,8 +589,9 @@ fun main(args) {
 
 ## Built-in Functions
 
-`len`, `type`, `object`, `str`, `number`, `int`, `Map` and `Set` are global; everything else lives in a namespace,
-used as `math.floor(x)`:
+`len`, `type`, `object`, `str`, `number`, `int`, `Map` and `Set` are global;
+the operations on a value are its methods, as `xs.map(f)` or `s.split(",")`;
+everything else lives in a namespace, used as `math.floor(x)`:
 
 - **`len(value)`** — Returns the length of an array, object or string (in characters), the number of fields of a struct, the entries of a Map or Set, or the size of bytes.
 - **`type(value)`** — Returns `"nil"`, `"boolean"`, `"number"`, `"string"`, `"array"`, `"object"`, `"function"`, `"Map"`, `"Set"`, `"bytes"`, `"Stream"`, a struct's name, `"struct"` for a struct type, or `"namespace"`.
@@ -610,32 +608,34 @@ it costs nothing at run time, and a misspelled member is a compile error.
 math.flor(1); // Error at 'flor': math has no member 'flor'.
 ```
 
-### array
+### Array methods
 
-- `push(arr, v1, ...)` — appends **in place** (amortized O(1) each) and returns the new length.
-- `pop(arr)` — removes the last element in place and returns it; an empty array is a runtime error.
-- `append(arr, v1, ...)` — returns a new array with the values appended. It copies, so building an array with it in a loop is quadratic; use `push` for that.
-- `map(arr, f)`, `filter(arr, f)`, `reduce(arr, f[, init])` — return new values; `f` may be any function, built-ins included.
-- `sort(arr[, cmp])` — sorts **in place** and returns `arr`; stable. Without `cmp` the elements must be all numbers or all strings; `cmp(a, b) < 0` puts `a` first.
-- `slice(arr, start[, end])` (negative bounds count from the end), `reverse(arr)`, `contains(arr, item)`, `indexOf(arr, item)`, `join(arr, sep)`.
+- `push(v1, ...)` — appends **in place** (amortized O(1) each) and returns the new length.
+- `pop()` — removes the last element in place and returns it; an empty array is a runtime error.
+- `append(v1, ...)` — returns a new array with the values appended. It copies, so building an array with it in a loop is quadratic; use `push` for that.
+- `map(f)`, `filter(f)`, `reduce(f[, init])` — return new values; `f` may be any function, built-ins included.
+- `sort([cmp])` — sorts **in place** and returns the array; stable. Without `cmp` the elements must be all numbers or all strings; `cmp(a, b) < 0` puts `a` first.
+- `slice(start[, end])` (negative bounds count from the end), `reverse()`, `contains(item)`, `indexOf(item)`, `join(sep)`.
 
 ```javascript
 let mut people = [{name: "bob", age: 25}, {name: "ann", age: 31}];
-array.sort(people, (a, b) => a.age - b.age);
-print array.join(array.map(people, ({ name }) => name), ", "); // bob, ann
+people.sort((a, b) => a.age - b.age);
+print people.map(({ name }) => name).join(", "); // bob, ann
 ```
 
-### string
+### String and number methods
 
-`fixed(n, digits)` (`n` with 0 to 100 decimals: `string.fixed(3.14159, 2)` is `"3.14"`), `split(s, sep)` (`""` splits into characters), `upper(s)`, `lower(s)`, `trim(s)`, `startsWith(s, p)`, `endsWith(s, p)`, `replace(s, old, new)` (all occurrences), `repeat(s, n)`, and `slice`, `reverse`, `contains`, `indexOf` as for arrays, counting characters.
+`split(sep)` (`""` splits into characters), `upper()`, `lower()`, `trim()`, `startsWith(p)`, `endsWith(p)`, `replace(old, new)` (all occurrences), `repeat(n)`, and `slice`, `reverse`, `contains`, `indexOf` as for arrays, counting characters.
 
-- `charCode(s[, i])` — the code point of character `i` (default 0); `fromCharCode(c, ...)` — the string of those code points.
-- `padStart(s, width[, pad])`, `padEnd(s, width[, pad])` — `s` filled to `width` characters with `pad` (default `" "`), repeated and cut.
-- `format(f, ...)` — printf: `%[flags][width][.precision]verb`, flags `-+ 0#`. `%v` and `%s` show a value as `print` does, `%q` as inside an array; `%d %x %X %o %b` take integers, `%f %e %E %g %G` numbers; `%%` is `%`. Widths count characters; a missing or extra argument is an `ArgumentError`.
+- `charCode([i])` — the code point of character `i` (default 0); `string.fromCharCode(c, ...)` — the string of those code points.
+- `padStart(width[, pad])`, `padEnd(width[, pad])` — the string filled to `width` characters with `pad` (default `" "`), repeated and cut.
+- `format(...)` — printf, the string being the format: `%[flags][width][.precision]verb`, flags `-+ 0#`. `%v` and `%s` show a value as `print` does, `%q` as inside an array; `%d %x %X %o %b` take integers, `%f %e %E %g %G` numbers; `%%` is `%`. Widths count characters; a missing or extra argument is an `ArgumentError`.
 
 ```javascript
-string.format("%-6s|%5.2f|%03d", "ab", 3.14159, 7); // "ab    | 3.14|007"
+"%-6s|%5.2f|%03d".format("ab", 3.14159, 7); // "ab    | 3.14|007"
 ```
+
+A number has `fixed(digits)`, with 0 to 100 decimals: `3.14159.fixed(2)` is `"3.14"`.
 
 ### regex
 
@@ -705,7 +705,7 @@ failure, reading a closed stream included, is an `IOError`.
 ```javascript
 let out = fs.open("upper.txt", "w");
 for line in fs.open("words.txt") {
-    out.write(string.upper(line) + "\n");
+    out.write(line.upper() + "\n");
 }
 out.close();
 ```
@@ -765,7 +765,7 @@ Runtime errors (including those from built-ins like `http.get()`) can be caught 
 
 - `TypeError` — a value of the wrong type (`1 + nil`, calling a number)
 - `ArgumentError` — the wrong number of arguments
-- `ValueError` — the right type but a bad value (`step 0`, `array.pop([])`)
+- `ValueError` — the right type but a bad value (`step 0`, `[].pop()`)
 - `IndexError` — an index out of bounds
 - `KeyError` — a missing property or struct field
 - `NameError` — an undefined variable
@@ -850,7 +850,7 @@ for i in 10..0 step -2 { print i; } // 10 8 6 4 2
 ```javascript
 fun map(arr, f) {
     let mut out = [];
-    for x in arr { array.push(out, f(x)); }
+    for x in arr { out.push(f(x)); }
     return out;
 }
 
@@ -861,7 +861,7 @@ Arrow functions are shorthand: an expression body is returned, a block body work
 
 ```javascript
 let add = (a, b) => a + b;
-let names = array.map(people, ({ name }) => name);
+let names = people.map(({ name }) => name);
 let log = msg => { print msg; };
 ```
 

@@ -8,7 +8,7 @@ import (
 	"unicode/utf8"
 )
 
-var arraySequenceNatives = []*Native{
+var arraySequenceMethods = []*Native{
 	{"array.slice", 2, 3, func(c *call) value.Value {
 		items := c.arr(0)
 		start, end := sliceBounds(c, len(items))
@@ -30,7 +30,7 @@ var arraySequenceNatives = []*Native{
 }
 
 // String positions count characters.
-var stringSequenceNatives = []*Native{
+var stringSequenceMethods = []*Native{
 	{"string.slice", 2, 3, func(c *call) value.Value {
 		s := c.str(0)
 		start, end := sliceBounds(c, utf8.RuneCountInString(s))

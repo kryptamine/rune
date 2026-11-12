@@ -61,10 +61,6 @@ func (p *Interpreter) property(tok *ast.Token, t, key value.Value, optional bool
 		return p.methodValue(tok, t, m, owner)
 	}
 
-	if n := stdlib.Method(t.Kind(), key.Str()); n != nil {
-		return value.NewFunction(&BoundNative{recv: t, fn: n}), nil
-	}
-
 	if k := t.Kind(); optional && (k == value.Object || k == value.Struct) {
 		return value.NilValue, nil
 	}
@@ -83,6 +79,13 @@ func (p *Interpreter) methodValue(tok *ast.Token, t value.Value, m *value.Method
 	case m.Mut:
 		return value.NilValue, errors.NewRuntimeError(errors.TypeError, *tok, fmt.Sprintf(
 			"Cannot take mutating method '%s' of %s as a value.", m.Name, owner))
+	case m.InPlace:
+		return value.NilValue, errors.NewRuntimeError(errors.TypeError, *tok, fmt.Sprintf(
+			"Cannot take in-place method '%s' of %s as a value.", m.Name, owner))
+	}
+
+	if nat, ok := p.methods[m.ID].Fn().(*stdlib.Native); ok {
+		return value.NewFunction(&BoundNative{recv: t, fn: nat}), nil
 	}
 
 	return value.NewFunction(&BoundMethod{recv: t, fn: (*Closure)(p.methods[m.ID].Ptr())}), nil
@@ -105,11 +108,6 @@ func (p *Interpreter) invoke(fr *frame, in Instr, tok *ast.Token) error {
 	m := value.FindMethod(ms, key.Str())
 	switch {
 	case m == nil:
-		if nat := stdlib.Method(t.Kind(), key.Str()); nat != nil {
-			p.stack[at] = value.NewFunction(nat)
-			return p.callAt(at, n+1, tok)
-		}
-
 		return missingMember(tok, t, key.Str())
 	case t.Kind() == value.Type:
 		p.stack[at] = p.methods[m.ID]
@@ -119,9 +117,16 @@ func (p *Interpreter) invoke(fr *frame, in Instr, tok *ast.Token) error {
 	case m.Mut && !in.y():
 		return errors.NewRuntimeError(errors.TypeError, *tok, fmt.Sprintf(
 			"Cannot call mutating method '%s' of %s: the receiver is not a mutable variable, element or property.", m.Name, owner))
+	case m.InPlace && in.x() != 0:
+		return errors.NewRuntimeError(errors.TypeError, *tok, fmt.Sprintf(
+			"Cannot call in-place method '%s' of %s: its receiver is in an immutable variable.", m.Name, owner))
 	}
 
 	fn := p.methods[m.ID]
+	if nat, ok := fn.Fn().(*stdlib.Native); ok {
+		return p.callNativeMethod(at, n, nat, tok)
+	}
+
 	if f := (*Closure)(fn.Ptr()); !f.proto.accepts(n + 1) {
 		return argumentError(f.proto, n+1, 1, tok)
 	}

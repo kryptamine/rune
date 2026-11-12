@@ -1,1 +1,1 @@
-string.repeat("a", -1); // expect runtime error: [line: 1] ValueError: string.repeat() count must not be negative.
+"a".repeat(-1); // expect runtime error: [line: 1] ValueError: string.repeat() count must not be negative.

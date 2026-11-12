@@ -1,1 +1,1 @@
-array.push("abc", 1); // expect runtime error: [line: 1] TypeError: array.push() expects an array as argument 1, got string.
+"abc".push(1); // expect runtime error: [line: 1] TypeError: Cannot read property 'push' of string.

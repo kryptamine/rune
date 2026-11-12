@@ -1,5 +1,5 @@
 fun fill(mut arr, n) {
-  array.push(arr, n);
+  arr.push(n);
   arr[0] = n;
   arr = nil;
   return arr;

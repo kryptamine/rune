@@ -1,0 +1,4 @@
+impl array {
+  fun map(self, f) { return 1; }
+  fun map(self, f) { return 2; } // [line: 3] Error at 'map': array already has a method 'map'.
+}

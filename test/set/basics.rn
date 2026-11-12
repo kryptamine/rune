@@ -28,4 +28,4 @@ s.clear();
 print len(s);                     // expect: 0
 
 try { Set([[1]]); } catch (e) { print e.message; } // expect: Set() cannot use an array as a key.
-try { a.union([1]); } catch (e) { print e.message; } // expect: Set.union() expects a Set as argument 2, got array.
+try { a.union([1]); } catch (e) { print e.message; } // expect: Set.union() expects a Set as argument 1, got array.

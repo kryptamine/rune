@@ -7,7 +7,7 @@ print [...1..4]; // expect: [1, 2, 3]
 
 let ys = [...xs];
 let mut zs = ys;
-array.push(zs, 9);
+zs.push(9);
 print xs; // expect: [1, 2]
 
 let mut acc = [1];

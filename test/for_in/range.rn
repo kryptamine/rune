@@ -24,7 +24,7 @@ for k, v in 10..13 { print k * 100 + v; }
 for i in 0..0 { print "never"; }
 
 let mut fs = [];
-for i in 0..3 { fs = array.append(fs, fun () { return i; }); }
+for i in 0..3 { fs = fs.append(fun () { return i; }); }
 print fs[0]() + fs[1]() + fs[2](); // expect: 3
 
 for i in 0..100 {

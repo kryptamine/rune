@@ -2,6 +2,7 @@ package rune
 
 import (
 	"rune/pkg/ast"
+	"rune/pkg/stdlib"
 	"rune/pkg/value"
 )
 
@@ -71,12 +72,20 @@ func (p *Resolver) declareImpl(stmt *ast.ImplStmt) {
 			p.error(fn.Name, "Only methods of structs can take 'mut self'.")
 		case shape != nil && shape.Index(m.Name) >= 0:
 			p.error(fn.Name, name+" has a field '"+m.Name+"'.")
-		case value.FindMethod(*methods, m.Name) != nil:
+		}
+
+		// A method of the program replaces a built-in one.
+		switch prev := value.FindMethod(*methods, m.Name); {
+		case prev == nil:
+			*methods = append(*methods, m)
+		case prev.ID < len(stdlib.Methods):
+			*prev = m
+		default:
 			p.error(fn.Name, name+" already has a method '"+m.Name+"'.")
+			*methods = append(*methods, m)
 		}
 
 		p.nmethods++
-		*methods = append(*methods, m)
 		stmt.Methods[i].Method = m
 	}
 }

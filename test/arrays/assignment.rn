@@ -5,7 +5,7 @@ print(arr[1]); // expect: 2
 print(arr[2]); // expect: 3
 
 // Test appending elements to an array
-arr = array.append(arr, 3, 4, 5);
+arr = arr.append(3, 4, 5);
 print(arr[3]); // expect: 3
 print(arr[4]); // expect: 4
 print(arr[5]); // expect: 5

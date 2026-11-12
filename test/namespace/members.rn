@@ -6,12 +6,7 @@ print math.PI * 2 > 6; // expect: true
 let m = math;
 print m.abs(-2); // expect: 2
 
-for k in string { if k == "upper" print k; } // expect: upper
-
-{
-    let array = {push: fun (a, b) { return "mine"; }};
-    print array.push([], 1); // expect: mine
-}
+for k in string { if k == "fromCharCode" print k; } // expect: fromCharCode
 
 let key = "ceil";
 print math[key](1.2); // expect: 2

@@ -1,9 +1,9 @@
 impl string {
-  fun shout(self) { return string.upper(self) + "!"; }
+  fun shout(self) { return self.upper() + "!"; }
 }
 
 impl array {
-  fun sum(self) { return array.reduce(self, (a, b) => a + b, 0); }
+  fun sum(self) { return self.reduce((a, b) => a + b, 0); }
 }
 
 impl number {

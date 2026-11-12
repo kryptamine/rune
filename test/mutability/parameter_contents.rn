@@ -1,4 +1,3 @@
 fun f(arr) {
   arr[0] = 1; // [line: 2] Error at 'arr': Cannot mutate immutable variable 'arr'.
-  array.push(arr, 1); // [line: 3] Error at 'arr': Cannot mutate immutable variable 'arr'.
 }

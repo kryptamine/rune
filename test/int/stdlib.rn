@@ -16,11 +16,11 @@ print math.isInt(number("42")); // expect: true
 print math.isInt(number("42.0")); // expect: false
 print number("99999999999999999999"); // expect: 100000000000000000000
 print math.isInt(len([1, 2]));  // expect: true
-print string.format("%d %x %b", 9007199254740993, 255, 5); // expect: 9007199254740993 ff 101
+print "%d %x %b".format(9007199254740993, 255, 5); // expect: 9007199254740993 ff 101
 
 let parsed = json.parse("\{\"id\": 9007199254740993, \"x\": 1.0, \"y\": 2}");
 print parsed.id;                // expect: 9007199254740993
 print math.isInt(parsed.x);     // expect: false
 print math.isInt(parsed.y);     // expect: true
 print json.stringify([9007199254740993, 1.5, 2]); // expect: [9007199254740993,1.5,2]
-print array.sort([3, 1.5, 2]);  // expect: [1.5, 2, 3]
+print [3, 1.5, 2].sort();  // expect: [1.5, 2, 3]

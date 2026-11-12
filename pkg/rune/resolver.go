@@ -55,14 +55,23 @@ type Resolver struct {
 func NewResolver() *Resolver {
 	mod := newModuleScope()
 
-	return &Resolver{
+	p := &Resolver{
 		mod:        mod,
 		modules:    []*moduleScope{mod},
 		structs:    map[*ast.Local]*value.Shape{},
 		fieldNames: stdlib.FieldNames(),
 		impls:      map[*ast.ImplStmt]bool{},
+		nmethods:   len(stdlib.Methods),
 	}
+
+	for i, m := range stdlib.Methods {
+		p.kinds[m.Kind] = append(p.kinds[m.Kind], value.Method{Name: p.intern(m.Name), ID: i, Self: true, InPlace: m.InPlace})
+	}
+
+	return p
 }
+
+func (p *Resolver) methodTable() methodTable { return methodTable{kinds: p.kinds, n: p.nmethods} }
 
 // resolveTopLevel resolves the statements of one file.
 func (p *Resolver) resolveTopLevel(stmts []ast.Stmt) {
@@ -452,10 +461,9 @@ func (p *Resolver) VisitCallExpr(callExpr *ast.CallExpr) (value.Value, error) {
 		p.resolveExpr(arg)
 	}
 
-	p.requireMutableArg(callExpr)
-
 	if prop, ok := callExpr.Callee.(*ast.IndexExpr); ok && isMethodCall(prop) {
 		callExpr.Writable = p.writable(prop.Array)
+		callExpr.Frozen = p.immutableRoot(prop.Array) != ""
 	}
 
 	return value.NilValue, nil
@@ -606,32 +614,27 @@ func (p *Resolver) requireMutable(name ast.Token, verb string) {
 
 // requireMutableRoot checks the variable an element or property chain starts from.
 func (p *Resolver) requireMutableRoot(expr ast.Expr) {
+	if name := p.immutableRoot(expr); name != "" {
+		p.error(rootVar(expr).Name, "Cannot mutate immutable variable '"+name+"'.")
+	}
+}
+
+// immutableRoot names the variable an element or property chain starts
+// from if it is bound immutably.
+func (p *Resolver) immutableRoot(expr ast.Expr) string {
 	root := rootVar(expr)
 
 	switch {
 	case root == nil:
 	case root.Module != nil:
 		if root.Local != nil && !p.mod.imports[root.Module.Lexeme].globalMutable[root.Name.Lexeme] {
-			p.error(root.Name, "Cannot mutate immutable variable '"+qualified(root.Module, root.Name)+"'.")
+			return qualified(root.Module, root.Name)
 		}
-	default:
-		p.requireMutable(root.Name, "mutate")
-	}
-}
-
-// requireMutableArg checks the first argument of a call to an in-place built-in.
-func (p *Resolver) requireMutableArg(call *ast.CallExpr) {
-	callee, ok := call.Callee.(*ast.IndexExpr)
-	if !ok || callee.Member == nil || len(call.Args) == 0 || !stdlib.InPlace(*callee.Member) {
-		return
+	case !p.isMutable(root.Name.Lexeme):
+		return root.Name.Lexeme
 	}
 
-	if sp, ok := call.Args[0].(*ast.SpreadExpr); ok {
-		p.error(sp.Token, "Cannot spread the first argument of an in-place built-in.")
-		return
-	}
-
-	p.requireMutableRoot(call.Args[0])
+	return ""
 }
 
 // rootVar returns the variable an element or property chain starts from,
@@ -646,6 +649,8 @@ func rootVar(expr ast.Expr) *ast.VarExpr {
 
 			expr = e.Array
 		case *ast.OptionalExpr:
+			expr = e.Expr
+		case *ast.GroupingExpr:
 			expr = e.Expr
 		case *ast.VarExpr:
 			return e

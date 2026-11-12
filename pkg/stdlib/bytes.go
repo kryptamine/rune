@@ -19,8 +19,6 @@ func (c *call) bytes(i int) []byte {
 	return c.args[i].Bytes()
 }
 
-// bytesMethods are the natives of bytes that take bytes first, which are
-// its methods too.
 var bytesMethods = []*Native{
 	{"bytes.toString", 1, 1, func(c *call) value.Value {
 		b := c.bytes(0)
@@ -75,7 +73,7 @@ var bytesMethods = []*Native{
 	}},
 }
 
-var bytesNatives = append([]*Native{
+var bytesNatives = []*Native{
 	{"bytes.from", 1, 1, func(c *call) value.Value {
 		switch v := c.args[0]; v.Kind() {
 		case value.Bytes:
@@ -132,7 +130,7 @@ var bytesNatives = append([]*Native{
 
 		return value.NewBytes(b)
 	}},
-}, bytesMethods...)
+}
 
 // maxAlloc caps bytes.alloc.
 const maxAlloc = 1 << 30

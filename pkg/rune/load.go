@@ -34,7 +34,7 @@ func Load(fsys fs.FS, name string) (*Program, []errors.File, []error) {
 		stmts = append(stmts, m.stmts...)
 	}
 
-	prog, err := compile(stmts, r.builtinLocals(), r.main, methodTable{kinds: r.kinds, n: r.nmethods})
+	prog, err := compile(stmts, r.builtinLocals(), r.main, r.methodTable())
 	if err != nil {
 		return nil, l.files, []error{err}
 	}

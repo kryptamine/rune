@@ -1,5 +1,5 @@
 [line: 1] ValueError: array.pop() got an empty array.
-    1 | array.pop([]); // expect runtime error: [line: 1] ValueError: array.pop() got an empty array.
-      |             ^
+    1 | [].pop(); // expect runtime error: [line: 1] ValueError: array.pop() got an empty array.
+      |    ^
   at array.pop (native)
   at <script> (line 1)

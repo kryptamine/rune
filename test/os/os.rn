@@ -9,12 +9,12 @@ print os.env("RUNE_TEST_OS_VAR"); // expect: nil
 let r = os.exec("sh", ["-c", "echo out; echo err >&2; exit 3"]);
 print r is ExecResult; // expect: true
 print r.code; // expect: 3
-print string.trim(r.stdout); // expect: out
-print string.trim(r.stderr); // expect: err
+print r.stdout.trim(); // expect: out
+print r.stderr.trim(); // expect: err
 
 print os.exec("cat", [], { input: "piped" }).stdout; // expect: piped
-print string.trim(os.exec("pwd", [], { dir: "/" }).stdout); // expect: /
-print string.trim(os.exec("sh", ["-c", "echo $RUNE_X"], { env: { RUNE_X: "set" } }).stdout); // expect: set
+print os.exec("pwd", [], { dir: "/" }).stdout.trim(); // expect: /
+print os.exec("sh", ["-c", "echo $RUNE_X"], { env: { RUNE_X: "set" } }).stdout.trim(); // expect: set
 print os.exec("true").code; // expect: 0
 
 try { os.exec("rune-no-such-command"); } catch (e: IOError) { print [e.code, e.path]; } // expect: ["notFound", "rune-no-such-command"]

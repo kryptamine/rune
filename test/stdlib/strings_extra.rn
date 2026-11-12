@@ -1,25 +1,25 @@
-print string.charCode("A"); // expect: 65
-print string.charCode("héllo", 1); // expect: 233
+print "A".charCode(); // expect: 65
+print "héllo".charCode(1); // expect: 233
 print string.fromCharCode(104, 233, 128512); // expect: hé😀
-print string.padStart("7", 3, "0"); // expect: 007
-print string.padStart("abc", 8, "12"); // expect: 12121abc
-print string.padEnd("é", 3) + "|"; // expect: é  |
-print string.padEnd("long", 2); // expect: long
-print string.format("%d + %d = %v", 1, 2, 3); // expect: 1 + 2 = 3
-print string.format("[%5s][%-5s][%5d][%-4d]", "ab", "é", 42, 7); // expect: [   ab][é    ][   42][7   ]
-print string.format("%.2f %08.3f %e", 3.14159, 2.5, 1500); // expect: 3.14 0002.500 1.500000e+03
-print string.format("%x %X %o %b %+d", 255, 255, 8, 5, 3); // expect: ff FF 10 101 +3
-print string.format("%v %s %q", [1, "a"], nil, "hi"); // expect: [1, "a"] nil "hi"
-print string.format("100%% %v", true); // expect: 100% true
-print string.format("%.2s", "héllo"); // expect: hé
+print "7".padStart(3, "0"); // expect: 007
+print "abc".padStart(8, "12"); // expect: 12121abc
+print "é".padEnd(3) + "|"; // expect: é  |
+print "long".padEnd(2); // expect: long
+print "%d + %d = %v".format(1, 2, 3); // expect: 1 + 2 = 3
+print "[%5s][%-5s][%5d][%-4d]".format("ab", "é", 42, 7); // expect: [   ab][é    ][   42][7   ]
+print "%.2f %08.3f %e".format(3.14159, 2.5, 1500); // expect: 3.14 0002.500 1.500000e+03
+print "%x %X %o %b %+d".format(255, 255, 8, 5, 3); // expect: ff FF 10 101 +3
+print "%v %s %q".format([1, "a"], nil, "hi"); // expect: [1, "a"] nil "hi"
+print "100%% %v".format(true); // expect: 100% true
+print "%.2s".format("héllo"); // expect: hé
 
-try { string.charCode("ab", 2); } catch (e: IndexError) { print e.message; } // expect: string.charCode() index 2 out of bounds of 2 characters.
+try { "ab".charCode(2); } catch (e: IndexError) { print e.message; } // expect: string.charCode() index 2 out of bounds of 2 characters.
 try { string.fromCharCode(55296); } catch (e: ValueError) { print e.message; } // expect: string.fromCharCode() 55296 is not a valid character code.
-try { string.padStart("a", 3, ""); } catch (e: ValueError) { print e.message; } // expect: string.padStart() pad must not be empty.
-try { string.format("%d %d", 1); } catch (e: ArgumentError) { print e.message; } // expect: string.format() '%d' at 3 has no argument.
-try { string.format("%d", 1, 2); } catch (e: ArgumentError) { print e.message; } // expect: string.format() got 2 arguments for 1 directives.
-try { string.format("%d", 1.5); } catch (e: TypeError) { print e.message; } // expect: string.format() expects an integer as argument 2, got number.
-try { string.format("%f", "x"); } catch (e: TypeError) { print e.message; } // expect: string.format() expects a number as argument 2, got string.
-try { string.format("%y", 1); } catch (e: ValueError) { print e.message; } // expect: string.format() unknown verb '%y'.
-try { string.format("abc %5"); } catch (e: ValueError) { print e.message; } // expect: string.format() incomplete directive '%5' at 4.
-try { string.format("%99999d", 1); } catch (e: ValueError) { print e.message; } // expect: string.format() bad directive '%99999d' at 0.
+try { "a".padStart(3, ""); } catch (e: ValueError) { print e.message; } // expect: string.padStart() pad must not be empty.
+try { "%d %d".format(1); } catch (e: ArgumentError) { print e.message; } // expect: string.format() '%d' at 3 has no argument.
+try { "%d".format(1, 2); } catch (e: ArgumentError) { print e.message; } // expect: string.format() got 2 arguments for 1 directives.
+try { "%d".format(1.5); } catch (e: TypeError) { print e.message; } // expect: string.format() expects an integer as argument 1, got number.
+try { "%f".format("x"); } catch (e: TypeError) { print e.message; } // expect: string.format() expects a number as argument 1, got string.
+try { "%y".format(1); } catch (e: ValueError) { print e.message; } // expect: string.format() unknown verb '%y'.
+try { "abc %5".format(); } catch (e: ValueError) { print e.message; } // expect: string.format() incomplete directive '%5' at 4.
+try { "%99999d".format(1); } catch (e: ValueError) { print e.message; } // expect: string.format() bad directive '%99999d' at 0.

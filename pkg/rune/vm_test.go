@@ -14,7 +14,7 @@ func TestProgramRunsConcurrently(t *testing.T) {
 		fun f(n) { if n < 2 { return n; } return f(n - 1) + f(n - 2); }
 		for i in 0..50 { s = s + "ab"; }
 		print len(s) + f(15);
-		print array.map([1, 2], fun (x) { return x * 2; });
+		print [1, 2].map(fun (x) { return x * 2; });
 	`))
 	if len(errs) > 0 {
 		t.Fatal(errs)
@@ -50,7 +50,7 @@ func TestInterrupt(t *testing.T) {
 		"object":    `let o = {a: 1}; while true { for k in o {} }`,
 		"recursion": `fun f(n) { if n < 2 { return n; } return f(n - 1) + f(n - 2); } f(100);`,
 		"try":       `while true { try { while true {} } catch (e) {} }`,
-		"native":    `array.map([1], fun (x) { while true {} });`,
+		"native":    `[1].map(fun (x) { while true {} });`,
 		"exec":      `os.exec("sleep", ["100"]);`,
 	}
 

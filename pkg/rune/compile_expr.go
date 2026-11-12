@@ -569,7 +569,7 @@ func (fs *funcState) invoke(n *ast.CallExpr, prop *ast.IndexExpr, dst int32) {
 	}
 
 	name := fs.constant(value.NewString(prop.Token.Lexeme))
-	fs.emit(ins{op: opInvoke, a: base, b: int32(len(n.Args)), c: name, y: uint8(boolNum(n.Writable))}, &prop.Token)
+	fs.emit(ins{op: opInvoke, a: base, b: int32(len(n.Args)), c: name, x: uint8(boolNum(n.Frozen)), y: uint8(boolNum(n.Writable))}, &prop.Token)
 
 	if lv != nil {
 		skip := fs.emit(ins{op: opJmp}, &prop.Token)

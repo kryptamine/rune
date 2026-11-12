@@ -25,9 +25,9 @@ print bytes.alloc(2, 65);          // expect: b"AA"
 print b"hello".toString();         // expect: hello
 print b"hi".toArray();             // expect: [104, 105]
 print b"hello".slice(1, -1);       // expect: b"ell"
-print bytes.slice(b"hello", 3);    // expect: b"lo"
+print b"hello".slice(3);    // expect: b"lo"
 print b"hello".indexOf(b"ll");     // expect: 2
-print bytes.concat(b"a", b"b", b"c"); // expect: b"abc"
+print b"a".concat(b"b", b"c"); // expect: b"abc"
 print b"\x01\xab".hex();           // expect: 01ab
 print bytes.fromHex("01AB");       // expect: b"\x01\xab"
 print b"hi!".base64();             // expect: aGkh

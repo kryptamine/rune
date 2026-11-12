@@ -1,1 +1,1 @@
-array.sort([1, "a"]); // expect runtime error: [line: 1] TypeError: array.sort() without a comparator needs all numbers or all strings.
+[1, "a"].sort(); // expect runtime error: [line: 1] TypeError: array.sort() without a comparator needs all numbers or all strings.

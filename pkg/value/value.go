@@ -118,12 +118,13 @@ type Shape struct {
 	decls   []Field
 }
 
-// Method is a method of an impl block; ID indexes the program's closures.
-// Without Self it is static; Mut takes mut self.
+// Method is a method of an impl block or a built-in type; ID indexes the
+// program's methods. Without Self it is static; Mut takes mut self;
+// InPlace, only built-in, changes its receiver.
 type Method struct {
-	Name      string
-	ID        int
-	Self, Mut bool
+	Name               string
+	ID                 int
+	Self, Mut, InPlace bool
 }
 
 // FindMethod returns the method of ms named name, or nil.

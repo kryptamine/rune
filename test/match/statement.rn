@@ -4,7 +4,7 @@ match 3 { 3 => { print "three"; } } // expect: three
 match 3 { 3 => { print "semicolon"; } }; // expect: semicolon
 
 let mut log = [];
-match 2 { 2 => array.push(log, "pushed") }
+match 2 { 2 => log.push("pushed") }
 print log; // expect: ["pushed"]
 
 let mut i = 0;

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"rune/pkg/errors"
+	"rune/pkg/stdlib"
 	"rune/pkg/value"
 )
 
@@ -485,17 +486,37 @@ reload:
 			goto reload
 
 		case opInvoke:
-			recv := regs[in.a()+1]
-			if recv.Kind() != value.Struct {
+			var ms []value.Method
+
+			switch recv := regs[in.a()+1]; recv.Kind() {
+			case value.Struct:
+				ms = recv.Shape().Methods
+			// An object's own properties come before its methods.
+			case value.Object, value.Type:
 				goto slow
+			default:
+				ms = p.kinds[recv.Kind()]
 			}
 
-			m := value.InternedMethod(recv.Shape().Methods, consts[in.c()])
+			m := value.InternedMethod(ms, consts[in.c()])
 			if m == nil || !m.Self || m.Mut && !in.y() {
 				goto slow
 			}
 
 			fn := p.methods[m.ID]
+			if fn.TypeID() != closureID {
+				if m.InPlace && in.x() != 0 {
+					goto slow
+				}
+
+				fr.pc = pc
+				if err = p.callNativeMethod(fr.base+in.a(), in.b(), fn.Fn().(*stdlib.Native), fr.cl.proto.toks[pc-1]); err != nil {
+					goto fail
+				}
+
+				goto reload
+			}
+
 			f := (*Closure)(fn.Ptr())
 			if in.b()+1 != f.proto.exact || len(p.frames) > p.maxRecursion {
 				goto slow

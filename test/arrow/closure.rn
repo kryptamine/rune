@@ -7,4 +7,4 @@ c();
 print c(); // expect: 2
 
 let base = 10;
-print array.map([1, 2], x => x + base); // expect: [11, 12]
+print [1, 2].map(x => x + base); // expect: [11, 12]
