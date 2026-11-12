@@ -1,0 +1,21 @@
+struct P { x, y = 0, z = 3 }
+
+let x = 1;
+let y = 2;
+
+let a = P { x, y };
+print a.x; // expect: 1
+print a.y; // expect: 2
+print a.z; // expect: 3
+
+let b = P { y, x: 10, };
+print b.x; // expect: 10
+print b.y; // expect: 2
+
+fun make(x) { return P { x, y }; }
+print make(5).x; // expect: 5
+
+let c = [P { x, y }];
+print c[0].y; // expect: 2
+
+if a == (P { x, y }) { print "eq"; } // expect: eq
