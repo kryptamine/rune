@@ -88,7 +88,7 @@ func cursorOf(v value.Value, hasKey bool, keyword *ast.Token) (*cursor, error) {
 	}
 
 	return nil, errors.NewRuntimeError(errors.TypeError, *keyword, fmt.Sprintf(
-		"Can only iterate over arrays, strings, objects, structs, Maps, Sets, bytes and Streams, got %s.", helpers.TypeName(v)))
+		"Can only iterate over arrays, strings, objects, structs, maps, sets, bytes and streams, got %s.", helpers.TypeName(v)))
 }
 
 // pairs walks keys, with their values if hasKey.

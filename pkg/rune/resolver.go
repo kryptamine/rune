@@ -191,6 +191,19 @@ func (p *Resolver) requireInitialized(name ast.Token, verb string) {
 	}
 }
 
+// use resolves name, which is read or assigned to; ok is false for _,
+// which names no variable.
+func (p *Resolver) use(name ast.Token, verb string) (l *ast.Local, ok bool) {
+	if (ast.Binding{Name: name}).Discards() {
+		p.error(name, "Cannot "+verb+" '_'.")
+		return nil, false
+	}
+
+	p.requireInitialized(name, verb)
+
+	return p.resolveLocal(name), true
+}
+
 func (p *Resolver) VisitVarExpr(expr *ast.VarExpr) (value.Value, error) {
 	if expr.Module != nil {
 		expr.Local = p.member(*expr.Module, expr.Name)
@@ -202,8 +215,7 @@ func (p *Resolver) VisitVarExpr(expr *ast.VarExpr) (value.Value, error) {
 		return value.NilValue, nil
 	}
 
-	p.requireInitialized(expr.Name, "read")
-	expr.Local = p.resolveLocal(expr.Name)
+	expr.Local, _ = p.use(expr.Name, "read")
 
 	return value.NilValue, nil
 }
@@ -305,8 +317,10 @@ func (p *Resolver) VisitFunctionStmt(fnStmt *ast.FunctionStmt) error {
 	return nil
 }
 
+// VisitStructStmt checks stmt is at the top level, whose structs
+// resolveTopLevel has given their shapes.
 func (p *Resolver) VisitStructStmt(stmt *ast.StructStmt) error {
-	if !p.isScopesEmpty() {
+	if stmt.Shape == nil {
 		p.error(stmt.Name, "Structs must be declared at the top level.")
 		return nil
 	}
@@ -327,7 +341,7 @@ func (p *Resolver) shape(s *ast.StructStmt) *value.Shape {
 		if f.Default != nil {
 			var ok bool
 			if def, ok = p.constantOf(f.Default); !ok {
-				p.error(f.DefaultAt, "Field default must be a constant: a literal, or an array, object, Map() or Set() of them.")
+				p.error(f.DefaultAt, "Field default must be a constant: a literal, or an array, object, map() or set() of them.")
 			}
 		}
 		fields[i] = value.Field{Name: name, Default: def, Required: f.Default == nil}
@@ -368,9 +382,9 @@ func (p *Resolver) constantOf(e ast.Expr) (value.Value, bool) {
 			return value.NilValue, false
 		}
 		switch callee.Name.Lexeme {
-		case "Map":
+		case "map":
 			return value.NewMap(value.NewHashMap(0)), true
-		case "Set":
+		case "set":
 			return value.NewSet(value.NewHashMap(0)), true
 		}
 	}
@@ -432,7 +446,12 @@ func (p *Resolver) VisitStructExpr(expr *ast.StructExpr) (value.Value, error) {
 
 func (p *Resolver) VisitIsExpr(expr *ast.IsExpr) (value.Value, error) {
 	p.resolveExpr(expr.Value)
-	p.resolveExpr(expr.Type)
+
+	if t, ok := expr.Type.(*ast.VarExpr); ok {
+		expr.Shape = p.typeNamed(t)
+	} else {
+		p.resolveExpr(expr.Type)
+	}
 
 	return value.NilValue, nil
 }
@@ -497,9 +516,10 @@ func (p *Resolver) resolveCatch(c *ast.CatchClause) {
 
 func (p *Resolver) VisitAssignExpr(expr *ast.AssignExpr) (value.Value, error) {
 	p.resolveExpr(expr.Value)
-	p.requireInitialized(expr.Name, "assign to")
-	expr.Local = p.resolveLocal(expr.Name)
-	p.requireMutable(expr.Name, "assign to")
+	var ok bool
+	if expr.Local, ok = p.use(expr.Name, "assign to"); ok {
+		p.requireMutable(expr.Name, "assign to")
+	}
 
 	return value.NilValue, nil
 }
@@ -887,6 +907,10 @@ func (p *Resolver) resolveFn(fn *ast.FunctionStmt) {
 func (p *Resolver) declare(b ast.Binding) *ast.Local {
 	name := b.Name
 
+	if b.Discards() {
+		return &ast.Local{}
+	}
+
 	if prev, exists := p.innermost()[name.Lexeme]; exists {
 		p.errors = append(p.errors, errors.NewRedeclaredError(name, prev.name))
 	}
@@ -902,8 +926,11 @@ func (p *Resolver) declare(b ast.Binding) *ast.Local {
 	return l
 }
 
+// define marks the variable name declares defined; a discard declares none.
 func (p *Resolver) define(name ast.Token) {
-	p.innermost()[name.Lexeme].defined = true
+	if l := p.innermost()[name.Lexeme]; l != nil {
+		l.defined = true
+	}
 }
 
 // innermost returns the declarations of the current scope, the top level included.

@@ -12,10 +12,10 @@ print(xs); // expect: [3, 1, 2]
 print(xs.contains(2)); // expect: true
 print([[1]].contains([1])); // expect: true
 print(xs.indexOf(9)); // expect: -1
-print(xs.sort()); // expect: [1, 2, 3]
+print(xs.sort()); // expect: nil
 print(xs); // expect: [1, 2, 3]
-print(["b", "c", "a"].sort()); // expect: ["a", "b", "c"]
-print(xs.sort(fun (a, b) { return b - a; })); // expect: [3, 2, 1]
+xs.sort(fun (a, b) { return b - a; });
+print(xs); // expect: [3, 2, 1]
 
 let mut people = [{name: "bob", age: 25}, {name: "ann", age: 31}, {name: "cid", age: 25}];
 people.sort(fun (a, b) { return a.age - b.age; });

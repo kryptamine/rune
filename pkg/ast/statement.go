@@ -1,6 +1,9 @@
 package ast
 
-import "rune/pkg/value"
+import (
+	"rune/pkg/value"
+	"slices"
+)
 
 type StmtVisitor interface {
 	VisitExprStmt(exprStmt *ExprStmt) error
@@ -28,6 +31,9 @@ type Binding struct {
 	Mutable bool
 	Local   *Local
 }
+
+// Discards reports whether b is _, which takes a value and declares nothing.
+func (b Binding) Discards() bool { return b.Name.Lexeme == "_" }
 
 type VarStmt struct {
 	Binding
@@ -102,24 +108,22 @@ func PatternVars(stmt Stmt) []*PatternVar {
 	return vs
 }
 
-// Declared returns the variables stmt declares, structs aside.
+// Declared returns the variables stmt declares, structs and discards aside.
 func Declared(stmt Stmt) []*Binding {
+	var bs []*Binding
+
 	switch s := stmt.(type) {
 	case *VarStmt:
-		return []*Binding{&s.Binding}
+		bs = []*Binding{&s.Binding}
 	case *FunctionStmt:
-		return []*Binding{&s.Binding}
+		bs = []*Binding{&s.Binding}
 	case *DestructureStmt, *ArrayDestructureStmt:
-		vs := PatternVars(s)
-		bs := make([]*Binding, len(vs))
-		for i, v := range vs {
-			bs[i] = &v.Binding
+		for _, v := range PatternVars(s) {
+			bs = append(bs, &v.Binding)
 		}
-
-		return bs
 	}
 
-	return nil
+	return slices.DeleteFunc(bs, func(b *Binding) bool { return b.Discards() })
 }
 
 type ReturnStmt struct {

@@ -87,16 +87,55 @@ func (p *Resolver) resolvePattern(pat ast.Pattern) ast.Pattern {
 	return pat
 }
 
-// resolveTypes returns the struct type each of types names.
+// resolveTypes returns the type each of types names, reporting those
+// that name something else; a missing module member is reported already.
 func (p *Resolver) resolveTypes(types []*ast.VarExpr) []*value.Shape {
 	shapes := make([]*value.Shape, len(types))
 
 	for i, t := range types {
-		p.resolveExpr(t)
-		shapes[i] = p.structType(t)
+		if shapes[i] = p.typeNamed(t); shapes[i] == nil && (t.Module == nil || t.Local != nil) {
+			p.error(t.Name, "'"+qualified(t.Module, t.Name)+"' is not a type.")
+		}
 	}
 
 	return shapes
+}
+
+// typeNamed resolves t and returns the type it names: a struct type, or
+// a built-in one such as string; nil for anything else.
+func (p *Resolver) typeNamed(t *ast.VarExpr) *value.Shape {
+	if s := p.kindType(t); s != nil {
+		return s
+	}
+
+	p.resolveExpr(t)
+
+	return p.structs[t.Local]
+}
+
+var kindTypes = func() map[string]*value.Shape {
+	ts := map[string]*value.Shape{}
+	for name, k := range builtinKinds {
+		ts[name] = &value.Shape{Name: name, Kind: k}
+	}
+
+	return ts
+}()
+
+// kindType returns the built-in type t names, as in v is string, unless
+// a declaration or an import hides it.
+func (p *Resolver) kindType(t ast.Expr) *value.Shape {
+	v, ok := t.(*ast.VarExpr)
+	if !ok || v.Module != nil {
+		return nil
+	}
+
+	name := v.Name.Lexeme
+	if p.lookupScopes(name) != nil || p.mod.topLevel[name] != nil || p.mod.imports[name] != nil {
+		return nil
+	}
+
+	return kindTypes[name]
 }
 
 func (p *Resolver) resolveFields(fields []ast.FieldPattern) {

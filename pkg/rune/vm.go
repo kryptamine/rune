@@ -278,8 +278,7 @@ reload:
 				goto slow
 			}
 
-			v := regs[in.b()]
-			regs[in.a()] = value.NewBool(v.Kind() == value.Struct && v.Shape() == t.TypeShape())
+			regs[in.a()] = value.NewBool(t.TypeShape().Has(regs[in.b()]))
 
 		case opNeg:
 			if v := regs[in.b()]; v.IsFloat() {
@@ -368,7 +367,7 @@ reload:
 			}
 
 		case opJmpNotType:
-			if v := regs[in.a()]; v.Kind() != value.Struct || v.Shape() != consts[in.b()].TypeShape() {
+			if !consts[in.b()].TypeShape().Has(regs[in.a()]) {
 				pc = in.c()
 			}
 

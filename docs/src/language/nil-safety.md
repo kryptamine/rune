@@ -65,7 +65,7 @@ print(resp?.data?.items ?? []);  // [1, 2]
 print(empty?.data?.items ?? []); // []
 ```
 
-Unlike `or`, it keeps `false`, `0` and `""`, so a setting that is
+Unlike `||`, it keeps `false`, `0` and `""`, so a setting that is
 explicitly off stays off:
 
 ```rune
@@ -86,4 +86,4 @@ print(5 ?? loadDefault());    // 5
 print(nil ?? nil ?? "last");  // last
 ```
 
-`??` binds looser than `or` and tighter than ranges and `? :`.
+`??` binds looser than `||` and tighter than ranges and `? :`.

@@ -1,0 +1,6 @@
+let x = 1;
+print(match 1 { 1 => { a: 1 }, _ => 0 }); // expect: {a: 1}
+print(match 1 { 1 => { x }, _ => 0 }); // expect: {x: 1}
+print(match 1 { 1 => { ...{ b: 2 } }, _ => 0 }); // expect: {b: 2}
+print(match 1 { 1 => { print("block"); }, _ => 0 }); // expect: block
+// expect: nil

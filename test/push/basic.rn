@@ -1,6 +1,6 @@
 let mut a = [1];
-print(a.push(2)); // expect: 2
-print(a.push(3, 4)); // expect: 4
+print(a.push(2)); // expect: nil
+a.push(3, 4);
 print(a); // expect: [1, 2, 3, 4]
 
 // Arrays are references: push is visible through every alias.

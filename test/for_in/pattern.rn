@@ -1,4 +1,4 @@
-let m = Map({ a: { hits: 1, xs: [1, 2] }, b: { hits: 2, xs: [3] } });
+let m = map({ a: { hits: 1, xs: [1, 2] }, b: { hits: 2, xs: [3] } });
 for k, { hits, xs } in m print("{k} {hits} {xs}");
 // expect: a 1 [1, 2]
 // expect: b 2 [3]

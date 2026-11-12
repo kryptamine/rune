@@ -20,7 +20,7 @@ for i, p in points {
 ## A Taste
 
 Classifying the lines of an access log, with a struct, destructuring,
-pattern matching and a `Map`:
+pattern matching and a `map`:
 
 ```rune
 struct Request { method, path, status, ms }
@@ -45,12 +45,12 @@ let log = """
     GET /users 200 8
     """;
 
-let mut counts = Map();
+let mut counts = map();
 for line in log.split("\n") {
     let k = kind(parse(line));
     counts[k] = counts.get(k, 0) + 1;
 }
-print(counts);    // Map {"ok": 2, "slow": 1, "error": 1}
+print(counts);    // map {"ok": 2, "slow": 1, "error": 1}
 ```
 
 New here? Start with [Getting Started](getting-started.md), then read the
@@ -72,7 +72,7 @@ Language chapters in order.
 - 64-bit integers and floats, both of type `number`: `7 / 2` is `3.5`, `7 % 2` is `1`, and overflow is an error
 - Number literals with exponents, hex, octal, binary and `_`: `1e3`, `0xff`, `0o17`, `0b1010`, `1_000_000`
 - Bitwise operators on integers: `&`, `|`, `^`, `~`, `<<`, `>>`
-- `Map` and `Set` with keys of any hashable value, in insertion order
+- `map` and `set` with keys of any hashable value, in insertion order
 - `bytes`: immutable binary data, with literals `b"\x00\xff"`
 - Streams: files and HTTP bodies read line by line or in chunks, `for line in fs.open(path)`
 - Object property access with `obj.name` as sugar for `obj["name"]`; shorthand `{ ip, hits }` for `{ ip: ip, hits: hits }`

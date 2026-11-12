@@ -159,7 +159,7 @@ func appendJSON(c *call, buf []byte, v value.Value, depth int) []byte {
 		})
 
 		if !ok {
-			c.fail(errors.TypeError, "cannot encode a Map with keys other than strings.")
+			c.fail(errors.TypeError, "cannot encode a map with keys other than strings.")
 			return buf
 		}
 

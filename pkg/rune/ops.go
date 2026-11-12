@@ -136,7 +136,7 @@ func lookup(token *ast.Token, target, index value.Value) (value.Value, bool, err
 	}
 
 	return value.NilValue, false, errors.NewRuntimeError(errors.TypeError, *token, fmt.Sprintf(
-		"Can only index arrays, strings, objects, structs, Maps and bytes, got %s.", helpers.TypeName(target)))
+		"Can only index arrays, strings, objects, structs, maps and bytes, got %s.", helpers.TypeName(target)))
 }
 
 func setIndex(token *ast.Token, target, index, v value.Value) error {
@@ -182,7 +182,7 @@ func setIndex(token *ast.Token, target, index, v value.Value) error {
 
 	default:
 		return errors.NewRuntimeError(errors.TypeError, *token, fmt.Sprintf(
-			"Can only index arrays, strings, objects, structs, Maps and bytes, got %s.", helpers.TypeName(target)))
+			"Can only index arrays, strings, objects, structs, maps and bytes, got %s.", helpers.TypeName(target)))
 	}
 }
 

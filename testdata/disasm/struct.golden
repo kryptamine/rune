@@ -15,13 +15,14 @@ exit: 0
    11  GETPROP       6 2 6
    12  STRUCT        3 5 0
    13  MOVE          5 4 0
-   14  IS            6 3 1
-   15  CALL          5 1 0
-   16  MOVE          5 4 0
-   17  MOVE          6 1 0
-   18  LOADK         8 0 7
-   19  OBJECT        7 8 0
-   20  CALL          6 1 0
-   21  CALL          5 1 0
-   22  RETURNNIL     0 0 0
+   14  LOADK         7 0 0
+   15  IS            6 3 7
+   16  CALL          5 1 0
+   17  MOVE          5 4 0
+   18  MOVE          6 1 0
+   19  LOADK         8 0 7
+   20  OBJECT        7 8 0
+   21  CALL          6 1 0
+   22  CALL          5 1 0
+   23  RETURNNIL     0 0 0
 -- stderr --

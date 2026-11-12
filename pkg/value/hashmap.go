@@ -88,7 +88,7 @@ func keyOf(k Value) (hashKey, error) {
 func unhashable(k Value) error { return &Unhashable{kindNames[k.Kind()]} }
 
 var kindNames = [NumKinds]string{
-	Array: "an array", Object: "an object", Map: "a Map", Set: "a Set", Stream: "a Stream",
+	Array: "an array", Object: "an object", Map: "a map", Set: "a set", Stream: "a stream",
 	Internal: "an internal value", Undefined: "an undefined value",
 }
 

@@ -1,8 +1,8 @@
-[line: 4] Error at 'notType': 'notType' is not a struct.
-    4 | try {} catch e is notType {} // [line: 4] Error at 'notType': 'notType' is not a struct.
+[line: 4] Error at 'notType': 'notType' is not a type.
+    4 | try {} catch e is notType {} // [line: 4] Error at 'notType': 'notType' is not a type.
       |                   ^
-[line: 5] Error at 'Missing': 'Missing' is not a struct.
-    5 | try {} catch e is Missing {} // [line: 5] Error at 'Missing': 'Missing' is not a struct.
+[line: 5] Error at 'Missing': 'Missing' is not a type.
+    5 | try {} catch e is Missing {} // [line: 5] Error at 'Missing': 'Missing' is not a type.
       |                   ^
 [line: 6] Error at 'P': 'P' is already caught.
     6 | try {} catch e is P | P {} // [line: 6] Error at 'P': 'P' is already caught.

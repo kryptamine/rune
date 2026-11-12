@@ -2,12 +2,12 @@ impl array {
   fun map(self, f) { return "mine"; }
 }
 
-impl Map {
+impl map {
   fun get(self, k) { return "own " + k; }
 }
 
 print([1, 2].map(x => x * 2)); // expect: mine
 let m = [3].map;
 print(m(x => x)); // expect: mine
-print(Map().get("a")); // expect: own a
-print([3, 1, 2].sort()); // expect: [1, 2, 3]
+print(map().get("a")); // expect: own a
+print([3, 1, 2].sort()); // expect: nil

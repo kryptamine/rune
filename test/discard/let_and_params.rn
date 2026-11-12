@@ -1,0 +1,19 @@
+let _ = 1;
+let _ = 2;
+
+fun second(_, b, _) { return b; }
+print(second(1, 2, 3)); // expect: 2
+
+let pick = (_, _, c) => c;
+print(pick(1, 2, 3)); // expect: 3
+
+fun local() {
+    let _ = 1;
+    let _ = 2;
+    let { a: _, b } = { a: 1, b: 2 };
+    return b;
+}
+print(local()); // expect: 2
+
+for _, x in [7] { print(x); } // expect: 7
+try { [].pop(); } catch _ { print("caught"); } // expect: caught

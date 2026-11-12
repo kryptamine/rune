@@ -2,9 +2,9 @@ let mut xs = [1, 2, 3];
 print(xs.remove(0));       // expect: 1
 print(xs.remove(-1));      // expect: 3
 print(xs);                 // expect: [2]
-print(xs.insert(0, 1));    // expect: 2
-print(xs.insert(2, 3));    // expect: 3
-print(xs.insert(-1, 9));   // expect: 4
+print(xs.insert(0, 1));    // expect: nil
+xs.insert(2, 3);
+xs.insert(-1, 9);
 print(xs);                 // expect: [1, 2, 9, 3]
 
 let ys = xs;

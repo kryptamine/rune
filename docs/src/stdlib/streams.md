@@ -1,6 +1,6 @@
 # Streams
 
-A `Stream` is an open file from `fs.open`, or a response body from
+A stream is an open file from `fs.open`, or a response body from
 `http.request` with `stream: true`. It reads and writes a piece at a time,
 so a large file is never held whole.
 

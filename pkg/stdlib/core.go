@@ -43,7 +43,7 @@ func length(c *call) value.Value {
 		return count(len(v.Bytes()))
 	}
 
-	return c.typeError(0, "a string, an array, an object, a Map, a Set or bytes")
+	return c.typeError(0, "a string, an array, an object, a map, a set or bytes")
 }
 
 // lenMethod is the len method of the type called name.

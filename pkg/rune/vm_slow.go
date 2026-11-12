@@ -64,7 +64,7 @@ func (p *Interpreter) slow(in Instr) error {
 
 	case opIs:
 		return errors.NewRuntimeError(errors.TypeError, *tok, fmt.Sprintf(
-			"Right operand of 'is' must be a struct, got %s.", helpers.TypeName(regs[in.c()])))
+			"Right operand of 'is' must be a type, got %s.", helpers.TypeName(regs[in.c()])))
 
 	case opJmpCmp, opJmpCmpK:
 		var r value.Value

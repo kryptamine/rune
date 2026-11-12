@@ -17,7 +17,7 @@ characters' code points:
 ```rune
 print("héllo"[1]);       // é
 print("héllo"[-1]);      // o
-print("héllo".len());     // 5
+print("héllo".len());    // 5
 print("ann" < "bob");    // true
 print("Zed" < "ann");    // true
 ```

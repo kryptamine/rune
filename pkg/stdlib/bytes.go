@@ -20,7 +20,7 @@ func (c *call) bytes(i int) []byte {
 }
 
 var bytesMethods = []*Native{
-	{"bytes.toString", 1, 1, func(c *call) value.Value {
+	{"bytes.text", 1, 1, func(c *call) value.Value {
 		b := c.bytes(0)
 		if !c.ok() {
 			return value.NilValue

@@ -1,7 +1,7 @@
 fun all(...xs) { return xs; }
 
-let s = Set([1, 2]);
-let m = Map([["a", 1], ["b", 2]]);
+let s = set([1, 2]);
+let m = map([["a", 1], ["b", 2]]);
 
 print([...s]);           // expect: [1, 2]
 print(all(...s));        // expect: [1, 2]
@@ -11,4 +11,4 @@ print([...b"hi"]);       // expect: [104, 105]
 print(all(...b"hi"));    // expect: [104, 105]
 print(math.max(...s));   // expect: 2
 print([0, ...s, ...b"\x03"]); // expect: [0, 1, 2, 3]
-print(all(...Set()));    // expect: []
+print(all(...set()));    // expect: []

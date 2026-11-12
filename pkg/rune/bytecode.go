@@ -53,7 +53,7 @@ const (
 	opJmpIf      // if truthy(R[A]) == Y: pc = C
 	opJmpCmp     // if (R[A] <X> R[B]) == Y: pc = C
 	opJmpCmpK    // if (R[A] <X> K[B]) == Y: pc = C
-	opJmpNotType // if R[A] is not a struct of type K[B]: pc = C
+	opJmpNotType // if R[A] is not of type K[B]: pc = C
 	opJmpNil     // if (R[A] is nil) == Y: pc = C
 	opJmpDefined // if R[A] is defined: pc = C
 

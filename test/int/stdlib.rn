@@ -23,4 +23,6 @@ print(parsed.id);                // expect: 9007199254740993
 print(math.isInt(parsed.x));     // expect: false
 print(math.isInt(parsed.y));     // expect: true
 print(json.stringify([9007199254740993, 1.5, 2])); // expect: [9007199254740993,1.5,2]
-print([3, 1.5, 2].sort());  // expect: [1.5, 2, 3]
+let mut ns = [3, 1.5, 2];
+ns.sort();
+print(ns);  // expect: [1.5, 2, 3]

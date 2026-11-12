@@ -114,7 +114,7 @@ func (p *Interpreter) invoke(fr *frame, in Instr, tok *ast.Token) error {
 			return notMethod(tok, t, owner, key.Str())
 		}
 
-		return missingMember(tok, t, key.Str())
+		return noMethod(tok, owner, key.Str())
 	case t.Kind() == value.Type:
 		p.stack[at] = p.methods[m.ID]
 		return p.callWithout(at, n, tok)
@@ -161,10 +161,14 @@ func missingMember(tok *ast.Token, t value.Value, name string) error {
 	case value.Struct:
 		return undefinedField(tok, t.Shape(), name)
 	case value.Type:
-		return errors.NewRuntimeError(errors.KeyError, *tok, fmt.Sprintf("%s has no method '%s'.", t.TypeShape().Name, name))
+		return noMethod(tok, t.TypeShape().Name, name)
 	}
 
 	return propertyError("read", tok, t)
+}
+
+func noMethod(tok *ast.Token, owner, name string) error {
+	return errors.NewRuntimeError(errors.TypeError, *tok, fmt.Sprintf("%s has no method '%s'.", owner, name))
 }
 
 // notMethod is the error of t.name(args) for a function in a field or property.

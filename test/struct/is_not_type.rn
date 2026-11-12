@@ -1,4 +1,4 @@
 struct Point { x }
 
 let p = Point { x: 1 };
-print(p is 1); // expect runtime error: [line: 4] TypeError: Right operand of 'is' must be a struct, got number.
+print(p is 1); // expect runtime error: [line: 4] TypeError: Right operand of 'is' must be a type, got number.

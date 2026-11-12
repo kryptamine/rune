@@ -57,7 +57,7 @@ import lib.money as m;
 cart.add("book", 1250);
 cart.add("pen", 199);
 
-print(cart.items.len());        // 2
+print(cart.items.len());       // 2
 print(m.format(cart.total())); // 14.49 USD
 
 let eur = m.Money { cents: 500, currency: "EUR" };

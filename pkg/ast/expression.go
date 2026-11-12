@@ -234,11 +234,13 @@ func (n *StructExpr) Accept(v ExprVisitor) (value.Value, error) {
 	return v.VisitStructExpr(n)
 }
 
-// IsExpr is value is Type.
+// IsExpr is value is Type; the resolver sets Shape when Type names a
+// type, else Type is evaluated.
 type IsExpr struct {
 	Value Expr
 	Type  Expr
 	Token Token
+	Shape *value.Shape
 }
 
 func NewIsExpr(v, typ Expr, token Token) Expr {

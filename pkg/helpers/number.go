@@ -92,16 +92,23 @@ func ParseLiteral(lexeme string) (value.Value, bool) {
 	return value.NewInt(n), err == nil
 }
 
-// ParseNumber parses s as a decimal number literal without "_",
-// optionally negated:
-// an integer, or a float if it has a fraction or an exponent or is too
-// large for one.
+// ParseNumber parses s as a number literal, optionally negated: an
+// integer, or a float if it has a fraction or an exponent or, in decimal,
+// is too large for one.
 func ParseNumber(s string) (value.Value, bool) {
 	digits := strings.TrimPrefix(s, "-")
 
-	if digits == "" || !isDecimal(digits[0]) || NumberEnd(digits, 0) != len(digits) ||
-		basePrefix(at(digits, 1)) != nil || strings.ContainsRune(digits, '_') {
+	if digits == "" || !isDecimal(digits[0]) || NumberEnd(digits, 0) != len(digits) {
 		return value.NilValue, false
+	}
+
+	if basePrefix(at(digits, 1)) != nil || strings.ContainsRune(digits, '_') {
+		v, ok := ParseLiteral(digits)
+		if ok && len(digits) < len(s) {
+			v = negate(v)
+		}
+
+		return v, ok
 	}
 
 	if !strings.ContainsAny(digits, ".eE") {
@@ -113,6 +120,14 @@ func ParseNumber(s string) (value.Value, bool) {
 	f, err := strconv.ParseFloat(s, 64)
 
 	return value.NewNumber(f), err == nil
+}
+
+func negate(v value.Value) value.Value {
+	if v.IsInt() {
+		return value.NewInt(-v.Int())
+	}
+
+	return value.NewNumber(-v.Float())
 }
 
 func at(s string, i int) byte {

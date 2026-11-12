@@ -3,8 +3,8 @@ struct Point { x }
 let mut p = Point { x: 1 };
 
 try { p.push(1); } catch e { print(e.message); }
-// expect: Point has no field 'push'.
+// expect: Point has no method 'push'.
 try { object({x: 1}); } catch e { print(e.message); }
 // expect: object() expects a struct as argument 1, got object.
 try { p.len(); } catch e { print(e.message); }
-// expect: Point has no field 'len'.
+// expect: Point has no method 'len'.

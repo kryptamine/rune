@@ -117,7 +117,10 @@ type Shape struct {
 	Methods []Method
 	// Namespace marks a built-in namespace, whose members are called as ns.f().
 	Namespace bool
-	decls     []Field
+	// Kind, other than Nil, makes a built-in type such as string, which
+	// 'is' tests values of that kind against.
+	Kind  Kind
+	decls []Field
 }
 
 // Method is a method of an impl block or a built-in type; ID indexes the
@@ -127,6 +130,12 @@ type Method struct {
 	Name               string
 	ID                 int
 	Self, Mut, InPlace bool
+}
+
+// Has reports whether v is of the type s.
+func (s *Shape) Has(v Value) bool {
+	k := v.Kind()
+	return k == Struct && v.Shape() == s || s.Kind != Nil && k == s.Kind
 }
 
 // FindMethod returns the method of ms named name, or nil.

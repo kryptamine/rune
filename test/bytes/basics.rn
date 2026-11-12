@@ -22,7 +22,7 @@ print(bytes.from([1, 2, 255]));     // expect: b"\x01\x02\xff"
 print(bytes.from(b"z"));            // expect: b"z"
 print(bytes.alloc(3));              // expect: b"\x00\x00\x00"
 print(bytes.alloc(2, 65));          // expect: b"AA"
-print(b"hello".toString());         // expect: hello
+print(b"hello".text());         // expect: hello
 print(b"hi".toArray());             // expect: [104, 105]
 print(b"hello".slice(1, -1));       // expect: b"ell"
 print(b"hello".slice(3));    // expect: b"lo"
@@ -37,7 +37,7 @@ print(match b"x" { b"x" => "matched", _ => "no" }); // expect: matched
 fun fails(f) {
   try { f(); } catch e { print(type(e) + ": " + e.message); }
 }
-fails(() => b"\xff".toString());   // expect: ValueError: bytes.toString() got bytes that are not valid UTF-8.
+fails(() => b"\xff".text());   // expect: ValueError: bytes.text() got bytes that are not valid UTF-8.
 fails(() => bytes.from([256]));    // expect: ValueError: bytes.from() expects bytes from 0 to 255, got 256.
 fails(() => bytes.fromHex("zz"));  // expect: ValueError: bytes.fromHex() could not decode hex: encoding/hex: invalid byte: U+007A 'z'.
 fails(() => b"a"[5]);              // expect: IndexError: Index out of bounds: 5 of 1

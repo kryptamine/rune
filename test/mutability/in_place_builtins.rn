@@ -6,8 +6,8 @@ let o = { xs: [] };
 o.xs.push(1); // Error at 'o': Cannot mutate immutable variable 'o'.
 (o?.xs).push(1); // Error at 'o': Cannot mutate immutable variable 'o'.
 o.delete("xs"); // Error at 'o': Cannot mutate immutable variable 'o'.
-let m = Map([["a", 1]]);
-let s = Set([1]);
+let m = map([["a", 1]]);
+let s = set([1]);
 m.set("b", 2); // Error at 'm': Cannot mutate immutable variable 'm'.
 m.delete("a"); // Error at 'm': Cannot mutate immutable variable 'm'.
 m.clear(); // Error at 'm': Cannot mutate immutable variable 'm'.

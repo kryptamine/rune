@@ -1,4 +1,4 @@
-struct Bag { xs = [], o = { a: [1] }, m = Map(), s = Set(), n = -1 }
+struct Bag { xs = [], o = { a: [1] }, m = map(), s = set(), n = -1 }
 
 let mut a = Bag {};
 let b = Bag {};
@@ -6,11 +6,11 @@ a.xs.push(1);
 a.o.a.push(2);
 a.m.set("k", 1);
 a.s.add(3);
-print(a); // expect: Bag {xs: [1], o: {a: [1, 2]}, m: Map {"k": 1}, s: Set {3}, n: -1}
-print(b); // expect: Bag {xs: [], o: {a: [1]}, m: Map {}, s: Set {}, n: -1}
+print(a); // expect: Bag {xs: [1], o: {a: [1, 2]}, m: map {"k": 1}, s: set {3}, n: -1}
+print(b); // expect: Bag {xs: [], o: {a: [1]}, m: map {}, s: set {}, n: -1}
 
 let c = Bag({ n: 2 });
-print(c); // expect: Bag {xs: [], o: {a: [1]}, m: Map {}, s: Set {}, n: 2}
+print(c); // expect: Bag {xs: [], o: {a: [1]}, m: map {}, s: set {}, n: 2}
 
 fun make() { return Bag {}; }
 let mut d = make();

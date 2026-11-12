@@ -1,33 +1,33 @@
 # Map and Set
 
-A `Map` holds values by key, a `Set` unique values. Unlike an object, whose
+A map holds values by key, a set unique values. Unlike an object, whose
 keys are strings, their keys may be any hashable value, and both keep keys
 in the order they were first added.
 
 ```rune
-let mut stock = Map();
+let mut stock = map();
 stock["apple"] = 3;
 stock["pear"] = 0;
 print(stock["apple"]);   // 3
-print(stock);            // Map {"apple": 3, "pear": 0}
+print(stock);            // map {"apple": 3, "pear": 0}
 
-let mut visitors = Set();
+let mut visitors = set();
 visitors.add("ann");
 visitors.add("bob");
 visitors.add("ann");
-print(visitors);         // Set {"ann", "bob"}
-print(visitors.len());    // 2
+print(visitors);         // set {"ann", "bob"}
+print(visitors.len());   // 2
 ```
 
 ## Making one
 
-`Map()` makes an empty map and `Map(src)` one from an object, another map
-or an array of `[key, value]` pairs; `Set()` and `Set(array)` likewise.
+`map()` makes an empty map and `map(src)` one from an object, another map
+or an array of `[key, value]` pairs; `set()` and `set(array)` likewise.
 
 ```rune
-print(Map({ host: "localhost", port: 8080 }));  // Map {"host": "localhost", "port": 8080}
-print(Map([[200, "OK"], [404, "Not Found"]]));  // Map {200: "OK", 404: "Not Found"}
-print(Set(["a", "b", "a"]));                    // Set {"a", "b"}
+print(map({ host: "localhost", port: 8080 }));  // map {"host": "localhost", "port": 8080}
+print(map([[200, "OK"], [404, "Not Found"]]));  // map {200: "OK", 404: "Not Found"}
+print(set(["a", "b", "a"]));                    // set {"a", "b"}
 ```
 
 ## Keys
@@ -40,7 +40,7 @@ natural composite key:
 ```rune
 struct Pos { x, y }
 
-let mut grid = Map();
+let mut grid = map();
 grid[Pos { x: 0, y: 1 }] = "wall";
 print(grid[Pos { x: 0, y: 1 }]);                // wall
 print(grid.get(Pos { x: 9, y: 9 }, "floor"));   // floor
@@ -49,7 +49,7 @@ print(grid.get(Pos { x: 9, y: 9 }, "floor"));   // floor
 An array, object, map or set is not hashable, as it can change:
 
 ```rune
-let mut seen = Map();
+let mut seen = map();
 seen[[1, 2]] = true; // TypeError: Cannot use an array as a key.
 ```
 
@@ -60,18 +60,21 @@ instead. `m[k] = v` sets one, like an array element, so `m` must be
 mutable.
 
 ```rune
-let mut prices = Map({ apple: 1.5 });
+let mut prices = map({ apple: 1.5 });
 print(prices?.["kiwi"]); // nil
 print(prices["kiwi"]);   // KeyError: Key not found: "kiwi".
 ```
 
-Map methods: `get(k[, default])`, `set(k, v)` (returns the map, so calls
-chain), `has(k)`, `delete(k)` (whether it was there), `clear()`, and
-`keys()`, `values()`, `entries()`, new arrays.
+Map methods: `get(k[, default])`, `set(k, v)`, `has(k)`, `delete(k)`
+(whether it was there), `clear()`, and `keys()`, `values()`, `entries()`,
+new arrays. Like an array's in-place methods, `set` and `clear` return
+`nil`.
 
 ```rune
-let mut stock = Map();
-stock.set("apple", 3).set("pear", 0).set("plum", 7);
+let mut stock = map();
+stock.set("apple", 3);
+stock.set("pear", 0);
+stock.set("plum", 7);
 
 print(stock.get("kiwi"));     // nil
 print(stock.get("kiwi", 0));  // 0
@@ -83,17 +86,19 @@ print(stock.values());        // [3, 7]
 print(stock.entries());       // [["apple", 3], ["plum", 7]]
 ```
 
-A set has `add(x)` (returns the set), `has`, `delete`, `clear`, `values()`,
-and `union(s)`, `intersection(s)`, `difference(s)`, new sets.
+A set has `add(x)`, `contains(x)`, `delete`, `clear`, `values()`, and
+`union(s)`, `intersection(s)`, `difference(s)`, new sets. As everywhere,
+`has` tests a key (of an object or a map) and `contains` a value (of an
+array, a string or a set).
 
 ```rune
-let backend = Set(["ann", "bob", "eve"]);
-let frontend = Set(["bob", "kim"]);
+let backend = set(["ann", "bob", "eve"]);
+let frontend = set(["bob", "kim"]);
 
-print(backend.has("eve"));               // true
-print(backend.union(frontend));          // Set {"ann", "bob", "eve", "kim"}
-print(backend.intersection(frontend));   // Set {"bob"}
-print(backend.difference(frontend));     // Set {"ann", "eve"}
+print(backend.contains("eve"));          // true
+print(backend.union(frontend));          // set {"ann", "bob", "eve", "kim"}
+print(backend.intersection(frontend));   // set {"bob"}
+print(backend.difference(frontend));     // set {"ann", "eve"}
 ```
 
 ## Iterating
@@ -103,7 +108,7 @@ print(backend.difference(frontend));     // Set {"ann", "eve"}
 in insertion order.
 
 ```rune
-let stock = Map({ apple: 3, plum: 7 });
+let stock = map({ apple: 3, plum: 7 });
 for name, n in stock {
     print("{name}: {n}");
 }
@@ -115,18 +120,18 @@ A loop may set existing keys and delete them, but adding one is a
 `ValueError`; walk `m.keys()` to change it freely.
 
 ```rune
-let mut counts = Map({ a: 1 });
+let mut counts = map({ a: 1 });
 for k in counts {
-    counts[k + "!"] = 0; // ValueError: Cannot add to a Map while iterating over it.
+    counts[k + "!"] = 0; // ValueError: Cannot add to a map while iterating over it.
 }
 ```
 
 ```rune
-let mut counts = Map({ a: 1, b: 2 });
+let mut counts = map({ a: 1, b: 2 });
 for k in counts.keys() {
     counts[k + "!"] = 0;
 }
-print(counts); // Map {"a": 1, "b": 2, "a!": 0, "b!": 0}
+print(counts); // map {"a": 1, "b": 2, "a!": 0, "b!": 0}
 ```
 
 ## Equality and conversion
@@ -136,10 +141,10 @@ print(counts); // Map {"a": 1, "b": 2, "a!": 0, "b!": 0}
 object, in order. Both are references, like arrays.
 
 ```rune
-print(Map({ a: 1, b: 2 }) == Map({ b: 2, a: 1 })); // true
+print(map({ a: 1, b: 2 }) == map({ b: 2, a: 1 })); // true
 
-let ids = Set([3, 1, 2]);
+let ids = set([3, 1, 2]);
 print([...ids]);                      // [3, 1, 2]
 print(json.stringify(ids));           // [3,1,2]
-print(json.stringify(Map({ a: 1 }))); // {"a":1}
+print(json.stringify(map({ a: 1 }))); // {"a":1}
 ```
