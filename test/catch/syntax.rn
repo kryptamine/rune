@@ -1,1 +1,1 @@
-try {} catch (e: ) {} // [line: 1] Error at ')': Expect error type name.
+try {} catch e is  {} // [line: 1] Error at '{': Expect type name after 'is'.

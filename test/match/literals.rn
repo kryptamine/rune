@@ -11,14 +11,14 @@ fun name(v) {
     };
 }
 
-print name(nil);   // expect: nil
-print name(0);     // expect: bit
-print name(1);     // expect: bit
-print name(-1);    // expect: minus one
-print name(2.5);   // expect: two and a half
-print name("hi");  // expect: greeting
-print name(true);  // expect: yes
-print name(false); // expect: no
-print name("1");   // expect: other
-print name([]);    // expect: other
-print name(0 == 1); // expect: no
+print(name(nil));   // expect: nil
+print(name(0));     // expect: bit
+print(name(1));     // expect: bit
+print(name(-1));    // expect: minus one
+print(name(2.5));   // expect: two and a half
+print(name("hi"));  // expect: greeting
+print(name(true));  // expect: yes
+print(name(false)); // expect: no
+print(name("1"));   // expect: other
+print(name([]));    // expect: other
+print(name(0 == 1)); // expect: no

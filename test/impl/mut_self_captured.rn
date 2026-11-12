@@ -9,6 +9,6 @@ impl Counter {
 }
 
 let mut c = Counter {};
-print c.incr(); // expect: 1
-print c.incr(); // expect: 2
-print c.n; // expect: 2
+print(c.incr()); // expect: 1
+print(c.incr()); // expect: 2
+print(c.n); // expect: 2

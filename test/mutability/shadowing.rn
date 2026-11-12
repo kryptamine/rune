@@ -2,13 +2,13 @@ let a = 1;
 {
   let mut a = 2;
   a = 3;
-  print a; // expect: 3
+  print(a); // expect: 3
 }
 let mut b = 1;
 {
   let b = 2;
-  print b; // expect: 2
+  print(b); // expect: 2
 }
 b = 3;
-print b; // expect: 3
-print a; // expect: 1
+print(b); // expect: 3
+print(a); // expect: 1

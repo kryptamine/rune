@@ -91,16 +91,18 @@ func (p *Interpreter) methodValue(tok *ast.Token, t value.Value, m *value.Method
 	return value.NewFunction(&BoundMethod{recv: t, fn: (*Closure)(p.methods[m.ID].Ptr())}), nil
 }
 
-// invoke calls t.K[C](args) for the receiver t at R[A+1]: a function in
-// its own field or property, or off a struct type, without t; a method
-// with it.
+// invoke calls the method t.K[C](args) for the receiver t at R[A+1]:
+// off a struct type without t, else with it. A function in a field or
+// property is called as (t.k)(args).
 func (p *Interpreter) invoke(fr *frame, in Instr, tok *ast.Token) error {
 	at, n := fr.base+in.a(), in.b()
 	t, key := p.stack[at+1], fr.cl.proto.consts[in.c()]
 
-	if v, ok := own(tok, t, key); ok {
-		p.stack[at] = v
-		return p.callWithout(at, n, tok)
+	if t.Kind() == value.Struct && t.Shape().Namespace {
+		if v, ok := own(tok, t, key); ok {
+			p.stack[at] = v
+			return p.callWithout(at, n, tok)
+		}
 	}
 
 	ms, owner := p.methodsOf(t)
@@ -108,6 +110,10 @@ func (p *Interpreter) invoke(fr *frame, in Instr, tok *ast.Token) error {
 	m := value.FindMethod(ms, key.Str())
 	switch {
 	case m == nil:
+		if _, ok := own(tok, t, key); ok {
+			return notMethod(tok, t, owner, key.Str())
+		}
+
 		return missingMember(tok, t, key.Str())
 	case t.Kind() == value.Type:
 		p.stack[at] = p.methods[m.ID]
@@ -159,6 +165,14 @@ func missingMember(tok *ast.Token, t value.Value, name string) error {
 	}
 
 	return propertyError("read", tok, t)
+}
+
+// notMethod is the error of t.name(args) for a function in a field or property.
+func notMethod(tok *ast.Token, t value.Value, owner, name string) error {
+	holder := helpers.If(t.Kind() == value.Struct, "field", "property")
+
+	return errors.NewRuntimeError(errors.TypeError, *tok, fmt.Sprintf(
+		"%s has no method '%s'; call the function in its %s as (x.%s)().", owner, name, holder, name))
 }
 
 func staticMethod(tok *ast.Token, owner, name string) error {

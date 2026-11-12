@@ -2,4 +2,4 @@ struct Box { items }
 
 let mut b = Box { items: [1] };
 b.items.push(2);
-print b; // expect: Box {items: [1, 2]}
+print(b); // expect: Box {items: [1, 2]}

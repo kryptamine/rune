@@ -4,6 +4,6 @@ fun counter() {
   return inc;
 }
 let c = counter();
-print c();
+print(c());
 let add = fun (a, b) { return a + b; };
-print add(1, 2);
+print(add(1, 2));

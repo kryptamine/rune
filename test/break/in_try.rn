@@ -1,11 +1,11 @@
 for i in 0..5 {
   try {
     if i == 2 { break; }
-    print i;
+    print(i);
   } catch {
-    print "caught";
+    print("caught");
   }
 }
 // expect: 0
 // expect: 1
-print "after"; // expect: after
+print("after"); // expect: after

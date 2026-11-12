@@ -12,8 +12,8 @@ variables of the same name:
 let user = { name: "ann", age: 31 };
 let { name, age } = user;
 
-print name; // ann
-print age;  // 31
+print(name); // ann
+print(age);  // 31
 ```
 
 `key: name` binds under another name; a string key needs one. `mut x` and
@@ -25,9 +25,9 @@ let user = { name: "ann", age: 31, "full name": "Ann Lee" };
 let { name: login, "full name": fullName, age: mut years } = user;
 years += 1;
 
-print login;    // ann
-print fullName; // Ann Lee
-print years;    // 32
+print(login);    // ann
+print(fullName); // Ann Lee
+print(years);    // 32
 ```
 
 In a parameter, a pattern takes the fields it needs, from an object or a
@@ -40,8 +40,8 @@ fun length({ x, y }) {
     return x * x + y * y;
 }
 
-print length(Point { x: 3, y: 4 }); // 25
-print length({ x: 1, y: 1 });       // 2
+print(length(Point { x: 3, y: 4 })); // 25
+print(length({ x: 1, y: 1 }));       // 2
 ```
 
 In `for`-`in` the pattern takes the value, not the key:
@@ -50,7 +50,7 @@ In `for`-`in` the pattern takes the value, not the key:
 let pages = { "/home": { hits: 10 }, "/about": { hits: 3 } };
 
 for path, { hits } in pages {
-    print "{path}: {hits}";
+    print("{path}: {hits}");
 }
 // /about: 3
 // /home: 10
@@ -71,23 +71,23 @@ than the pattern.
 ```rune
 let [first, _, third, ...rest] = ["mon", "tue", "wed", "thu", "fri"];
 
-print first; // mon
-print third; // wed
-print rest;  // ["thu", "fri"]
+print(first); // mon
+print(third); // wed
+print(rest);  // ["thu", "fri"]
 ```
 
 It shines in parameters, for pairs and tuples:
 
 ```rune
 let env = { HOME: "/home/ann", PORT: "8080" };
-print env.entries().map(([k, v]) => k + "=" + v); // ["HOME=/home/ann", "PORT=8080"]
+print(env.entries().map(([k, v]) => k + "=" + v)); // ["HOME=/home/ann", "PORT=8080"]
 
 fun swap([a, b]) { return [b, a]; }
-print swap([1, 2]); // [2, 1]
+print(swap([1, 2])); // [2, 1]
 
 let mut [lo, hi] = [1, 9];
 lo = 2;
-print [lo, hi]; // [2, 9]
+print([lo, hi]); // [2, 9]
 ```
 
 A shorter array is an `IndexError`, anything but an array a `TypeError`:
@@ -110,22 +110,22 @@ evaluated only then, and may use the variables before it.
 let opts = { title: "Blog", root: nil };
 let { title, theme = "light", root = ".", depth = root == "." ? 0 : 1 } = opts;
 
-print title; // Blog
-print theme; // light
-print root;  // nil
-print depth; // 1
+print(title); // Blog
+print(theme); // light
+print(root);  // nil
+print(depth); // 1
 ```
 
 ```rune
 let [src = "content", out = "site"] = ["posts"];
 
-print src; // posts
-print out; // site
+print(src); // posts
+print(out); // site
 
 fun page({ title, root = "." }) { return "{title} at {root}"; }
 
-print page({ title: "Home" });                // Home at .
-print page({ title: "Docs", root: "/docs" }); // Docs at /docs
+print(page({ title: "Home" }));                // Home at .
+print(page({ title: "Docs", root: "/docs" })); // Docs at /docs
 ```
 
 In an array pattern every element after one with a default needs one too;

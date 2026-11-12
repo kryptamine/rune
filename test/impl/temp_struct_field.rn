@@ -6,5 +6,5 @@ impl C {
 struct R { c }
 fun mk() { return R { c: C { n: 7 } }; }
 
-print mk().c.get(); // expect: 7
-mk().c.incr(); // expect runtime error: [line: 10] TypeError: Cannot set field 'c' of R: only a mut self method can set the fields of self.
+print(mk().c.get()); // expect: 7
+mk().c.incr(); // expect runtime error: [line: 10] TypeError: Cannot set field 'c' of R: it is not in a variable, element or property.

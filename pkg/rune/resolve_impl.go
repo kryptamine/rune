@@ -2,6 +2,7 @@ package rune
 
 import (
 	"rune/pkg/ast"
+	"rune/pkg/helpers"
 	"rune/pkg/stdlib"
 	"rune/pkg/value"
 )
@@ -54,8 +55,7 @@ func (p *Resolver) declareImpl(stmt *ast.ImplStmt) {
 	for i := range stmt.Methods {
 		fn := stmt.Methods[i].Fn
 		m := value.Method{Name: p.intern(fn.Name.Lexeme), ID: p.nmethods}
-		m.Self = len(fn.Parameters) > 0 && fn.Parameters[0].Name.Lexeme == "self"
-		m.Mut = m.Self && fn.Parameters[0].Mutable
+		m.Self, m.Mut = selfParam(fn)
 
 		for i, param := range fn.Parameters {
 			if param.Name.Lexeme == "self" && i > 0 {
@@ -123,4 +123,39 @@ func (p *Resolver) writable(recv ast.Expr) bool {
 	}
 
 	return false
+}
+
+// selfParam reports whether fn takes self first, and whether mut self.
+func selfParam(fn *ast.FunctionStmt) (self, mut bool) {
+	self = len(fn.Parameters) > 0 && fn.Parameters[0].Name.Lexeme == "self"
+
+	return self, self && fn.Parameters[0].Mutable
+}
+
+// mutators returns the names of the in-place built-in methods and the
+// mut self methods of the program, but those another method shares, so
+// that a call of one through an immutable variable is a compile error.
+func mutators(files []*fileAST) map[string]bool {
+	mut, other := map[string]bool{}, map[string]bool{}
+
+	for _, m := range stdlib.Methods {
+		helpers.If(m.InPlace, mut, other)[m.Name] = true
+	}
+
+	for _, f := range files {
+		for _, stmt := range f.stmts {
+			if impl, ok := stmt.(*ast.ImplStmt); ok {
+				for _, m := range impl.Methods {
+					_, isMut := selfParam(m.Fn)
+					helpers.If(isMut, mut, other)[m.Fn.Name.Lexeme] = true
+				}
+			}
+		}
+	}
+
+	for name := range other {
+		delete(mut, name)
+	}
+
+	return mut
 }

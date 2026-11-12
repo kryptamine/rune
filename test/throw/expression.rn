@@ -4,21 +4,21 @@ fun get(o, k) {
     return o?.[k] ?? throw E { message: "no {k}" };
 }
 
-print get({ a: 1 }, "a"); // expect: 1
+print(get({ a: 1 }, "a")); // expect: 1
 
 try {
     get({}, "b");
-} catch (e: E) {
-    print e.message; // expect: no b
+} catch e is E {
+    print(e.message); // expect: no b
 }
 
 fun sign(n) {
     return n > 0 ? 1 : n < 0 ? -1 : throw E { message: "zero" };
 }
 
-print sign(-3); // expect: -1
+print(sign(-3)); // expect: -1
 
-try { sign(0); } catch (e) { print e.message; } // expect: zero
+try { sign(0); } catch e { print(e.message); } // expect: zero
 
 fun kind(v) {
     return match v {
@@ -28,9 +28,9 @@ fun kind(v) {
     };
 }
 
-print kind(0); // expect: zero
-try { kind(1); } catch (e) { print e.message; } // expect: one
-try { kind(2); } catch (e) { print e.message; } // expect: many
+print(kind(0)); // expect: zero
+try { kind(1); } catch e { print(e.message); } // expect: one
+try { kind(2); } catch e { print(e.message); } // expect: many
 
 match 5 {
     5 => throw E { message: "stmt" };

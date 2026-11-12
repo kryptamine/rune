@@ -4,4 +4,4 @@ fun counter() {
 }
 let c = counter();
 c();
-print c(); // expect: 2
+print(c()); // expect: 2

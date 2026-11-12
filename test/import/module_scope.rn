@@ -1,4 +1,4 @@
 import _lib.uses_greet;
 
-print uses_greet.welcome(); // expect: hi all
-print g; // expect runtime error: [line: 4] NameError: Undefined variable 'g'.
+print(uses_greet.welcome()); // expect: hi all
+print(g); // expect runtime error: [line: 4] NameError: Undefined variable 'g'.

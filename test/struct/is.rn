@@ -2,22 +2,22 @@ struct Point { x, y = 0 }
 struct Line { a, b }
 
 let p = Point { x: 1 };
-print p is Point; // expect: true
-print p is Line; // expect: false
-print {x: 1, y: 0} is Point; // expect: false
-print nil is Point; // expect: false
-print Point is Point; // expect: false
-print p is Point == true; // expect: true
-print !(p is Line); // expect: true
-print p is Point and p.x == 1; // expect: true
+print(p is Point); // expect: true
+print(p is Line); // expect: false
+print({x: 1, y: 0} is Point); // expect: false
+print(nil is Point); // expect: false
+print(Point is Point); // expect: false
+print(p is Point == true); // expect: true
+print(!(p is Line)); // expect: true
+print(p is Point && p.x == 1); // expect: true
 
 let T = Point;
-print p is T; // expect: true
+print(p is T); // expect: true
 
 fun area(s) {
   if s is Point { return "point"; }
   return "other";
 }
 
-print area(p); // expect: point
-print area(Line { a: p, b: p }); // expect: other
+print(area(p)); // expect: point
+print(area(Line { a: p, b: p })); // expect: other

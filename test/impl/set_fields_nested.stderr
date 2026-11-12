@@ -1,3 +1,0 @@
-[line: 19] TypeError: Cannot set field 'to' of Line: only a mut self method can set the fields of self.
-   19 | l.to.shift(1);
-      |   ^

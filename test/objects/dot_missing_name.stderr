@@ -1,3 +1,3 @@
-[line: 2] Error at ';': Expect property name after '.'.
-    2 | print obj.; // [line: 2] Error at ';': Expect property name after '.'.
+[line: 2] Error at ')': Expect property name after '.'.
+    2 | print(obj.); // [line: 2] Error at ')': Expect property name after '.'.
       |           ^

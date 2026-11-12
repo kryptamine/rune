@@ -2,6 +2,6 @@ fun rec() { rec(); }
 
 try {
   rec(); // expect runtime error: [line: 1] Stack overflow.
-} catch (err) {
-  print "unreachable";
+} catch err {
+  print("unreachable");
 }

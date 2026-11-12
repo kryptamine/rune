@@ -13,9 +13,9 @@ fs.mkdir(fs.dir(notes));
 fs.write(notes, "buy milk\nwrite docs\n");
 fs.append(notes, "ship v1\n");
 
-print fs.lines(notes);          // ["buy milk", "write docs", "ship v1"]
-print len(fs.read(notes));      // 28
-print fs.readBytes(notes).slice(0, 3); // b"buy"
+print(fs.lines(notes));          // ["buy milk", "write docs", "ship v1"]
+print(len(fs.read(notes)));      // 28
+print(fs.readBytes(notes).slice(0, 3)); // b"buy"
 fs.removeAll(dir);
 ```
 
@@ -29,7 +29,7 @@ fs.removeAll(dir);
 let path = fs.join(fs.tempDir(), "settings.json");
 fs.write(path, json.stringify({ theme: "dark", fontSize: 14 }));
 let settings = json.parse(fs.read(path));
-print settings.theme;   // dark
+print(settings.theme);   // dark
 fs.removeAll(fs.dir(path));
 ```
 
@@ -48,19 +48,19 @@ fs.rename(fs.join(dir, "draft.md"), fs.join(dir, "post.md"));
 fs.mkdir(fs.join(dir, "images"));
 
 for f in fs.list(dir) {
-    print "{f.name} {f.isDir ? "dir" : f.size}";
+    print("{f.name} {f.isDir ? "dir" : f.size}");
 }
 // backup.md 8
 // images dir
 // post.md 8
 
 let info = fs.stat(fs.join(dir, "post.md"));
-print "%o".format(info.mode);              // 644
-print fs.exists(fs.join(dir, "draft.md")); // false
+print("%o".format(info.mode));              // 644
+print(fs.exists(fs.join(dir, "draft.md"))); // false
 
 fs.remove(fs.join(dir, "backup.md"));
 fs.removeAll(dir);
-print fs.exists(dir);                      // false
+print(fs.exists(dir));                      // false
 ```
 
 ## Paths
@@ -70,13 +70,13 @@ without its extension.
 
 ```rune
 let p = "content/posts/hello.md";
-print fs.join("content", "posts", "hello.md"); // content/posts/hello.md
-print fs.base(p);   // hello.md
-print fs.dir(p);    // content/posts
-print fs.ext(p);    // .md
-print fs.stem(p);   // hello
-print fs.join("site", fs.stem(p) + ".html");   // site/hello.html
-print fs.join("a", "../b", "./c");             // b/c
+print(fs.join("content", "posts", "hello.md")); // content/posts/hello.md
+print(fs.base(p));   // hello.md
+print(fs.dir(p));    // content/posts
+print(fs.ext(p));    // .md
+print(fs.stem(p));   // hello
+print(fs.join("site", fs.stem(p) + ".html"));   // site/hello.html
+print(fs.join("a", "../b", "./c"));             // b/c
 ```
 
 ## Errors
@@ -88,10 +88,10 @@ else.
 ```rune
 try {
     fs.read("missing.txt");
-} catch (e: IOError) {
-    print e.code;     // notFound
-    print e.path;     // missing.txt
-    print e.message;  // fs.read() missing.txt: no such file or directory.
+} catch e is IOError {
+    print(e.code);     // notFound
+    print(e.path);     // missing.txt
+    print(e.message);  // fs.read() missing.txt: no such file or directory.
 }
 ```
 
@@ -101,11 +101,11 @@ A missing file is often not an error:
 fun loadTodos(path) {
     try {
         return fs.lines(path);
-    } catch (e: IOError) {
+    } catch e is IOError {
         if e.code != "notFound" throw e;
         return [];
     }
 }
 
-print loadTodos("todo.txt");   // []
+print(loadTodos("todo.txt"));   // []
 ```

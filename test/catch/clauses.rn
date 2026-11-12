@@ -4,7 +4,7 @@ struct ParseError { message, pos, cause = nil }
 fun parse(s) {
   try {
     return math.floor(s);
-  } catch (e: TypeError, ValueError) {
+  } catch e is TypeError | ValueError {
     throw ParseError { message: "bad number", pos: 0, cause: e };
   }
 }
@@ -12,12 +12,12 @@ fun parse(s) {
 fun run(f) {
   try {
     f();
-  } catch (e: ParseError) {
-    print "parse: " + e.message + " <- " + type(e.cause);
-  } catch (e: IndexError, KeyError) {
-    print "lookup: " + e.message;
-  } catch (e) {
-    print "other: " + type(e);
+  } catch e is ParseError {
+    print("parse: " + e.message + " <- " + type(e.cause));
+  } catch e is IndexError | KeyError {
+    print("lookup: " + e.message);
+  } catch e {
+    print("other: " + type(e));
   }
 }
 
@@ -29,31 +29,31 @@ run(fun () { throw Note { text: "boom" }; }); // expect: other: Note
 try {
   try {
     [][0];
-  } catch (e: TypeError) {
-    print "unreachable";
+  } catch e is TypeError {
+    print("unreachable");
   }
-} catch (e: IndexError) {
-  print "outer: " + e.message; // expect: outer: Index out of bounds: 0 of 0
+} catch e is IndexError {
+  print("outer: " + e.message); // expect: outer: Index out of bounds: 0 of 0
 }
 
 try {
   throw ValueError { message: "1" };
-} catch (e: TypeError) {
-  print "unreachable";
+} catch e is TypeError {
+  print("unreachable");
 } catch {
-  print "catch-all"; // expect: catch-all
+  print("catch-all"); // expect: catch-all
 }
 
 let mut fs = [];
 for i in 0..2 {
   try {
     [][i];
-  } catch (e: IndexError) {
+  } catch e is IndexError {
     fs.push(fun () { return e.message; });
   }
 }
-print fs[0](); // expect: Index out of bounds: 0 of 0
-print fs[1](); // expect: Index out of bounds: 1 of 0
+print(fs[0]()); // expect: Index out of bounds: 0 of 0
+print(fs[1]()); // expect: Index out of bounds: 1 of 0
 
 let mut seen = [];
 for i in 0..4 {
@@ -61,20 +61,20 @@ for i in 0..4 {
     if i == 1 { [][0]; }
     if i == 3 { throw ValueError { message: "stop" }; }
     seen.push(i);
-  } catch (e: IndexError) {
+  } catch e is IndexError {
     continue;
-  } catch (e) {
+  } catch e {
     break;
   }
 }
-print seen; // expect: [0, 2]
+print(seen); // expect: [0, 2]
 
 fun first(xs) {
   try {
     return xs[0];
-  } catch (e: IndexError) {
+  } catch e is IndexError {
     return "empty";
   }
 }
-print first([7]); // expect: 7
-print first([]); // expect: empty
+print(first([7])); // expect: 7
+print(first([])); // expect: empty

@@ -1,2 +1,2 @@
 let o = {};
-print { a: 1, ...o, a: 2 }; // Error at 'a': Duplicate property name.
+print({ a: 1, ...o, a: 2 }); // Error at 'a': Duplicate property name.

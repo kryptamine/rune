@@ -29,10 +29,8 @@ type funcState struct {
 	// has passed, so reading them needs no check.
 	defined map[*ast.Local]bool
 	unit    *unit
-	// mutSelf is the mut self of a method, the only struct whose fields
-	// can be set; selfCell is set when a closure captures it, so returns
-	// put it back into register 0 for the caller.
-	mutSelf  *ast.Local
+	// selfCell is set when a closure captures a method's mut self, so
+	// returns put it back into register 0 for the caller.
 	selfCell bool
 }
 
@@ -283,7 +281,6 @@ func (fs *funcState) functionNamed(decl *ast.FunctionStmt, name string, mutSelf 
 		}
 	}
 
-	f.mutSelf = mutSelf
 	f.selfCell = mutSelf != nil && mutSelf.Captured
 
 	f.stmts(decl.Body)
@@ -294,18 +291,6 @@ func (fs *funcState) functionNamed(decl *ast.FunctionStmt, name string, mutSelf 
 	fs.proto.protos = append(fs.proto.protos, f.proto)
 
 	return int32(len(fs.proto.protos) - 1)
-}
-
-// isMutSelf reports whether l is the mut self of this method or one
-// enclosing it.
-func (fs *funcState) isMutSelf(l *ast.Local) bool {
-	for f := fs; f != nil; f = f.parent {
-		if f.mutSelf == l {
-			return true
-		}
-	}
-
-	return false
 }
 
 // returnSelf puts a captured mut self back into register 0 before a return.

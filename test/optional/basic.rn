@@ -1,8 +1,8 @@
 let o = { a: { b: 1 }, n: nil, f: x => x * 2, xs: [10, 20] };
 
-print o?.a?.b; // expect: 1
-print o.n?.b; // expect: nil
-print o.f?.(3); // expect: 6
-print o.xs?.[1]; // expect: 20
-print o.n?.[0]; // expect: nil
-print o.n?.(1); // expect: nil
+print(o?.a?.b); // expect: 1
+print(o.n?.b); // expect: nil
+print(o.f?.(3)); // expect: 6
+print(o.xs?.[1]); // expect: 20
+print(o.n?.[0]); // expect: nil
+print(o.n?.(1)); // expect: nil

@@ -22,7 +22,7 @@ func undefinedField(token *ast.Token, shape *value.Shape, key string) error {
 
 func readOnlyField(token *ast.Token, shape *value.Shape, key string) error {
 	return errors.NewRuntimeError(errors.TypeError, *token, fmt.Sprintf(
-		"Cannot set field '%s' of %s: only a mut self method can set the fields of self.", key, shape.Name))
+		"Cannot set field '%s' of %s: it is not in a variable, element or property.", key, shape.Name))
 }
 
 // setField copies the struct target with the field key names set to v.
@@ -187,14 +187,19 @@ func setIndex(token *ast.Token, target, index, v value.Value) error {
 }
 
 // elementIndex checks that v is an integer and reports whether it is in
-// bounds of the array or string target.
+// bounds of the array, string or bytes target; a negative one counts from
+// the end.
 func elementIndex(token *ast.Token, target, v value.Value) (int, bool, error) {
 	if !v.IsInt() {
 		return 0, false, notInteger(token, target)
 	}
 
-	i := v.Int()
-	if i < 0 || i >= int64(length(target)) {
+	i, n := v.Int(), int64(length(target))
+	if i < 0 {
+		i += n
+	}
+
+	if i < 0 || i >= n {
 		return 0, false, nil
 	}
 

@@ -1,4 +1,4 @@
 struct Point { x, y }
 
 let p = Point { x: 1, y: 2 };
-print p.z; // expect runtime error: [line: 4] KeyError: Point has no field 'z'.
+print(p.z); // expect runtime error: [line: 4] KeyError: Point has no field 'z'.

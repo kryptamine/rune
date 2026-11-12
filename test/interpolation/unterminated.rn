@@ -1,2 +1,2 @@
 // [line: 2] Error: Unterminated string.
-print "a {x
+print("a {x)

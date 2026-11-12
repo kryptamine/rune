@@ -25,8 +25,6 @@ func (fs *funcState) stmt(stmt ast.Stmt) {
 	switch s := stmt.(type) {
 	case *ast.ExprStmt:
 		fs.exprStmt(s.Expr)
-	case *ast.PrintStmt:
-		fs.emit(ins{op: opPrint, a: fs.exprAny(s.Expr)}, nil)
 	case *ast.VarStmt:
 		fs.varStmt(s)
 	case *ast.DestructureStmt:
@@ -388,12 +386,10 @@ func (fs *funcState) tryStmt(s *ast.TryStmt) {
 				break
 			}
 
-			hits := fs.isAny(r, c.Types)
-			miss := fs.emit(ins{op: opJmp}, nil)
-			fs.patch(hits)
+			miss := fs.isOneOf(r, c.Shapes)
 			fs.scoped(func() { fs.catchBody(c, r) })
 			ends = append(ends, fs.emit(ins{op: opJmp}, nil))
-			fs.patch([]int{miss})
+			fs.patch(miss)
 		}
 
 		if rethrows {
@@ -402,20 +398,6 @@ func (fs *funcState) tryStmt(s *ast.TryStmt) {
 	})
 
 	fs.patch(ends)
-}
-
-// isAny emits a jump, for each of types, taken if R[r] is of it.
-func (fs *funcState) isAny(r int32, types []*ast.VarExpr) []int {
-	hits := make([]int, len(types))
-
-	for i, t := range types {
-		tmp := fs.alloc()
-		fs.emit(ins{op: opIs, a: tmp, b: r, c: fs.exprAny(t)}, &t.Name)
-		hits[i] = fs.emit(ins{op: opJmpIf, a: tmp, y: 1}, nil)
-		fs.free = fs.nactive
-	}
-
-	return hits
 }
 
 // catchBody compiles c with the caught value in register r.

@@ -2,6 +2,6 @@ import _lib.math;
 
 math.log.push("a");
 math.log[0] = "b";
-print math.log; // expect: ["b"]
+print(math.log); // expect: ["b"]
 math.call();
-print math.calls; // expect: 1
+print(math.calls); // expect: 1

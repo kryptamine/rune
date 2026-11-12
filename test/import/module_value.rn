@@ -1,1 +1,1 @@
-print module.name; // Error at 'name': module has no member 'name'.
+print(module.name); // Error at 'name': module has no member 'name'.

@@ -1,4 +1,16 @@
 struct Point { x, y }
 
 let mut p = Point { x: 1, y: 2 };
-p.x = 3; // expect runtime error: [line: 4] TypeError: Cannot set field 'x' of Point: only a mut self method can set the fields of self.
+let before = p;
+p.x = 3;
+print(p);      // expect: Point {x: 3, y: 2}
+print(before); // expect: Point {x: 1, y: 2}
+
+fun moveRight() { p.x += 10; }
+moveRight();
+print(p.x); // expect: 13
+
+let mut q = Point { x: 0, y: 0 };
+let shift = () => { q.y = 5; };
+shift();
+print(q); // expect: Point {x: 0, y: 5}

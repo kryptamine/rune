@@ -1,5 +1,5 @@
 try {
-  print "ok"; // expect: ok
-} catch (err) {
-  print "unreachable";
+  print("ok"); // expect: ok
+} catch err {
+  print("unreachable");
 }

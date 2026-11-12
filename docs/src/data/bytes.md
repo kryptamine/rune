@@ -8,18 +8,18 @@ an array of integers from 0 to 255, or bytes. `b[i]` is the integer byte,
 
 ```rune
 let header = b"\x89PNG";
-print header;           // b"\x89PNG"
-print header[0];        // 137
-print len(header);      // 4
-print header.hex();     // 89504e47
+print(header);           // b"\x89PNG"
+print(header[0]);        // 137
+print(len(header));      // 4
+print(header.hex());     // 89504e47
 
-print bytes.from("é");          // b"\xc3\xa9"
-print bytes.from([104, 105]);   // b"hi"
-print b"hi" + b"!";             // b"hi!"
-print b"hi" == bytes.from("hi"); // true
+print(bytes.from("é"));           // b"\xc3\xa9"
+print(bytes.from([104, 105]));    // b"hi"
+print(b"hi" + b"!");              // b"hi!"
+print(b"hi" == bytes.from("hi")); // true
 
 for i, x in b"hi" {
-    print "{i}: {x}";
+    print("{i}: {x}");
 }
 // 0: 104
 // 1: 105
@@ -38,10 +38,10 @@ buf[0] = 120; // TypeError: Bytes are immutable.
 `fromHex(s)` and `fromBase64(s)`:
 
 ```rune
-print bytes.alloc(3);             // b"\x00\x00\x00"
-print bytes.alloc(2, 255);        // b"\xff\xff"
-print bytes.fromHex("cafe");      // b"\xca\xfe"
-print bytes.fromBase64("aGk=");   // b"hi"
+print(bytes.alloc(3));             // b"\x00\x00\x00"
+print(bytes.alloc(2, 255));        // b"\xff\xff"
+print(bytes.fromHex("cafe"));      // b"\xca\xfe"
+print(bytes.fromBase64("aGk="));   // b"hi"
 ```
 
 ## Methods
@@ -52,14 +52,14 @@ print bytes.fromBase64("aGk=");   // b"hi"
 
 ```rune
 let data = b"hello";
-print data.toString();           // hello
-print data.toArray();            // [104, 101, 108, 108, 111]
-print data.slice(1, 3);          // b"el"
-print data.indexOf(b"ll");       // 2
-print data.concat(b", ", b"world"); // b"hello, world"
-print data.base64();             // aGVsbG8=
+print(data.toString());              // hello
+print(data.toArray());               // [104, 101, 108, 108, 111]
+print(data.slice(1, 3));             // b"el"
+print(data.indexOf(b"ll"));          // 2
+print(data.concat(b", ", b"world")); // b"hello, world"
+print(data.base64());                // aGVsbG8=
 ```
 
 ```rune
-print b"\xff".toString(); // ValueError: bytes.toString() got bytes that are not valid UTF-8.
+print(b"\xff".toString()); // ValueError: bytes.toString() got bytes that are not valid UTF-8.
 ```

@@ -31,16 +31,16 @@ func TestReport(t *testing.T) {
 	}{
 		{
 			"syntax error points at the token",
-			"let x = 1;\nprint x +;\n",
-			"[line: 2] Error at ';': Expect expression.\n" +
-				"    2 | print x +;\n" +
+			"let x = 1;\nprint(x +);\n",
+			"[line: 2] Error at ')': Expect expression.\n" +
+				"    2 | print(x +);\n" +
 				"      |          ^\n",
 		},
 		{
 			"caret column counts characters and keeps tabs",
-			"\tprint \"é\" + é;\n",
+			"\tprint(\"é\" + é);\n",
 			"[line: 1] Error: Unexpected character: é\n" +
-				"    1 | \tprint \"é\" + é;\n" +
+				"    1 | \tprint(\"é\" + é);\n" +
 				"      | \t            ^\n",
 		},
 		{
@@ -66,9 +66,9 @@ func TestReport(t *testing.T) {
 		},
 		{
 			"top-level error has no trace",
-			"print nope;\n",
+			"print(nope);\n",
 			"[line: 1] NameError: Undefined variable 'nope'.\n" +
-				"    1 | print nope;\n" +
+				"    1 | print(nope);\n" +
 				"      |       ^\n",
 		},
 	}

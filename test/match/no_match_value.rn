@@ -1,5 +1,5 @@
 try {
-    print match "x" { "y" => 1 };
-} catch (e: ValueError) {
-    print e.message; // expect: No match arm for "x".
+    print(match "x" { "y" => 1 });
+} catch e is ValueError {
+    print(e.message); // expect: No match arm for "x".
 }

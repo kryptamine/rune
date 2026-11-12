@@ -11,7 +11,7 @@ impl Point {
 
 let points = [Point { x: 3, y: 4 }, Point { x: 1 }];
 for i, p in points {
-    print "{i}: {p} has length {p.len()}";
+    print("{i}: {p} has length {p.len()}");
 }
 // 0: Point {x: 3, y: 4} has length 5
 // 1: Point {x: 1, y: 0} has length 1
@@ -50,7 +50,7 @@ for line in log.split("\n") {
     let k = kind(parse(line));
     counts[k] = counts.get(k, 0) + 1;
 }
-print counts;    // Map {"ok": 2, "slow": 1, "error": 1}
+print(counts);    // Map {"ok": 2, "slow": 1, "error": 1}
 ```
 
 New here? Start with [Getting Started](getting-started.md), then read the
@@ -76,14 +76,15 @@ Language chapters in order.
 - `bytes`: immutable binary data, with literals `b"\x00\xff"`
 - Streams: files and HTTP bodies read line by line or in chunks, `for line in fs.open(path)`
 - Object property access with `obj.name` as sugar for `obj["name"]`; shorthand `{ ip, hits }` for `{ ip: ip, hits: hits }`
-- Structs with required and default fields, read-only outside their `mut self` methods: `struct Point { x, y = 0 }`
-- Methods in `impl` blocks, on structs and built-in types: `p.len()`, `Point.origin()`, `fun move(mut self)`
+- Structs with required and default fields, values that copy on write: `struct Point { x, y = 0 }`, `p.x = 1`
+- Methods in `impl` blocks, on structs and built-in types: `p.len()`, `Point.origin()`, `fun move(mut self)`; a function in a property is called as `(o.f)()`
 - Destructuring of objects, structs and arrays, in `let`, parameters and `for`, with defaults: `let { x, y = 0 } = p;`, `let [head, ...tail] = xs;`
 - Nil-safe access and defaults: `resp?.data?.items ?? []`
 - Conditional expressions: `n > 0 ? "pos" : "neg"`
 - Spread and rest: `[...a, ...b]`, `{...o, x: 1}`, `Point { ...p, x: 1 }`, `f(...args)`, `fun log(level, ...parts)`
-- Strings compare with `<`, `<=`, `>`, `>=` and index by character: `"héllo"[1]` is `"é"`
+- Strings compare with `<`, `<=`, `>`, `>=` and index by character: `"héllo"[1]` is `"é"`; a negative index counts from the end: `xs[-1]`
 - Pattern matching with `match`, as an expression or a statement
+- Logical operators `&&`, `||` and `!`, type tests with `is`: `v is Point`, `catch e is KeyError`, `p is Point =>`
 - Error handling with `try`/`catch` and `throw`, also as an expression: `x ?? throw E { ... }`
 - Two loops only: `while` and `for x in ...` over arrays, strings, objects and ranges (`a..b`)
 - `break` and `continue` in both

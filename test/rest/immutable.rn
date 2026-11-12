@@ -1,5 +1,5 @@
 fun f(...xs) {
-  xs.push(1); // expect runtime error: [line: 2] TypeError: Cannot call in-place method 'push' of array: its receiver is in an immutable variable.
+  xs.push(1); // Error at 'xs': Cannot mutate immutable variable 'xs'.
 }
 
 f();

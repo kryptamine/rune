@@ -1,17 +1,17 @@
 try {
   http.get(123);
-} catch (err) {
-  print err.message; // expect: http.get() expects a string as argument 1, got number.
+} catch err {
+  print(err.message); // expect: http.get() expects a string as argument 1, got number.
 }
 
 try {
   json.parse("\{");
-} catch (e: ValueError) {
-  print e.message; // expect: json.parse() could not parse JSON: unexpected end of JSON input
+} catch e is ValueError {
+  print(e.message); // expect: json.parse() could not parse JSON: unexpected end of JSON input
 }
 
 try {
   len(nil);
-} catch (e) {
-  print e.message; // expect: len() expects a string, an array, an object, a struct, a Map, a Set or bytes as argument 1, got nil.
+} catch e {
+  print(e.message); // expect: len() expects a string, an array, an object, a struct, a Map, a Set or bytes as argument 1, got nil.
 }

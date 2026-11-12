@@ -2,5 +2,5 @@
     1 | import _lib.; // Error at ';': Expect module name.
       |             ^
 [line: 4] Error at 'print': Expect ';' after import.
-    4 | print 1;
+    4 | print(1);
       | ^

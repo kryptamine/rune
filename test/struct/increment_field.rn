@@ -1,4 +1,8 @@
 struct Point { x, y }
 
 let mut p = Point { x: 1, y: 2 };
-p.x++; // expect runtime error: [line: 4] TypeError: Cannot set field 'x' of Point: only a mut self method can set the fields of self.
+p.x++;
+p.y--;
+print(p); // expect: Point {x: 2, y: 1}
+print(p.x++); // expect: 2
+print(p.x); // expect: 3

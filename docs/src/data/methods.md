@@ -21,8 +21,8 @@ impl Money {
 
 let price = Money.of(12.5);
 let total = price.plus(Money.of(0.99));
-print total.format(); // 13.49 USD
-print price.format(); // 12.50 USD
+print(total.format()); // 13.49 USD
+print(price.format()); // 12.50 USD
 ```
 
 Impl blocks are top-level only, may come before the struct and there may be
@@ -39,9 +39,9 @@ Money.zero().zero(); // TypeError: 'zero' is a static method of Money; call it a
 
 ## Mutating methods
 
-`mut self` makes a mutating method, the only code that can set fields:
-those of `self` (`self.x += 1`, `self["x"] = 1`), or `self` as a whole.
-Without `mut`, `self` is immutable.
+`mut self` makes a mutating method, which can set the fields of `self`
+(`self.x += 1`, `self["x"] = 1`), or `self` as a whole, as a mutable
+variable can. Without `mut`, `self` is immutable.
 
 ```rune
 struct Account { owner, balance = 0 }
@@ -59,7 +59,7 @@ impl Account {
 let mut acc = Account { owner: "ann" };
 acc.deposit(100);
 acc.withdraw(30);
-print acc.balance; // 70
+print(acc.balance); // 70
 ```
 
 Structs are values, so the method works on a copy, which replaces the
@@ -79,15 +79,15 @@ impl Account {
 let mut acc = Account { owner: "ann", balance: 50 };
 let before = acc;
 acc.deposit(10);
-print acc.balance;    // 60
-print before.balance; // 50
+print(acc.balance);    // 60
+print(before.balance); // 50
 
 try {
     acc.withdraw(1000);
-} catch (e) {
-    print e.message;  // insufficient funds
+} catch e {
+    print(e.message);  // insufficient funds
 }
-print acc.balance;    // 60
+print(acc.balance);    // 60
 ```
 
 The copy is shallow: an array, object, map or set in a field is shared
@@ -105,17 +105,17 @@ impl Cart {
 let mut cart = Cart {};
 let before = cart;
 cart.add("tea");
-print before.items; // ["tea"]
+print(before.items); // ["tea"]
 
 let snapshot = cart;
 cart.with("milk");
-print snapshot.items; // ["tea"]
-print cart.items;     // ["tea", "milk"]
+print(snapshot.items); // ["tea"]
+print(cart.items);     // ["tea", "milk"]
 ```
 
-The receiver must be a mutable variable, or an element or property of an
-array or object one holds; a struct's field changes only through that
-struct's own `mut self` method.
+The receiver must be a mutable variable, or an element, property or
+field of a value one holds; through an immutable variable the call is a
+compile error.
 
 ```rune
 struct Account { owner, balance = 0 }
@@ -125,7 +125,7 @@ impl Account {
 
 let mut accounts = [Account { owner: "ann" }, Account { owner: "bob" }];
 accounts[1].deposit(25);
-print accounts[1]; // Account {owner: "bob", balance: 25}
+print(accounts[1]); // Account {owner: "bob", balance: 25}
 ```
 
 ```rune
@@ -135,7 +135,7 @@ impl Account {
 }
 
 let acc = Account { owner: "ann" };
-acc.deposit(10); // TypeError: Cannot call mutating method 'deposit' of Account: the receiver is not a mutable variable, element or property.
+acc.deposit(10); // Error at 'acc': Cannot mutate immutable variable 'acc'.
 ```
 
 ## Methods as values
@@ -152,18 +152,41 @@ impl Money {
 }
 
 let prices = [Money { cents: 499 }, Money { cents: 1250 }];
-print prices.map(Money.format); // ["$4.99", "$12.50"]
+print(prices.map(Money.format)); // ["$4.99", "$12.50"]
 
 let show = prices[0].format;
-print show(); // $4.99
+print(show()); // $4.99
 ```
+
+## Functions in fields and properties
+
+`x.f(args)` always calls a method. A function held in a field or property
+is called as `(x.f)(args)`, or `x["f"](args)`:
+
+```rune
+struct Button { label, onClick }
+let save = Button { label: "save", onClick: () => "saved" };
+print((save.onClick)()); // saved
+
+let handlers = { greet: name => "hi " + name };
+print((handlers.greet)("ann"));  // hi ann
+print(handlers["greet"]("bob")); // hi bob
+```
+
+```rune
+let handlers = { greet: name => "hi " + name };
+handlers.greet("ann"); // TypeError: object has no method 'greet'; call the function in its property as (x.greet)().
+```
+
+Members of a namespace, as in `math.floor(x)`, are no methods and are
+called as they are.
 
 ## Methods on built-in types
 
 `impl` also takes `string`, `number`, `boolean`, `array`, `object`,
 `function`, `Map`, `Set` and `bytes`. Their methods must take `self`, not
-`mut self`, and are seen by the whole program; an object's own property of
-the same name wins, and a method of the program over a built-in one.
+`mut self`, and are seen by the whole program; a method of the program
+wins over a built-in one.
 Built-in structs, such as `IOError`, take no methods.
 
 ```rune
@@ -175,6 +198,6 @@ impl array {
   fun sum(self) { return self.reduce((a, b) => a + b, 0); }
 }
 
-print "hi".shout();      // HI!
-print [3, 4, 5].sum();   // 12
+print("hi".shout());      // HI!
+print([3, 4, 5].sum());   // 12
 ```

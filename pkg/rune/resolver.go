@@ -53,6 +53,8 @@ type Resolver struct {
 	nmethods int
 	// impls holds the impl blocks at the top level of a file.
 	impls map[*ast.ImplStmt]bool
+	// mutators holds the method names that always change their receiver.
+	mutators map[string]bool
 }
 
 func NewResolver() *Resolver {
@@ -134,11 +136,6 @@ func (p *Resolver) ResolveExpr(expr ast.Expr) []error {
 	p.resolveExpr(expr)
 
 	return p.errors
-}
-
-func (p *Resolver) VisitPrintStmt(printStmt *ast.PrintStmt) error {
-	p.resolveExpr(printStmt.Expr)
-	return nil
 }
 
 func (p *Resolver) VisitExprStmt(exprStmt *ast.ExprStmt) error {
@@ -455,7 +452,7 @@ func (p *Resolver) VisitReturnStmt(returnStmt *ast.ReturnStmt) error {
 func (p *Resolver) VisitTryStmt(tryStmt *ast.TryStmt) error {
 	p.resolveStmt(tryStmt.Body)
 
-	caught := map[string]bool{}
+	caught := map[*value.Shape]bool{}
 
 	for i := range tryStmt.Catches {
 		c := &tryStmt.Catches[i]
@@ -464,15 +461,15 @@ func (p *Resolver) VisitTryStmt(tryStmt *ast.TryStmt) error {
 			p.error(c.Keyword, "Catch-all must be the last catch clause.")
 		}
 
-		for _, t := range c.Types {
-			p.resolveExpr(t)
+		c.Shapes = p.resolveTypes(c.Types)
 
-			name := qualified(t.Module, t.Name)
-			if p.structType(t) != nil && caught[name] {
-				p.error(t.Name, "'"+name+"' is already caught.")
+		for j, shape := range c.Shapes {
+			if shape != nil && caught[shape] {
+				t := c.Types[j]
+				p.error(t.Name, "'"+qualified(t.Module, t.Name)+"' is already caught.")
 			}
 
-			caught[name] = true
+			caught[shape] = true
 		}
 
 		p.resolveCatch(c)
@@ -523,7 +520,14 @@ func (p *Resolver) VisitCallExpr(callExpr *ast.CallExpr) (value.Value, error) {
 
 	if prop, ok := callExpr.Callee.(*ast.IndexExpr); ok && isMethodCall(prop) {
 		callExpr.Writable = p.writable(prop.Array)
-		callExpr.Frozen = p.immutableRoot(prop.Array) != ""
+
+		if name := p.immutableRoot(prop.Array); name != "" {
+			callExpr.Frozen = true
+
+			if p.mutators[prop.Token.Lexeme] {
+				p.error(rootVar(prop.Array).Name, "Cannot mutate immutable variable '"+name+"'.")
+			}
+		}
 	}
 
 	return value.NilValue, nil
@@ -720,7 +724,7 @@ func (p *Resolver) requireMutableRoot(expr ast.Expr) {
 }
 
 // immutableRoot names the variable an element or property chain starts
-// from if it is bound immutably.
+// from if it is bound immutably or is a built-in.
 func (p *Resolver) immutableRoot(expr ast.Expr) string {
 	root := rootVar(expr)
 
@@ -730,7 +734,7 @@ func (p *Resolver) immutableRoot(expr ast.Expr) string {
 		if root.Local != nil && !p.mod.imports[root.Module.Lexeme].globalMutable[root.Name.Lexeme] {
 			return qualified(root.Module, root.Name)
 		}
-	case !p.isMutable(root.Name.Lexeme):
+	case !p.isMutable(root.Name.Lexeme) || p.isBuiltin(root.Name.Lexeme):
 		return root.Name.Lexeme
 	}
 

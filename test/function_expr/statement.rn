@@ -1,2 +1,2 @@
-fun () { print "ignored"; };
-print "ok"; // expect: ok
+fun () { print("ignored"); };
+print("ok"); // expect: ok

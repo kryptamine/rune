@@ -4,14 +4,14 @@ fun make() {
   let x = "outer";
   {
     let tmp = "block";
-    print tmp; // expect: block
+    print(tmp); // expect: block
   }
   let f = fun () { return x; };
   {
     let other = "again";
-    print other; // expect: again
+    print(other); // expect: again
   }
   return f;
 }
 
-print make()(); // expect: outer
+print(make()()); // expect: outer

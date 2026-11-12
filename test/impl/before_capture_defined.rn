@@ -4,6 +4,6 @@ impl Point {
   fun scaled(self) { return self.x * factor; }
 }
 
-print Point { x: 1 }.scaled(); // expect runtime error: [line: 4] NameError: Undefined variable 'factor'.
+print(Point { x: 1 }.scaled()); // expect runtime error: [line: 4] NameError: Undefined variable 'factor'.
 
 let factor = 2;

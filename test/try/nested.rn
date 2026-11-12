@@ -1,10 +1,10 @@
 try {
   try {
     throw ValueError { message: "inner" };
-  } catch (e) {
-    print "inner caught: " + e.message; // expect: inner caught: inner
+  } catch e {
+    print("inner caught: " + e.message); // expect: inner caught: inner
     throw ValueError { message: "outer" };
   }
-} catch (e) {
-  print "outer caught: " + e.message; // expect: outer caught: outer
+} catch e {
+  print("outer caught: " + e.message); // expect: outer caught: outer
 }

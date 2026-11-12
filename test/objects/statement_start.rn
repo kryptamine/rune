@@ -1,10 +1,10 @@
 // An object literal may start a statement; "{" alone still opens a block.
 {x: 1};
 {"k": 2}["k"];
-print {a: 1}["a"]; // expect: 1
+print({a: 1}["a"]); // expect: 1
 
 {
   let b = 1;
-  print b; // expect: 1
+  print(b); // expect: 1
 }
 {}

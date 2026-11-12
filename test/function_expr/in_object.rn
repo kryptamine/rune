@@ -1,2 +1,2 @@
 let o = {"greet": fun (name) { return "hi " + name; }};
-print o.greet("bob"); // expect: hi bob
+print((o.greet)("bob")); // expect: hi bob

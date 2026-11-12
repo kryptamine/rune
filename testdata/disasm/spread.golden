@@ -1,23 +1,25 @@
 exit: 0
 -- stdout --
-<script>: arity 1, 7 registers, 0 upvalues
+<script>: arity 1, 9 registers, 0 upvalues
     0  LOADK         1 0 0
-    1  CLOSURE       1 0 0
-    2  MOVE          2 1 0
-    3  ARRAY         3 4 0
-    4  LOADK         5 0 1
-    5  LOADK         6 0 2
-    6  ARRAY         4 5 2
-    7  SPREAD        3 4 0
-    8  OBJECT        4 5 0
-    9  OBJECT        5 6 1
-   10  SPREAD        4 5 0
-   11  LOADK         5 0 1
-   12  OBJECT        4 5 2  x=1 y=false
-   13  ARRAY         3 4 1  x=1 y=false
-   14  CALLARRAY     2 0 0
-   15  PRINT         2 0 0
-   16  RETURNNIL     0 0 0
+    1  LOADK         2 0 1
+    2  CLOSURE       1 0 0
+    3  MOVE          3 2 0
+    4  MOVE          4 1 0
+    5  ARRAY         5 6 0
+    6  LOADK         7 0 2
+    7  LOADK         8 0 3
+    8  ARRAY         6 7 2
+    9  SPREAD        5 6 0
+   10  OBJECT        6 7 0
+   11  OBJECT        7 8 1
+   12  SPREAD        6 7 0
+   13  LOADK         7 0 2
+   14  OBJECT        6 7 2  x=1 y=false
+   15  ARRAY         5 6 1  x=1 y=false
+   16  CALLARRAY     4 0 0
+   17  CALL          3 1 0
+   18  RETURNNIL     0 0 0
 
 f: arity 1+, 7 registers, 0 upvalues
     0  UNPACK        4 1 2/2  x=1 y=false

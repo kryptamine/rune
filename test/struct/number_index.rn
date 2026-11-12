@@ -1,4 +1,4 @@
 struct Point { x, y }
 
 let p = Point { x: 1, y: 2 };
-print p[0]; // expect runtime error: [line: 4] TypeError: Struct fields must be accessed with string keys.
+print(p[0]); // expect runtime error: [line: 4] TypeError: Struct fields must be accessed with string keys.

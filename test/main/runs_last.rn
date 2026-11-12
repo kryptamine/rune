@@ -1,6 +1,6 @@
 fun main() {
-  print "main";
+  print("main");
 }
 
-print "top"; // expect: top
+print("top"); // expect: top
 // expect: main

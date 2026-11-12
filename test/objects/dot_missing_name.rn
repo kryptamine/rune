@@ -1,2 +1,2 @@
 let obj = {};
-print obj.; // [line: 2] Error at ';': Expect property name after '.'.
+print(obj.); // [line: 2] Error at ')': Expect property name after '.'.

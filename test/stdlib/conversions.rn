@@ -1,28 +1,28 @@
-print str(1.5) + "!"; // expect: 1.5!
-print str("hi"); // expect: hi
-print str([1, "a"]); // expect: [1, "a"]
-print str(nil); // expect: nil
-print str(-0); // expect: 0
-print str(1e21); // expect: 1e+21
-print str(1e20); // expect: 100000000000000000000
-print 1e-7;      // expect: 1e-7
-print math.floor(1e300); // expect: 1e+300
-print -math.INF; // expect: -inf
+print(str(1.5) + "!"); // expect: 1.5!
+print(str("hi")); // expect: hi
+print(str([1, "a"])); // expect: [1, "a"]
+print(str(nil)); // expect: nil
+print(str(-0)); // expect: 0
+print(str(1e21)); // expect: 1e+21
+print(str(1e20)); // expect: 100000000000000000000
+print(1e-7);      // expect: 1e-7
+print(math.floor(1e300)); // expect: 1e+300
+print(-math.INF); // expect: -inf
 
-print number("42") + 1; // expect: 43
-print number(" -2.5e1 "); // expect: -25
-print number("1E+2"); // expect: 100
-print number(7); // expect: 7
+print(number("42") + 1); // expect: 43
+print(number(" -2.5e1 ")); // expect: -25
+print(number("1E+2")); // expect: 100
+print(number(7)); // expect: 7
 
-print int("42"); // expect: 42
-print int(" -17 "); // expect: -17
-print int("ff", 16); // expect: 255
-print int("101", 2); // expect: 5
-print int(3.9); // expect: 3
-print int(-3.9); // expect: -3
+print(int("42")); // expect: 42
+print(int(" -17 ")); // expect: -17
+print(int("ff", 16)); // expect: 255
+print(int("101", 2)); // expect: 5
+print(int(3.9)); // expect: 3
+print(int(-3.9)); // expect: -3
 
 for s in ["abc", "inf", "0x10", "", "-", ".5", "5.", "+1", "1e", "1e400", "1 2"] {
-    try { number(s); } catch (e: ValueError) { print e.message; }
+    try { number(s); } catch e is ValueError { print(e.message); }
 }
 // expect: number() cannot parse "abc" as a number.
 // expect: number() cannot parse "inf" as a number.
@@ -36,17 +36,17 @@ for s in ["abc", "inf", "0x10", "", "-", ".5", "5.", "+1", "1e", "1e400", "1 2"]
 // expect: number() cannot parse "1e400" as a number.
 // expect: number() cannot parse "1 2" as a number.
 
-try { number(nil); } catch (e: TypeError) { print e.message; } // expect: number() expects a number or a string as argument 1, got nil.
-try { int("3.5"); } catch (e: ValueError) { print e.message; } // expect: int() cannot parse "3.5" as an integer in base 10.
-try { int("1_000"); } catch (e: ValueError) { print e.message; } // expect: int() cannot parse "1_000" as an integer in base 10.
-try { int("z", 37); } catch (e: ValueError) { print e.message; } // expect: int() expects a base from 2 to 36, got 37.
-try { int(10, 2); } catch (e: TypeError) { print e.message; } // expect: int() expects a string as argument 1, got number.
-try { int(math.INF); } catch (e: ValueError) { print e.message; } // expect: int() cannot convert inf to an integer.
+try { number(nil); } catch e is TypeError { print(e.message); } // expect: number() expects a number or a string as argument 1, got nil.
+try { int("3.5"); } catch e is ValueError { print(e.message); } // expect: int() cannot parse "3.5" as an integer in base 10.
+try { int("1_000"); } catch e is ValueError { print(e.message); } // expect: int() cannot parse "1_000" as an integer in base 10.
+try { int("z", 37); } catch e is ValueError { print(e.message); } // expect: int() expects a base from 2 to 36, got 37.
+try { int(10, 2); } catch e is TypeError { print(e.message); } // expect: int() expects a string as argument 1, got number.
+try { int(math.INF); } catch e is ValueError { print(e.message); } // expect: int() cannot convert inf to an integer.
 
-print 3.14159.fixed(2); // expect: 3.14
-print 2.fixed(3); // expect: 2.000
-print 2.5.fixed(0); // expect: 2
-print (-0.001).fixed(1); // expect: -0.0
-print (-0).fixed(2); // expect: 0.00
-try { 1.fixed(101); } catch (e: ValueError) { print e.message; } // expect: number.fixed() expects 0 to 100 digits, got 101.
-try { 1.fixed(1.5); } catch (e: TypeError) { print e.message; } // expect: number.fixed() expects an integer as argument 1, got number.
+print(3.14159.fixed(2)); // expect: 3.14
+print(2.fixed(3)); // expect: 2.000
+print(2.5.fixed(0)); // expect: 2
+print((-0.001).fixed(1)); // expect: -0.0
+print((-0).fixed(2)); // expect: 0.00
+try { 1.fixed(101); } catch e is ValueError { print(e.message); } // expect: number.fixed() expects 0 to 100 digits, got 101.
+try { 1.fixed(1.5); } catch e is TypeError { print(e.message); } // expect: number.fixed() expects an integer as argument 1, got number.

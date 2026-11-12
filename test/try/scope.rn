@@ -4,10 +4,10 @@ let err = "global";
   try {
     let b = "in try";
     throw a;
-  } catch (err) {
+  } catch err {
     let c = "in catch";
-    print err.message; // expect: local
-    print c; // expect: in catch
+    print(err.message); // expect: local
+    print(c); // expect: in catch
   }
 }
-print err; // expect: global
+print(err); // expect: global

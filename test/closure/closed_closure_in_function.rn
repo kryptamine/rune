@@ -3,7 +3,7 @@ let mut f;
 {
   let local = "local";
   fun f_() {
-    print local;
+    print(local);
   }
   f = f_;
 }

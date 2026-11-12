@@ -4,4 +4,4 @@ fun fill(mut arr, n) {
 
 let squares = [];
 fill(squares, 5);
-print squares; // expect: [0, 1, 4, 9, 16]
+print(squares); // expect: [0, 1, 4, 9, 16]

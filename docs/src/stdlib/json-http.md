@@ -10,11 +10,11 @@ JSON is full of `"` and `{`, so write it in a raw string, `r"""..."""`.
 
 ```rune
 let user = json.parse(r"""{"name": "ann", "tags": ["admin"], "age": 31, "manager": null}""");
-print user;            // {age: 31, manager: nil, name: "ann", tags: ["admin"]}
-print user.tags[0];    // admin
-print user.manager;    // nil
-print json.parse("[1, 2.5]");  // [1, 2.5]
-print json.parse("42");        // 42
+print(user);            // {age: 31, manager: nil, name: "ann", tags: ["admin"]}
+print(user.tags[0]);    // admin
+print(user.manager);    // nil
+print(json.parse("[1, 2.5]"));  // [1, 2.5]
+print(json.parse("42"));        // 42
 ```
 
 Calling a struct type checks the shape of what was parsed:
@@ -23,7 +23,7 @@ Calling a struct type checks the shape of what was parsed:
 struct Order { id, total, items = [] }
 
 let order = Order(json.parse(r"""{"id": 8, "total": 5}"""));
-print order;   // Order {id: 8, total: 5, items: []}
+print(order);   // Order {id: 8, total: 5, items: []}
 ```
 
 ```rune
@@ -40,12 +40,12 @@ of string keys (as objects, in order) compactly. A function is a
 ```rune
 struct Order { id, total, items = [] }
 
-print json.stringify({ name: "ann", active: true, manager: nil });
+print(json.stringify({ name: "ann", active: true, manager: nil }));
 // {"active":true,"manager":null,"name":"ann"}
-print json.stringify(Order { id: 7, total: 19.99 });
+print(json.stringify(Order { id: 7, total: 19.99 }));
 // {"id":7,"total":19.99,"items":[]}
-print json.stringify(Set(["a", "b"]));   // ["a","b"]
-print json.stringify("say \"hi\"");      // "say \"hi\""
+print(json.stringify(Set(["a", "b"])));   // ["a","b"]
+print(json.stringify("say \"hi\""));      // "say \"hi\""
 ```
 
 ```rune
@@ -59,14 +59,14 @@ error or a status other than 200 is an `IOError`.
 
 ```rune
 let todos = json.parse(http.get("https://api.example.com/todos")).todos;
-print todos.filter(t => !t.completed).map(t => t.todo);   // ["buy milk"]
+print(todos.filter(t => !t.completed).map(t => t.todo));   // ["buy milk"]
 ```
 
 ```rune
 try {
     http.get("https://api.example.com/missing");
-} catch (e: IOError) {
-    print e.message;   // http.get() could not fetch https://api.example.com/missing: status code 404
+} catch e is IOError {
+    print(e.message);   // http.get() could not fetch https://api.example.com/missing: status code 404
 }
 ```
 
@@ -88,17 +88,17 @@ let r = http.request("POST", "https://api.example.com/users", {
     timeout: 5,
 });
 
-print r.status;                  // 201
-print r.headers["location"];     // /users/42
-print json.parse(r.body).id;     // 42
+print(r.status);                  // 201
+print(r.headers["location"]);     // /users/42
+print(json.parse(r.body).id);     // 42
 
 if r.status != 201 throw IOError { message: "status {r.status}" };
 ```
 
 ```rune
 let r = http.request("GET", "https://api.example.com/missing");
-print r.status;   // 404
-print json.parse(r.body).error;   // not found
+print(r.status);   // 404
+print(json.parse(r.body).error);   // not found
 ```
 
 With `stream: true`, `body` is a [Stream](streams.md) to read and close,
@@ -110,7 +110,7 @@ let r = http.request("GET", "https://api.example.com/export.csv", { stream: true
 for i, line in r.body {
     if i == 0 continue;
     let [id, total] = line.split(",");
-    print "order {id}: {total}";
+    print("order {id}: {total}");
 }
 r.body.close();
 // order 1: 30

@@ -1,11 +1,11 @@
 let o = {"b": 2, "a": 1, "c": 3};
 
-for k in o { print k; }
+for k in o { print(k); }
 // expect: a
 // expect: b
 // expect: c
 
-for k, v in o { print k + "=" + (v * 10 == 10 and "one" or "other"); }
+for k, v in o { print(k + "=" + (v * 10 == 10 && "one" || "other")); }
 // expect: a=one
 // expect: b=other
 // expect: c=other

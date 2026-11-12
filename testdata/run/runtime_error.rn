@@ -1,5 +1,5 @@
 fun f(x) {
   return x.y;
 }
-print "before";
+print("before");
 f(1);

@@ -1,0 +1,3 @@
+math.PI = 3; // Error at 'math': Cannot mutate immutable variable 'math'.
+math.PI++; // Error at 'math': Cannot mutate immutable variable 'math'.
+module.dir = "x"; // Error at 'module': Cannot mutate immutable variable 'module'.

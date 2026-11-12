@@ -1,5 +1,5 @@
 fun f() {
-  try {} catch (e) {
+  try {} catch e {
     let e = 1; // [line: 3] Error at 'e': Variable with this name already declared in this scope.
   }
 }

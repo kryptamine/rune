@@ -1,6 +1,6 @@
 try {
   [2, 1].sort(fun (a, b) { throw ValueError { message: "nope" }; });
-} catch (e) {
-  print e.message; // expect: nope
+} catch e {
+  print(e.message); // expect: nope
 }
-print [1, 2].reduce(fun (a, b) { return a + b; }, 0); // expect: 3
+print([1, 2].reduce(fun (a, b) { return a + b; }, 0)); // expect: 3

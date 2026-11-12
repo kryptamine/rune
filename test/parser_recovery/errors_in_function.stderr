@@ -7,6 +7,6 @@
 [line: 7] Error at '1': Expect parameter name.
     7 | fun g( 1 { } // [line: 7] Error at '1': Expect parameter name.
       |        ^
-[line: 8] Error at end: Expect ';' after value.
-    8 | print 1 // [line: 8] Error at end: Expect ';' after value.
-      |        ^
+[line: 8] Error at end: Expect ';' after expression.
+    8 | print(1) // [line: 8] Error at end: Expect ';' after expression.
+      |         ^

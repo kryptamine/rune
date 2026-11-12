@@ -1,49 +1,54 @@
 exit: 0
 -- stdout --
-<script>: arity 1, 8 registers, 0 upvalues
+<script>: arity 1, 9 registers, 0 upvalues
     0  LOADK         1 0 0
     1  LOADK         2 0 1
     2  LOADK         3 0 2
-    3  TRY           4 0 11  x=0 y=true
-    4  LOADK         5 0 3
+    3  LOADK         4 0 3
+    4  TRY           5 0 12  x=0 y=true
     5  LOADK         6 0 4
-    6  LOADK         7 0 4
-    7  STRUCT        4 5 2
-    8  THROW         4 0 0
-    9  ENDTRY        0 1 0
-   10  JMP           0 0 12
-   11  PRINT         4 0 0
-   12  TRY           4 0 17
-   13  LOADK         4 0 5
-   14  PRINT         4 0 0
-   15  ENDTRY        0 1 0
-   16  JMP           0 0 17
-   17  TRY           4 0 23  x=0 y=true
-   18  ARRAY         5 6 0
-   19  LOADK         6 0 6
-   20  GETINDEX      4 5 6
-   21  ENDTRY        0 1 0
-   22  JMP           0 0 32
-   23  IS            5 4 1
-   24  JMPIF         5 0 28  x=0 y=true
-   25  IS            5 4 2
-   26  JMPIF         5 0 28  x=0 y=true
-   27  JMP           0 0 30
-   28  PRINT         4 0 0
-   29  JMP           0 0 32
-   30  LOADK         5 0 6
-   31  PRINT         5 0 0
-   32  TRY           4 0 38  x=1 y=true
-   33  ARRAY         5 6 0
-   34  LOADK         6 0 6
-   35  GETINDEX      4 5 6
-   36  ENDTRY        0 1 0
-   37  JMP           0 0 44
-   38  IS            6 4 1
-   39  JMPIF         6 0 41  x=0 y=true
-   40  JMP           0 0 43
-   41  PRINT         4 0 0
-   42  JMP           0 0 44
-   43  RETHROW       5 0 0
-   44  RETURNNIL     0 0 0
+    6  LOADK         7 0 5
+    7  LOADK         8 0 5
+    8  STRUCT        5 6 2
+    9  THROW         5 0 0
+   10  ENDTRY        0 1 0
+   11  JMP           0 0 15
+   12  MOVE          6 4 0
+   13  MOVE          7 5 0
+   14  CALL          6 1 0
+   15  TRY           5 0 21
+   16  MOVE          5 4 0
+   17  LOADK         6 0 6
+   18  CALL          5 1 0
+   19  ENDTRY        0 1 0
+   20  JMP           0 0 21
+   21  TRY           5 0 27  x=0 y=true
+   22  ARRAY         6 7 0
+   23  LOADK         7 0 7
+   24  GETINDEX      5 6 7
+   25  ENDTRY        0 1 0
+   26  JMP           0 0 37
+   27  JMPNOTTYPE    5 0 29
+   28  JMP           0 0 30
+   29  JMPNOTTYPE    5 1 34
+   30  MOVE          6 4 0
+   31  MOVE          7 5 0
+   32  CALL          6 1 0
+   33  JMP           0 0 37
+   34  MOVE          6 4 0
+   35  LOADK         7 0 7
+   36  CALL          6 1 0
+   37  TRY           5 0 43  x=1 y=true
+   38  ARRAY         6 7 0
+   39  LOADK         7 0 7
+   40  GETINDEX      5 6 7
+   41  ENDTRY        0 1 0
+   42  JMP           0 0 49
+   43  JMPNOTTYPE    5 0 48
+   44  MOVE          7 4 0
+   45  MOVE          8 5 0
+   46  CALL          7 1 0
+   47  JMP           0 0 49
+   48  RETHROW       6 0 0
+   49  RETURNNIL     0 0 0
 -- stderr --

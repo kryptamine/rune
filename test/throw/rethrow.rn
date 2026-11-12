@@ -1,9 +1,9 @@
 try {
   try {
-    print -"a";
-  } catch (e) {
+    print(-"a");
+  } catch e {
     throw ValueError { message: "wrapped: " + e.message, cause: e };
   }
-} catch (e) {
-  print e.message; // expect: wrapped: Operand must be a number.
+} catch e {
+  print(e.message); // expect: wrapped: Operand must be a number.
 }

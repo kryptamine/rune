@@ -6,15 +6,13 @@ syn keyword runeKeyword let mut fun return struct impl import export match is in
 syn keyword runeConditional if else
 syn keyword runeRepeat for while break continue
 syn keyword runeException try catch throw
-syn keyword runeOperatorWord and or not
-syn keyword runeStatement print
 syn keyword runeBoolean true false
 syn keyword runeNil nil
 syn keyword runeSelf self
 syn match runeAs "\<as\>"
 
 syn keyword runeNamespace string math regex bytes json http time fs io os array module
-syn keyword runeBuiltin len type object
+syn keyword runeBuiltin print len type object str number int
 syn keyword runeType Map Set
 
 syn match runeFuncDecl "\<fun\s\+\zs\h\w*"
@@ -46,8 +44,6 @@ hi def link runeKeyword Keyword
 hi def link runeConditional Conditional
 hi def link runeRepeat Repeat
 hi def link runeException Exception
-hi def link runeOperatorWord Keyword
-hi def link runeStatement Statement
 hi def link runeAs Keyword
 hi def link runeBoolean Boolean
 hi def link runeNil Constant

@@ -2,22 +2,22 @@ struct Point { x, y }
 
 let mut m = Map();
 m[Point { x: 1, y: 2 }] = "p";
-print m[Point { x: 1, y: 2 }]; // expect: p
-print m.has(Point { x: 2, y: 1 }); // expect: false
+print(m[Point { x: 1, y: 2 }]); // expect: p
+print(m.has(Point { x: 2, y: 1 })); // expect: false
 
 m[b"\x00"] = "bytes";
-print m[b"\x00"]; // expect: bytes
+print(m[b"\x00"]); // expect: bytes
 
 fun f() {}
 m[f] = "fn";
-print m[f]; // expect: fn
+print(m[f]); // expect: fn
 m[Point] = "type";
-print m[Point]; // expect: type
+print(m[Point]); // expect: type
 m[0.5] = "half";
-print m[0.5]; // expect: half
+print(m[0.5]); // expect: half
 
 fun fails(f) {
-  try { f(); } catch (e) { print type(e) + ": " + e.message; }
+  try { f(); } catch e { print(type(e) + ": " + e.message); }
 }
 fails(() => m[[1]]);            // expect: TypeError: Cannot use an array as a key.
 fails(() => m.set({}, 1));      // expect: TypeError: Map.set() cannot use an object as a key.

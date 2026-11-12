@@ -217,6 +217,11 @@ func (s *Parser) synchronize() {
 			return
 		}
 
+		// A statement on a new line after a block, as print(x) after an if.
+		if prev := s.previous(); prev.TokenType == ast.RIGHT_BRACE && s.depth[s.current] == s.blockDepth && s.peek().Line > prev.Line {
+			return
+		}
+
 		if s.depth[s.current] == s.blockDepth {
 			switch t := s.peek().TokenType; t {
 			case ast.FUN, ast.LET, ast.STRUCT, ast.IMPL, ast.IMPORT, ast.EXPORT, ast.MATCH:

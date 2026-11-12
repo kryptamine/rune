@@ -8,12 +8,12 @@ be used before their declaration.
 struct User { name, role = "member", tags = [] }
 
 let ann = User { name: "ann" };
-print ann;          // User {name: "ann", role: "member", tags: []}
-print ann.name;     // ann
-print ann["role"];  // member
+print(ann);          // User {name: "ann", role: "member", tags: []}
+print(ann.name);     // ann
+print(ann["role"]);  // member
 
 let name = "bob";
-print User { name, role: "admin" }; // User {name: "bob", role: "admin", tags: []}
+print(User { name, role: "admin" }); // User {name: "bob", role: "admin", tags: []}
 ```
 
 `User { name }` is shorthand for `User { name: name }`.
@@ -28,8 +28,8 @@ struct User { name, tags = [] }
 let mut ann = User { name: "ann" };
 let bob = User { name: "bob" };
 ann.tags.push("admin");
-print ann.tags; // ["admin"]
-print bob.tags; // []
+print(ann.tags); // ["admin"]
+print(bob.tags); // []
 ```
 
 A field that does not exist, or a required one left out, is a compile
@@ -50,27 +50,34 @@ Reading a field that does not exist is a runtime error:
 ```rune
 struct User { name, role = "member" }
 let ann = User { name: "ann" };
-print ann.email; // KeyError: User has no field 'email'.
+print(ann.email); // KeyError: User has no field 'email'.
 ```
 
-## Fields are read-only
+## Setting fields
 
-Only a `mut self` method of the struct can set its fields, on `self` (see
-[Methods](methods.md)). Anywhere else `u.name = ...` is a runtime error,
-whatever the variable. To change a struct, make a new one; an array or
-object held in a field stays mutable through a mutable variable.
+Structs are values: `u.name = ...` through a mutable variable, or an
+element or property one holds, sets the field of a copy that replaces
+the struct there, so nothing else holding the old struct sees it change.
+Through an immutable variable it is a compile error, as for arrays and
+objects.
 
 ```rune
 struct User { name, role = "member" }
 let mut ann = User { name: "ann" };
-ann.role = "admin"; // TypeError: Cannot set field 'role' of User: only a mut self method can set the fields of self.
+let before = ann;
+ann.role = "admin";
+print(ann);    // User {name: "ann", role: "admin"}
+print(before); // User {name: "ann", role: "member"}
+
+let mut team = [User { name: "bob" }];
+team[0].role = "lead";
+print(team[0].role); // lead
 ```
 
 ```rune
 struct User { name, role = "member" }
-let mut ann = User { name: "ann" };
-ann = User { ...ann, role: "admin" }; // rebinding is fine
-print ann; // User {name: "ann", role: "admin"}
+let ann = User { name: "ann" };
+ann.role = "admin"; // Error at 'ann': Cannot mutate immutable variable 'ann'.
 ```
 
 ## Updating with spread
@@ -85,10 +92,10 @@ struct of another type is a runtime error.
 struct Config { host, port = 8080, debug = false }
 
 let base = Config { host: "localhost" };
-print Config { ...base, debug: true };  // Config {host: "localhost", port: 8080, debug: true}
-print Config { debug: true, ...base };  // Config {host: "localhost", port: 8080, debug: false}
-print Config { ...{ host: "example.com" } }; // Config {host: "example.com", port: 8080, debug: false}
-print base;                             // Config {host: "localhost", port: 8080, debug: false}
+print(Config { ...base, debug: true });  // Config {host: "localhost", port: 8080, debug: true}
+print(Config { debug: true, ...base });  // Config {host: "localhost", port: 8080, debug: false}
+print(Config { ...{ host: "example.com" } }); // Config {host: "example.com", port: 8080, debug: false}
+print(base);                             // Config {host: "localhost", port: 8080, debug: false}
 ```
 
 ## Converting
@@ -103,8 +110,8 @@ from `json.parse` becomes a struct:
 struct Config { host, port = 8080 }
 
 let cfg = Config(json.parse(r"""{"host": "example.com"}"""));
-print cfg;      // Config {host: "example.com", port: 8080}
-print cfg.port; // 8080
+print(cfg);      // Config {host: "example.com", port: 8080}
+print(cfg.port); // 8080
 ```
 
 ```rune
@@ -131,19 +138,19 @@ object, `len(s)` is its number of fields and `type(s)` its name.
 struct User { name, role = "member" }
 let ann = User { name: "ann" };
 
-print ann is User;                           // true
-print { name: "ann" } is User;               // false
-print ann == User { name: "ann" };           // true
-print ann == { name: "ann", role: "member" }; // false
+print(ann is User);                            // true
+print({ name: "ann" } is User);                // false
+print(ann == User { name: "ann" });            // true
+print(ann == { name: "ann", role: "member" }); // false
 
 for field, value in ann {
-    print "{field}: {value}";
+    print("{field}: {value}");
 }
 // name: ann
 // role: member
 
-print object(ann); // {name: "ann", role: "member"}
-print len(ann);    // 2
-print type(ann);   // User
-print type(User);  // struct
+print(object(ann)); // {name: "ann", role: "member"}
+print(len(ann));    // 2
+print(type(ann));   // User
+print(type(User));  // struct
 ```

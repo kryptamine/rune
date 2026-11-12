@@ -1,5 +1,5 @@
 struct Point { x, y }
 
-print Point; // expect: <struct Point>
+print(Point); // expect: <struct Point>
 let T = Point;
-print T == Point; // expect: true
+print(T == Point); // expect: true

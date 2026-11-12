@@ -1,11 +1,11 @@
 struct Pair { a, b }
 
 fun log(v) {
-  print v;
+  print(v);
   return v;
 }
 
 let p = Pair { b: log("b"), a: log("a") };
 // expect: b
 // expect: a
-print p; // expect: Pair {a: "a", b: "b"}
+print(p); // expect: Pair {a: "a", b: "b"}

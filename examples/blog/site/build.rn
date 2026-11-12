@@ -12,11 +12,11 @@ export fun load(dir, drafts = false) {
     let mut site = Site {};
 
     for f in fs.list(dir) {
-        if f.isDir or fs.ext(f.name) != ".md" continue;
+        if f.isDir || fs.ext(f.name) != ".md" continue;
         let path = fs.join(dir, f.name);
         let { meta, body } = fm.parse(fs.read(path), path);
 
-        if meta?.draft == true and !drafts {
+        if meta?.draft == true && !drafts {
             site.skipped.push(f.name);
             continue;
         }

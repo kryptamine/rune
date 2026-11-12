@@ -40,31 +40,31 @@ func TestHTTPRequest(t *testing.T) {
 
 	src := strings.ReplaceAll(`
 		let r = http.request("post", "URL/x", { headers: { "X-Token": "t1" }, body: "hi" });
-		print r.status;
-		print r.body;
-		print r.headers["x-echo"];
-		print r.headers["x-multi"];
-		print type(r);
+		print(r.status);
+		print(r.body);
+		print(r.headers["x-echo"]);
+		print(r.headers["x-multi"]);
+		print(type(r));
 
 		let nf = http.request("GET", "URL/missing", HttpOptions {});
-		print nf.status;
-		print http.get("URL/");
+		print(nf.status);
+		print(http.get("URL/"));
 
-		try { http.get("URL/missing"); } catch (e: IOError) { print "get failed"; }
-		try { http.request("GET", "URL/slow", { timeout: 0.05 }); } catch (e: IOError) { print "timed out"; }
-		try { http.request("GET", "URL/", { body: 1 }); } catch (e: TypeError) { print e.message; }
-		try { http.request("GET", "URL/", { headers: { a: 1 } }); } catch (e: TypeError) { print e.message; }
-		try { http.request("GET", "URL/", { timeout: 0 }); } catch (e: ValueError) { print e.message; }
-		try { http.request("GET", "URL/", { bogus: 1 }); } catch (e: KeyError) { print e.message; }
-		try { http.request("BAD METHOD", "URL/"); } catch (e: ValueError) { print "bad method"; }
+		try { http.get("URL/missing"); } catch e is IOError { print("get failed"); }
+		try { http.request("GET", "URL/slow", { timeout: 0.05 }); } catch e is IOError { print("timed out"); }
+		try { http.request("GET", "URL/", { body: 1 }); } catch e is TypeError { print(e.message); }
+		try { http.request("GET", "URL/", { headers: { a: 1 } }); } catch e is TypeError { print(e.message); }
+		try { http.request("GET", "URL/", { timeout: 0 }); } catch e is ValueError { print(e.message); }
+		try { http.request("GET", "URL/", { bogus: 1 }); } catch e is KeyError { print(e.message); }
+		try { http.request("BAD METHOD", "URL/"); } catch e is ValueError { print("bad method"); }
 
 		let raw = http.request("PUT", "URL/x", { body: b"\x01raw", stream: true });
-		print type(raw.body);
-		print raw.body.readAll();
+		print(type(raw.body));
+		print(raw.body.readAll());
 		raw.body.close();
-		for i, line in http.request("GET", "URL/lines", { stream: true }).body { print "{i}: {line}"; }
-		print http.request("GET", "URL/slowbody", { stream: true, timeout: 0.05 }).body.readText();
-		try { http.request("GET", "URL/", { stream: 1 }); } catch (e: TypeError) { print e.message; }
+		for i, line in http.request("GET", "URL/lines", { stream: true }).body { print("{i}: {line}"); }
+		print(http.request("GET", "URL/slowbody", { stream: true, timeout: 0.05 }).body.readText());
+		try { http.request("GET", "URL/", { stream: 1 }); } catch e is TypeError { print(e.message); }
 	`, "URL", srv.URL)
 
 	prog, errs := loadSource([]byte(src))

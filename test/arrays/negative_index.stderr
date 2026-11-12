@@ -1,0 +1,3 @@
+[line: 10] IndexError: Index out of bounds: -4 of 3
+   10 | print(xs[-4]); // expect runtime error: [line: 10] IndexError: Index out of bounds: -4 of 3
+      |            ^

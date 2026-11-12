@@ -17,15 +17,15 @@ fun main(args) {
 
         for p in site.posts {
             let tags = p.tags.map(t => "#" + t).join(" ");
-            print "  %s  %-32s %4d words  %s".format(p.date, p.title, p.words, tags);
+            print("  %s  %-32s %4d words  %s".format(p.date, p.title, p.words, tags));
         }
-        if len(site.skipped) > 0 print "  skipped drafts: {site.skipped.join(", ")}";
+        if len(site.skipped) > 0 print("  skipped drafts: {site.skipped.join(", ")}");
 
-        print "\n{n} files → {out} in %.1f ms".format((time.now() - started) * 1000);
-    } catch (e: fm.FrontMatterError) {
+        print("\n{n} files → {out} in %.1f ms".format((time.now() - started) * 1000));
+    } catch e is fm.FrontMatterError {
         io.eprint("{e.path}:{e.line}: {e.message}");
         return 1;
-    } catch (e: IOError) {
+    } catch e is IOError {
         io.eprint(e.message);
         return 1;
     }

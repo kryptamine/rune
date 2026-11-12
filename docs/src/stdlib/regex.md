@@ -11,8 +11,8 @@ written; in a plain string `\` is an escape and `{` starts interpolation.
 `test(re, s)` — whether `re` matches anywhere in `s`.
 
 ```rune
-print regex.test(r"^\d{3}-\d{4}$", "555-1234");  // true
-print regex.test(r"^\d{3}-\d{4}$", "555-12");    // false
+print(regex.test(r"^\d{3}-\d{4}$", "555-1234"));  // true
+print(regex.test(r"^\d{3}-\d{4}$", "555-12"));    // false
 ```
 
 ## find and findAll
@@ -25,25 +25,25 @@ matches, at most `n`.
 ```rune
 let line = "GET /api/users 200 12ms";
 let m = regex.find(r"(\w+) (\S+) (\d+)", line);
-print m.text;     // GET /api/users 200
-print m.index;    // 0
-print m.groups;   // ["GET", "/api/users", "200"]
+print(m.text);     // GET /api/users 200
+print(m.index);    // 0
+print(m.groups);   // ["GET", "/api/users", "200"]
 
 let [method, path, status] = m.groups;
-print "{method} {path} -> {status}"; // GET /api/users -> 200
+print("{method} {path} -> {status}"); // GET /api/users -> 200
 
 let d = regex.find(r"(?P<year>\d{4})-(?P<month>\d\d)", "released 2026-11");
-print d.named;          // {month: "11", year: "2026"}
-print d.index;          // 9
+print(d.named);          // {month: "11", year: "2026"}
+print(d.index);          // 9
 
-print regex.find(r"\d+", "no digits");            // nil
-print regex.find(r"(cat)|(dog)", "dog").groups;   // [nil, "dog"]
+print(regex.find(r"\d+", "no digits"));            // nil
+print(regex.find(r"(cat)|(dog)", "dog").groups);   // [nil, "dog"]
 ```
 
 ```rune
 let ids = regex.findAll(r"\d+", "ids: 7, 42, 108");
-print ids.map(m => m.text);                                   // ["7", "42", "108"]
-print regex.findAll(r"\d+", "ids: 7, 42, 108", 2).map(m => m.text); // ["7", "42"]
+print(ids.map(m => m.text));                                   // ["7", "42", "108"]
+print(regex.findAll(r"\d+", "ids: 7, 42, 108", 2).map(m => m.text)); // ["7", "42"]
 ```
 
 ## replace
@@ -52,10 +52,10 @@ print regex.findAll(r"\d+", "ids: 7, 42, 108", 2).map(m => m.text); // ["7", "42
 or `${name}` is a group, or a function from a `Match` to a string.
 
 ```rune
-print regex.replace(r"\s+", "a  b   c", " ");                // a b c
-print regex.replace(r"(\w+)@(\w+)", "ann@mail", r"$2: $1");  // mail: ann
-print regex.replace(r"(?P<user>\w+)@(?P<host>\w+)", "ann@mail", r"${host}: ${user}"); // mail: ann
-print regex.replace(r"\d+", "3 apples, 12 pears", m => str(int(m.text) * 2)); // 6 apples, 24 pears
+print(regex.replace(r"\s+", "a  b   c", " "));                // a b c
+print(regex.replace(r"(\w+)@(\w+)", "ann@mail", r"$2: $1"));  // mail: ann
+print(regex.replace(r"(?P<user>\w+)@(?P<host>\w+)", "ann@mail", r"${host}: ${user}")); // mail: ann
+print(regex.replace(r"\d+", "3 apples, 12 pears", m => str(int(m.text) * 2))); // 6 apples, 24 pears
 ```
 
 ## split and escape
@@ -65,10 +65,10 @@ print regex.replace(r"\d+", "3 apples, 12 pears", m => str(int(m.text) * 2)); //
 literally.
 
 ```rune
-print regex.split(r"\s*,\s*", "a , b,c ,  d");  // ["a", "b", "c", "d"]
-print regex.split(r",", "a,b,c,d", 2);          // ["a", "b,c,d"]
-print regex.escape("1.5*2?");                   // 1\.5\*2\?
-print regex.test(regex.escape("1.5"), "105");   // false
+print(regex.split(r"\s*,\s*", "a , b,c ,  d"));  // ["a", "b", "c", "d"]
+print(regex.split(r",", "a,b,c,d", 2));          // ["a", "b,c,d"]
+print(regex.escape("1.5*2?"));                   // 1\.5\*2\?
+print(regex.test(regex.escape("1.5"), "105"));   // false
 ```
 
 ```rune

@@ -1,6 +1,6 @@
 let x = "outer";
 for x in [1] {
   let x = "body";
-  print x; // expect: body
+  print(x); // expect: body
 }
-print x; // expect: outer
+print(x); // expect: outer

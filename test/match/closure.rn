@@ -8,7 +8,7 @@ for i in 0..3 {
     }
 }
 
-for f in fs print f();
+for f in fs print(f());
 // expect: 1
 // expect: 2
 
@@ -19,5 +19,5 @@ fun guarded(x) {
     };
 }
 
-print guarded(5);   // expect: big
-print guarded(1)(); // expect: 1
+print(guarded(5));   // expect: big
+print(guarded(1)()); // expect: 1

@@ -1,20 +1,20 @@
 fun f() {
   try {
     return "from try";
-  } catch (err) {
+  } catch err {
     return "from catch";
   }
 }
 
-print f(); // expect: from try
+print(f()); // expect: from try
 
 fun g() {
   try {
     nil();
-  } catch (err) {
+  } catch err {
     return "from catch";
   }
   return "end";
 }
 
-print g(); // expect: from catch
+print(g()); // expect: from catch

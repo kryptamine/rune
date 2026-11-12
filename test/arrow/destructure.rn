@@ -1,9 +1,9 @@
 let mut people = [{name: "bob", age: 25}, {name: "ann", age: 31}];
 let names = people.map(({ name }) => name);
-print names; // expect: ["bob", "ann"]
+print(names); // expect: ["bob", "ann"]
 
 let ages = people.map(({ age: mut a }) => { a += 1; return a; });
-print ages; // expect: [26, 32]
+print(ages); // expect: [26, 32]
 
 people.sort((a, b) => b.age - a.age);
-print people.map(p => p.name); // expect: ["ann", "bob"]
+print(people.map(p => p.name)); // expect: ["ann", "bob"]

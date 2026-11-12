@@ -1,1 +1,1 @@
-for let mut i = 0; i < 3; i++ { print i; } // [line: 1] Error at 'let': Expect 'name in' after 'for'.
+for let mut i = 0; i < 3; i++ { print(i); } // [line: 1] Error at 'let': Expect 'name in' after 'for'.

@@ -1,19 +1,19 @@
-print regex.test("^a+$", "aaa"); // expect: true
-print regex.test("^a+$", "aab"); // expect: false
+print(regex.test("^a+$", "aaa")); // expect: true
+print(regex.test("^a+$", "aab")); // expect: false
 let m = regex.find("(\\w+)@(?P<host>\\w+)", "mail: bob@site ok");
-print m; // expect: Match {text: "bob@site", index: 6, groups: ["bob", "site"], named: {host: "site"}}
-print regex.find("x", "abc"); // expect: nil
-print regex.find("(a)|(b)", "b").groups; // expect: [nil, "b"]
-print regex.find("é(.)", "héllo").index; // expect: 1
-print regex.findAll("\\d+", "a1 b22 c333").map(m => m.text); // expect: ["1", "22", "333"]
-print len(regex.findAll("\\d", "123", 2)); // expect: 2
-print regex.replace("(\\w+)@(\\w+)", "bob@site", "$2 at ${1}"); // expect: site at bob
-print regex.replace("\\d+", "a1b22", m => "<" + m.text + ">"); // expect: a<1>b<22>
-print regex.split("\\s*,\\s*", "a , b,c"); // expect: ["a", "b", "c"]
-print regex.split(",", "a,b,c", 2); // expect: ["a", "b,c"]
-print regex.escape("a.b*"); // expect: a\.b\*
-print regex.test(regex.escape("1+1"), "1+1=2"); // expect: true
+print(m); // expect: Match {text: "bob@site", index: 6, groups: ["bob", "site"], named: {host: "site"}}
+print(regex.find("x", "abc")); // expect: nil
+print(regex.find("(a)|(b)", "b").groups); // expect: [nil, "b"]
+print(regex.find("é(.)", "héllo").index); // expect: 1
+print(regex.findAll("\\d+", "a1 b22 c333").map(m => m.text)); // expect: ["1", "22", "333"]
+print(len(regex.findAll("\\d", "123", 2))); // expect: 2
+print(regex.replace("(\\w+)@(\\w+)", "bob@site", "$2 at ${1}")); // expect: site at bob
+print(regex.replace("\\d+", "a1b22", m => "<" + m.text + ">")); // expect: a<1>b<22>
+print(regex.split("\\s*,\\s*", "a , b,c")); // expect: ["a", "b", "c"]
+print(regex.split(",", "a,b,c", 2)); // expect: ["a", "b,c"]
+print(regex.escape("a.b*")); // expect: a\.b\*
+print(regex.test(regex.escape("1+1"), "1+1=2")); // expect: true
 
-try { regex.test("(", "x"); } catch (e: ValueError) { print e.message; } // expect: regex.test() bad pattern: missing closing ): `(`.
-try { regex.replace("a", "a", 1); } catch (e: TypeError) { print e.message; } // expect: regex.replace() expects a string or a function as argument 3, got number.
-try { regex.replace("a", "a", m => 1); } catch (e: TypeError) { print e.message; } // expect: regex.replace() expects the function to return a string, got number.
+try { regex.test("(", "x"); } catch e is ValueError { print(e.message); } // expect: regex.test() bad pattern: missing closing ): `(`.
+try { regex.replace("a", "a", 1); } catch e is TypeError { print(e.message); } // expect: regex.replace() expects a string or a function as argument 3, got number.
+try { regex.replace("a", "a", m => 1); } catch e is TypeError { print(e.message); } // expect: regex.replace() expects the function to return a string, got number.

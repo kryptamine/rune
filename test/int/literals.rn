@@ -1,14 +1,14 @@
-print 0xff;          // expect: 255
-print 0XFF;          // expect: 255
-print 0b101;         // expect: 5
-print 0o17;          // expect: 15
-print 010;           // expect: 10
-print 1_000_000;     // expect: 1000000
-print 0xdead_beef;   // expect: 3735928559
-print 1_0.2_5;       // expect: 10.25
-print 9223372036854775807; // expect: 9223372036854775807
-print -9223372036854775807 - 1; // expect: -9223372036854775808
-print math.MAX_INT;  // expect: 9223372036854775807
-print math.MIN_INT;  // expect: -9223372036854775808
-print 1e3;           // expect: 1000
-print math.isInt(1e3); // expect: false
+print(0xff);          // expect: 255
+print(0XFF);          // expect: 255
+print(0b101);         // expect: 5
+print(0o17);          // expect: 15
+print(010);           // expect: 10
+print(1_000_000);     // expect: 1000000
+print(0xdead_beef);   // expect: 3735928559
+print(1_0.2_5);       // expect: 10.25
+print(9223372036854775807); // expect: 9223372036854775807
+print(-9223372036854775807 - 1); // expect: -9223372036854775808
+print(math.MAX_INT);  // expect: 9223372036854775807
+print(math.MIN_INT);  // expect: -9223372036854775808
+print(1e3);           // expect: 1000
+print(math.isInt(1e3)); // expect: false

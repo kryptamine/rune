@@ -1,0 +1,10 @@
+// A method name some other method shares is checked when the call runs.
+struct Stack { items }
+impl Stack {
+  fun push(self, x) { return Stack { items: self.items.append(x) }; }
+}
+
+let s = Stack { items: [] };
+print(s.push(1).items); // expect: [1]
+let a = [1];
+a.push(2); // expect runtime error: [line: 10] TypeError: Cannot call in-place method 'push' of array: its receiver is in an immutable variable.

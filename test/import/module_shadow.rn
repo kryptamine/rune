@@ -1,2 +1,2 @@
 let module = { dir: "mine" };
-print module.dir; // expect: mine
+print(module.dir); // expect: mine

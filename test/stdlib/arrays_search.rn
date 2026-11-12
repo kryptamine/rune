@@ -1,20 +1,20 @@
 let xs = [3, 8, 5, 8];
-print xs.every(x => x > 2);         // expect: true
-print xs.every(x => x > 3);         // expect: false
-print [].every(x => false);         // expect: true
-print xs.some(x => x == 5);         // expect: true
-print [].some(x => true);           // expect: false
-print xs.find(x => x > 4);          // expect: 8
-print xs.find(x => x > 9);          // expect: nil
-print xs.findIndex(x => x > 4);     // expect: 1
-print xs.findIndex(x => x > 9);     // expect: -1
+print(xs.every(x => x > 2));         // expect: true
+print(xs.every(x => x > 3));         // expect: false
+print([].every(x => false));         // expect: true
+print(xs.some(x => x == 5));         // expect: true
+print([].some(x => true));           // expect: false
+print(xs.find(x => x > 4));          // expect: 8
+print(xs.find(x => x > 9));          // expect: nil
+print(xs.findIndex(x => x > 4));     // expect: 1
+print(xs.findIndex(x => x > 9));     // expect: -1
 
 let mut calls = 0;
 xs.some(x => { calls++; return x == 8; });
-print calls;                        // expect: 2
+print(calls);                        // expect: 2
 
 try {
     xs.find(x => x.y);
-} catch (e: TypeError) {
-    print e.message;                // expect: Cannot read property 'y' of number.
+} catch e is TypeError {
+    print(e.message);                // expect: Cannot read property 'y' of number.
 }

@@ -17,13 +17,13 @@ let mut line = io.readLine();
 while line != nil {
     try {
         total += number(line);
-    } catch (e: ValueError) {
+    } catch e is ValueError {
         io.eprint("skipping '{line}'");
     }
     line = io.readLine();
 }
 io.write("total: ");
-print total;
+print(total);
 ```
 
 ```sh
@@ -37,7 +37,7 @@ total: 42
 ```rune
 // count.rn
 let words = regex.split(r"\s+", io.read().trim());
-print "{len(words)} words";
+print("{len(words)} words");
 ```
 
 ```sh

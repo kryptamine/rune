@@ -273,10 +273,6 @@ func (p *Interpreter) slow(in Instr) error {
 			regs[in.a()+n] = value.NewArray(append([]value.Value(nil), arr[got:]...))
 		}
 
-	case opPrint:
-		p.buf = append(helpers.AppendValue(p.buf[:0], regs[in.a()]), '\n')
-		p.host.Stdio.Out(p.buf)
-
 	case opThrow:
 		v := regs[in.a()]
 		if v.Kind() != value.Struct {

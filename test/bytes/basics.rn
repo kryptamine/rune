@@ -1,41 +1,41 @@
 let b = b"hi\x00\xff";
-print b;         // expect: b"hi\x00\xff"
-print len(b);    // expect: 4
-print type(b);   // expect: bytes
-print b[0];      // expect: 104
-print b[3];      // expect: 255
-print b"\{\}\"\\\n\t"; // expect: b"\{\}\"\\\n\t"
-print b"" == b"";       // expect: true
-print b + b"!";         // expect: b"hi\x00\xff!"
-print b"a" < b"b";      // expect: true
-print b"ab" == b"ab";   // expect: true
-print b"1" == "1";      // expect: false
-print str(b"x");        // expect: b"x"
-print [b"q"];           // expect: [b"q"]
+print(b);         // expect: b"hi\x00\xff"
+print(len(b));    // expect: 4
+print(type(b));   // expect: bytes
+print(b[0]);      // expect: 104
+print(b[3]);      // expect: 255
+print(b"\{\}\"\\\n\t"); // expect: b"\{\}\"\\\n\t"
+print(b"" == b"");       // expect: true
+print(b + b"!");         // expect: b"hi\x00\xff!"
+print(b"a" < b"b");      // expect: true
+print(b"ab" == b"ab");   // expect: true
+print(b"1" == "1");      // expect: false
+print(str(b"x"));        // expect: b"x"
+print([b"q"]);           // expect: [b"q"]
 
-for i, x in b"AB" { print "{i}:{x}"; }
+for i, x in b"AB" { print("{i}:{x}"); }
 // expect: 0:65
 // expect: 1:66
 
-print bytes.from("é");             // expect: b"\xc3\xa9"
-print bytes.from([1, 2, 255]);     // expect: b"\x01\x02\xff"
-print bytes.from(b"z");            // expect: b"z"
-print bytes.alloc(3);              // expect: b"\x00\x00\x00"
-print bytes.alloc(2, 65);          // expect: b"AA"
-print b"hello".toString();         // expect: hello
-print b"hi".toArray();             // expect: [104, 105]
-print b"hello".slice(1, -1);       // expect: b"ell"
-print b"hello".slice(3);    // expect: b"lo"
-print b"hello".indexOf(b"ll");     // expect: 2
-print b"a".concat(b"b", b"c"); // expect: b"abc"
-print b"\x01\xab".hex();           // expect: 01ab
-print bytes.fromHex("01AB");       // expect: b"\x01\xab"
-print b"hi!".base64();             // expect: aGkh
-print bytes.fromBase64("aGkh");    // expect: b"hi!"
-print match b"x" { b"x" => "matched", _ => "no" }; // expect: matched
+print(bytes.from("é"));             // expect: b"\xc3\xa9"
+print(bytes.from([1, 2, 255]));     // expect: b"\x01\x02\xff"
+print(bytes.from(b"z"));            // expect: b"z"
+print(bytes.alloc(3));              // expect: b"\x00\x00\x00"
+print(bytes.alloc(2, 65));          // expect: b"AA"
+print(b"hello".toString());         // expect: hello
+print(b"hi".toArray());             // expect: [104, 105]
+print(b"hello".slice(1, -1));       // expect: b"ell"
+print(b"hello".slice(3));    // expect: b"lo"
+print(b"hello".indexOf(b"ll"));     // expect: 2
+print(b"a".concat(b"b", b"c")); // expect: b"abc"
+print(b"\x01\xab".hex());           // expect: 01ab
+print(bytes.fromHex("01AB"));       // expect: b"\x01\xab"
+print(b"hi!".base64());             // expect: aGkh
+print(bytes.fromBase64("aGkh"));    // expect: b"hi!"
+print(match b"x" { b"x" => "matched", _ => "no" }); // expect: matched
 
 fun fails(f) {
-  try { f(); } catch (e) { print type(e) + ": " + e.message; }
+  try { f(); } catch e { print(type(e) + ": " + e.message); }
 }
 fails(() => b"\xff".toString());   // expect: ValueError: bytes.toString() got bytes that are not valid UTF-8.
 fails(() => bytes.from([256]));    // expect: ValueError: bytes.from() expects bytes from 0 to 255, got 256.

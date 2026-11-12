@@ -1,0 +1,10 @@
+let mut xs = [10, 20, 30];
+print(xs[-1]); // expect: 30
+print(xs[-3]); // expect: 10
+xs[-1] = 31;
+xs[-2] += 1;
+print(xs); // expect: [10, 21, 31]
+print("héllo"[-4]); // expect: é
+print(b"hi"[-1]); // expect: 105
+print(xs?.[-4]); // expect: nil
+print(xs[-4]); // expect runtime error: [line: 10] IndexError: Index out of bounds: -4 of 3

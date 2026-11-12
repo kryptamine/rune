@@ -1,6 +1,6 @@
 fun main() {
-  print "out";
+  print("out");
   io.eprint("err");
   [1].map(x => os.exit(5));
-  print "unreachable";
+  print("unreachable");
 }

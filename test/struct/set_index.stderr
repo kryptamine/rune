@@ -1,3 +1,3 @@
-[line: 4] TypeError: Cannot set field 'x' of Point: only a mut self method can set the fields of self.
-    4 | p["x"] = 3; // expect runtime error: [line: 4] TypeError: Cannot set field 'x' of Point: only a mut self method can set the fields of self.
+[line: 6] KeyError: Point has no field 'z'.
+    6 | p["z"] = 1; // expect runtime error: [line: 6] KeyError: Point has no field 'z'.
       |      ^

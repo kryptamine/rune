@@ -219,11 +219,7 @@ func (s *Scanner) scanToken() {
 		s.newline()
 		break
 	case '&', '|':
-		// A doubled one is most likely meant as "and"/"or": say so, and
-		// emit that operator so the parser has nothing to trip over.
 		if s.match(char) {
-			word := helpers.If(char == '&', "and", "or")
-			s.errorAt(fmt.Sprintf("Unexpected '%c%c'; use '%s'.", char, char, word))
 			s.addToken(helpers.If(char == '&', ast.AND, ast.OR))
 
 			break

@@ -1,2 +1,2 @@
 // [line: 2] Error: Integer literal is too large.
-print 9223372036854775808;
+print(9223372036854775808);

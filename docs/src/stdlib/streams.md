@@ -17,18 +17,18 @@ let path = fs.join(fs.tempDir(), "access.log");
 fs.write(path, "GET /a 200\nPOST /b 500\nGET /c 404\n");
 
 let log = fs.open(path);
-print log.readLine();   // GET /a 200
-print log.read(4);      // b"POST"
-print log.readLine();   //  /b 500
-print "%q".format(log.readText()); // "GET /c 404\n"
-print log.readLine();   // nil
+print(log.readLine());   // GET /a 200
+print(log.read(4));      // b"POST"
+print(log.readLine());   //  /b 500
+print("%q".format(log.readText())); // "GET /c 404\n"
+print(log.readLine());   // nil
 log.close();
 
 let mut errors = 0;
 for line in fs.open(path) {
     if !line.endsWith(" 200") errors++;
 }
-print errors;           // 2
+print(errors);           // 2
 ```
 
 ## Writing
@@ -48,12 +48,12 @@ for line in fs.open(src) {
     out.write(line.upper() + "\n");
 }
 out.close();
-print fs.lines(dst);   // ["ALPHA", "BETA"]
+print(fs.lines(dst));   // ["ALPHA", "BETA"]
 
 let log = fs.open(dst, "a");
 log.write("GAMMA\n");
 log.flush();
-print fs.lines(dst);   // ["ALPHA", "BETA", "GAMMA"]
+print(fs.lines(dst));   // ["ALPHA", "BETA", "GAMMA"]
 log.close();
 ```
 
@@ -66,7 +66,7 @@ let s = fs.open(fs.join(fs.tempDir(), "data.txt"), "w");
 s.close();
 try {
     s.readLine();
-} catch (e: IOError) {
-    print e.message.endsWith("stream is closed.");   // true
+} catch e is IOError {
+    print(e.message.endsWith("stream is closed."));   // true
 }
 ```

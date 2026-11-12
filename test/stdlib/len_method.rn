@@ -1,7 +1,7 @@
-print [1, 2].len();    // expect: 2
-print "héllo".len();   // expect: 5
-print {a: 1}.len();    // expect: 1
-print Map().len();     // expect: 0
-print Set([1, 1, 2]).len(); // expect: 2
-print b"abc".len();    // expect: 3
-print [[1], [2, 3]].map(xs => xs.len()); // expect: [1, 2]
+print([1, 2].len());    // expect: 2
+print("héllo".len());   // expect: 5
+print({a: 1}.len());    // expect: 1
+print(Map().len());     // expect: 0
+print(Set([1, 1, 2]).len()); // expect: 2
+print(b"abc".len());    // expect: 3
+print([[1], [2, 3]].map(xs => xs.len())); // expect: [1, 2]

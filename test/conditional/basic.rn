@@ -1,36 +1,36 @@
 let x = 5;
-print x > 3 ? "big" : "small"; // expect: big
-print x > 9 ? "a" : x > 4 ? "b" : "c"; // expect: b
-print (x > 9 ? 1 : 2) + 1; // expect: 3
-print nil ? 1 : 0; // expect: 0
-print 0 ? 1 : 0; // expect: 0
-print [] ? 1 : 0; // expect: 1
+print(x > 3 ? "big" : "small"); // expect: big
+print(x > 9 ? "a" : x > 4 ? "b" : "c"); // expect: b
+print((x > 9 ? 1 : 2) + 1); // expect: 3
+print(nil ? 1 : 0); // expect: 0
+print(0 ? 1 : 0); // expect: 0
+print([] ? 1 : 0); // expect: 1
 
 let parity = n => n % 2 == 0 ? "even" : "odd";
-print [1, 2, 3].map(parity); // expect: ["odd", "even", "odd"]
+print([1, 2, 3].map(parity)); // expect: ["odd", "even", "odd"]
 
 let mut y = 1;
 y = y > 0 ? y + 10 : y;
-print y; // expect: 11
+print(y); // expect: 11
 
 let mut z = 0;
 let w = true ? z = 7 : 0;
-print [z, w]; // expect: [7, 7]
+print([z, w]); // expect: [7, 7]
 
 let mut calls = [];
 fun log(v) { calls.push(v); return v; }
 log(true) ? log("then") : log("else");
-print calls; // expect: [true, "then"]
+print(calls); // expect: [true, "then"]
 
-print { a: x == 5 ? 1 : 2 }; // expect: {a: 1}
-print 0..(x > 2 ? 3 : 1); // expect: [0, 1, 2]
-print "{x > 0 ? "pos" : "neg"}"; // expect: pos
+print({ a: x == 5 ? 1 : 2 }); // expect: {a: 1}
+print(0..(x > 2 ? 3 : 1)); // expect: [0, 1, 2]
+print("{x > 0 ? "pos" : "neg"}"); // expect: pos
 
 let pick = true ? (a => a * 2) : (a => a);
-print pick(4); // expect: 8
+print(pick(4)); // expect: 8
 
 struct P { x }
 let p = x > 0 ? P { x } : nil;
-print p; // expect: P {x: 5}
+print(p); // expect: P {x: 5}
 
-if (x > 0 ? true : false) print "ok"; // expect: ok
+if (x > 0 ? true : false) print("ok"); // expect: ok

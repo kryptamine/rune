@@ -1,0 +1,7 @@
+print(true && false); // expect: false
+print(true || false); // expect: true
+print(nil || 0 || "x"); // expect: x
+print(1 && 2); // expect: 2
+print(!true == false); // expect: true
+print(!(1 == 2)); // expect: true
+print(!nil && !0); // expect: true

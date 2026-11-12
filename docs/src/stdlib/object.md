@@ -8,15 +8,15 @@
 ```rune
 let mut config = { port: 8080, host: "localhost", debug: false };
 
-print config.has("port");             // true
-print config.get("user");             // nil
-print config.get("user", "admin");    // admin
-print config.keys();                  // ["debug", "host", "port"]
-print config.values();                // [false, "localhost", 8080]
-print config.entries();               // [["debug", false], ["host", "localhost"], ["port", 8080]]
-print config.delete("debug");         // true
-print config.delete("debug");         // false
-print config;                         // {host: "localhost", port: 8080}
+print(config.has("port"));             // true
+print(config.get("user"));             // nil
+print(config.get("user", "admin"));    // admin
+print(config.keys());                  // ["debug", "host", "port"]
+print(config.values());                // [false, "localhost", 8080]
+print(config.entries());               // [["debug", false], ["host", "localhost"], ["port", 8080]]
+print(config.delete("debug"));         // true
+print(config.delete("debug"));         // false
+print(config);                         // {host: "localhost", port: 8080}
 ```
 
 `entries()` pairs well with array destructuring:
@@ -24,16 +24,17 @@ print config;                         // {host: "localhost", port: 8080}
 ```rune
 let prices = { apple: 1.2, pear: 0.8 };
 for [fruit, price] in prices.entries() {
-    print "{fruit}: {price}";
+    print("{fruit}: {price}");
 }
 // apple: 1.2
 // pear: 0.8
 ```
 
-An object's own property of the same name comes first:
+Reading `o.k` gives an own property of that name first; a call `o.k()`
+always calls the method:
 
 ```rune
 let stats = { keys: 3 };
-print stats.keys;          // 3
-print stats.has("keys");   // true
+print(stats.keys);          // 3
+print(stats.keys());        // ["keys"]
 ```

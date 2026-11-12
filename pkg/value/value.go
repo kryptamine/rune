@@ -115,7 +115,9 @@ type Shape struct {
 	// Keys holds Fields as values, for iteration.
 	Keys    []Value
 	Methods []Method
-	decls   []Field
+	// Namespace marks a built-in namespace, whose members are called as ns.f().
+	Namespace bool
+	decls     []Field
 }
 
 // Method is a method of an impl block or a built-in type; ID indexes the

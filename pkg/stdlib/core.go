@@ -8,6 +8,7 @@ import (
 
 // preludeNatives stay global; every other built-in lives in a namespace.
 var preludeNatives = []*Native{
+	writer("print", true, (*Stdio).Out),
 	{"len", 1, 1, length},
 	{"type", 1, 1, func(c *call) value.Value {
 		return value.NewString(helpers.TypeName(c.args[0]))

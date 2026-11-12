@@ -1,5 +1,5 @@
 // Assignment on RHS of variable.
 let mut a = "before";
 let c = a = "var";
-print a; // expect: var
-print c; // expect: var
+print(a); // expect: var
+print(c); // expect: var

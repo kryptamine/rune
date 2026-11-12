@@ -1,8 +1,8 @@
 fun fails(f) {
   try {
     f();
-  } catch (e) {
-    print type(e) + ": " + e.message;
+  } catch e {
+    print(type(e) + ": " + e.message);
   }
 }
 
@@ -21,4 +21,4 @@ fails(() => int(math.INF));         // expect: ValueError: int() cannot convert 
 
 let mut m = math.MAX_INT;
 fails(() => { m++; });              // expect: ValueError: Integer overflow.
-print 1 / 0;                        // expect: inf
+print(1 / 0);                        // expect: inf

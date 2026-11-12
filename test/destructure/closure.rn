@@ -1,5 +1,5 @@
 let { f, n } = { f: fun () { return n; }, n: 5 };
-print f(); // expect: 5
+print(f()); // expect: 5
 
 fun make() {
   let { mut count } = { count: 0 };
@@ -8,10 +8,10 @@ fun make() {
 
 let c = make();
 c();
-print c(); // expect: 2
+print(c()); // expect: 2
 
 fun capture({ x }) {
   return fun () { return x; };
 }
 
-print capture({ x: 7 })(); // expect: 7
+print(capture({ x: 7 })()); // expect: 7

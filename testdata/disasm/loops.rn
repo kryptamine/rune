@@ -1,5 +1,5 @@
 let mut i = 0;
 while i < 10 { i = i + 1; }
-for j in 0..3 step 2 { print j; }
+for j in 0..3 step 2 { print(j); }
 for x in [1, 2] { if x == 2 { break; } continue; }
 while true { if i { break; } }

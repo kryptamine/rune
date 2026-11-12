@@ -9,7 +9,7 @@ fun total(order) {
 }
 
 let orders = [{ price: 10, qty: 2 }, 5];
-print orders.map(total);
+print(orders.map(total));
 ```
 
 ```
@@ -25,22 +25,14 @@ The parser recovers from a syntax error and reports all of them in one run:
 
 ```rune
 let x = (1 + ;
-print x
+print(x)
 ```
 
 ```
 [line: 1] Error at ';': Expect expression.
     1 | let x = (1 + ;
       |              ^
-[line: 3] Error at end: Expect ';' after value.
-```
-
-`&&` and `||` are reported with a hint to use `and` / `or`:
-
-```
-[line: 1] Error: Unexpected '&&'; use 'and'.
-    1 | if a && b { print 1; }
-      |      ^
+[line: 2] Error at end: Expect ';' after expression.
 ```
 
 `run` exits with `65` on a syntax or compile error, `70` on an uncaught

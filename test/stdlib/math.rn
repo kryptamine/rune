@@ -1,12 +1,12 @@
-print math.floor(3.7); // expect: 3
-print math.ceil(3.2); // expect: 4
-print math.round(2.5); // expect: 3
-print math.abs(-4); // expect: 4
-print math.sqrt(16); // expect: 4
-print math.pow(2, 10); // expect: 1024
-print math.min(3, 1, 2); // expect: 1
-print math.max(3, 1, 2); // expect: 3
-print math.floor(math.PI); // expect: 3
-print math.INF > 1e308; // expect: true
+print(math.floor(3.7)); // expect: 3
+print(math.ceil(3.2)); // expect: 4
+print(math.round(2.5)); // expect: 3
+print(math.abs(-4)); // expect: 4
+print(math.sqrt(16)); // expect: 4
+print(math.pow(2, 10)); // expect: 1024
+print(math.min(3, 1, 2)); // expect: 1
+print(math.max(3, 1, 2)); // expect: 3
+print(math.floor(math.PI)); // expect: 3
+print(math.INF > 1e308); // expect: true
 let r = math.random();
-print r >= 0 and r < 1; // expect: true
+print(r >= 0 && r < 1); // expect: true

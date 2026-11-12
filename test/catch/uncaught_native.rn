@@ -4,6 +4,6 @@ fun f(x) {
 
 try {
   [1].map(f);
-} catch (e: KeyError) {
-  print "unreachable";
+} catch e is KeyError {
+  print("unreachable");
 }
