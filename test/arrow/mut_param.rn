@@ -1,0 +1,1 @@
+let bad = (x) => { x = 1; }; // Error at 'x': Cannot assign to immutable variable 'x'.

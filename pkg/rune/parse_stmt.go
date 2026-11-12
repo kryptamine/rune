@@ -103,6 +103,27 @@ const maxArity = 8
 // functionRest parses a function's parameter list and body; the opening
 // "(" has already been consumed.
 func (s *Parser) functionRest(name ast.Token) (*ast.FunctionStmt, error) {
+	parameters, patterns, err := s.parameters()
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = s.consume(ast.LEFT_BRACE, "Expect '{' before function body.")
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := s.block()
+	if err != nil {
+		return nil, err
+	}
+
+	return ast.NewFunctionStmt(name, parameters, append(patterns, body...)), nil
+}
+
+// parameters parses a parameter list up to and including ")", returning
+// the destructuring of pattern parameters to run first in the body.
+func (s *Parser) parameters() ([]ast.Binding, []ast.Stmt, error) {
 	parameters := []ast.Binding{}
 
 	var patterns []ast.Stmt
@@ -119,7 +140,7 @@ func (s *Parser) functionRest(name ast.Token) (*ast.FunctionStmt, error) {
 
 			param, pattern, err := s.parameter(len(parameters))
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 
 			parameters = append(parameters, param)
@@ -135,21 +156,8 @@ func (s *Parser) functionRest(name ast.Token) (*ast.FunctionStmt, error) {
 	}
 
 	_, err := s.consume(ast.RIGHT_PAREN, "Expect ')' after parameters.")
-	if err != nil {
-		return nil, err
-	}
 
-	_, err = s.consume(ast.LEFT_BRACE, "Expect '{' before function body.")
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := s.block()
-	if err != nil {
-		return nil, err
-	}
-
-	return ast.NewFunctionStmt(name, parameters, append(patterns, body...)).(*ast.FunctionStmt), nil
+	return parameters, patterns, err
 }
 
 // parameter parses a parameter: a binding, or a pattern, which binds a
@@ -417,6 +425,20 @@ func (s *Parser) expressionStatement() (ast.Stmt, error) {
 	}
 
 	return ast.NewExprStmt(expr), nil
+}
+
+// braceBody parses a block unless "{" starts an object literal; ok
+// reports whether it did.
+func (s *Parser) braceBody() (stmts []ast.Stmt, ok bool, err error) {
+	if s.isObjectLiteralStart() || !s.match(ast.LEFT_BRACE) {
+		return nil, false, nil
+	}
+
+	defer s.allowStructs(structsAll)()
+
+	stmts, err = s.block()
+
+	return stmts, true, err
 }
 
 func (s *Parser) block() ([]ast.Stmt, error) {

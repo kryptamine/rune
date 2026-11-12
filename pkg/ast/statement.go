@@ -163,7 +163,7 @@ type FunctionStmt struct {
 	Body       []Stmt
 }
 
-func NewFunctionStmt(name Token, parameters []Binding, body []Stmt) Stmt {
+func NewFunctionStmt(name Token, parameters []Binding, body []Stmt) *FunctionStmt {
 	return &FunctionStmt{Binding: Binding{Name: name}, Parameters: parameters, Body: body}
 }
 

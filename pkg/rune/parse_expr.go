@@ -12,6 +12,10 @@ func (s *Parser) expression() (ast.Expr, error) {
 }
 
 func (s *Parser) assignment() (ast.Expr, error) {
+	if fn, ok, err := s.arrowFunction(); ok {
+		return fn, err
+	}
+
 	expr, err := s.rangeExpr()
 
 	if err != nil {
@@ -583,11 +587,8 @@ func (s *Parser) arrayLiteral() (ast.Expr, error) {
 func (s *Parser) functionExpr() (ast.Expr, error) {
 	defer s.allowStructs(structsAll)()
 
-	keyword := s.advance()
+	name := anonName(s.advance())
 	s.advance()
-
-	name := ast.NewToken(ast.FUN, "", "", keyword.Line)
-	name.Col = keyword.Col
 
 	decl, err := s.functionRest(name)
 	if err != nil {
@@ -595,6 +596,59 @@ func (s *Parser) functionExpr() (ast.Expr, error) {
 	}
 
 	return ast.NewFunctionExpr(decl), nil
+}
+
+// arrowFunction parses (params) => body or param => body; ok is false,
+// with nothing consumed, if the tokens ahead are not one.
+func (s *Parser) arrowFunction() (fn ast.Expr, ok bool, err error) {
+	start, nerrs := s.current, len(s.errors)
+	name := anonName(s.peek())
+
+	params, patterns, ok := s.arrowParams()
+	if !ok || !s.check(ast.ARROW) {
+		s.current, s.errors = start, s.errors[:nerrs]
+		return nil, false, nil
+	}
+
+	body, err := s.arrowBody(s.advance())
+	if err != nil {
+		return nil, true, err
+	}
+
+	return ast.NewFunctionExpr(ast.NewFunctionStmt(name, params, append(patterns, body...))), true, nil
+}
+
+func (s *Parser) arrowParams() ([]ast.Binding, []ast.Stmt, bool) {
+	if s.match(ast.LEFT_PAREN) {
+		params, patterns, err := s.parameters()
+		return params, patterns, err == nil
+	}
+
+	if s.bindingEnd(0) < 0 {
+		return nil, nil, false
+	}
+
+	b, _ := s.binding("")
+
+	return []ast.Binding{b}, nil, true
+}
+
+// arrowBody parses a block, or an expression whose value is returned.
+func (s *Parser) arrowBody(arrow ast.Token) ([]ast.Stmt, error) {
+	if body, ok, err := s.braceBody(); ok {
+		return body, err
+	}
+
+	e, err := s.assignment()
+
+	return []ast.Stmt{ast.NewReturnStmt(e, arrow)}, err
+}
+
+func anonName(at ast.Token) ast.Token {
+	name := ast.NewToken(ast.FUN, "", "", at.Line)
+	name.Col = at.Col
+
+	return name
 }
 
 // isObjectLiteralStart reports whether the upcoming tokens are "{", a property name and ":".
