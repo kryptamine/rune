@@ -1,0 +1,15 @@
+struct Counter { n = 0 }
+
+impl Counter {
+  fun incr(mut self) {
+    self.n++;
+    throw ValueError { message: "no" };
+  }
+}
+
+let mut c = Counter {};
+try {
+  c.incr();
+} catch {
+}
+print c.n; // expect: 0

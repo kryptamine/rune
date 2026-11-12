@@ -1,0 +1,7 @@
+struct Point { x }
+
+impl Point {
+  fun origin() { return Point { x: 0 }; }
+}
+
+Point { x: 1 }.origin(); // expect runtime error: [line: 7] TypeError: 'origin' is a static method of Point; call it as Point.origin().

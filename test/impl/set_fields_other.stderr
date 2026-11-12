@@ -1,0 +1,5 @@
+[line: 6] TypeError: Cannot set field 'x' of Point: only a mut self method can set the fields of self.
+    6 |     o.x = self.x; // expect runtime error: [line: 6] TypeError: Cannot set field 'x' of Point: only a mut self method can set the fields of self.
+      |       ^
+  at Point.copyTo (line 6)
+  at <script> (line 11)

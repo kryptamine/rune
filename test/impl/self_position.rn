@@ -1,0 +1,6 @@
+struct Point { x }
+
+impl Point {
+  fun f(a, self) {} // [line: 4] Error at 'self': 'self' must be the first parameter.
+  fun g(...self) {} // [line: 5] Error at 'self': 'self' cannot be a rest parameter.
+}

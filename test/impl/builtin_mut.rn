@@ -1,0 +1,4 @@
+impl array {
+  fun clear(mut self) { self = []; } // [line: 2] Error at 'clear': Only methods of structs can take 'mut self'.
+  fun make() { return []; } // [line: 3] Error at 'make': Methods of array must take self.
+}

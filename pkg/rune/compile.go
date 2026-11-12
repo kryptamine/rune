@@ -29,6 +29,11 @@ type funcState struct {
 	// has passed, so reading them needs no check.
 	defined map[*ast.Local]bool
 	unit    *unit
+	// mutSelf is the mut self of a method, the only struct whose fields
+	// can be set; selfCell is set when a closure captures it, so returns
+	// put it back into register 0 for the caller.
+	mutSelf  *ast.Local
+	selfCell bool
 }
 
 // unit is what the functions of a program share: each field name's one
@@ -53,10 +58,11 @@ type constKey struct {
 // compile compiles a program; builtins are the declarations the resolver
 // made for the built-ins it names. The script takes the program's
 // arguments and returns what main, if any, returns.
-func compile(stmts []ast.Stmt, builtins []namedLocal, main *ast.FunctionStmt) (*Program, error) {
-	return compileScript(func(fs *funcState, args *ast.Local) *ast.Token {
+func compile(stmts []ast.Stmt, builtins []namedLocal, main *ast.FunctionStmt, methods methodTable) (*Program, error) {
+	prog, err := compileScript(func(fs *funcState, args *ast.Local) *ast.Token {
 		fs.declareStructs(stmts)
 		fs.declareTopLevel(stmts, builtins)
+		fs.declareMethods(stmts)
 		fs.stmts(stmts)
 
 		if main == nil {
@@ -75,6 +81,11 @@ func compile(stmts []ast.Stmt, builtins []namedLocal, main *ast.FunctionStmt) (*
 
 		return &main.Name
 	})
+	if prog != nil {
+		prog.methods = methods
+	}
+
+	return prog, err
 }
 
 // compileExpr compiles a lone expression into a program returning it.
@@ -163,6 +174,37 @@ func (fs *funcState) declareStructs(stmts []ast.Stmt) {
 	}
 }
 
+// declareMethods makes the closures of every method before any other
+// code runs, once the top-level variables they may capture exist. It
+// first collects the method names, before any string constant is made.
+func (fs *funcState) declareMethods(stmts []ast.Stmt) {
+	var impls []*ast.ImplStmt
+
+	for _, stmt := range stmts {
+		if impl, ok := stmt.(*ast.ImplStmt); ok {
+			impls = append(impls, impl)
+
+			for _, m := range impl.Methods {
+				fs.unit.names[m.Name] = m.Name
+			}
+		}
+	}
+
+	for _, impl := range impls {
+		for _, m := range impl.Methods {
+			var self *ast.Local
+			if m.Mut {
+				self = m.Fn.Parameters[0].Local
+			}
+
+			r := fs.alloc()
+			fs.emit(ins{op: opClosure, a: r, c: fs.functionNamed(m.Fn, impl.Type.Lexeme+"."+m.Name, self)}, nil)
+			fs.emit(ins{op: opMethod, a: r, c: int32(m.ID)}, nil)
+			fs.free = fs.nactive
+		}
+	}
+}
+
 // declareTopLevel gives every top-level variable a register of the
 // script, holding the built-in of that name until it is declared, and
 // every built-in the program names one holding it from the start.
@@ -206,7 +248,13 @@ func (fs *funcState) checked(l *ast.Local) bool {
 }
 
 func (fs *funcState) function(decl *ast.FunctionStmt) int32 {
-	f := newFunc(fs, decl.Name.Lexeme)
+	return fs.functionNamed(decl, decl.Name.Lexeme, nil)
+}
+
+// functionNamed compiles decl as name; mutSelf is the parameter of a
+// method taking mut self, or nil.
+func (fs *funcState) functionNamed(decl *ast.FunctionStmt, name string, mutSelf *ast.Local) int32 {
+	f := newFunc(fs, name)
 	f.proto.arity = len(decl.Parameters)
 	if decl.Rest {
 		f.proto.arity, f.proto.rest = f.proto.arity-1, true
@@ -219,13 +267,36 @@ func (fs *funcState) function(decl *ast.FunctionStmt) int32 {
 		}
 	}
 
+	f.mutSelf = mutSelf
+	f.selfCell = mutSelf != nil && mutSelf.Captured
+
 	f.stmts(decl.Body)
+	f.returnSelf()
 	f.emit(ins{op: opReturnNil}, nil)
 	f.finish()
 
 	fs.proto.protos = append(fs.proto.protos, f.proto)
 
 	return int32(len(fs.proto.protos) - 1)
+}
+
+// isMutSelf reports whether l is the mut self of this method or one
+// enclosing it.
+func (fs *funcState) isMutSelf(l *ast.Local) bool {
+	for f := fs; f != nil; f = f.parent {
+		if f.mutSelf == l {
+			return true
+		}
+	}
+
+	return false
+}
+
+// returnSelf puts a captured mut self back into register 0 before a return.
+func (fs *funcState) returnSelf() {
+	if fs.selfCell {
+		fs.emit(ins{op: opGetCell, a: 0, b: 0}, nil)
+	}
 }
 
 func (fs *funcState) emit(in ins, tok *ast.Token) int {

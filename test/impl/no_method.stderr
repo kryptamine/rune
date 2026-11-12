@@ -1,0 +1,3 @@
+[line: 7] KeyError: Point has no method 'nope'.
+    7 | print Point.nope(); // expect runtime error: [line: 7] KeyError: Point has no method 'nope'.
+      |             ^

@@ -1,0 +1,6 @@
+[line: 2] Error at 'clear': Only methods of structs can take 'mut self'.
+    2 |   fun clear(mut self) { self = []; } // [line: 2] Error at 'clear': Only methods of structs can take 'mut self'.
+      |       ^
+[line: 3] Error at 'make': Methods of array must take self.
+    3 |   fun make() { return []; } // [line: 3] Error at 'make': Methods of array must take self.
+      |       ^

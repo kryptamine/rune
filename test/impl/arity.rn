@@ -1,0 +1,7 @@
+struct Point { x }
+
+impl Point {
+  fun plus(self, k) { return self.x + k; }
+}
+
+Point { x: 1 }.plus(); // expect runtime error: [line: 7] ArgumentError: Expected 1 arguments but got 0.

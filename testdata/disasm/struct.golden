@@ -9,14 +9,14 @@ exit: 0
     5  STRUCT        2 4 0
     6  GETPROP       4 2 4
     7  PRINT         4 0 0
-    8  MOVE          4 2 0
-    9  LOADK         5 0 2
-   10  WITH          3 4 0
+    8  LOADK         4 0 2
+    9  GETPROP       5 2 5
+   10  STRUCT        3 4 0
    11  IS            4 3 1
    12  PRINT         4 0 0
    13  MOVE          4 1 0
-   14  LOADK         6 0 5
-   15  OBJECT        5 6 1
+   14  LOADK         6 0 6
+   15  OBJECT        5 6 0
    16  CALL          4 1 0
    17  PRINT         4 0 0
    18  RETURNNIL     0 0 0

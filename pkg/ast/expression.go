@@ -22,7 +22,6 @@ type ExprVisitor interface {
 	VisitUpdateExpr(updateExpr *UpdateExpr) (value.Value, error)
 	VisitRangeExpr(rangeExpr *RangeExpr) (value.Value, error)
 	VisitStructExpr(structExpr *StructExpr) (value.Value, error)
-	VisitWithExpr(withExpr *WithExpr) (value.Value, error)
 	VisitIsExpr(isExpr *IsExpr) (value.Value, error)
 	VisitMatchExpr(matchExpr *MatchExpr) (value.Value, error)
 	VisitInterpolationExpr(interpolationExpr *InterpolationExpr) (value.Value, error)
@@ -119,12 +118,15 @@ func NewGroupingExpr(expr Expr) Expr {
 	return &GroupingExpr{Expr: expr}
 }
 
-// CallExpr is callee(args); Optional is set for callee?.(args).
+// CallExpr is callee(args); Optional is set for callee?.(args). For a
+// method call, Writable is set when the receiver can take the new self a
+// mutating method leaves.
 type CallExpr struct {
 	Token    Token
 	Callee   Expr
 	Args     []Expr
 	Optional bool
+	Writable bool
 }
 
 type ArrayExpr struct {
@@ -225,22 +227,6 @@ type StructExpr struct {
 
 func (n *StructExpr) Accept(v ExprVisitor) (value.Value, error) {
 	return v.VisitStructExpr(n)
-}
-
-// WithExpr is target with { field: value, ... }; its fields are checked
-// at run time, so Slot of the pairs is unused.
-type WithExpr struct {
-	Target  Expr
-	Keyword Token
-	Pairs   []StructPair
-}
-
-func NewWithExpr(target Expr, keyword Token, pairs []StructPair) Expr {
-	return &WithExpr{Target: target, Keyword: keyword, Pairs: pairs}
-}
-
-func (n *WithExpr) Accept(v ExprVisitor) (value.Value, error) {
-	return v.VisitWithExpr(n)
 }
 
 // IsExpr is value is Type.

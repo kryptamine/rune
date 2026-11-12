@@ -1,0 +1,42 @@
+struct Counter { n = 0 }
+
+impl Counter {
+  fun incr(mut self) { self.n++; }
+  fun add(mut self, k) {
+    self.n += k;
+    return self.n;
+  }
+  fun twice(mut self) {
+    self.incr();
+    self.incr();
+  }
+}
+
+let mut c = Counter {};
+c.incr();
+c.incr();
+print c.n; // expect: 2
+print c.add(10); // expect: 12
+print c; // expect: Counter {n: 12}
+c.twice();
+print c.n; // expect: 14
+
+let mut cs = [Counter {}, Counter { n: 5 }];
+cs[1].incr();
+print cs; // expect: [Counter {n: 0}, Counter {n: 6}]
+
+let mut o = { c: Counter {} };
+o.c.add(3);
+print o.c.n; // expect: 3
+
+let mut g = Counter {};
+fun bump() { g.incr(); }
+bump();
+bump();
+print g.n; // expect: 2
+
+let mut i = 0;
+let mut xs = [Counter {}, Counter {}];
+xs[i++].incr();
+print i; // expect: 1
+print xs; // expect: [Counter {n: 1}, Counter {n: 0}]

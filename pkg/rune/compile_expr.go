@@ -65,9 +65,6 @@ func assigns(e ast.Expr) bool {
 		return false
 	case *ast.AssignExpr:
 		return true
-	case *ast.UpdateExpr:
-		_, ok := n.Target.(*ast.VarExpr)
-		return ok || assigns(n.Target)
 	case *ast.GroupingExpr:
 		return assigns(n.Expr)
 	case *ast.OptionalExpr:
@@ -81,7 +78,7 @@ func assigns(e ast.Expr) bool {
 	case *ast.UnaryExpr:
 		return assigns(n.Right)
 	case *ast.CallExpr:
-		return assigns(n.Callee) || anyAssigns(n.Args)
+		return n.Writable || assigns(n.Callee) || anyAssigns(n.Args)
 	case *ast.ArrayExpr:
 		return anyAssigns(n.Items)
 	case *ast.InterpolationExpr:
@@ -96,14 +93,10 @@ func assigns(e ast.Expr) bool {
 		return false
 	case *ast.StructExpr:
 		return pairsAssign(n.Pairs)
-	case *ast.WithExpr:
-		return assigns(n.Target) || pairsAssign(n.Pairs)
 	case *ast.IsExpr:
 		return assigns(n.Value) || assigns(n.Type)
 	case *ast.IndexExpr:
 		return assigns(n.Array) || assigns(n.Index)
-	case *ast.SetIndexExpr:
-		return assigns(n.Array) || assigns(n.Index) || assigns(n.Value)
 	case *ast.RangeExpr:
 		return assigns(n.Start) || assigns(n.End) || n.Step != nil && assigns(n.Step)
 	}
@@ -223,8 +216,6 @@ func (fs *funcState) expr(e ast.Expr, dst int32) {
 		})
 	case *ast.StructExpr:
 		fs.structLiteral(n, dst)
-	case *ast.WithExpr:
-		fs.with(n, dst)
 	case *ast.IsExpr:
 		v := fs.operand(n.Value, n.Type)
 		fs.emit(ins{op: opIs, a: dst, b: v, c: fs.exprAny(n.Type)}, &n.Token)
@@ -345,21 +336,6 @@ func (fs *funcState) structLiteral(n *ast.StructExpr, dst int32) {
 	}
 
 	fs.emit(ins{op: opStruct, a: dst, b: base, c: fs.constant(value.NewType(shape))}, nil)
-}
-
-// with evaluates the target and then the new fields into consecutive registers.
-func (fs *funcState) with(n *ast.WithExpr, dst int32) {
-	base := fs.alloc()
-	fs.expr(n.Target, base)
-
-	keys := make([]string, len(n.Pairs))
-	for i, pair := range n.Pairs {
-		keys[i] = pair.Key.Lexeme
-		fs.expr(pair.Value, fs.alloc())
-	}
-
-	fs.proto.keys = append(fs.proto.keys, keys)
-	fs.emit(ins{op: opWith, a: dst, b: base, c: int32(len(fs.proto.keys) - 1)}, &n.Keyword)
 }
 
 // writesEarly reports whether compiling e into a register writes it
@@ -519,6 +495,13 @@ func (fs *funcState) unary(n *ast.UnaryExpr, dst int32) {
 }
 
 func (fs *funcState) call(n *ast.CallExpr, dst int32) {
+	spread := slices.ContainsFunc(n.Args, ast.IsSpread)
+
+	if prop, ok := n.Callee.(*ast.IndexExpr); ok && isMethodCall(prop) && !n.Optional && !spread {
+		fs.invoke(n, prop, dst)
+		return
+	}
+
 	// The callee goes in dst when nothing above it is in use.
 	base := dst
 	if dst < fs.nactive || dst+1 != fs.free {
@@ -531,7 +514,7 @@ func (fs *funcState) call(n *ast.CallExpr, dst int32) {
 		fs.nilJump(base)
 	}
 
-	if !slices.ContainsFunc(n.Args, ast.IsSpread) {
+	if !spread {
 		for _, arg := range n.Args {
 			fs.expr(arg, fs.alloc())
 		}
@@ -551,6 +534,48 @@ func (fs *funcState) call(n *ast.CallExpr, dst int32) {
 	}
 
 	fs.emit(ins{op: opCallArray, a: base}, &n.Token)
+	fs.move(dst, base)
+}
+
+// invoke calls method prop of its receiver, which goes in the register
+// after the callee's. A writable receiver gets self back after a mutating
+// method returns.
+func (fs *funcState) invoke(n *ast.CallExpr, prop *ast.IndexExpr, dst int32) {
+	var lv *lval
+	if n.Writable {
+		lv = fs.ref(prop.Array, n.Args...)
+	}
+
+	base := dst
+	if dst < fs.nactive || dst+1 != fs.free {
+		base = fs.alloc()
+	}
+
+	self := fs.alloc()
+	if lv != nil {
+		lv.check()
+		lv.load(self)
+	} else {
+		fs.expr(prop.Array, self)
+	}
+
+	if prop.Optional {
+		fs.nilJump(self)
+	}
+
+	for _, arg := range n.Args {
+		fs.expr(arg, fs.alloc())
+	}
+
+	name := fs.constant(value.NewString(prop.Token.Lexeme))
+	fs.emit(ins{op: opInvoke, a: base, b: int32(len(n.Args)), c: name, y: uint8(boolNum(n.Writable))}, &prop.Token)
+
+	if lv != nil {
+		skip := fs.emit(ins{op: opJmp}, &prop.Token)
+		lv.writeBack()
+		fs.patch([]int{skip})
+	}
+
 	fs.move(dst, base)
 }
 
@@ -603,46 +628,6 @@ func (fs *funcState) index(n *ast.IndexExpr, dst int32) {
 
 	i := fs.exprAny(n.Index)
 	fs.emit(ins{op: pick(n.Optional, opGetIndexOpt, opGetIndex), a: dst, b: t, c: i}, &n.Token)
-}
-
-// place is the target of a write: t[i], or for a property t.K[i].
-type place struct {
-	fs   *funcState
-	t, i int32
-	prop bool
-	tok  *ast.Token
-}
-
-// place evaluates the target (and for t[i] the index) of a write that
-// evaluates later before writing.
-func (fs *funcState) place(array, index ast.Expr, prop bool, tok *ast.Token, later ...ast.Expr) place {
-	pl := place{fs: fs, prop: prop, tok: tok}
-
-	if prop {
-		pl.t = fs.operand(array, later...)
-		pl.i = fs.constant(value.NewString(tok.Lexeme))
-	} else {
-		pl.t = fs.operand(array, append([]ast.Expr{index}, later...)...)
-		pl.i = fs.operand(index, later...)
-	}
-
-	return pl
-}
-
-// check makes a property write fail on a target that is not an object
-// before more code runs.
-func (pl place) check() {
-	if pl.prop {
-		pl.fs.emit(ins{op: opCheckProp, a: pl.t}, pl.tok)
-	}
-}
-
-func (pl place) load(dst int32) {
-	pl.fs.emit(ins{op: pick(pl.prop, opGetProp, opGetIndex), a: dst, b: pl.t, c: pl.i}, pl.tok)
-}
-
-func (pl place) store(v int32) {
-	pl.fs.emit(ins{op: pick(pl.prop, opSetProp, opSetIndex), a: pl.t, b: pl.i, c: v}, pl.tok)
 }
 
 // setIndex returns the register holding the assigned value.

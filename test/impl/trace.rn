@@ -1,0 +1,7 @@
+struct Point { x }
+
+impl Point {
+  fun bad(self) { return self.x.y; } // expect runtime error: [line: 4] TypeError: Cannot read property 'y' of number.
+}
+
+Point { x: 1 }.bad();

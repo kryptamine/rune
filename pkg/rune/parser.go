@@ -82,7 +82,11 @@ func parseFile(tokens []ast.Token, module bool) (*fileAST, []error) {
 			continue
 		}
 
+		_, isImpl := stmt.(*ast.ImplStmt)
+
 		switch {
+		case exported && isImpl:
+			parser.errors = append(parser.errors, errors.NewSyntaxError(tok, "Cannot export an impl block; methods go wherever their type does."))
 		case isDeclaration(stmt):
 		case exported:
 			parser.errors = append(parser.errors, errors.NewSyntaxError(tok, "Expect declaration after 'export'."))
@@ -105,9 +109,12 @@ func parseFile(tokens []ast.Token, module bool) (*fileAST, []error) {
 }
 
 func isDeclaration(stmt ast.Stmt) bool {
-	_, isStruct := stmt.(*ast.StructStmt)
+	switch stmt.(type) {
+	case *ast.StructStmt, *ast.ImplStmt:
+		return true
+	}
 
-	return isStruct || len(ast.Declared(stmt)) > 0
+	return len(ast.Declared(stmt)) > 0
 }
 
 // importDecl parses a.b [as m]; after "import".
@@ -180,7 +187,7 @@ func (s *Parser) synchronize() {
 		}
 
 		switch t := s.peek().TokenType; t {
-		case ast.FUN, ast.LET, ast.STRUCT, ast.IMPORT, ast.EXPORT, ast.MATCH:
+		case ast.FUN, ast.LET, ast.STRUCT, ast.IMPL, ast.IMPORT, ast.EXPORT, ast.MATCH:
 			return
 		default:
 			if stmtKeyword(t) {

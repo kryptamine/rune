@@ -22,6 +22,10 @@ func (s *Parser) declaration() (ast.Stmt, error) {
 		return s.structDeclaration()
 	}
 
+	if s.match(ast.IMPL) {
+		return s.implDeclaration()
+	}
+
 	if s.match(ast.IMPORT) {
 		return nil, errors.NewSyntaxError(s.previous(), "Imports must come before other statements.")
 	}
@@ -81,6 +85,40 @@ func (s *Parser) structDeclaration() (ast.Stmt, error) {
 	}
 
 	return ast.NewStructStmt(name, fields), nil
+}
+
+// implDeclaration parses impl Name { fun m(self) { ... } ... }; "impl" has
+// already been consumed.
+func (s *Parser) implDeclaration() (ast.Stmt, error) {
+	name, err := s.consume(ast.IDENTIFIER, "Expect type name after 'impl'.")
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := s.consume(ast.LEFT_BRACE, "Expect '{' after type name."); err != nil {
+		return nil, err
+	}
+
+	impl := &ast.ImplStmt{Type: name}
+
+	for !s.check(ast.RIGHT_BRACE) && !s.isAtEnd() {
+		if _, err := s.consume(ast.FUN, "Expect 'fun' in impl block."); err != nil {
+			return nil, err
+		}
+
+		fn, err := s.function("method")
+		if err != nil {
+			return nil, err
+		}
+
+		impl.Methods = append(impl.Methods, ast.ImplMethod{Fn: fn.(*ast.FunctionStmt)})
+	}
+
+	if _, err := s.consume(ast.RIGHT_BRACE, "Expect '}' after methods."); err != nil {
+		return nil, err
+	}
+
+	return impl, nil
 }
 
 func (s *Parser) function(kind string) (ast.Stmt, error) {

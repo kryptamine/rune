@@ -1,0 +1,14 @@
+struct Point { x, y = 0 }
+
+impl Point {
+  fun origin() { return Point { x: 0 }; }
+  fun of(x, y) { return Point { x: x, y: y }; }
+  fun len(self) { return self.x + self.y; }
+}
+
+print Point.origin(); // expect: Point {x: 0, y: 0}
+print Point.of(1, 2).len(); // expect: 3
+print Point.len(Point.of(2, 3)); // expect: 5
+let f = Point.len;
+print array.map([Point.of(1, 1), Point.of(2, 2)], Point.len); // expect: [2, 4]
+print f; // expect: <fn Point.len>

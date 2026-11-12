@@ -19,11 +19,11 @@ print math[key](1.2); // expect: 2
 try {
     math.PI = 3;
 } catch (e: TypeError) {
-    print e.message; // expect: Cannot set field 'PI' of namespace: structs are immutable.
+    print e.message; // expect: Cannot set field 'PI' of namespace: only a mut self method can set the fields of self.
 }
 
 try {
     math.PI++;
 } catch (e: TypeError) {
-    print e.message; // expect: Cannot set field 'PI' of namespace: structs are immutable.
+    print e.message; // expect: Cannot set field 'PI' of namespace: only a mut self method can set the fields of self.
 }

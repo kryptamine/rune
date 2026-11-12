@@ -1,0 +1,6 @@
+[line: 4] Error at 'x': Point has a field 'x'.
+    4 |   fun x(self) {} // [line: 4] Error at 'x': Point has a field 'x'.
+      |       ^
+[line: 9] Error at 'len': Point already has a method 'len'.
+    9 |   fun len(self) {} // [line: 9] Error at 'len': Point already has a method 'len'.
+      |       ^

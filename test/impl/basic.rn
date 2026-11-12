@@ -1,0 +1,13 @@
+struct Point { x, y = 0 }
+
+impl Point {
+  fun len(self) { return math.sqrt(self.x * self.x + self.y * self.y); }
+  fun moved(self, dx) { return Point { x: self.x + dx, y: self.y }; }
+  fun dist(self, o) { return self.moved(-o.x).len(); }
+}
+
+let p = Point { x: 3, y: 4 };
+print p.len(); // expect: 5
+print p.moved(1).moved(2).x; // expect: 6
+print p.x; // expect: 3
+print p.dist(Point { x: 3 }); // expect: 4

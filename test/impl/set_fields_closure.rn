@@ -1,0 +1,13 @@
+struct Counter { n }
+
+impl Counter {
+  fun bump(mut self, times) {
+    let add = k => { self.n += k; };
+    for i in 0..times add(i);
+    return self.n;
+  }
+}
+
+let mut c = Counter { n: 0 };
+print c.bump(4); // expect: 6
+print c; // expect: Counter {n: 6}

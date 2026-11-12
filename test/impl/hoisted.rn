@@ -1,0 +1,9 @@
+let factor = 2;
+let p = Point { x: 2 };
+print p.double(); // expect: 4
+
+impl Point {
+  fun double(self) { return self.x * factor; }
+}
+
+struct Point { x }

@@ -1,0 +1,3 @@
+[line: 4] Error at 'self': Cannot mutate immutable variable 'self'.
+    4 |   fun bad(self) { self.x = 1; } // [line: 4] Error at 'self': Cannot mutate immutable variable 'self'.
+      |                   ^

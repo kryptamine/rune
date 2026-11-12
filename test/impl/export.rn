@@ -1,0 +1,5 @@
+struct Point { x }
+
+export impl Point { // [line: 3] Error at 'impl': Cannot export an impl block; methods go wherever their type does.
+  fun f(self) {}
+}

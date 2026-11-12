@@ -1,0 +1,6 @@
+[line: 4] Error at 'self': 'self' must be the first parameter.
+    4 |   fun f(a, self) {} // [line: 4] Error at 'self': 'self' must be the first parameter.
+      |            ^
+[line: 5] Error at 'self': 'self' cannot be a rest parameter.
+    5 |   fun g(...self) {} // [line: 5] Error at 'self': 'self' cannot be a rest parameter.
+      |            ^

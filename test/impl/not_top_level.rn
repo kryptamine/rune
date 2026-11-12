@@ -1,0 +1,7 @@
+struct Point { x }
+
+{
+  impl Point { // [line: 4] Error at 'Point': Impl blocks must be at the top level.
+    fun f(self) {}
+  }
+}

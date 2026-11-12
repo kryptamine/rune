@@ -1,0 +1,6 @@
+[line: 3] Error at 'Point': 'Point' is not a struct of this file or a built-in type.
+    3 | impl Point { // [line: 3] Error at 'Point': 'Point' is not a struct of this file or a built-in type.
+      |      ^
+[line: 7] Error at 'Nope': 'Nope' is not a struct of this file or a built-in type.
+    7 | impl Nope { // [line: 7] Error at 'Nope': 'Nope' is not a struct of this file or a built-in type.
+      |      ^

@@ -351,11 +351,34 @@ reload:
 			goto slow
 
 		case opSetProp:
-			if t := regs[in.a()]; t.Kind() == value.Object {
+			t := regs[in.a()]
+			if k := t.Kind(); k == value.Object {
 				fr.pc = pc
 				t.Obj()[consts[in.b()].Str()] = regs[in.c()]
 
 				goto reload
+			} else if k != value.Struct || !in.y() {
+				goto slow
+			}
+
+			if slot := t.InternedSlot(consts[in.b()]); slot >= 0 {
+				fr.pc = pc + int(in.x())
+				dst := &regs[in.a()]
+				*dst = t.With(slot, regs[in.c()])
+
+				goto reload
+			}
+
+			goto slow
+
+		case opCheckProp:
+			t := regs[in.a()]
+			if k := t.Kind(); k == value.Object {
+				continue
+			} else if k == value.Struct && in.y() {
+				if t.InternedSlot(consts[in.b()]) >= 0 {
+					continue
+				}
 			}
 
 			goto slow
@@ -380,6 +403,41 @@ reload:
 			}
 
 			fr.pc = pc
+
+			base := fr.base + in.a() + 1
+			if need := base + f.proto.nregs; need > len(p.stack) {
+				p.grow(need)
+			}
+
+			p.frames = append(p.frames, frame{cl: f, base: base})
+
+			goto reload
+
+		case opInvoke:
+			recv := regs[in.a()+1]
+			if recv.Kind() != value.Struct {
+				goto slow
+			}
+
+			m := value.InternedMethod(recv.Shape().Methods, consts[in.c()])
+			if m == nil || !m.Self || m.Mut && !in.y() {
+				goto slow
+			}
+
+			fn := p.methods[m.ID]
+			f := (*Closure)(fn.Ptr())
+			if in.b()+1 != f.proto.exact || len(p.frames) > p.maxRecursion {
+				goto slow
+			}
+
+			// enter, inlined as for opCall; a mutating method resumes past
+			// the jump over its write-back.
+			fr.pc = pc
+			if m.Mut {
+				fr.pc++
+			}
+
+			regs[in.a()] = fn
 
 			base := fr.base + in.a() + 1
 			if need := base + f.proto.nregs; need > len(p.stack) {
@@ -575,47 +633,47 @@ func (p *Interpreter) slow(in Instr) error {
 
 		return err
 
-	case opGetPropOpt:
-		t := regs[in.b()]
-		if k := t.Kind(); k != value.Object && k != value.Struct {
-			return propertyError("read", tok, t)
-		}
-
-		regs[in.a()], _, _ = lookup(tok, t, consts[in.c()])
-
-	case opStruct:
-		v, fields := value.NewStruct(consts[in.c()].TypeShape())
-		copy(fields, regs[in.b():])
-		regs[in.a()] = v
-
-	case opWith:
-		v, err := with(tok, regs[in.b()], f.keys[in.c()], regs[in.b()+1:])
+	case opGetProp, opGetPropOpt:
+		v, err := p.property(tok, regs[in.b()], consts[in.c()], in.op() == opGetPropOpt)
 		if err == nil {
 			regs[in.a()] = v
 		}
 
 		return err
 
-	case opGetProp:
-		switch t := regs[in.b()]; t.Kind() {
-		case value.Object:
-			return undefinedProperty(tok, consts[in.c()].Str())
-		case value.Struct:
-			v, err := getIndex(tok, t, consts[in.c()])
+	case opStruct:
+		v, fields := value.NewStruct(consts[in.c()].TypeShape())
+		copy(fields, regs[in.b():])
+		regs[in.a()] = v
+
+	case opSetIndex, opSetProp:
+		t, key := regs[in.a()], setKey(in, regs, consts)
+
+		switch {
+		case t.Kind() == value.Struct && in.y():
+			v, err := setField(tok, t, key, regs[in.c()])
 			if err == nil {
 				regs[in.a()] = v
+				fr.pc += int(in.x())
 			}
 
 			return err
+		case in.op() == opSetIndex:
+			return setIndex(tok, t, key, regs[in.c()])
 		default:
-			return propertyError("read", tok, t)
+			// SetProp gets here only for a target that is not an object.
+			return propertyTarget(tok, t)
 		}
 
-	case opSetIndex:
-		return setIndex(tok, regs[in.a()], regs[in.b()], regs[in.c()])
+	case opCheckProp:
+		if t := regs[in.a()]; t.Kind() == value.Struct && in.y() {
+			if t.Shape().Index(tok.Lexeme) < 0 {
+				return undefinedField(tok, t.Shape(), tok.Lexeme)
+			}
 
-	case opSetProp, opCheckProp:
-		// SetProp gets here only for a target that is not an object.
+			return nil
+		}
+
 		return propertyTarget(tok, regs[in.a()])
 
 	case opRange:
@@ -651,6 +709,12 @@ func (p *Interpreter) slow(in Instr) error {
 
 	case opCall:
 		return p.callAt(fr.base+in.a(), in.b(), tok)
+
+	case opInvoke:
+		return p.invoke(fr, in, tok)
+
+	case opMethod:
+		p.methods[in.c()] = regs[in.a()]
 
 	case opCallArray:
 		args := regs[in.a()+1]
@@ -752,8 +816,19 @@ func (p *Interpreter) callAt(at, n int, tok *ast.Token) error {
 		return errors.NewRuntimeError(errors.TypeError, *tok, "Can only call functions.")
 	}
 
-	if cl, ok := fn.Fn().(*Closure); ok {
-		return p.enter(cl, at+1, n, tok)
+	switch f := fn.Fn().(type) {
+	case *Closure:
+		return p.enter(f, at+1, n, tok)
+	case *BoundMethod:
+		if !f.fn.proto.accepts(n + 1) {
+			return argumentError(f.fn.proto, n+1, 1, tok)
+		}
+
+		p.grow(at + 2 + n)
+		copy(p.stack[at+2:], p.stack[at+1:at+1+n])
+		p.stack[at], p.stack[at+1] = value.NewFunction(f.fn), f.recv
+
+		return p.enter(f.fn, at+1, n+1, tok)
 	}
 
 	v, err := p.host.Call(fn.Fn().(*stdlib.Native), p, p.stack[at+1:at+1+n], tok)
@@ -763,6 +838,15 @@ func (p *Interpreter) callAt(at, n int, tok *ast.Token) error {
 	}
 
 	return err
+}
+
+// setKey is the key a set writes: K[B] for a property, R[B] for an element.
+func setKey(in Instr, regs, consts []value.Value) value.Value {
+	if in.op() == opSetProp {
+		return consts[in.b()]
+	}
+
+	return regs[in.b()]
 }
 
 // spread adds the elements of src to the array dst, or the properties or

@@ -1,3 +1,0 @@
-[line: 2] TypeError: Can only use 'with' on structs, got object.
-    2 | print o with { x: 2 }; // expect runtime error: [line: 2] TypeError: Can only use 'with' on structs, got object.
-      |         ^

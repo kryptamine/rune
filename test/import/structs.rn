@@ -4,7 +4,6 @@ let v = math.Vec { x: 1 };
 print v; // expect: Vec {x: 1, y: 0}
 print v is math.Vec; // expect: true
 print math.Vec({x: 2, y: 3}); // expect: Vec {x: 2, y: 3}
-print v with { y: 5 }; // expect: Vec {x: 1, y: 5}
 
 fun describe(p) {
   return match p {
