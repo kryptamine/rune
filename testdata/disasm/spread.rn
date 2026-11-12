@@ -1,0 +1,6 @@
+fun f(a, ...rest) {
+  let [x, _, ...ys] = rest;
+  return a?.b ?? [...ys, x];
+}
+
+print f(...[1, 2], { ...{}, k: 1 });

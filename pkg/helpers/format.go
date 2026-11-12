@@ -176,3 +176,12 @@ func AppendValue(buf []byte, v value.Value) []byte {
 		return append(buf, Stringify(v)...)
 	}
 }
+
+// Plural is n and word, made plural unless n is 1.
+func Plural(n int, word string) string {
+	if n == 1 {
+		return "1 " + word
+	}
+
+	return fmt.Sprintf("%d %ss", n, word)
+}

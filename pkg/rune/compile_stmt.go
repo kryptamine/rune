@@ -31,6 +31,8 @@ func (fs *funcState) stmt(stmt ast.Stmt) {
 		fs.varStmt(s)
 	case *ast.DestructureStmt:
 		fs.destructure(s)
+	case *ast.ArrayDestructureStmt:
+		fs.unpack(s)
 	case *ast.BlockStmt:
 		fs.scoped(func() { fs.stmts(s.Stmts) })
 	case *ast.IfStmt:
@@ -118,6 +120,34 @@ func (fs *funcState) destructure(s *ast.DestructureStmt) {
 		fs.initialize(f.Local, func(dst int32) {
 			fs.emit(ins{op: opGetProp, a: dst, b: src, c: fs.constant(value.NewString(f.Key.Lexeme))}, &f.Key)
 		})
+	}
+}
+
+// unpack takes the elements into temporaries, then the variables.
+func (fs *funcState) unpack(s *ast.ArrayDestructureStmt) {
+	for _, b := range ast.Declared(s) {
+		fs.predeclare(b.Local)
+	}
+
+	src := fs.exprAny(s.Initializer)
+	n := len(s.Elems)
+	rest := s.Rest != nil
+
+	base := fs.free
+	for range n + int(boolNum(rest)) {
+		fs.alloc()
+	}
+
+	fs.emit(ins{op: opUnpack, a: base, b: src, c: int32(n), x: uint8(boolNum(rest))}, &s.Bracket)
+
+	for i, b := range s.Elems {
+		if b != nil {
+			fs.initialize(b.Local, func(dst int32) { fs.move(dst, base+int32(i)) })
+		}
+	}
+
+	if rest {
+		fs.initialize(s.Rest.Local, func(dst int32) { fs.move(dst, base+int32(n)) })
 	}
 }
 

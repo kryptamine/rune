@@ -1,0 +1,2 @@
+let o = {};
+print o?.; // Error at ';': Expect property name after '?.'.

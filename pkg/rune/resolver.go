@@ -93,6 +93,8 @@ func (p *Resolver) declareMain(name ast.Token, fn *ast.FunctionStmt) {
 		p.error(name, "Only the entry file can declare main.")
 	case len(fn.Parameters) > 1:
 		p.error(name, "main takes at most one parameter.")
+	case fn.Rest:
+		p.error(name, "main cannot take a rest parameter.")
 	default:
 		p.main = fn
 	}
@@ -128,18 +130,28 @@ func (p *Resolver) VisitVarStmt(stmt *ast.VarStmt) error {
 }
 
 func (p *Resolver) VisitDestructureStmt(stmt *ast.DestructureStmt) error {
+	p.resolveDestructure(stmt, stmt.Initializer)
+	return nil
+}
+
+func (p *Resolver) VisitArrayDestructureStmt(stmt *ast.ArrayDestructureStmt) error {
+	p.resolveDestructure(stmt, stmt.Initializer)
+	return nil
+}
+
+// resolveDestructure declares the variables stmt binds, defined once
+// initializer is resolved.
+func (p *Resolver) resolveDestructure(stmt ast.Stmt, initializer ast.Expr) {
 	bindings := ast.Declared(stmt)
 	for _, b := range bindings {
 		b.Local = p.declare(*b)
 	}
 
-	p.resolveExpr(stmt.Initializer)
+	p.resolveExpr(initializer)
 
 	for _, b := range bindings {
 		p.define(b.Name)
 	}
-
-	return nil
 }
 
 func (p *Resolver) requireInitialized(name ast.Token, verb string) {
@@ -474,6 +486,18 @@ func (p *Resolver) VisitInterpolationExpr(expr *ast.InterpolationExpr) (value.Va
 	return value.NilValue, nil
 }
 
+func (p *Resolver) VisitOptionalExpr(expr *ast.OptionalExpr) (value.Value, error) {
+	p.resolveExpr(expr.Expr)
+
+	return value.NilValue, nil
+}
+
+func (p *Resolver) VisitSpreadExpr(expr *ast.SpreadExpr) (value.Value, error) {
+	p.resolveExpr(expr.Expr)
+
+	return value.NilValue, nil
+}
+
 func (p *Resolver) VisitIndexExpr(expr *ast.IndexExpr) (value.Value, error) {
 	if p.isModule(expr.Array) {
 		expr.Export = p.moduleMember(expr)
@@ -584,9 +608,16 @@ func (p *Resolver) requireMutableRoot(expr ast.Expr) {
 // requireMutableArg checks the first argument of a call to an in-place built-in.
 func (p *Resolver) requireMutableArg(call *ast.CallExpr) {
 	callee, ok := call.Callee.(*ast.IndexExpr)
-	if ok && callee.Member != nil && len(call.Args) > 0 && stdlib.InPlace(*callee.Member) {
-		p.requireMutableRoot(call.Args[0])
+	if !ok || callee.Member == nil || len(call.Args) == 0 || !stdlib.InPlace(*callee.Member) {
+		return
 	}
+
+	if sp, ok := call.Args[0].(*ast.SpreadExpr); ok {
+		p.error(sp.Token, "Cannot spread the first argument of an in-place built-in.")
+		return
+	}
+
+	p.requireMutableRoot(call.Args[0])
 }
 
 // rootVar returns the variable an element or property chain starts from,
@@ -600,6 +631,8 @@ func rootVar(expr ast.Expr) *ast.VarExpr {
 			}
 
 			expr = e.Array
+		case *ast.OptionalExpr:
+			expr = e.Expr
 		case *ast.VarExpr:
 			return e
 		default:

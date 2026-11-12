@@ -1,0 +1,6 @@
+[line: 1] Error: Unexpected character: ?
+    1 | print 1 ? 2; // Error: Unexpected character: ?
+      |         ^
+[line: 1] Error at '2': Expect ';' after value.
+    1 | print 1 ? 2; // Error: Unexpected character: ?
+      |           ^

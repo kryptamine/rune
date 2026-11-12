@@ -1,0 +1,3 @@
+[line: 2] TypeError: Array index must be an integer.
+    2 | print xs?.["a"]; // expect runtime error: [line: 2] TypeError: Array index must be an integer.
+      |               ^

@@ -1,0 +1,9 @@
+fun side() {
+  print "side";
+  return 2;
+}
+
+print 1 ?? side(); // expect: 1
+print nil ?? side();
+// expect: side
+// expect: 2

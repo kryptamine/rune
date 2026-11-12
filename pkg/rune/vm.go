@@ -296,6 +296,11 @@ reload:
 				pc = in.c()
 			}
 
+		case opJmpNil:
+			if regs[in.a()].IsNil() == in.y() {
+				pc = in.c()
+			}
+
 		case opTestProp:
 			t := regs[in.b()]
 			if k := t.Kind(); k == value.Struct {
@@ -370,7 +375,7 @@ reload:
 
 			// enter, inlined.
 			f := (*Closure)(fn.Ptr())
-			if in.b() != f.proto.arity || len(p.frames) > p.maxRecursion {
+			if in.b() != f.proto.exact || len(p.frames) > p.maxRecursion {
 				goto slow
 			}
 
@@ -562,6 +567,22 @@ func (p *Interpreter) slow(in Instr) error {
 
 		return err
 
+	case opGetIndexOpt:
+		v, _, err := lookup(tok, regs[in.b()], regs[in.c()])
+		if err == nil {
+			regs[in.a()] = v
+		}
+
+		return err
+
+	case opGetPropOpt:
+		t := regs[in.b()]
+		if k := t.Kind(); k != value.Object && k != value.Struct {
+			return propertyError("read", tok, t)
+		}
+
+		regs[in.a()], _, _ = lookup(tok, t, consts[in.c()])
+
 	case opStruct:
 		v, fields := value.NewStruct(consts[in.c()].TypeShape())
 		copy(fields, regs[in.b():])
@@ -629,33 +650,40 @@ func (p *Interpreter) slow(in Instr) error {
 		regs[in.a()] = value.NewFunction(cl)
 
 	case opCall:
-		fn := regs[in.a()]
-		if fn.Kind() == value.Type {
-			v, err := convert(tok, fn.TypeShape(), regs[in.a()+1:in.a()+1+in.b()])
-			if err == nil {
-				regs[in.a()] = v
-			}
+		return p.callAt(fr.base+in.a(), in.b(), tok)
 
-			return err
-		}
-
-		if fn.Kind() != value.Function {
-			return errors.NewRuntimeError(errors.TypeError, *tok, "Can only call functions.")
-		}
-
-		if cl, ok := fn.Fn().(*Closure); ok {
-			return p.callError(cl, in.b(), tok)
+	case opCallArray:
+		args := regs[in.a()+1]
+		if args.Kind() != value.Array {
+			return spreadError(tok, args, "an array")
 		}
 
 		at := fr.base + in.a()
+		items := args.Arr()
+		p.grow(at + 1 + len(items))
+		copy(p.stack[at+1:], items)
 
-		v, err := p.host.Call(fn.Fn().(*stdlib.Native), p, p.stack[at+1:at+1+in.b()], tok)
-		if err == nil {
-			// The call may have grown the stack.
-			p.stack[at] = v
+		return p.callAt(at, len(items), tok)
+
+	case opSpread:
+		return spread(tok, regs[in.a()], regs[in.b()])
+
+	case opUnpack:
+		src := regs[in.b()]
+		if src.Kind() != value.Array {
+			return errors.NewRuntimeError(errors.TypeError, *tok, "Cannot destructure "+helpers.TypeName(src)+" as an array.")
 		}
 
-		return err
+		arr, n := src.Arr(), in.c()
+		if len(arr) < n {
+			return errors.NewRuntimeError(errors.IndexError, *tok, fmt.Sprintf("Expected at least %s but got %d.", helpers.Plural(n, "element"), len(arr)))
+		}
+
+		copy(regs[in.a():], arr[:n])
+
+		if in.x() != 0 {
+			regs[in.a()+n] = value.NewArray(append([]value.Value(nil), arr[n:]...))
+		}
 
 	case opPrint:
 		p.buf = append(helpers.AppendValue(p.buf[:0], regs[in.a()]), '\n')
@@ -705,6 +733,72 @@ func (p *Interpreter) slow(in Instr) error {
 	}
 
 	return nil
+}
+
+// callAt calls the function at stack[at] with the n arguments after it,
+// leaving the result there unless it pushes a frame.
+func (p *Interpreter) callAt(at, n int, tok *ast.Token) error {
+	fn := p.stack[at]
+	if fn.Kind() == value.Type {
+		v, err := convert(tok, fn.TypeShape(), p.stack[at+1:at+1+n])
+		if err == nil {
+			p.stack[at] = v
+		}
+
+		return err
+	}
+
+	if fn.Kind() != value.Function {
+		return errors.NewRuntimeError(errors.TypeError, *tok, "Can only call functions.")
+	}
+
+	if cl, ok := fn.Fn().(*Closure); ok {
+		return p.enter(cl, at+1, n, tok)
+	}
+
+	v, err := p.host.Call(fn.Fn().(*stdlib.Native), p, p.stack[at+1:at+1+n], tok)
+	if err == nil {
+		// The call may have grown the stack.
+		p.stack[at] = v
+	}
+
+	return err
+}
+
+// spread adds the elements of src to the array dst, or the properties or
+// fields of src to the object dst.
+func spread(tok *ast.Token, dst, src value.Value) error {
+	if dst.Kind() == value.Array {
+		if src.Kind() != value.Array {
+			return spreadError(tok, src, "an array")
+		}
+
+		arr := dst.ArrRef()
+		*arr = append(*arr, src.Arr()...)
+
+		return nil
+	}
+
+	obj := dst.Obj()
+
+	switch src.Kind() {
+	case value.Object:
+		for k, v := range src.Obj() {
+			obj[k] = v
+		}
+	case value.Struct:
+		for i, f := range src.Shape().Fields {
+			obj[f] = src.Fields()[i]
+		}
+	default:
+		return spreadError(tok, src, "an object")
+	}
+
+	return nil
+}
+
+func spreadError(tok *ast.Token, v value.Value, into string) error {
+	return errors.NewRuntimeError(errors.TypeError, *tok, "Cannot spread "+helpers.TypeName(v)+" into "+into+".")
 }
 
 // binaryInto stores the result of in's operator in dst unless it fails.

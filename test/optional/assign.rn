@@ -1,0 +1,3 @@
+let mut o = { a: nil };
+o?.a = 1; // Error at '=': Invalid assignment target.
+o?.a++; // Error at '++': Invalid increment target.

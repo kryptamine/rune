@@ -7,6 +7,7 @@ type StmtVisitor interface {
 	VisitExprStmt(exprStmt *ExprStmt) error
 	VisitVarStmt(VarStmt *VarStmt) error
 	VisitDestructureStmt(stmt *DestructureStmt) error
+	VisitArrayDestructureStmt(stmt *ArrayDestructureStmt) error
 	VisitBlockStmt(blockStmt *BlockStmt) error
 	VisitIfStmt(ifStmt *IfStmt) error
 	VisitWhileStmt(whileStmt *WhileStmt) error
@@ -50,8 +51,13 @@ type DestructureStmt struct {
 	Initializer Expr
 }
 
-func NewDestructureStmt(fields []DestructureField, initializer Expr) Stmt {
-	return &DestructureStmt{Fields: fields, Initializer: initializer}
+// ArrayDestructureStmt is let [a, _, mut b, ...rest] = value; Elems
+// binds the elements in order, nil for _, and Rest, if any, the others.
+type ArrayDestructureStmt struct {
+	Bracket     Token
+	Elems       []*Binding
+	Rest        *Binding
+	Initializer Expr
 }
 
 // Declared returns the variables stmt declares, structs aside.
@@ -65,6 +71,19 @@ func Declared(stmt Stmt) []*Binding {
 		bs := make([]*Binding, len(s.Fields))
 		for i := range s.Fields {
 			bs[i] = &s.Fields[i].Binding
+		}
+
+		return bs
+	case *ArrayDestructureStmt:
+		var bs []*Binding
+		for _, b := range s.Elems {
+			if b != nil {
+				bs = append(bs, b)
+			}
+		}
+
+		if s.Rest != nil {
+			bs = append(bs, s.Rest)
 		}
 
 		return bs
@@ -156,10 +175,12 @@ func NewContinueStmt(keyword Token) Stmt {
 	return &ContinueStmt{Keyword: keyword}
 }
 
-// FunctionStmt declares a function; its Binding is never mutable.
+// FunctionStmt declares a function; its Binding is never mutable. With
+// Rest, the last parameter takes the arguments after the others as an array.
 type FunctionStmt struct {
 	Binding
 	Parameters []Binding
+	Rest       bool
 	Body       []Stmt
 }
 
@@ -238,6 +259,10 @@ func (n *VarStmt) Accept(v StmtVisitor) error {
 
 func (n *DestructureStmt) Accept(v StmtVisitor) error {
 	return v.VisitDestructureStmt(n)
+}
+
+func (n *ArrayDestructureStmt) Accept(v StmtVisitor) error {
+	return v.VisitArrayDestructureStmt(n)
 }
 
 func (n *BlockStmt) Accept(v StmtVisitor) error {

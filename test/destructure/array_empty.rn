@@ -1,0 +1,1 @@
+let [] = []; // Error at ']': Expect variable name in pattern.

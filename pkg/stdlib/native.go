@@ -84,20 +84,12 @@ func (f *Host) get() *call {
 func (n *Native) arityText() string {
 	switch {
 	case n.max < 0:
-		return "at least " + plural(n.min, "argument")
+		return "at least " + helpers.Plural(n.min, "argument")
 	case n.min == n.max:
-		return plural(n.min, "argument")
+		return helpers.Plural(n.min, "argument")
 	default:
-		return fmt.Sprintf("%d to %s", n.min, plural(n.max, "argument"))
+		return fmt.Sprintf("%d to %s", n.min, helpers.Plural(n.max, "argument"))
 	}
-}
-
-func plural(n int, word string) string {
-	if n == 1 {
-		return "1 " + word
-	}
-
-	return fmt.Sprintf("%d %ss", n, word)
 }
 
 func (n *Native) String() string { return "<native fn " + n.name + ">" }

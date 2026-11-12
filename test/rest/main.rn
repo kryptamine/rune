@@ -1,0 +1,1 @@
+fun main(...args) {} // Error at 'main': main cannot take a rest parameter.

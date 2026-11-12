@@ -1,0 +1,1 @@
+let [a] = "ab"; // expect runtime error: [line: 1] TypeError: Cannot destructure string as an array.

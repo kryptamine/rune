@@ -20,7 +20,9 @@ Rune is a dynamically typed interpreted programming language inspired by [Lox](h
 - Number literals with exponents: `1e3`, `2.5E-2`
 - Object property access with `obj.name` as sugar for `obj["name"]`
 - Immutable structs with required and default fields: `struct Point { x, y = 0 }`
-- Destructuring of objects and structs, in `let` and parameters: `let { x, y } = p;`
+- Destructuring of objects, structs and arrays, in `let` and parameters: `let { x, y } = p;`, `let [head, ...tail] = xs;`
+- Nil-safe access and defaults: `resp?.data?.items ?? []`
+- Spread and rest: `[...a, ...b]`, `{...o, x: 1}`, `f(...args)`, `fun log(level, ...parts)`
 - Strings compare with `<`, `<=`, `>`, `>=` and index by character: `"héllo"[1]` is `"é"`
 - Pattern matching with `match`, as an expression or a statement
 - Error handling with `try`/`catch` and `throw`
@@ -266,6 +268,67 @@ fun length({ x, y }) {
 
 length(Point { x: 3, y: 4 }); // 25
 ```
+
+An array pattern takes elements by position: `_` skips one, `...name`
+takes the rest as a new array and must come last. The array may be longer
+than the pattern; a shorter one is an `IndexError`, anything but an array
+a `TypeError`.
+
+```javascript
+let [a, _, mut c, ...rest] = [1, 2, 3, 4, 5]; // a = 1, c = 3, rest = [4, 5]
+let mut [x, y] = [1, 2];
+
+fun swap([p, q]) { return [q, p]; }
+array.map(pairs, ([k, v]) => k + "=" + v);
+```
+
+## Nil Safety
+
+`a?.b`, `a?.[i]` and `a?.(args)` are `nil` when `a` is, and the rest of the
+chain is skipped: `a?.b.c` is `nil` for a `nil` `a`, without reading `.c`.
+A missing property, field or element read with `?.` is `nil` too, so
+`o?.name` never fails on an object or struct; a value that has no
+properties at all (`5?.x`) is still a `TypeError`. A chain with `?.` cannot
+be assigned to.
+
+`a ?? b` is `a` unless it is `nil`, then `b`, which runs only then. Unlike
+`or`, it keeps `false`, `0` and `""`. It binds looser than `or` and tighter
+than ranges.
+
+```javascript
+let resp = json.parse(body);
+let items = resp?.data?.items ?? [];
+let name = user?.profile?.name ?? "anonymous";
+let n = opts?.retries ?? 3; // 0 stays 0
+cb?.(result);
+```
+
+## Spread and Rest
+
+`...` spreads an array into an array literal or a call's arguments, and an
+object or struct into an object literal, where later keys win. Spreading
+anything else is a `TypeError`.
+
+```javascript
+let all = [...xs, 0, ...ys];
+let opts = { ...defaults, timeout: 5 };
+let p2 = { ...p, z: 0 };       // a struct's fields into an object
+print math.max(...xs);
+```
+
+A last parameter `...name` (or `...mut name`) takes the arguments after the
+others as an array, possibly empty; fewer than the others is an `ArgumentError`.
+
+```javascript
+fun log(level, ...parts) {
+    io.eprint(level + ": " + array.join(parts, " "));
+}
+
+log("info", "started", "in", 3, "ms");
+let count = (...args) => len(args);
+```
+
+The first argument of an in-place built-in (`array.push(...)`) cannot be spread.
 
 ## Pattern Matching
 

@@ -1,0 +1,15 @@
+exit: 0
+-- stdout --
+IDENTIFIER a null
+QUESTION_DOT ?. null
+IDENTIFIER b null
+QUESTION_QUESTION ?? null
+IDENTIFIER c null
+SEMICOLON ; null
+LEFT_BRACKET [ null
+DOT_DOT_DOT ... null
+IDENTIFIER xs null
+RIGHT_BRACKET ] null
+SEMICOLON ; null
+EOF  null
+-- stderr --

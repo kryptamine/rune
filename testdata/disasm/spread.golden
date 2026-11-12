@@ -1,0 +1,37 @@
+exit: 0
+-- stdout --
+<script>: arity 1, 7 registers, 0 upvalues
+    0  LOADK         1 0 0
+    1  CLOSURE       1 0 0
+    2  MOVE          2 1 0
+    3  ARRAY         3 4 0
+    4  LOADK         5 0 1
+    5  LOADK         6 0 2
+    6  ARRAY         4 5 2
+    7  SPREAD        3 4 0
+    8  OBJECT        4 5 0
+    9  OBJECT        5 6 1
+   10  SPREAD        4 5 0
+   11  LOADK         5 0 1
+   12  OBJECT        4 5 2  x=1 y=false
+   13  ARRAY         3 4 1  x=1 y=false
+   14  CALLARRAY     2 0 0
+   15  PRINT         2 0 0
+   16  RETURNNIL     0 0 0
+
+f: arity 1+, 7 registers, 0 upvalues
+    0  UNPACK        4 1 2  x=1 y=false
+    1  MOVE          2 4 0
+    2  MOVE          3 6 0
+    3  JMPNIL        0 0 6  x=0 y=true
+    4  GETPROP?      4 0 0
+    5  JMP           0 0 7
+    6  LOADK         4 0 1
+    7  JMPNIL        4 0 12
+    8  ARRAY         4 5 0
+    9  SPREAD        4 3 0
+   10  MOVE          5 2 0
+   11  ARRAY         4 5 1  x=1 y=false
+   12  RETURN        4 0 0
+   13  RETURNNIL     0 0 0
+-- stderr --

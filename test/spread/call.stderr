@@ -1,0 +1,3 @@
+[line: 12] ArgumentError: Expected 3 arguments but got 2.
+   12 | add(...xs); // expect runtime error: [line: 12] ArgumentError: Expected 3 arguments but got 2.
+      |          ^

@@ -1,0 +1,3 @@
+[line: 1] Error at 'b': Rest parameter must be last.
+    1 | fun f(...a, b) {} // Error at 'b': Rest parameter must be last.
+      |             ^

@@ -1,0 +1,3 @@
+[line: 12] KeyError: Undefined property 'z'.
+   12 | print o?.a.z; // expect runtime error: [line: 12] KeyError: Undefined property 'z'.
+      |            ^

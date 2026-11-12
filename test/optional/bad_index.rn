@@ -1,0 +1,2 @@
+let xs = [1];
+print xs?.["a"]; // expect runtime error: [line: 2] TypeError: Array index must be an integer.

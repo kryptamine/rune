@@ -107,7 +107,7 @@ const maxArity = 8
 // functionRest parses a function's parameter list and body; the opening
 // "(" has already been consumed.
 func (s *Parser) functionRest(name ast.Token) (*ast.FunctionStmt, error) {
-	parameters, patterns, err := s.parameters()
+	params, err := s.parameters()
 	if err != nil {
 		return nil, err
 	}
@@ -122,66 +122,142 @@ func (s *Parser) functionRest(name ast.Token) (*ast.FunctionStmt, error) {
 		return nil, err
 	}
 
-	return ast.NewFunctionStmt(name, parameters, append(patterns, body...)), nil
+	return params.function(name, body), nil
 }
 
-// parameters parses a parameter list up to and including ")", returning
-// the destructuring of pattern parameters to run first in the body.
-func (s *Parser) parameters() ([]ast.Binding, []ast.Stmt, error) {
-	parameters := []ast.Binding{}
+// params is a parameter list; patterns destructure pattern parameters
+// first in the body.
+type params struct {
+	list     []ast.Binding
+	patterns []ast.Stmt
+	rest     bool
+}
 
-	var patterns []ast.Stmt
+func (ps params) function(name ast.Token, body []ast.Stmt) *ast.FunctionStmt {
+	fn := ast.NewFunctionStmt(name, ps.list, append(ps.patterns, body...))
+	fn.Rest = ps.rest
 
-	if !s.check(ast.RIGHT_PAREN) {
-		for {
-			// Report but keep parsing: the parser is not in a confused state.
-			if len(parameters) == maxArity {
-				s.errors = append(s.errors, errors.NewSyntaxError(
-					s.peek(),
-					fmt.Sprintf("Cannot have more than %d parameters.", maxArity),
-				))
-			}
+	return fn
+}
 
-			param, pattern, err := s.parameter(len(parameters))
-			if err != nil {
-				return nil, nil, err
-			}
+// parameters parses a parameter list up to and including ")".
+func (s *Parser) parameters() (params, error) {
+	ps := params{list: []ast.Binding{}}
 
-			parameters = append(parameters, param)
-
-			if pattern != nil {
-				patterns = append(patterns, pattern)
-			}
-
-			if !s.match(ast.COMMA) {
-				break
-			}
+	for !s.check(ast.RIGHT_PAREN) && !ps.rest {
+		// Report but keep parsing: the parser is not in a confused state.
+		if len(ps.list) == maxArity {
+			s.errors = append(s.errors, errors.NewSyntaxError(
+				s.peek(),
+				fmt.Sprintf("Cannot have more than %d parameters.", maxArity),
+			))
 		}
+
+		ps.rest = s.match(ast.DOT_DOT_DOT)
+
+		param, pattern, err := s.parameter(len(ps.list), ps.rest)
+		if err != nil {
+			return ps, err
+		}
+
+		ps.list = append(ps.list, param)
+
+		if pattern != nil {
+			ps.patterns = append(ps.patterns, pattern)
+		}
+
+		if !s.match(ast.COMMA) {
+			break
+		}
+	}
+
+	if ps.rest && !s.check(ast.RIGHT_PAREN) {
+		return ps, errors.NewSyntaxError(s.peek(), "Rest parameter must be last.")
 	}
 
 	_, err := s.consume(ast.RIGHT_PAREN, "Expect ')' after parameters.")
 
-	return parameters, patterns, err
+	return ps, err
 }
 
 // parameter parses a parameter: a binding, or a pattern, which binds a
-// hidden parameter destructured at the start of the body.
-func (s *Parser) parameter(i int) (ast.Binding, ast.Stmt, error) {
-	if !s.match(ast.LEFT_BRACE) {
+// hidden parameter destructured at the start of the body. A rest
+// parameter is a binding.
+func (s *Parser) parameter(i int, rest bool) (ast.Binding, ast.Stmt, error) {
+	hidden := func() ast.Binding {
+		name := s.previous()
+		name.TokenType = ast.IDENTIFIER
+		name.Lexeme = fmt.Sprintf("{%d}", i)
+
+		return ast.Binding{Name: name}
+	}
+
+	switch {
+	case !rest && s.match(ast.LEFT_BRACE):
+		fields, err := s.pattern(false)
+		if err != nil {
+			return ast.Binding{}, nil, err
+		}
+
+		b := hidden()
+
+		return b, &ast.DestructureStmt{Fields: fields, Initializer: ast.NewVarExpr(b.Name)}, nil
+	case !rest && s.match(ast.LEFT_BRACKET):
+		d, err := s.arrayPattern(false)
+		if err != nil {
+			return ast.Binding{}, nil, err
+		}
+
+		b := hidden()
+		d.Initializer = ast.NewVarExpr(b.Name)
+
+		return b, d, nil
+	default:
 		param, err := s.binding("Expect parameter name.")
 		return param, nil, err
 	}
+}
 
-	fields, err := s.pattern(false)
-	if err != nil {
-		return ast.Binding{}, nil, err
+// arrayPattern parses [a, mut b, _, ...rest]; the "[" has already been
+// consumed. With mutable, every variable is mutable.
+func (s *Parser) arrayPattern(mutable bool) (*ast.ArrayDestructureStmt, error) {
+	d := &ast.ArrayDestructureStmt{Bracket: s.previous()}
+
+	for !s.check(ast.RIGHT_BRACKET) && !s.isAtEnd() {
+		rest := s.match(ast.DOT_DOT_DOT)
+
+		b, err := s.binding("Expect variable name.")
+		if err != nil {
+			return nil, err
+		}
+
+		b.Mutable = b.Mutable || mutable
+
+		switch {
+		case rest:
+			d.Rest = &b
+		case b.Name.Lexeme == "_":
+			d.Elems = append(d.Elems, nil)
+		default:
+			d.Elems = append(d.Elems, &b)
+		}
+
+		if rest && !s.check(ast.RIGHT_BRACKET) {
+			return nil, errors.NewSyntaxError(s.peek(), "Rest element must be last.")
+		}
+
+		if !s.match(ast.COMMA) {
+			break
+		}
 	}
 
-	hidden := s.previous()
-	hidden.TokenType = ast.IDENTIFIER
-	hidden.Lexeme = fmt.Sprintf("{%d}", i)
+	if len(d.Elems) == 0 && d.Rest == nil {
+		s.errors = append(s.errors, errors.NewSyntaxError(s.peek(), "Expect variable name in pattern."))
+	}
 
-	return ast.Binding{Name: hidden}, ast.NewDestructureStmt(fields, ast.NewVarExpr(hidden)), nil
+	_, err := s.consume(ast.RIGHT_BRACKET, "Expect ']' after pattern.")
+
+	return d, err
 }
 
 // pattern parses { a, mut b, c: d, "e": f }; the "{" has already been
@@ -269,7 +345,25 @@ func (s *Parser) varDeclaration() (ast.Stmt, error) {
 	mutable := s.match(ast.MUT)
 
 	if s.match(ast.LEFT_BRACE) {
-		return s.destructureDeclaration(mutable)
+		fields, err := s.pattern(mutable)
+		if err != nil {
+			return nil, err
+		}
+
+		initializer, err := s.patternInitializer()
+
+		return &ast.DestructureStmt{Fields: fields, Initializer: initializer}, err
+	}
+
+	if s.match(ast.LEFT_BRACKET) {
+		d, err := s.arrayPattern(mutable)
+		if err != nil {
+			return nil, err
+		}
+
+		d.Initializer, err = s.patternInitializer()
+
+		return d, err
 	}
 
 	name, err := s.consume(ast.IDENTIFIER, "Expect variable name.")
@@ -299,14 +393,8 @@ func (s *Parser) varDeclaration() (ast.Stmt, error) {
 	return ast.NewVarStmt(initializer, binding), nil
 }
 
-// destructureDeclaration parses the rest of let { ... } = value; after
-// "{"; with "let mut" every variable is mutable.
-func (s *Parser) destructureDeclaration(mutable bool) (ast.Stmt, error) {
-	fields, err := s.pattern(mutable)
-	if err != nil {
-		return nil, err
-	}
-
+// patternInitializer parses "= value;" after the pattern of a let.
+func (s *Parser) patternInitializer() (ast.Expr, error) {
 	if _, err := s.consume(ast.EQUAL, "Expect '=' after pattern."); err != nil {
 		return nil, err
 	}
@@ -316,11 +404,9 @@ func (s *Parser) destructureDeclaration(mutable bool) (ast.Stmt, error) {
 		return nil, err
 	}
 
-	if _, err := s.consume(ast.SEMICOLON, "Expect ';' after variable declaration."); err != nil {
-		return nil, err
-	}
+	_, err = s.consume(ast.SEMICOLON, "Expect ';' after variable declaration.")
 
-	return ast.NewDestructureStmt(fields, initializer), nil
+	return initializer, err
 }
 
 func (s *Parser) statement() (ast.Stmt, error) {

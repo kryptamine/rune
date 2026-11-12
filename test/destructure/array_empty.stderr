@@ -1,0 +1,3 @@
+[line: 1] Error at ']': Expect variable name in pattern.
+    1 | let [] = []; // Error at ']': Expect variable name in pattern.
+      |      ^
