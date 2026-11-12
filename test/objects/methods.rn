@@ -1,0 +1,24 @@
+let mut o = {b: 1, a: 2};
+print o.has("a");          // expect: true
+print o.has("z");          // expect: false
+print o.get("a");          // expect: 2
+print o.get("z");          // expect: nil
+print o.get("z", 0);       // expect: 0
+print o.keys();            // expect: ["a", "b"]
+print o.values();          // expect: [2, 1]
+print o.entries();         // expect: [["a", 2], ["b", 1]]
+print o.len();             // expect: 2
+print o.delete("a");       // expect: true
+print o.delete("a");       // expect: false
+print o;                   // expect: {b: 1}
+
+let own = {keys: "mine", len: 7};
+print own.keys;            // expect: mine
+print own.len;             // expect: 7
+
+for k, v in {x: 1, y: 2}.entries() print "{k}={v}";
+// expect: 0=["x", 1]
+// expect: 1=["y", 2]
+
+let c = {a: 1};
+c.delete("a"); // expect runtime error: [line: 24] TypeError: Cannot call in-place method 'delete' of object: its receiver is in an immutable variable.

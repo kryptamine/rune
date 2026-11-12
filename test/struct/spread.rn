@@ -1,0 +1,34 @@
+struct Task { id, text, tags = [], done = false }
+struct Point { x, y = 0 }
+
+let t = Task { id: 1, text: "a" };
+print Task { ...t, done: true };  // expect: Task {id: 1, text: "a", tags: [], done: true}
+print Task { done: true, ...t };  // expect: Task {id: 1, text: "a", tags: [], done: false}
+print Task { ...{ id: 2, text: "b" } }; // expect: Task {id: 2, text: "b", tags: [], done: false}
+print Task { ...{ id: 3 }, ...t, text: "z" }; // expect: Task {id: 1, text: "z", tags: [], done: false}
+print t;                          // expect: Task {id: 1, text: "a", tags: [], done: false}
+
+// Defaults a spread leaves out are fresh; fields it copies are shared.
+let mut a = Task { ...{ id: 4, text: "d" } };
+let b = Task { ...{ id: 5, text: "e" } };
+a.tags.push(1);
+print b.tags;                     // expect: []
+let c = Task { ...a };
+a.tags.push(2);
+print c.tags;                     // expect: [1, 2]
+
+let p = Point { x: 1 };
+print [Point { ...p, y: 5 }, Point { ...p }]; // expect: [Point {x: 1, y: 5}, Point {x: 1, y: 0}]
+print [t, c].map(t => Task { ...t, id: t.id * 10 }).map(t => t.id); // expect: [10, 40]
+print Date { ...time.date(0, "UTC"), year: 2000 }.year; // expect: 2000
+
+let mut order = [];
+let log = (s, v) => { order.push(s); return v; };
+Point { x: log("x", 1), ...log("spread", {}), y: log("y", 2) };
+print order;                      // expect: ["x", "spread", "y"]
+
+try { Task { ...{ id: 1 } }; } catch (e: KeyError) { print e.message; } // expect: Missing field 'text' of Task.
+try { Task { ...t, ...{ z: 1 } }; } catch (e: KeyError) { print e.message; } // expect: Task has no field 'z'.
+try { Task { ...t, ...{ z: 1, b: 2, y: 3 } }; } catch (e: KeyError) { print e.message; } // expect: Task has no field 'b'.
+try { Task { ...p }; } catch (e: TypeError) { print e.message; } // expect: Cannot spread Point into Task.
+Task { ...[1] }; // expect runtime error: [line: 34] TypeError: Cannot spread array into Task.

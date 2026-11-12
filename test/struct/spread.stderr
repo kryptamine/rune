@@ -1,0 +1,3 @@
+[line: 34] TypeError: Cannot spread array into Task.
+   34 | Task { ...[1] }; // expect runtime error: [line: 34] TypeError: Cannot spread array into Task.
+      |        ^

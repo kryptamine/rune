@@ -213,7 +213,8 @@ func (n *FunctionExpr) Accept(v ExprVisitor) (value.Value, error) {
 	return v.VisitFunctionExpr(n)
 }
 
-// StructPair is a "field: value" entry of a struct literal; the resolver
+// StructPair is a "field: value" entry of a struct literal, or a spread
+// keyed by its "..." token; the resolver
 // sets Slot, the field's index in the declaration.
 type StructPair struct {
 	Key   Token

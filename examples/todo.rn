@@ -1,0 +1,298 @@
+// Task tracker: tasks with tags, priorities and due dates, kept in a JSON file
+//
+//   ./rune run examples/todo.rn                          run a demo session against a temp file
+//   ./rune run examples/todo.rn add "pay rent" +home !high due:fri
+//   ./rune run examples/todo.rn list [+tag] [--all] [--overdue]
+//   ./rune run examples/todo.rn done|undo|rm <id>...
+//   ./rune run examples/todo.rn edit <id> <words...>
+//   ./rune run examples/todo.rn stats
+//
+// Tasks live in $TODO_FILE, or ~/.todo.json.
+
+struct Task {
+    id,
+    text,
+    created,
+    tags = [],
+    priority = "normal",
+    due = nil,
+    completed = nil,
+}
+
+struct UsageError { message }
+
+let PRIORITIES = { low: 0, normal: 1, high: 2 };
+let WEEKDAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+let DAY = "%Y-%m-%d";
+
+// --- dates: local calendar days, as YYYY-MM-DD ---
+
+fun today() {
+    return time.format(time.now(), DAY);
+}
+
+fun addDays(day, n) {
+    let d = time.date(time.parse(day, DAY));
+    return time.format(time.make(Date { ...d, day: d.day + n }), DAY);
+}
+
+fun daysBetween(from, to) {
+    return math.round((time.parse(to, DAY, "UTC") - time.parse(from, DAY, "UTC")) / 86400);
+}
+
+fun parseDate(s, now) {
+    if regex.test(r"^\d{4}-\d{2}-\d{2}$", s) {
+        try {
+            time.parse(s, DAY);
+            return s;
+        } catch (e: ValueError) {
+            throw UsageError { message: "bad date '{s}'" };
+        }
+    }
+    let rel = regex.find(r"^\+(\d+)d$", s);
+    if rel return addDays(now, int(rel.groups[0]));
+
+    return match s {
+        "today" => now,
+        "tomorrow" => addDays(now, 1),
+        _ if WEEKDAYS.contains(s) => {
+            let wd = time.date(time.parse(now, DAY)).weekday;
+            return addDays(now, (WEEKDAYS.indexOf(s) + 1 - wd + 6) % 7 + 1);
+        }
+        _ => throw UsageError { message: "bad date '{s}': use YYYY-MM-DD, today, tomorrow, +Nd or a weekday" },
+    };
+}
+
+fun relative(day, now) {
+    let diff = daysBetween(now, day);
+    return match diff {
+        0 => "today",
+        1 => "tomorrow",
+        -1 => "yesterday",
+        _ if diff > 1 and diff < 7 => "in {diff}d",
+        _ if diff < 0 => "{-diff}d ago",
+        _ => day,
+    };
+}
+
+// --- storage ---
+
+fun defaultPath() {
+    return os.env("TODO_FILE") ?? fs.join(os.env("HOME") ?? ".", ".todo.json");
+}
+
+struct Store { path, tasks = [], nextId = 1 }
+
+impl Store {
+    fun load(path) {
+        if !fs.exists(path) return Store { path };
+        let data = json.parse(fs.read(path));
+        return Store { path, tasks: data.tasks.map(o => Task(o)), nextId: data.nextId };
+    }
+
+    fun save(self) {
+        let tmp = self.path + ".tmp";
+        fs.write(tmp, json.stringify({ nextId: self.nextId, tasks: self.tasks }));
+        fs.rename(tmp, self.path);
+    }
+
+    fun add(mut self, task) {
+        self.tasks.push(Task { ...task, id: self.nextId });
+        self.nextId++;
+        return self.nextId - 1;
+    }
+
+    fun find(self, id) {
+        let i = self.tasks.findIndex(t => t.id == id);
+        if i < 0 throw UsageError { message: "no task #{id}" };
+        return i;
+    }
+
+    fun update(mut self, id, f) {
+        let i = self.find(id);
+        self.tasks[i] = f(self.tasks[i]);
+        return self.tasks[i];
+    }
+
+    fun remove(mut self, id) {
+        return self.tasks.remove(self.find(id));
+    }
+}
+
+// --- commands ---
+
+fun parseTask(words, now) {
+    let mut text = [];
+    let mut task = { tags: [] };
+
+    for w in words {
+        match w {
+            _ if w.startsWith("+") and len(w) > 1 => task.tags.push(w.slice(1));
+            _ if w.startsWith("!") and PRIORITIES.has(w.slice(1)) => task.priority = w.slice(1);
+            _ if w.startsWith("due:") => task.due = parseDate(w.removePrefix("due:"), now);
+            _ => text.push(w);
+        }
+    }
+
+    if text.len() > 0 task.text = text.join(" ");
+    return task;
+}
+
+fun ids(args) {
+    if len(args) == 0 throw UsageError { message: "which task? give an id" };
+    return args.map(a => {
+        if !regex.test(r"^\d+$", a) throw UsageError { message: "bad id '{a}'" };
+        return int(a);
+    });
+}
+
+fun byUrgency(a, b) {
+    if (a.completed == nil) != (b.completed == nil) return a.completed == nil ? -1 : 1;
+    if a.due != b.due {
+        if a.due == nil return 1;
+        if b.due == nil return -1;
+        return a.due < b.due ? -1 : 1;
+    }
+    if a.priority != b.priority return PRIORITIES[b.priority] - PRIORITIES[a.priority];
+    return a.id - b.id;
+}
+
+fun show(t, now) {
+    let mark = t.completed != nil ? "x" : t.due != nil and t.due < now ? "!" : " ";
+    let prio = match t.priority { "high" => "↑", "low" => "↓", _ => " " };
+    let due = t.due != nil ? relative(t.due, now) : "";
+    let tags = t.tags.map(tag => "+" + tag).join(" ");
+    return "[%s] %3d %s %-28s %-10s %s".format(mark, t.id, prio, t.text, due, tags).trimEnd();
+}
+
+fun list(store, args, now) {
+    let all = args.contains("--all");
+    let overdue = args.contains("--overdue");
+    let tags = args.filter(a => a.startsWith("+")).map(a => a.slice(1));
+
+    let mut shown = store.tasks.filter(t =>
+        (all or t.completed == nil)
+        and (!overdue or (t.due != nil and t.due < now and t.completed == nil))
+        and tags.every(tag => t.tags.contains(tag))
+    );
+    shown.sort(byUrgency);
+
+    if shown.len() == 0 {
+        print "  nothing to do";
+        return;
+    }
+    for t in shown print "  " + show(t, now);
+
+    let hidden = store.tasks.len() - shown.len();
+    if hidden > 0 print "  ({hidden} more, --all to show)";
+}
+
+fun stats(store, now) {
+    let open = store.tasks.filter(t => t.completed == nil);
+    let done = store.tasks.len() - open.len();
+    let late = open.filter(t => t.due != nil and t.due < now);
+
+    let mut byTag = Map();
+    for t in open {
+        for tag in t.tags byTag.set(tag, byTag.get(tag, 0) + 1);
+    }
+
+    let weekAgo = addDays(now, -7);
+    let week = store.tasks.filter(t => t.completed != nil and t.completed > weekAgo).len();
+
+    print "  open %d, done %d, overdue %d, done this week %d".format(open.len(), done, late.len(), week);
+    let mut rows = byTag.entries();
+    rows.sort(([_, a], [_, b]) => b - a);
+    for [tag, n] in rows print "  %-10s %s %d".format("+" + tag, "#".repeat(n), n);
+}
+
+fun run(mut store, [cmd = "list", ...args], now) {
+    match cmd {
+        "add" => {
+            let task = parseTask(args, now);
+            if task?.text == nil throw UsageError { message: "a task needs some text" };
+            let id = store.add({ ...task, created: now });
+            print "  added #{id}";
+        }
+        "list" | "ls" => list(store, args, now);
+        "done" => for id in ids(args) {
+            let t = store.update(id, t => Task { ...t, completed: now });
+            print "  done #{id} {t.text}";
+        }
+        "undo" => for id in ids(args) {
+            store.update(id, t => Task { ...t, completed: nil });
+            print "  reopened #{id}";
+        }
+        "rm" => for id in ids(args) {
+            let t = store.remove(id);
+            print "  removed #{id} {t.text}";
+        }
+        "edit" => {
+            let [id = throw UsageError { message: "which task? give an id" }, ...words] = args;
+            let changes = parseTask(words, now);
+            store.update(ids([id])[0], t => Task { ...t, ...changes, tags: [...t.tags, ...changes.tags] });
+            print "  edited #{id}";
+        }
+        "stats" => stats(store, now);
+        "help" => print usage();
+        _ => throw UsageError { message: "unknown command '{cmd}'" };
+    }
+    return ["list", "ls", "stats", "help"].contains(cmd) ? nil : store;
+}
+
+fun usage() {
+    return """
+        usage: todo <command> [args]
+          add <text> [+tag] [!low|!high] [due:DATE]
+          list [+tag] [--all] [--overdue]
+          done|undo|rm <id>...
+          edit <id> [text] [+tag] [!prio] [due:DATE]
+          stats
+        """;
+}
+
+fun exec(path, args, now) {
+    run(Store.load(path), args, now)?.save();
+}
+
+fun demo() {
+    let dir = fs.tempDir();
+    let path = fs.join(dir, "todo.json");
+    let now = today();
+    let session = [
+        "add write release notes +work !high due:tomorrow",
+        "add renew passport +home due:2020-01-15",
+        "add buy coffee beans +home !low",
+        "add review PR 46 +work due:+3d",
+        "add call mom due:sun",
+        "list",
+        "done 3 2",
+        "edit 4 +rune",
+        "list +work",
+        "list --all",
+        "rm 5",
+        "stats",
+    ];
+
+    for line in session {
+        print "$ todo {line}";
+        exec(path, line.split(" "), now);
+        print "";
+    }
+    print "stored in {path}:";
+    print fs.read(path);
+    fs.removeAll(dir);
+}
+
+fun main(args) {
+    try {
+        if len(args) == 0 demo(); else exec(defaultPath(), args, today());
+    } catch (e: UsageError) {
+        io.eprint("todo: {e.message}");
+        io.eprint(usage());
+        return 2;
+    } catch (e: IOError, ValueError) {
+        io.eprint("todo: {e.message}");
+        return 1;
+    }
+}

@@ -147,6 +147,25 @@ func (p *Interpreter) slow(in Instr) error {
 		copy(fields, regs[in.b():])
 		regs[in.a()] = v
 
+	case opUndef:
+		for i := range in.b() {
+			regs[in.a()+i] = value.UndefinedValue
+		}
+
+	case opStructSpread:
+		return spreadFields(tok, consts[in.c()].TypeShape(), regs[in.a():], regs[in.b()])
+
+	case opStructFill:
+		shape := consts[in.c()].TypeShape()
+		v, fields := value.NewStruct(shape)
+		copy(fields, regs[in.b():])
+
+		if missing, ok := shape.Fill(fields); !ok {
+			return errors.NewRuntimeError(errors.KeyError, *tok, errors.MissingField(shape.Name, missing))
+		}
+
+		regs[in.a()] = v
+
 	case opSetIndex, opSetProp:
 		t, key := regs[in.a()], setKey(in, regs, consts)
 
@@ -408,6 +427,23 @@ func spread(tok *ast.Token, dst, src value.Value) error {
 		}
 	default:
 		return spreadError(tok, src, "an object")
+	}
+
+	return nil
+}
+
+// spreadFields copies src, a struct of type shape or an object of some of
+// its fields, into the field registers fields.
+func spreadFields(tok *ast.Token, shape *value.Shape, fields []value.Value, src value.Value) error {
+	switch {
+	case src.Kind() == value.Struct && src.Shape() == shape:
+		copy(fields, src.Fields())
+	case src.Kind() == value.Object:
+		if extra, ok := shape.Assign(fields, src.Obj()); !ok {
+			return errors.NewRuntimeError(errors.KeyError, *tok, errors.NoField(shape.Name, extra))
+		}
+	default:
+		return spreadError(tok, src, shape.Name)
 	}
 
 	return nil

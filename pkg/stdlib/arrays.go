@@ -57,6 +57,22 @@ var arrayMethods = []*Native{
 
 		return value.NewArray(out)
 	}},
+	{"array.every", 2, 2, func(c *call) value.Value {
+		return value.NewBool(firstWhere(c, false) < 0)
+	}},
+	{"array.some", 2, 2, func(c *call) value.Value {
+		return value.NewBool(firstWhere(c, true) >= 0)
+	}},
+	{"array.find", 2, 2, func(c *call) value.Value {
+		if i := firstWhere(c, true); i >= 0 {
+			return c.arr(0)[i]
+		}
+
+		return value.NilValue
+	}},
+	{"array.findIndex", 2, 2, func(c *call) value.Value {
+		return count(firstWhere(c, true))
+	}},
 	{"array.reduce", 2, 3, func(c *call) value.Value {
 		items, f := c.arr(0), c.fn(1)
 
@@ -80,6 +96,24 @@ var arrayMethods = []*Native{
 
 		return acc
 	}},
+}
+
+// firstWhere is the index of the first element for which args[1] gives
+// a value as truthy as want, or -1.
+func firstWhere(c *call, want bool) int {
+	items, f := c.arr(0), c.fn(1)
+	buf := make([]value.Value, 1)
+
+	for i, item := range items {
+		buf[0] = item
+		if r := c.invoke(f, buf); !c.ok() {
+			return -1
+		} else if helpers.IsTruthy(r) == want {
+			return i
+		}
+	}
+
+	return -1
 }
 
 // arrayInPlace are the methods that change their array.
@@ -111,6 +145,39 @@ var arrayInPlace = []*Native{
 		*arr = (*arr)[:n-1]
 
 		return last
+	}},
+	{"array.insert", 3, 3, func(c *call) value.Value {
+		if c.arr(0); !c.ok() {
+			return value.NilValue
+		}
+
+		arr := c.args[0].ArrRef()
+
+		i, ok := position(c, len(*arr), true)
+		if !ok {
+			return value.NilValue
+		}
+
+		*arr = slices.Insert(*arr, i, c.args[2])
+
+		return count(len(*arr))
+	}},
+	{"array.remove", 2, 2, func(c *call) value.Value {
+		if c.arr(0); !c.ok() {
+			return value.NilValue
+		}
+
+		arr := c.args[0].ArrRef()
+
+		i, ok := position(c, len(*arr), false)
+		if !ok {
+			return value.NilValue
+		}
+
+		x := (*arr)[i]
+		*arr = slices.Delete(*arr, i, i+1)
+
+		return x
 	}},
 	// sort sorts in place, stably, and returns the array.
 	{"array.sort", 1, 2, func(c *call) value.Value {
@@ -177,4 +244,25 @@ func comparator(c *call, f value.Value) func(a, b value.Value) int {
 
 		return c
 	}
+}
+
+// position is args[1] as an index into n elements, negative counting from
+// the end; atEnd allows n itself.
+func position(c *call, n int, atEnd bool) (int, bool) {
+	arg := c.int(1)
+	if !c.ok() {
+		return 0, false
+	}
+
+	i := arg
+	if i < 0 {
+		i += n
+	}
+
+	if i < 0 || i > n || i == n && !atEnd {
+		c.fail(errors.IndexError, "index %d out of bounds of %s.", arg, helpers.Plural(n, "element"))
+		return 0, false
+	}
+
+	return i, true
 }
