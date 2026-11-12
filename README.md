@@ -346,18 +346,22 @@ try {
 }
 ```
 
-`throw` raises any value; `catch` receives it unchanged, so a thrown value is never confused with a language error. An uncaught throw stops the program like any runtime error.
+`throw` raises a struct instance, built-in or your own; `catch` receives it
+unchanged. Throwing anything else is a `TypeError`. An uncaught throw stops the program like any runtime error,
+reported as `Name: message` when the struct has a string `message`.
 
 ```javascript
+struct AgeError { message, value }
+
 fun parseAge(v) {
-    if v < 0 { throw { "code": "bad_age", "value": v }; }
+    if v < 0 { throw AgeError { message: "negative age", value: v }; }
     return v;
 }
 
 try {
     parseAge(-1);
-} catch (e) {
-    print e.code; // bad_age
+} catch (e: AgeError) {
+    print e.value; // -1
 }
 ```
 

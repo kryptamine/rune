@@ -1,5 +1,5 @@
-[line: 2] oops
-    2 |   throw "oops"; // expect runtime error: [line: 2] oops
+[line: 2] ValueError: oops
+    2 |   throw ValueError { message: "oops" }; // expect runtime error: [line: 2] ValueError: oops
       |   ^
   at fail (line 2)
   at <script> (line 4)

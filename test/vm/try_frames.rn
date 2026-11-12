@@ -1,5 +1,5 @@
 fun thrower(n) {
-  if n == 0 { throw "bottom"; }
+  if n == 0 { throw ValueError { message: "bottom" }; }
   return thrower(n - 1);
 }
 
@@ -7,7 +7,7 @@ fun catcher() {
   try {
     thrower(50);
   } catch (e) {
-    return "caught " + e;
+    return "caught " + e.message;
   }
   return "no";
 }
@@ -21,7 +21,7 @@ fun loopy() {
       if i == 3 { break; }
       out += "t";
       try {
-        throw "x";
+        throw ValueError { message: "x" };
       } catch {
         out += "c";
       }
@@ -34,14 +34,14 @@ fun loopy() {
 print loopy(); // expect: tctc
 
 try {
-  map([1, 2], fun (x) { if x == 2 { throw "in map"; } return x; });
+  map([1, 2], fun (x) { if x == 2 { throw ValueError { message: "in map" }; } return x; });
 } catch (e) {
-  print e; // expect: in map
+  print e.message; // expect: in map
 }
 
 let r = map([1, 2, 3], fun (x) {
   try {
-    if x == 2 { throw "skip"; }
+    if x == 2 { throw ValueError { message: "skip" }; }
     return x;
   } catch {
     return 0;

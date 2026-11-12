@@ -626,7 +626,11 @@ func (p *Interpreter) slow(in Instr) error {
 
 	case opThrow:
 		v := regs[in.a()]
-		return errors.NewThrownError(*tok, v, helpers.Stringify(v))
+		if v.Kind() != value.Struct {
+			return errors.NewRuntimeError(errors.TypeError, *tok, "Can only throw struct instances.")
+		}
+
+		return errors.NewThrownError(*tok, v)
 
 	case opRethrow:
 		return *regs[in.a()].Internal().(*errors.RuntimeError)

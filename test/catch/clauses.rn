@@ -1,3 +1,4 @@
+struct Note { text }
 struct ParseError { message, pos, cause = nil }
 
 fun parse(s) {
@@ -23,7 +24,7 @@ fun run(f) {
 run(fun () { parse(nil); }); // expect: parse: bad number <- TypeError
 run(fun () { [1][5]; }); // expect: lookup: Index out of bounds: 5 of 1
 run(fun () { ({}).k; }); // expect: lookup: Undefined property 'k'.
-run(fun () { throw "boom"; }); // expect: other: string
+run(fun () { throw Note { text: "boom" }; }); // expect: other: Note
 
 try {
   try {
@@ -36,7 +37,7 @@ try {
 }
 
 try {
-  throw 1;
+  throw ValueError { message: "1" };
 } catch (e: TypeError) {
   print "unreachable";
 } catch {
@@ -58,7 +59,7 @@ let mut seen = [];
 for i in 0..4 {
   try {
     if i == 1 { [][0]; }
-    if i == 3 { throw "stop"; }
+    if i == 3 { throw ValueError { message: "stop" }; }
     push(seen, i);
   } catch (e: IndexError) {
     continue;

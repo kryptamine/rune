@@ -1,13 +1,13 @@
 fun fail(n) {
   let local = n;
-  if n == 0 { throw "boom"; }
+  if n == 0 { throw ValueError { message: "boom" }; }
   return fail(n - 1) + local;
 }
 
 try {
   fail(5);
 } catch (e) {
-  print e; // expect: boom
+  print e.message; // expect: boom
 }
 
 fun ok(a) { let b = a + 1; return b; }

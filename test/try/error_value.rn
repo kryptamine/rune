@@ -6,7 +6,7 @@ try {
 }
 
 try {
-  throw "custom";
+  throw ValueError { message: "custom" };
 } catch (e) {
-  print e; // expect: custom
+  print e.message; // expect: custom
 }

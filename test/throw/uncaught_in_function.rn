@@ -1,4 +1,4 @@
 fun fail() {
-  throw "oops"; // expect runtime error: [line: 2] oops
+  throw ValueError { message: "oops" }; // expect runtime error: [line: 2] ValueError: oops
 }
 fail();
