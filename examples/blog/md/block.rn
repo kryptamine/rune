@@ -1,0 +1,96 @@
+// Block markdown: headings, paragraphs, lists, fenced code, quotes, rules
+
+import .inline;
+
+export struct Heading { level, text, id }
+
+struct Doc { html = [], headings = [] }
+
+export fun slug(s) {
+    return regex.replace(r"[^a-z0-9]+", s.lower(), "-").trim("-");
+}
+
+export fun render(src) {
+    let lines = src.split("\n");
+    let mut doc = Doc {};
+    let mut i = 0;
+
+    while i < len(lines) {
+        let line = lines[i];
+
+        if line.trim() == "" {
+            i++;
+            continue;
+        }
+
+        if line.startsWith("```") {
+            let lang = line.slice(3).trim();
+            let mut code = [];
+            i++;
+            while i < len(lines) and !lines[i].startsWith("```") code.push(lines[i++]);
+            i++;
+            let cls = lang == "" ? "" : " class=\"lang-{lang}\"";
+            doc.html.push("<pre><code{cls}>{inline.escape(code.join("\n"))}</code></pre>");
+            continue;
+        }
+
+        let h = regex.find(r"^(#{1,6})\s+(.*)$", line);
+        if h != nil {
+            let [hashes, text] = h.groups;
+            let level = len(hashes);
+            let id = slug(text);
+            doc.headings.push(Heading { level, text, id });
+            doc.html.push("""<h{level} id="{id}">{inline.render(text)}</h{level}>""");
+            i++;
+            continue;
+        }
+
+        if regex.test(r"^(-{3,}|\*{3,})$", line.trim()) {
+            doc.html.push("<hr>");
+            i++;
+            continue;
+        }
+
+        if line.startsWith(">") {
+            let mut quote = [];
+            while i < len(lines) and lines[i].startsWith(">") quote.push(lines[i++].slice(1).trim());
+            doc.html.push("<blockquote><p>{inline.render(quote.join(" "))}</p></blockquote>");
+            continue;
+        }
+
+        let item = listItem(line);
+        if item != nil {
+            let tag = item.ordered ? "ol" : "ul";
+            let mut items = [];
+            while i < len(lines) {
+                let it = listItem(lines[i]);
+                if it == nil or it.ordered != item.ordered break;
+                items.push("<li>{inline.render(it.text)}</li>");
+                i++;
+            }
+            doc.html.push("<{tag}>{items.join("")}</{tag}>");
+            continue;
+        }
+
+        let mut para = [];
+        while i < len(lines) and !startsBlock(lines[i]) para.push(lines[i++].trim());
+        doc.html.push("<p>{inline.render(para.join(" "))}</p>");
+    }
+
+    return { html: doc.html.join("\n"), headings: doc.headings };
+}
+
+fun listItem(line) {
+    let m = regex.find(r"^\s*([-*]|\d+\.)\s+(.*)$", line);
+    if m == nil return nil;
+    let [marker, text] = m.groups;
+    return { ordered: marker.endsWith("."), text };
+}
+
+fun startsBlock(line) {
+    return line.trim() == ""
+        or line.startsWith("```")
+        or line.startsWith("#")
+        or line.startsWith(">")
+        or listItem(line) != nil;
+}
