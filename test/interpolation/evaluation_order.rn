@@ -1,0 +1,4 @@
+let mut i = 0;
+print "{i++} {i++} {i}"; // expect: 0 1 2
+let mut s = "a";
+print "{s} {s = "b"} {s}"; // expect: a b b

@@ -5,7 +5,7 @@ try {
 }
 
 try {
-  json.parse("{");
+  json.parse("\{");
 } catch (e: ValueError) {
   print e.message; // expect: json.parse() could not parse JSON: unexpected end of JSON input
 }

@@ -1,0 +1,11 @@
+let bar = 1;
+let foo = "x";
+print("foo: {bar}, bar: {foo}"); // expect: foo: 1, bar: x
+print "{bar + 1}{foo}"; // expect: 2x
+print "{nil} {true} {1.5} {-0}"; // expect: nil true 1.5 0
+print "{[1, "s"]} {{a: 1}}"; // expect: [1, "s"] {a: 1}
+print "{foo}"; // expect: x
+print type("{bar}"); // expect: string
+print "{bar}" == "1"; // expect: true
+let s = "len: {len(foo)}";
+print s; // expect: len: 1

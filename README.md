@@ -14,7 +14,8 @@ Rune is a dynamically typed interpreted programming language inspired by [Lox](h
 - Standard library in namespaces: `array`, `string`, `math`, `json`, `http`, `time`, `fs`
 - Recursive descent parser; the resolved AST is compiled to register bytecode run by a VM
 - Parser recovers from syntax errors and reports all of them in one run
-- String escapes: `\n`, `\t`, `\r`, `\"`, `\\`
+- String escapes: `\n`, `\t`, `\r`, `\"`, `\\`, `\{`, `\}`
+- String interpolation: `"x = {x}, sum = {a + b}"`
 - Number literals with exponents: `1e3`, `2.5E-2`
 - Object property access with `obj.name` as sugar for `obj["name"]`
 - Immutable structs with required and default fields: `struct Point { x, y = 0 }`
@@ -116,6 +117,18 @@ Values of different types are never equal: `1 == "1"` is `false`.
 
 `print` shows strings inside arrays and objects quoted, so `["1", 1]` and `[1, 1]`
 look different; a string printed on its own is written as is.
+
+## String Interpolation
+
+Any expression in `{}` inside a string literal is evaluated and inserted as
+`print` would show it; `\{` is a literal brace.
+
+```javascript
+let name = "ann";
+let xs = [1, "two"];
+print "hi {name}, {len(xs)} items: {xs}"; // hi ann, 2 items: [1, "two"]
+print "\{name}";                          // {name}
+```
 
 ## Variables
 

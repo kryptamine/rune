@@ -108,6 +108,10 @@ const (
 	ARRAY
 	STRING
 	NUMBER
+
+	// A string up to an interpolation's '{', and its rest after the last '}'.
+	INTERPOLATION
+	STRING_END
 )
 
 var Keywords = map[string]TokenType{
@@ -172,6 +176,10 @@ func (tokenType TokenType) String() string {
 		// types
 	case STRING:
 		return "STRING"
+	case INTERPOLATION:
+		return "INTERPOLATION"
+	case STRING_END:
+		return "STRING_END"
 	case NUMBER:
 		return "NUMBER"
 	case ARRAY:

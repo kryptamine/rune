@@ -49,7 +49,7 @@ type Interpreter struct {
 	maxRecursion int
 	out          *bufio.Writer
 	dest         io.Writer
-	line         []byte
+	buf          []byte
 	halted       atomic.Bool
 }
 

@@ -416,6 +416,10 @@ func (s *Parser) primary() (ast.Expr, error) {
 		return ast.NewLiteralExpr(ast.STRING, prev.Literal), nil
 	}
 
+	if s.match(ast.INTERPOLATION) {
+		return s.interpolation()
+	}
+
 	if s.match(ast.IDENTIFIER) {
 		prev := s.previous()
 
@@ -660,4 +664,32 @@ func (s *Parser) isObjectLiteralStart() bool {
 	key := s.tokens[s.current+1].TokenType
 
 	return (key == ast.IDENTIFIER || key == ast.STRING) && s.tokens[s.current+2].TokenType == ast.COLON
+}
+
+// interpolation parses the pieces of a string after its first one,
+// an INTERPOLATION token.
+func (s *Parser) interpolation() (ast.Expr, error) {
+	var parts []ast.Expr
+
+	for {
+		piece := s.previous()
+		if piece.Literal != "" {
+			parts = append(parts, ast.NewLiteralExpr(ast.STRING, piece.Literal))
+		}
+
+		if piece.TokenType == ast.STRING_END {
+			return &ast.InterpolationExpr{Parts: parts}, nil
+		}
+
+		expr, err := s.expressionWithStructs(structsAll)
+		if err != nil {
+			return nil, err
+		}
+
+		parts = append(parts, expr)
+
+		if !s.match(ast.INTERPOLATION, ast.STRING_END) {
+			return nil, errors.NewSyntaxError(s.peek(), "Expect '}' after interpolated expression.")
+		}
+	}
 }

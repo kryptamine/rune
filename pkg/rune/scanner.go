@@ -1,7 +1,6 @@
 package rune
 
 import (
-	"errors"
 	"fmt"
 	"math"
 	"rune/pkg/ast"
@@ -54,14 +53,18 @@ func scan(source []byte, file int) *Scanner {
 
 func (s *Scanner) scanTokens() {
 	for !s.isAtEnd() {
-		s.start = s.current
-		s.startLine, s.startCol = s.line, s.col(s.current)
-		s.scanToken()
+		s.next()
 	}
 
 	eof := ast.NewToken(ast.EOF, "", "", s.line)
 	eof.Col, eof.File = s.col(s.current), s.file
 	s.tokens = append(s.tokens, eof)
+}
+
+func (s *Scanner) next() {
+	s.start = s.current
+	s.startLine, s.startCol = s.line, s.col(s.current)
+	s.scanToken()
 }
 
 func (s *Scanner) col(offset int) int {
@@ -172,9 +175,7 @@ func (s *Scanner) scanToken() {
 			s.addToken(helpers.If(s.match('='), ast.SLASH_EQUAL, ast.SLASH))
 		}
 	case '"':
-		if err := s.string(); err != nil {
-			s.errorAt(err.Error())
-		}
+		s.string()
 
 		break
 		// Ignore whitespace.
@@ -238,15 +239,45 @@ var escapes = map[byte]byte{
 	'r':  '\r',
 	'"':  '"',
 	'\\': '\\',
+	'{':  '{',
+	'}':  '}',
 }
 
-func (s *Scanner) string() error {
+// string scans a string literal. Each "{expr}" in it ends a piece as an
+// INTERPOLATION token, followed by the tokens of expr; the piece after
+// the last one is a STRING_END.
+func (s *Scanner) string() {
 	var value strings.Builder
-	var escapeErr error
+	var badEscape string
+	end := ast.STRING
+	line, col := s.startLine, s.startCol
+
+	piece := func(tokenType ast.TokenType) {
+		s.addTokenWithLiteral(tokenType, value.String())
+		value.Reset()
+
+		if badEscape != "" {
+			s.errorAt(badEscape)
+			badEscape = ""
+		}
+	}
 
 	for s.peek() != '"' && !s.isAtEnd() {
 		c := s.source[s.current]
 		s.current++
+
+		if c == '{' {
+			piece(ast.INTERPOLATION)
+			if !s.interpolated() {
+				break
+			}
+
+			s.start, s.startLine, s.startCol = s.current, s.line, s.col(s.current)
+			s.current++
+			end = ast.STRING_END
+
+			continue
+		}
 
 		if c == '\n' {
 			s.newline()
@@ -267,8 +298,8 @@ func (s *Scanner) string() error {
 
 		if e, ok := escapes[byte(r)]; ok && size == 1 {
 			value.WriteByte(e)
-		} else if escapeErr == nil {
-			escapeErr = fmt.Errorf("Invalid escape sequence '\\%c'.", r)
+		} else if badEscape == "" {
+			badEscape = fmt.Sprintf("Invalid escape sequence '\\%c'.", r)
 		}
 
 		if r == '\n' {
@@ -278,13 +309,37 @@ func (s *Scanner) string() error {
 
 	if s.isAtEnd() {
 		s.truncated = true
-		return errors.New("Unterminated string.")
+		s.startLine, s.startCol = line, col
+		s.errorAt("Unterminated string.")
+
+		return
 	}
 
 	s.advance()
-	s.addTokenWithLiteral(ast.STRING, value.String())
+	piece(end)
+}
 
-	return escapeErr
+// interpolated scans the tokens of an interpolated expression up to its
+// closing '}', and reports whether there is one.
+func (s *Scanner) interpolated() bool {
+	depth := 0
+
+	for !s.isAtEnd() {
+		switch s.peek() {
+		case '{':
+			depth++
+		case '}':
+			if depth == 0 {
+				return true
+			}
+
+			depth--
+		}
+
+		s.next()
+	}
+
+	return false
 }
 
 func (s *Scanner) number() {
