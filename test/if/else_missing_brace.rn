@@ -1,1 +1,1 @@
-if false { } else print "x"; // [line: 1] Error at 'print': Expect '{' or a jump statement after 'else'.
+if false { } else "x"; // [line: 1] Error at '"x"': Expect '{' after 'else'.
