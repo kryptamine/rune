@@ -22,13 +22,14 @@ impl function {
   fun twice(self, x) { return self(self(x)); }
 }
 
-print "hi".shout(); // expect: HI!
-print [1, 2, 3].sum(); // expect: 6
+print("hi".shout()); // expect: HI!
+print([1, 2, 3].sum()); // expect: 6
 let n = 4;
-print n.double(); // expect: 8
-print { a: 1, b: 2 }.size(); // expect: 2
-print { size: () => "own" }.size(); // expect: own
-print true.flip(); // expect: false
-print (x => x + 3).twice(1); // expect: 7
+print(n.double()); // expect: 8
+print({ a: 1, b: 2 }.size()); // expect: 2
+print({ size: () => "own" }.size()); // expect: 1
+print(({ size: () => "own" }.size)()); // expect: own
+print(true.flip()); // expect: false
+print((x => x + 3).twice(1)); // expect: 7
 let s = "a".shout;
-print s(); // expect: A!
+print(s()); // expect: A!

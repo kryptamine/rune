@@ -16,7 +16,7 @@ impl Point {
 
 let points = [Point { x: 3, y: 4 }, Point { x: 1 }];
 for i, p in points {
-    print "{i}: {p} has length {p.len()}";
+    print("{i}: {p} has length {p.len()}");
 }
 ```
 

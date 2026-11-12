@@ -1,4 +1,4 @@
 fun main() {
-  print "bye";
+  print("bye");
   return 3;
 }

@@ -9,5 +9,5 @@ impl Counter {
 }
 
 let mut c = Counter { n: 0 };
-print c.bump(4); // expect: 6
-print c; // expect: Counter {n: 6}
+print(c.bump(4)); // expect: 6
+print(c); // expect: Counter {n: 6}

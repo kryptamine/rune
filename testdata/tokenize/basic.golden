@@ -8,14 +8,16 @@ NUMBER 1.5 1.5
 PLUS + null
 NUMBER 2 2.0
 SEMICOLON ; null
-PRINT print null
+IDENTIFIER print null
+LEFT_PAREN ( null
 STRING "hi\n" hi
 
 BANG_EQUAL != null
 NIL nil null
-AND and null
+AND && null
 BANG ! null
 TRUE true null
+RIGHT_PAREN ) null
 SEMICOLON ; null
 IDENTIFIER x null
 PLUS_EQUAL += null
@@ -49,7 +51,7 @@ RETURN return null
 IDENTIFIER a null
 LESS_EQUAL <= null
 IDENTIFIER b null
-OR or null
+OR || null
 IDENTIFIER a null
 GREATER_EQUAL >= null
 IDENTIFIER b null

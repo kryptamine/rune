@@ -7,7 +7,7 @@ impl Point {
 }
 
 let p = Point { x: 3, y: 4 };
-print p.len(); // expect: 5
-print p.moved(1).moved(2).x; // expect: 6
-print p.x; // expect: 3
-print p.dist(Point { x: 3 }); // expect: 4
+print(p.len()); // expect: 5
+print(p.moved(1).moved(2).x); // expect: 6
+print(p.x); // expect: 3
+print(p.dist(Point { x: 3 })); // expect: 4

@@ -1,9 +1,11 @@
 struct Point { x, y }
 
 fun side() {
-  print "not reached";
+  print("side");
   return 1;
 }
 
 let mut p = Point { x: 1, y: 2 };
-p.x += side(); // expect runtime error: [line: 9] TypeError: Cannot set field 'x' of Point: only a mut self method can set the fields of self.
+p.x += side(); // expect: side
+print(p.x); // expect: 2
+p.z += side(); // expect runtime error: [line: 11] KeyError: Point has no field 'z'.

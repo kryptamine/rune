@@ -1,15 +1,15 @@
 [line: 4] Error at 'notType': 'notType' is not a struct.
-    4 | try {} catch (e: notType) {} // [line: 4] Error at 'notType': 'notType' is not a struct.
-      |                  ^
+    4 | try {} catch e is notType {} // [line: 4] Error at 'notType': 'notType' is not a struct.
+      |                   ^
 [line: 5] Error at 'Missing': 'Missing' is not a struct.
-    5 | try {} catch (e: Missing) {} // [line: 5] Error at 'Missing': 'Missing' is not a struct.
-      |                  ^
+    5 | try {} catch e is Missing {} // [line: 5] Error at 'Missing': 'Missing' is not a struct.
+      |                   ^
 [line: 6] Error at 'P': 'P' is already caught.
-    6 | try {} catch (e: P, P) {} // [line: 6] Error at 'P': 'P' is already caught.
-      |                     ^
+    6 | try {} catch e is P | P {} // [line: 6] Error at 'P': 'P' is already caught.
+      |                       ^
 [line: 7] Error at 'P': 'P' is already caught.
-    7 | try {} catch (e: P) {} catch (e: TypeError, P) {} // [line: 7] Error at 'P': 'P' is already caught.
-      |                                             ^
+    7 | try {} catch e is P {} catch e is TypeError | P {} // [line: 7] Error at 'P': 'P' is already caught.
+      |                                               ^
 [line: 8] Error at 'catch': Catch-all must be the last catch clause.
-    8 | try {} catch (e) {} catch (e: P) {} // [line: 8] Error at 'catch': Catch-all must be the last catch clause.
+    8 | try {} catch e {} catch e is P {} // [line: 8] Error at 'catch': Catch-all must be the last catch clause.
       |        ^

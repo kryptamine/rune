@@ -11,17 +11,17 @@ fun sign(n) {
   else return "pos";
 }
 
-print sign(-1); // expect: neg
-print sign(0); // expect: zero
-print sign(1); // expect: pos
-print parseAge(3); // expect: 3
+print(sign(-1)); // expect: neg
+print(sign(0)); // expect: zero
+print(sign(1)); // expect: pos
+print(parseAge(3)); // expect: 3
 
-try { parseAge(-1); } catch (e: AgeError) { print e.value; } // expect: -1
+try { parseAge(-1); } catch e is AgeError { print(e.value); } // expect: -1
 
 for i in [1, 2, 3, 4] {
   if i == 2 continue;
   if i == 4 break;
-  print i;
+  print(i);
 }
 // expect: 1
 // expect: 3

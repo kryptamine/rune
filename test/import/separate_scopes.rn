@@ -7,8 +7,8 @@ fun square(x) {
 
 let pi = "entry";
 
-print math.square(3); // expect: 9
-print math_clash.square(3); // expect: 3
-print square(3); // expect: mine
-print pi; // expect: entry
-print math_clash.clashPi(); // expect: clash
+print(math.square(3)); // expect: 9
+print(math_clash.square(3)); // expect: 3
+print(square(3)); // expect: mine
+print(pi); // expect: entry
+print(math_clash.clashPi()); // expect: clash

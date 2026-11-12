@@ -10,7 +10,7 @@ fun total(items) {
     return sum;
 }
 
-print total([{ price: 10, qty: 2 }, { price: 5, qty: 1 }]); // 25
+print(total([{ price: 10, qty: 2 }, { price: 5, qty: 1 }])); // 25
 ```
 
 A function captures the variables around it, and keeps them after the
@@ -24,7 +24,7 @@ fun counter() {
 
 let next = counter();
 next();
-print next(); // 2
+print(next()); // 2
 ```
 
 Calling with the wrong number of arguments is an `ArgumentError`:
@@ -40,7 +40,7 @@ area(3); // ArgumentError: Expected 2 arguments but got 1.
 
 ```rune
 let prices = [120, 45, 300];
-print prices.map(fun (p) { return p * 2; }); // [240, 90, 600]
+print(prices.map(fun (p) { return p * 2; })); // [240, 90, 600]
 ```
 
 Arrow functions are shorthand: an expression body is returned, a block body works like `fun`'s.
@@ -48,11 +48,11 @@ Arrow functions are shorthand: an expression body is returned, a block body work
 ```rune
 let add = (a, b) => a + b;
 let double = x => x * 2;
-let log = msg => { print "[log] " + msg; };
+let log = msg => { print("[log] " + msg); };
 
-print add(2, 3);  // 5
-print double(21); // 42
-log("started");   // [log] started
+print(add(2, 3));  // 5
+print(double(21)); // 42
+log("started");    // [log] started
 ```
 
 A single plain parameter needs no parentheses. Parameters may be `mut` or
@@ -61,11 +61,11 @@ A single plain parameter needs no parentheses. Parameters may be `mut` or
 ```rune
 let users = [{ name: "ann", age: 31 }, { name: "bob", age: 17 }];
 
-print users.map(({ name }) => name);                    // ["ann", "bob"]
-print users.filter(u => u.age >= 18).map(u => u.name);  // ["ann"]
+print(users.map(({ name }) => name));                    // ["ann", "bob"]
+print(users.filter(u => u.age >= 18).map(u => u.name));  // ["ann"]
 
 let bump = (mut n) => { n += 1; return n; };
-print bump(1); // 2
+print(bump(1)); // 2
 ```
 
 A body in braces is an object when it looks like one: `() => { a: 1 }` and
@@ -75,8 +75,8 @@ A body in braces is an object when it looks like one: `() => { a: 1 }` and
 let origin = () => { x: 0, y: 0 };
 let wrap = name => { name };
 
-print origin();     // {x: 0, y: 0}
-print wrap("ann");  // {name: "ann"}
+print(origin());     // {x: 0, y: 0}
+print(wrap("ann"));  // {name: "ann"}
 ```
 
 ## Default Parameters
@@ -89,8 +89,8 @@ fun connect(host, port = 5432) {
     return "{host}:{port}";
 }
 
-print connect("db.local");       // db.local:5432
-print connect("db.local", 6379); // db.local:6379
+print(connect("db.local"));       // db.local:5432
+print(connect("db.local", 6379)); // db.local:6379
 ```
 
 The default is evaluated at each such call, after the parameters before it,
@@ -102,13 +102,13 @@ fun greet(name, greeting = "hi", punct = greeting == "hi" ? "!" : ".") {
     return "{greeting} {name}{punct}";
 }
 
-print greet("ann");          // hi ann!
-print greet("ann", "hello"); // hello ann.
-print greet("ann", nil);     // nil ann.
+print(greet("ann"));          // hi ann!
+print(greet("ann", "hello")); // hello ann.
+print(greet("ann", nil));     // nil ann.
 
 fun tag(item, mut tags = []) { tags.push(item); return tags; }
-print tag("a"); // ["a"]
-print tag("b"); // ["b"]
+print(tag("a")); // ["a"]
+print(tag("b")); // ["b"]
 ```
 
 Every parameter after one with a default needs one too, except a rest
@@ -122,6 +122,6 @@ Arrow functions take defaults too:
 
 ```rune
 let inc = (n, by = 1) => n + by;
-print inc(5);     // 6
-print inc(5, 10); // 15
+print(inc(5));     // 6
+print(inc(5, 10)); // 15
 ```

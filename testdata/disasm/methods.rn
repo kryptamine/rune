@@ -7,4 +7,4 @@ impl C {
 
 let mut c = C { n: 0 };
 c.incr();
-print c.get();
+print(c.get());

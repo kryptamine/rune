@@ -12,5 +12,5 @@ impl Point {
 let mut p = Point { x: 1, y: 1 };
 let before = p;
 p.move(1, 2);
-print p; // expect: Point {x: 4, y: 4}
-print before; // expect: Point {x: 1, y: 1}
+print(p); // expect: Point {x: 4, y: 4}
+print(before); // expect: Point {x: 1, y: 1}

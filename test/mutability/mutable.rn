@@ -1,6 +1,6 @@
 let mut a;
-print a; // expect: nil
+print(a); // expect: nil
 a = 1;
 a += 1;
 a++;
-print a; // expect: 3
+print(a); // expect: 3

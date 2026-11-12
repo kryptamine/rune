@@ -6,9 +6,9 @@ impl Point {
   fun len(self) { return self.x + self.y; }
 }
 
-print Point.origin(); // expect: Point {x: 0, y: 0}
-print Point.of(1, 2).len(); // expect: 3
-print Point.len(Point.of(2, 3)); // expect: 5
+print(Point.origin()); // expect: Point {x: 0, y: 0}
+print(Point.of(1, 2).len()); // expect: 3
+print(Point.len(Point.of(2, 3))); // expect: 5
 let f = Point.len;
-print [Point.of(1, 1), Point.of(2, 2)].map(Point.len); // expect: [2, 4]
-print f; // expect: <fn Point.len>
+print([Point.of(1, 1), Point.of(2, 2)].map(Point.len)); // expect: [2, 4]
+print(f); // expect: <fn Point.len>

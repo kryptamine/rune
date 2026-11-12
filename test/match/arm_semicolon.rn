@@ -1,9 +1,9 @@
-fun f() { print "f"; }
+fun f() { print("f"); }
 
 match 2 {
-    1 => print 1;
+    1 => print(1);
     _ => f();
 }
 // expect: f
 
-print match 1 { 1 => "a"; _ => "b" }; // expect: a
+print(match 1 { 1 => "a"; _ => "b" }); // expect: a

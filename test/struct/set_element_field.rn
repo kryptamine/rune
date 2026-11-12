@@ -1,4 +1,16 @@
 struct Point { x, y }
+struct Line { from, to }
 
 let mut ps = [Point { x: 1, y: 2 }];
-ps[0].x = 3; // expect runtime error: [line: 4] TypeError: Cannot set field 'x' of Point: only a mut self method can set the fields of self.
+let first = ps[0];
+ps[0].x = 3;
+print(ps);    // expect: [Point {x: 3, y: 2}]
+print(first); // expect: Point {x: 1, y: 2}
+
+let mut o = { line: Line { from: Point { x: 0, y: 0 }, to: Point { x: 1, y: 1 } } };
+o.line.to.y = 9;
+print(o.line); // expect: Line {from: Point {x: 0, y: 0}, to: Point {x: 1, y: 9}}
+
+let mut l = Line { from: Point { x: 0, y: 0 }, to: Point { x: 1, y: 1 } };
+l.from.x -= 4;
+print(l.from); // expect: Point {x: -4, y: 0}

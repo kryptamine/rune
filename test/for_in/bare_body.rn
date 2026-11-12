@@ -1,14 +1,14 @@
 let mut out = [];
 for x in 1..4 out.push(x);
-print out; // expect: [1, 2, 3]
+print(out); // expect: [1, 2, 3]
 
-for k, v in { "a": "b" } print k + v; // expect: ab
+for k, v in { "a": "b" } print(k + v); // expect: ab
 
-for x in [1, 2, 3] if x != 2 print x;
+for x in [1, 2, 3] if x != 2 print(x);
 // expect: 1
 // expect: 3
 
-for x in [1, 2] for y in [3, 4] print x * y;
+for x in [1, 2] for y in [3, 4] print(x * y);
 // expect: 3
 // expect: 4
 // expect: 6
@@ -16,15 +16,15 @@ for x in [1, 2] for y in [3, 4] print x * y;
 
 let mut i = 0;
 while i < 3 i++;
-print i; // expect: 3
+print(i); // expect: 3
 
-if true print "yes"; else print "no"; // expect: yes
+if true print("yes"); else print("no"); // expect: yes
 
 fun f() {
   for x in [1, 2, 3] if x == 2 return x;
 }
-print f(); // expect: 2
+print(f()); // expect: 2
 
 fun g(x) { return x * 10; }
 if true g(1);
-if true print g(2); // expect: 20
+if true print(g(2)); // expect: 20

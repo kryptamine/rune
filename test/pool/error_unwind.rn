@@ -6,9 +6,9 @@ fun fail(n) {
 
 try {
   fail(5);
-} catch (e) {
-  print e.message; // expect: boom
+} catch e {
+  print(e.message); // expect: boom
 }
 
 fun ok(a) { let b = a + 1; return b; }
-print ok(1); // expect: 2
+print(ok(1)); // expect: 2

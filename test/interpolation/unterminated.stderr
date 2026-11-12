@@ -1,3 +1,3 @@
 [line: 2] Error: Unterminated string.
-    2 | print "a {x
+    2 | print("a {x)
       |       ^

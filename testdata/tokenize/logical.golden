@@ -1,0 +1,9 @@
+exit: 0
+-- stdout --
+TRUE true null
+AND && null
+FALSE false null
+OR || null
+NIL nil null
+EOF  null
+-- stderr --

@@ -3,22 +3,22 @@ let missing = fs.join(dir, "nope");
 
 try {
     fs.read(missing);
-} catch (e: IOError) {
-    print e.code; // expect: notFound
-    print e.path == missing; // expect: true
-    print e.message.endsWith("nope: no such file or directory."); // expect: true
+} catch e is IOError {
+    print(e.code); // expect: notFound
+    print(e.path == missing); // expect: true
+    print(e.message.endsWith("nope: no such file or directory.")); // expect: true
 }
 
-try { fs.read(dir); } catch (e: IOError) { print e.code; } // expect: isDir
-try { fs.copy(dir, missing); } catch (e: IOError) { print e.code; } // expect: isDir
+try { fs.read(dir); } catch e is IOError { print(e.code); } // expect: isDir
+try { fs.copy(dir, missing); } catch e is IOError { print(e.code); } // expect: isDir
 
 fs.write(fs.join(dir, "f"), "x");
-try { fs.mkdir(fs.join(dir, "f", "g")); } catch (e: IOError) { print e.code; } // expect: notDir
-try { fs.remove(dir); } catch (e: IOError) { print e.code; } // expect: notEmpty
-try { fs.rename(missing, fs.join(dir, "g")); } catch (e: IOError) { print [e.code, e.path == missing]; } // expect: ["notFound", true]
-try { fs.removeAll(""); } catch (e: ValueError) { print e.message; } // expect: fs.removeAll() got an empty path.
-try { fs.write(fs.join(dir, "h"), 1); } catch (e: TypeError) { print e.message; } // expect: fs.write() expects a string or bytes as argument 2, got number.
+try { fs.mkdir(fs.join(dir, "f", "g")); } catch e is IOError { print(e.code); } // expect: notDir
+try { fs.remove(dir); } catch e is IOError { print(e.code); } // expect: notEmpty
+try { fs.rename(missing, fs.join(dir, "g")); } catch e is IOError { print([e.code, e.path == missing]); } // expect: ["notFound", true]
+try { fs.removeAll(""); } catch e is ValueError { print(e.message); } // expect: fs.removeAll() got an empty path.
+try { fs.write(fs.join(dir, "h"), 1); } catch e is TypeError { print(e.message); } // expect: fs.write() expects a string or bytes as argument 2, got number.
 
-try { http.get("http://127.0.0.1:1"); } catch (e: IOError) { print e.code; } // expect: nil
+try { http.get("http://127.0.0.1:1"); } catch e is IOError { print(e.code); } // expect: nil
 
 fs.removeAll(dir);

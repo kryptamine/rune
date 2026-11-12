@@ -1,11 +1,11 @@
 // As a statement, a value no arm matches does nothing.
-match 3 { 1 => { print "one"; } }
-match 3 { 3 => { print "three"; } } // expect: three
-match 3 { 3 => { print "semicolon"; } }; // expect: semicolon
+match 3 { 1 => { print("one"); } }
+match 3 { 3 => { print("three"); } } // expect: three
+match 3 { 3 => { print("semicolon"); } }; // expect: semicolon
 
 let mut log = [];
 match 2 { 2 => log.push("pushed") }
-print log; // expect: ["pushed"]
+print(log); // expect: ["pushed"]
 
 let mut i = 0;
 while true {
@@ -15,13 +15,13 @@ while true {
         4 => { break; }
         _ => {}
     }
-    print i;
+    print(i);
 }
 // expect: 2
 // expect: 3
 
 for x in [1, 2, 3] match x {
-    2 => { print "two"; } // expect: two
+    2 => { print("two"); } // expect: two
 }
 
 fun sign(n) {
@@ -33,20 +33,20 @@ fun sign(n) {
     return "positive";
 }
 
-print sign(0);  // expect: zero
-print sign(-3); // expect: negative
-print sign(3);  // expect: positive
+print(sign(0));  // expect: zero
+print(sign(-3)); // expect: negative
+print(sign(3));  // expect: positive
 
 // A block arm's value is nil.
-print match 1 { 1 => { let a = 1; } }; // expect: nil
+print(match 1 { 1 => { let a = 1; } }); // expect: nil
 
 // A bare statement is an arm body too, ending with its own ';'.
 fun classify(n) {
     match n {
-        0 => print "zero";
+        0 => print("zero");
         1 => return "one";
         2 => throw Oops { code: 2 };
-        n => if n > 5 print "big"; else print "small";
+        n => if n > 5 print("big"); else print("small");
     }
 
     return "done";
@@ -54,22 +54,22 @@ fun classify(n) {
 
 struct Oops { code }
 
-print classify(0); // expect: zero
+print(classify(0)); // expect: zero
 // expect: done
-print classify(1); // expect: one
-print classify(9); // expect: big
+print(classify(1)); // expect: one
+print(classify(9)); // expect: big
 // expect: done
 
 try {
     classify(2);
-} catch (e: Oops) {
-    print e.code; // expect: 2
+} catch e is Oops {
+    print(e.code); // expect: 2
 }
 
 for i in 0..5 match i {
     1 => continue;
     3 => break;
-    _ => print i;
+    _ => print(i);
 }
 // expect: 0
 // expect: 2

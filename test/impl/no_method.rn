@@ -4,4 +4,4 @@ impl Point {
   fun len(self) { return 1; }
 }
 
-print Point.nope(); // expect runtime error: [line: 7] KeyError: Point has no method 'nope'.
+print(Point.nope()); // expect runtime error: [line: 7] KeyError: Point has no method 'nope'.

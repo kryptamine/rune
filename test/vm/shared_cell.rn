@@ -7,7 +7,7 @@ fun make() {
 let p = make();
 p[0]();
 p[0]();
-print p[1](); // expect: 2
+print(p[1]()); // expect: 2
 
 fun outer(mut x) {
   fun mid() {
@@ -17,8 +17,8 @@ fun outer(mut x) {
   return mid();
 }
 let f = outer(5);
-print f(); // expect: 6
-print f(); // expect: 7
+print(f()); // expect: 6
+print(f()); // expect: 7
 
 fun counter() {
   let mut c = 0;
@@ -28,5 +28,5 @@ let a = counter();
 let b = counter();
 a();
 a();
-print a(); // expect: 3
-print b(); // expect: 1
+print(a()); // expect: 3
+print(b()); // expect: 1

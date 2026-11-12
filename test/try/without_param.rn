@@ -1,5 +1,5 @@
 try {
-  print undefinedVar;
+  print(undefinedVar);
 } catch {
-  print "caught"; // expect: caught
+  print("caught"); // expect: caught
 }

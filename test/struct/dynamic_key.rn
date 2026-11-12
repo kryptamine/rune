@@ -2,7 +2,7 @@ struct Point { x, y }
 
 let p = Point { x: 1, y: 2 };
 let k = "y" + "";
-print p[k]; // expect: 2
-for f in p { print p[f]; }
+print(p[k]); // expect: 2
+for f in p { print(p[f]); }
 // expect: 1
 // expect: 2

@@ -1,3 +1,42 @@
-[line: 15] TypeError: Cannot call in-place method 'sort' of array: its receiver is in an immutable variable.
-   15 | print a.sort(); // expect runtime error: [line: 15] TypeError: Cannot call in-place method 'sort' of array: its receiver is in an immutable variable.
-      |         ^
+[line: 2] Error at 'a': Cannot mutate immutable variable 'a'.
+    2 | a.push(3); // Error at 'a': Cannot mutate immutable variable 'a'.
+      | ^
+[line: 3] Error at 'a': Cannot mutate immutable variable 'a'.
+    3 | a.pop(); // Error at 'a': Cannot mutate immutable variable 'a'.
+      | ^
+[line: 4] Error at 'a': Cannot mutate immutable variable 'a'.
+    4 | a.sort(); // Error at 'a': Cannot mutate immutable variable 'a'.
+      | ^
+[line: 6] Error at 'o': Cannot mutate immutable variable 'o'.
+    6 | o.xs.push(1); // Error at 'o': Cannot mutate immutable variable 'o'.
+      | ^
+[line: 7] Error at 'o': Cannot mutate immutable variable 'o'.
+    7 | (o?.xs).push(1); // Error at 'o': Cannot mutate immutable variable 'o'.
+      |  ^
+[line: 8] Error at 'o': Cannot mutate immutable variable 'o'.
+    8 | o.delete("xs"); // Error at 'o': Cannot mutate immutable variable 'o'.
+      | ^
+[line: 11] Error at 'm': Cannot mutate immutable variable 'm'.
+   11 | m.set("b", 2); // Error at 'm': Cannot mutate immutable variable 'm'.
+      | ^
+[line: 12] Error at 'm': Cannot mutate immutable variable 'm'.
+   12 | m.delete("a"); // Error at 'm': Cannot mutate immutable variable 'm'.
+      | ^
+[line: 13] Error at 'm': Cannot mutate immutable variable 'm'.
+   13 | m.clear(); // Error at 'm': Cannot mutate immutable variable 'm'.
+      | ^
+[line: 14] Error at 's': Cannot mutate immutable variable 's'.
+   14 | s.add(2); // Error at 's': Cannot mutate immutable variable 's'.
+      | ^
+[line: 15] Error at 's': Cannot mutate immutable variable 's'.
+   15 | s.delete(1); // Error at 's': Cannot mutate immutable variable 's'.
+      | ^
+[line: 16] Error at 's': Cannot mutate immutable variable 's'.
+   16 | s.clear(); // Error at 's': Cannot mutate immutable variable 's'.
+      | ^
+[line: 17] Error at 'a': Cannot mutate immutable variable 'a'.
+   17 | a.insert(0, 1); // Error at 'a': Cannot mutate immutable variable 'a'.
+      | ^
+[line: 18] Error at 'a': Cannot mutate immutable variable 'a'.
+   18 | a.remove(0); // Error at 'a': Cannot mutate immutable variable 'a'.
+      | ^

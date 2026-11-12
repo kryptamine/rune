@@ -1,0 +1,2 @@
+let o = { f: x => x + 1 };
+o.f(1); // expect runtime error: [line: 2] TypeError: object has no method 'f'; call the function in its property as (x.f)().

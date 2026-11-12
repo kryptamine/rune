@@ -2,4 +2,4 @@ struct Point { x, y }
 
 let mut p = Point { x: 1, y: 2 };
 p = Point { x: p.x + 1, y: p.y };
-print p; // expect: Point {x: 2, y: 2}
+print(p); // expect: Point {x: 2, y: 2}

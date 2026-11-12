@@ -1,6 +1,6 @@
 let mut s = 1;
 try { s = s + nil; } catch {}
-print s; // expect: 1
+print(s); // expect: 1
 
 fun f() {
   let mut a = [1];
@@ -11,13 +11,13 @@ fun f() {
   try { x = a.y; } catch {}
   return x;
 }
-print f(); // expect: 5
+print(f()); // expect: 5
 
-print len; // expect: <native fn len>
+print(len); // expect: <native fn len>
 let len = 3;
-print len; // expect: 3
+print(len); // expect: 3
 
 fun early() { return later; }
-try { early(); } catch (e) { print e.message; } // expect: Undefined variable 'later'.
+try { early(); } catch e { print(e.message); } // expect: Undefined variable 'later'.
 let later = "now";
-print early(); // expect: now
+print(early()); // expect: now

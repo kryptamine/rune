@@ -1,7 +1,7 @@
 let a = 1;
-print "\{a}"; // expect: {a}
-print "\{a\}"; // expect: {a}
-print "}"; // expect: }
-print "{a}}"; // expect: 1}
-print "line\n{a}"; // expect: line
+print("\{a}"); // expect: {a}
+print("\{a\}"); // expect: {a}
+print("}"); // expect: }
+print("{a}}"); // expect: 1}
+print("line\n{a}"); // expect: line
 // expect: 1

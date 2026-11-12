@@ -10,7 +10,7 @@ fun page() {
         """;
 }
 
-print page();
+print(page());
 // expect: <html lang="en">
 // expect:   <title>Hi</title>
 // expect:
@@ -21,27 +21,27 @@ let css = r"""
     a { color: "red"; }
     b \d
     """;
-print css;
+print(css);
 // expect: a { color: "red"; }
 // expect: b \d
 
-print """inline "q" {1 + 1}"""; // expect: inline "q" 2
-print len(""); // expect: 0
+print("""inline "q" {1 + 1}"""); // expect: inline "q" 2
+print(len("")); // expect: 0
 
-print """
+print("""
     {title}{title}
     end
-    """ + "|";
+    """ + "|");
 // expect: HiHi
 // expect: end|
 
-print """
+print("""
     trailing
 
-    """ + "|";
+    """ + "|");
 // expect: trailing
 // expect: |
 
-print """
-  not dedented: closing is not on its own line""";
+print("""
+  not dedented: closing is not on its own line""");
 // expect:   not dedented: closing is not on its own line

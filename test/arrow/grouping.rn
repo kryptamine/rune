@@ -1,13 +1,13 @@
 let a = 1;
-print (a) + 1; // expect: 2
-print (a + 2) * 2; // expect: 6
+print((a) + 1); // expect: 2
+print((a + 2) * 2); // expect: 6
 
-print match 5 {
+print(match 5 {
   n if (n > 3) => "big",
   _ => "small",
-}; // expect: big
+}); // expect: big
 
 let ok = true;
-print match 1 {
+print(match 1 {
   _ if ok => "guard",
-}; // expect: guard
+}); // expect: guard

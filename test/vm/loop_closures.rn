@@ -3,7 +3,7 @@ for i in 0..3 {
   let j = i * 10;
   fs.push(fun () { return i + j; });
 }
-for f in fs { print f(); } // expect: 0
+for f in fs { print(f()); } // expect: 0
 // expect: 11
 // expect: 22
 
@@ -14,11 +14,11 @@ while k < 3 {
   gs.push(fun () { return c; });
   k++;
 }
-for g in gs { print g(); } // expect: 0
+for g in gs { print(g()); } // expect: 0
 // expect: 1
 // expect: 2
 
 let mut hs = [];
 for key, val in {a: "1", b: "2"} { hs.push(fun () { return key + val; }); }
-print hs[0](); // expect: a1
-print hs[1](); // expect: b2
+print(hs[0]()); // expect: a1
+print(hs[1]()); // expect: b2

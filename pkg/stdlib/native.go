@@ -270,7 +270,10 @@ func NewNamespace(members []Builtin) value.Value {
 		decls[i] = value.Field{Name: m.Name, Required: true}
 	}
 
-	v, fields := value.NewStruct(value.NewShape("namespace", decls))
+	shape := value.NewShape("namespace", decls)
+	shape.Namespace = true
+
+	v, fields := value.NewStruct(shape)
 	for i, m := range members {
 		fields[i] = m.Value
 	}

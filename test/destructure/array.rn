@@ -1,31 +1,31 @@
 let [a, b] = [1, 2];
-print a; // expect: 1
-print b; // expect: 2
+print(a); // expect: 1
+print(b); // expect: 2
 
 let [x, _, z] = [1, 2, 3, 4];
-print [x, z]; // expect: [1, 3]
+print([x, z]); // expect: [1, 3]
 
 let [h, ...t] = [1, 2, 3];
-print h; // expect: 1
-print t; // expect: [2, 3]
+print(h); // expect: 1
+print(t); // expect: [2, 3]
 
 let [...all] = [];
-print all; // expect: []
+print(all); // expect: []
 
 let mut [p, q] = [1, 2];
 p += q;
-print p; // expect: 3
+print(p); // expect: 3
 
 let [mut m, n] = [5, 6];
 m += n;
-print m; // expect: 11
+print(m); // expect: 11
 
 fun swap([u, v]) { return [v, u]; }
-print swap([1, 2]); // expect: [2, 1]
-print [[1, 2], [3, 4]].map(([i, j]) => i * j); // expect: [2, 12]
+print(swap([1, 2])); // expect: [2, 1]
+print([[1, 2], [3, 4]].map(([i, j]) => i * j)); // expect: [2, 12]
 
 fun capture([c]) { return () => c; }
-print capture([7])(); // expect: 7
+print(capture([7])()); // expect: 7
 
 fun counter() {
   let [mut n] = [0];
@@ -33,9 +33,9 @@ fun counter() {
 }
 let next = counter();
 next();
-print next(); // expect: 2
+print(next()); // expect: 2
 
 let mut src = [1, 2];
 let [first, ...more] = src;
 src.push(3);
-print more; // expect: [2]
+print(more); // expect: [2]

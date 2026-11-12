@@ -1,13 +1,13 @@
 let { x, y } = { x: 1, y: 2 };
-print x; // expect: 1
-print y; // expect: 2
+print(x); // expect: 1
+print(y); // expect: 2
 
 let { a: first, "b-c": second, } = { a: "A", "b-c": "BC", extra: 0 };
-print first; // expect: A
-print second; // expect: BC
+print(first); // expect: A
+print(second); // expect: BC
 
 {
   let { mut n, m } = { n: 1, m: 10 };
   n += m;
-  print n; // expect: 11
+  print(n); // expect: 11
 }

@@ -1,6 +1,7 @@
 exit: 0
 -- stdout --
-PRINT print null
+IDENTIFIER print null
+LEFT_PAREN ( null
 INTERPOLATION "a { a 
 IDENTIFIER x null
 PLUS + null
@@ -8,6 +9,7 @@ NUMBER 1 1.0
 INTERPOLATION } b {  b 
 STRING "c" c
 STRING_END } d"  d
+RIGHT_PAREN ) null
 SEMICOLON ; null
 EOF  null
 -- stderr --

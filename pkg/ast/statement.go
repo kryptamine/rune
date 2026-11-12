@@ -3,7 +3,6 @@ package ast
 import "rune/pkg/value"
 
 type StmtVisitor interface {
-	VisitPrintStmt(printStmt *PrintStmt) error
 	VisitExprStmt(exprStmt *ExprStmt) error
 	VisitVarStmt(VarStmt *VarStmt) error
 	VisitDestructureStmt(stmt *DestructureStmt) error
@@ -132,14 +131,6 @@ func NewReturnStmt(value Expr, keyword Token) Stmt {
 	return &ReturnStmt{Value: value, Keyword: keyword}
 }
 
-type PrintStmt struct {
-	Expr Expr
-}
-
-func NewPrintStmt(expr Expr) Stmt {
-	return &PrintStmt{Expr: expr}
-}
-
 type ExprStmt struct {
 	Expr Expr
 }
@@ -246,11 +237,14 @@ type TryStmt struct {
 
 // CatchClause catches errors that are one of Types, or any without Types.
 // Param is the optional catch variable (nil without one).
+// CatchClause is catch [name [is T | U]] { body }; the resolver sets
+// Shapes, one per type.
 type CatchClause struct {
 	Keyword    Token
 	Param      *Token
 	ParamLocal *Local
 	Types      []*VarExpr
+	Shapes     []*value.Shape
 	Body       []Stmt
 }
 
@@ -296,10 +290,6 @@ type Stmt interface {
 
 func (n *FunctionStmt) Accept(v StmtVisitor) error {
 	return v.VisitFunctionStmt(n)
-}
-
-func (n *PrintStmt) Accept(v StmtVisitor) error {
-	return v.VisitPrintStmt(n)
 }
 
 func (n *ExprStmt) Accept(v StmtVisitor) error {

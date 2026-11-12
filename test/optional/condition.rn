@@ -1,10 +1,10 @@
 let mut node = { v: 1, next: { v: 2, next: nil } };
 
 while node?.v {
-  print node.v;
+  print(node.v);
   node = node.next;
 }
 // expect: 1
 // expect: 2
 
-if node?.v print "no"; else print "done"; // expect: done
+if node?.v print("no"); else print("done"); // expect: done

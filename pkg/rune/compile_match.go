@@ -95,19 +95,7 @@ func (fs *funcState) pattern(p ast.Pattern, s int32) []int {
 	case *ast.LiteralPattern:
 		return []int{fs.literalTest(s, n)}
 	case *ast.OrPattern:
-		var hits, miss []int
-
-		for i, alt := range n.Alts {
-			miss = fs.pattern(alt, s)
-			if i < len(n.Alts)-1 {
-				hits = append(hits, fs.emit(ins{op: opJmp}, nil))
-				fs.patch(miss)
-			}
-		}
-
-		fs.patch(hits)
-
-		return miss
+		return fs.anyOf(len(n.Alts), func(i int) []int { return fs.pattern(n.Alts[i], s) })
 	case *ast.StructPattern:
 		miss := []int{fs.typeTest(s, n.Shape)}
 		for _, f := range n.Fields {
@@ -115,6 +103,8 @@ func (fs *funcState) pattern(p ast.Pattern, s int32) []int {
 		}
 
 		return miss
+	case *ast.TypePattern:
+		return append(fs.isOneOf(s, n.Shapes), fs.pattern(n.Inner, s)...)
 	case *ast.ObjectPattern:
 		var miss []int
 		for _, f := range n.Fields {
@@ -125,6 +115,29 @@ func (fs *funcState) pattern(p ast.Pattern, s int32) []int {
 	}
 
 	panic("compile: unknown pattern")
+}
+
+// anyOf emits n tests, each giving the jumps it takes on a mismatch, and
+// returns the jumps taken when all of them miss.
+func (fs *funcState) anyOf(n int, test func(i int) []int) []int {
+	var hits, miss []int
+
+	for i := range n {
+		miss = test(i)
+		if i < n-1 {
+			hits = append(hits, fs.emit(ins{op: opJmp}, nil))
+			fs.patch(miss)
+		}
+	}
+
+	fs.patch(hits)
+
+	return miss
+}
+
+// isOneOf returns the jumps taken unless R[s] is a struct of one of shapes.
+func (fs *funcState) isOneOf(s int32, shapes []*value.Shape) []int {
+	return fs.anyOf(len(shapes), func(i int) []int { return []int{fs.typeTest(s, shapes[i])} })
 }
 
 // typeTest jumps unless R[s] is a struct of shape; a type past the

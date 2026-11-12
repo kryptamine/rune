@@ -1,11 +1,12 @@
 struct Point { x, y }
 
 impl Point {
-  fun copyTo(mut self, other) {
+  fun copyTo(self, other) {
     let mut o = other;
-    o.x = self.x; // expect runtime error: [line: 6] TypeError: Cannot set field 'x' of Point: only a mut self method can set the fields of self.
+    o.x = self.x;
+    return o;
   }
 }
 
-let mut p = Point { x: 1, y: 1 };
-p.copyTo(Point { x: 0, y: 0 });
+let p = Point { x: 1, y: 1 };
+print(p.copyTo(Point { x: 0, y: 0 })); // expect: Point {x: 1, y: 0}

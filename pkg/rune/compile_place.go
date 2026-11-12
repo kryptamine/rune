@@ -34,7 +34,7 @@ func (fs *funcState) place(array, index ast.Expr, prop bool, tok *ast.Token, lat
 // before more code runs.
 func (pl *place) check() {
 	if pl.prop {
-		pl.fs.emit(ins{op: opCheckProp, a: pl.t.reg, b: pl.i, y: uint8(boolNum(pl.t.isMutSelf()))}, pl.tok)
+		pl.fs.emit(ins{op: opCheckProp, a: pl.t.reg, b: pl.i, y: uint8(boolNum(pl.t.writable()))}, pl.tok)
 	}
 }
 
@@ -42,14 +42,15 @@ func (pl *place) load(dst int32) {
 	pl.fs.emit(ins{op: pick(pl.prop, opGetProp, opGetIndex), a: dst, b: pl.t.reg, c: pl.i}, pl.tok)
 }
 
-// store writes v. Only a mut self takes a field: as a copy, which goes
-// back to self unless the target turns out to be an object or array.
+// store writes v. A struct read from a variable or a place takes a field
+// as a copy, which goes back there unless the target turns out to be an
+// object or array.
 func (pl *place) store(v int32) {
 	fs, t := pl.fs, pl.t
-	self := t.isMutSelf()
-	set := fs.emit(ins{op: pick(pl.prop, opSetProp, opSetIndex), a: t.reg, b: pl.i, c: v, y: uint8(boolNum(self))}, pl.tok)
+	writable := t.writable()
+	set := fs.emit(ins{op: pick(pl.prop, opSetProp, opSetIndex), a: t.reg, b: pl.i, c: v, y: uint8(boolNum(writable))}, pl.tok)
 
-	if !self || t.inPlace() {
+	if !writable || t.inPlace() {
 		return
 	}
 
@@ -118,7 +119,8 @@ func (lv *lval) check() {
 	}
 }
 
-func (lv *lval) isMutSelf() bool { return lv.v != nil && lv.fs.isMutSelf(lv.v.Local) }
+// writable reports whether a struct in reg can go back where it was read from.
+func (lv *lval) writable() bool { return lv.v != nil || lv.at != nil }
 
 // writeBack puts reg back where it was read from.
 func (lv *lval) writeBack() {
@@ -136,6 +138,10 @@ func (lv *lval) writeBack() {
 // inPlace reports whether reg is the variable's own register, so it needs
 // no writing back.
 func (lv *lval) inPlace() bool {
+	if lv.v == nil {
+		return false
+	}
+
 	kind, r := lv.fs.lookup(lv.v.Local)
 	return kind == varLocal && r == lv.reg
 }

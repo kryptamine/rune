@@ -1,11 +1,11 @@
 let x = false;
-if not x { print "ok"; } // expect: ok
-print not nil;           // expect: true
-print not 0;             // expect: true
-print not 1 == 2;        // expect: true
-print !1 == 2;           // expect: false
-print not true and false; // expect: false
-print not false or false; // expect: true
-print not not "a";       // expect: true
-let f = (a) => not a;
-print f(nil);            // expect: true
+if !x { print("ok"); } // expect: ok
+print(!nil);           // expect: true
+print(!0);             // expect: true
+print(!(1 == 2));        // expect: true
+print(!1 == 2);           // expect: false
+print(!true && false); // expect: false
+print(!false || false); // expect: true
+print(!(!"a"));       // expect: true
+let f = (a) => !a;
+print(f(nil));            // expect: true

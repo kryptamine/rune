@@ -1,4 +1,4 @@
 let mut fs = [];
 for x in [1, 2, 3] { fs = fs.append(fun () { return x; }); }
-print fs[0](); // expect: 1
-print fs[2](); // expect: 3
+print(fs[0]()); // expect: 1
+print(fs[2]()); // expect: 3

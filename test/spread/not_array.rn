@@ -1,1 +1,1 @@
-print [...{ a: 1 }]; // expect runtime error: [line: 1] TypeError: Cannot spread object into an array.
+print([...{ a: 1 }]); // expect runtime error: [line: 1] TypeError: Cannot spread object into an array.

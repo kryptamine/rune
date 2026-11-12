@@ -1,0 +1,9 @@
+[line: 1] Error at 'math': Cannot mutate immutable variable 'math'.
+    1 | math.PI = 3; // Error at 'math': Cannot mutate immutable variable 'math'.
+      | ^
+[line: 2] Error at 'math': Cannot mutate immutable variable 'math'.
+    2 | math.PI++; // Error at 'math': Cannot mutate immutable variable 'math'.
+      | ^
+[line: 3] Error at 'module': Cannot mutate immutable variable 'module'.
+    3 | module.dir = "x"; // Error at 'module': Cannot mutate immutable variable 'module'.
+      | ^

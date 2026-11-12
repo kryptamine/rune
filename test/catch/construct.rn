@@ -5,12 +5,12 @@ fun check(n) {
 
 try {
   check(-1);
-} catch (e: ValueError) {
-  print e.message; // expect: negative
-  print e.line; // expect: nil
+} catch e is ValueError {
+  print(e.message); // expect: negative
+  print(e.line); // expect: nil
 }
 
 struct Note { message }
 let n = Note { message: "hi" };
-print n.message; // expect: hi
-print ValueError({ message: "m", line: 3 }).line; // expect: 3
+print(n.message); // expect: hi
+print(ValueError({ message: "m", line: 3 }).line); // expect: 3

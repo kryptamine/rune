@@ -1,4 +1,4 @@
 while true {
   if true break
-  print "x"; // [line: 3] Error at 'print': Expect ';' after 'break'.
+  print("x"); // [line: 3] Error at 'print': Expect ';' after 'break'.
 }

@@ -1,0 +1,3 @@
+[line: 10] TypeError: Cannot call in-place method 'push' of array: its receiver is in an immutable variable.
+   10 | a.push(2); // expect runtime error: [line: 10] TypeError: Cannot call in-place method 'push' of array: its receiver is in an immutable variable.
+      |   ^

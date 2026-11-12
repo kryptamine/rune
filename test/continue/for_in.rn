@@ -1,6 +1,6 @@
 for i in 0..5 {
   if i % 2 == 0 { continue; }
-  print i;
+  print(i);
 }
 // expect: 1
 // expect: 3

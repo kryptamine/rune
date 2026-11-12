@@ -1,9 +1,9 @@
 try {
-  print "before"; // expect: before
-  print 1 + "a";
-  print "not reached";
-} catch (err) {
-  print err.message; // expect: Operands must be two numbers, two strings or two bytes.
-  print err.line; // expect: 3
+  print("before"); // expect: before
+  print(1 + "a");
+  print("not reached");
+} catch err {
+  print(err.message); // expect: Operands must be two numbers, two strings or two bytes.
+  print(err.line); // expect: 3
 }
-print "after"; // expect: after
+print("after"); // expect: after

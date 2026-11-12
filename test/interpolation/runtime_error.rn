@@ -1,2 +1,2 @@
 let o = {};
-print "x {o.missing} y"; // expect runtime error: [line: 2] KeyError: Undefined property 'missing'.
+print("x {o.missing} y"); // expect runtime error: [line: 2] KeyError: Undefined property 'missing'.

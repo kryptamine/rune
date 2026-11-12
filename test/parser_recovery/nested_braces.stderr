@@ -5,8 +5,8 @@
     6 |     let y = { k: 1 ! }; // Error at '!': Expect '}' after object properties.
       |                    ^
 [line: 7] Error at ')': Expect expression.
-    7 |     if y { print ); } // Error at ')': Expect expression.
-      |                  ^
+    7 |     if y { print(1 +); } // Error at ')': Expect expression.
+      |                     ^
 [line: 12] Error at ';': Expect expression.
    12 |     while true { let w = ; } // Error at ';': Expect expression.
       |                          ^

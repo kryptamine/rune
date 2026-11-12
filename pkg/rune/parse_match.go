@@ -146,12 +146,16 @@ func (s *Parser) patternAlt() (ast.Pattern, error) {
 		return &ast.ObjectPattern{Brace: brace, Fields: fields}, err
 	case s.check(ast.MUT):
 		b, err := s.binding("Expect variable name.")
-		return &ast.BindPattern{Binding: b}, err
+		if err != nil {
+			return nil, err
+		}
+
+		return s.typePattern(&ast.BindPattern{Binding: b})
 	case s.match(ast.IDENTIFIER):
 		name := s.previous()
 
 		if name.Lexeme == "_" {
-			return &ast.WildcardPattern{Token: name}, nil
+			return s.typePattern(&ast.WildcardPattern{Token: name})
 		}
 
 		pat := &ast.StructPattern{Name: name}
@@ -173,13 +177,24 @@ func (s *Parser) patternAlt() (ast.Pattern, error) {
 		}
 
 		if pat.Module != nil {
-			return pat, nil
+			return nil, errors.NewSyntaxError(s.peek(), "Expect '{' after struct name; test the type with '_ is "+name.Lexeme+"."+pat.Name.Lexeme+"'.")
 		}
 
-		return &ast.NamePattern{Name: name}, nil
+		return s.typePattern(&ast.BindPattern{Binding: ast.Binding{Name: name}})
 	}
 
 	return nil, errors.NewSyntaxError(s.peek(), "Expect pattern.")
+}
+
+// typePattern parses an optional 'is T | U' after the pattern p, a name or _.
+func (s *Parser) typePattern(p ast.Pattern) (ast.Pattern, error) {
+	if !s.match(ast.IS) {
+		return p, nil
+	}
+
+	types, err := s.typeList()
+
+	return &ast.TypePattern{Inner: p, Types: types}, err
 }
 
 func (s *Parser) numberPattern(tok ast.Token, negate bool) (ast.Pattern, error) {

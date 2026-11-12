@@ -1,20 +1,20 @@
 let m = Map({ a: { hits: 1, xs: [1, 2] }, b: { hits: 2, xs: [3] } });
-for k, { hits, xs } in m print "{k} {hits} {xs}";
+for k, { hits, xs } in m print("{k} {hits} {xs}");
 // expect: a 1 [1, 2]
 // expect: b 2 [3]
 
-for [x, y] in [[1, 2], [3, 4]] { print x + y; }
+for [x, y] in [[1, 2], [3, 4]] { print(x + y); }
 // expect: 3
 // expect: 7
 
-for i, [a, _, ...rest] in [[9, 8, 7, 6]] print "{i} {a} {rest}"; // expect: 0 9 [7, 6]
+for i, [a, _, ...rest] in [[9, 8, 7, 6]] print("{i} {a} {rest}"); // expect: 0 9 [7, 6]
 
 let mut fs = [];
 for { hits: mut h } in [{ hits: 1 }, { hits: 2 }] {
     h++;
     fs.push(() => h);
 }
-print fs.map(f => f()); // expect: [2, 3]
+print(fs.map(f => f())); // expect: [2, 3]
 
 struct P { x, y }
-for { x, y } in [P { x: 1, y: 2 }] print x * y; // expect: 2
+for { x, y } in [P { x: 1, y: 2 }] print(x * y); // expect: 2

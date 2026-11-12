@@ -9,5 +9,5 @@ fun outer() {
   n++;
   return x;
 }
-print outer(); // expect: 11
-print n;       // expect: 1
+print(outer()); // expect: 11
+print(n);       // expect: 1

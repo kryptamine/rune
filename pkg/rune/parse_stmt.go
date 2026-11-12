@@ -524,10 +524,6 @@ func (s *Parser) patternInitializer() (ast.Expr, error) {
 }
 
 func (s *Parser) statement() (ast.Stmt, error) {
-	if s.match(ast.PRINT) {
-		return s.printStmt()
-	}
-
 	if s.match(ast.RETURN) {
 		return s.returnStmt()
 	}
@@ -574,21 +570,6 @@ func (s *Parser) statement() (ast.Stmt, error) {
 	}
 
 	return s.expressionStatement()
-}
-
-func (s *Parser) printStmt() (ast.Stmt, error) {
-	expr, err := s.expression()
-
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = s.consume(ast.SEMICOLON, "Expect ';' after value.")
-	if err != nil {
-		return nil, err
-	}
-
-	return ast.NewPrintStmt(expr), nil
 }
 
 func (s *Parser) returnStmt() (ast.Stmt, error) {
@@ -694,7 +675,7 @@ func (s *Parser) ifStatement() (ast.Stmt, error) {
 // or declaration.
 func stmtKeyword(t ast.TokenType) bool {
 	switch t {
-	case ast.PRINT, ast.RETURN, ast.THROW, ast.BREAK, ast.CONTINUE, ast.IF, ast.WHILE, ast.FOR, ast.TRY:
+	case ast.RETURN, ast.THROW, ast.BREAK, ast.CONTINUE, ast.IF, ast.WHILE, ast.FOR, ast.TRY:
 		return true
 	}
 
@@ -871,40 +852,17 @@ func (s *Parser) tryStatement() (ast.Stmt, error) {
 func (s *Parser) catchClause() (ast.CatchClause, error) {
 	c := ast.CatchClause{Keyword: s.previous()}
 
-	if s.match(ast.LEFT_PAREN) {
-		name, err := s.consume(ast.IDENTIFIER, "Expect error variable name.")
-		if err != nil {
-			return c, err
-		}
-
+	if s.match(ast.IDENTIFIER) {
+		name := s.previous()
 		c.Param = &name
 
-		if s.match(ast.COLON) {
-			for {
-				t, err := s.consume(ast.IDENTIFIER, "Expect error type name.")
-				if err != nil {
-					return c, err
-				}
-
-				typ := &ast.VarExpr{Name: t}
-				if s.match(ast.DOT) {
-					if typ.Name, err = s.consume(ast.IDENTIFIER, "Expect error type name."); err != nil {
-						return c, err
-					}
-
-					typ.Module = &t
-				}
-
-				c.Types = append(c.Types, typ)
-
-				if !s.match(ast.COMMA) {
-					break
-				}
+		if s.match(ast.IS) {
+			types, err := s.typeList()
+			if err != nil {
+				return c, err
 			}
-		}
 
-		if _, err := s.consume(ast.RIGHT_PAREN, "Expect ')' after catch variable."); err != nil {
-			return c, err
+			c.Types = types
 		}
 	}
 
@@ -916,4 +874,33 @@ func (s *Parser) catchClause() (ast.CatchClause, error) {
 	c.Body = handler
 
 	return c, err
+}
+
+// typeList parses the struct types after 'is': T, m.T, joined by '|'.
+func (s *Parser) typeList() ([]*ast.VarExpr, error) {
+	var types []*ast.VarExpr
+
+	for {
+		t, err := s.consume(ast.IDENTIFIER, "Expect type name after 'is'.")
+		if err != nil {
+			return nil, err
+		}
+
+		typ := &ast.VarExpr{Name: t}
+		if s.match(ast.DOT) {
+			if typ.Name, err = s.consume(ast.IDENTIFIER, "Expect type name after '.'."); err != nil {
+				return nil, err
+			}
+
+			typ.Module = &t
+		}
+
+		types = append(types, typ)
+
+		if !(s.check(ast.PIPE) && s.peekAt(1) == ast.IDENTIFIER) {
+			return types, nil
+		}
+
+		s.advance()
+	}
 }

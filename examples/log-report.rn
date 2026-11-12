@@ -116,7 +116,7 @@ fun analyze(path) {
         if line.trim() == "" continue;
         try {
             report.add(parseLine(line, i + 1));
-        } catch (e: ParseError) {
+        } catch e is ParseError {
             report.skip(e);
         }
     }
@@ -145,14 +145,14 @@ fun table(headers, rows) {
         return out.join("  ");
     };
 
-    print fmt(headers);
-    print widths.map(w => "─".repeat(w)).join("  ");
-    for row in rows print fmt(row);
+    print(fmt(headers));
+    print(widths.map(w => "─".repeat(w)).join("  "));
+    for row in rows print(fmt(row));
 }
 
 fun printReport(r) {
-    print "== {r.total} requests, {len(r.skipped)} malformed lines skipped" + (len(r.skipped) > 0 ? " (lines {r.skipped.slice(0, 5).join(", ")})" : "");
-    print "";
+    print("== {r.total} requests, {len(r.skipped)} malformed lines skipped" + (len(r.skipped) > 0 ? " (lines {r.skipped.slice(0, 5).join(", ")})" : ""));
+    print("");
 
     let mut rows = [];
     for key, s in r.endpoints {
@@ -170,27 +170,27 @@ fun printReport(r) {
     rows.sort((a, b) => b[1] - a[1]);
     table(["endpoint", "hits", "p50 ms", "p95 ms", "p99 ms", "5xx", "KiB"], rows);
 
-    print "";
-    print "status classes:";
+    print("");
+    print("status classes:");
     let mut max = 0;
     for _, n in r.statuses max = math.max(max, n);
     let mut classes = r.statuses.keys();
     for cls in classes.sort() {
         let n = r.statuses[cls];
-        print "  %-4s %s %5d  %5.1f%%".format(cls, bar(n, max), n, n / r.total * 100);
+        print("  %-4s %s %5d  %5.1f%%".format(cls, bar(n, max), n, n / r.total * 100));
     }
 
-    print "";
-    print "top clients:";
+    print("");
+    print("top clients:");
     for { ip, hits, distinct } in r.topClients() {
-        print "  %-15s %4d hits, %d distinct endpoints".format(ip, hits, distinct);
+        print("  %-15s %4d hits, %d distinct endpoints".format(ip, hits, distinct));
     }
 
-    print "";
-    print "slowest requests:";
+    print("");
+    print("slowest requests:");
     for { time, method, path, status, latency } in r.slowest {
         let flag = status >= 500 ? " !" : "";
-        print "  %8.1f ms  %s  %s %s → %d%s".format(latency, time, method, path, status, flag);
+        print("  %8.1f ms  %s  %s %s → %d%s".format(latency, time, method, path, status, flag));
     }
 }
 
@@ -253,8 +253,8 @@ fun generate(path, n = 400) {
         let sec = i * 7;
         let time = "12/Nov/2026:%02d:%02d:%02d".format(10 + math.idiv(sec, 3600), math.idiv(sec, 60) % 60, sec % 60);
 
-        out.write("{rng.pick(IPS)} - - [{time}] \"{route.method} {route.path(rng.next())} HTTP/1.1\" {status} {size} {latency.fixed(4)}\n");
-        if i == 100 or i == 250 out.write("garbage line from a misconfigured proxy\n");
+        out.write("{rng.pick(IPS)} - - [{time}] \"{route.method} {(route.path)(rng.next())} HTTP/1.1\" {status} {size} {latency.fixed(4)}\n");
+        if i == 100 || i == 250 out.write("garbage line from a misconfigured proxy\n");
     }
 
     out.close();
@@ -268,9 +268,9 @@ fun run(path, flags) {
         if flags.contains("-j") {
             let out = fs.join(fs.dir(path), "report.json");
             fs.write(out, toJson(report));
-            print "\njson report: {out}";
+            print("\njson report: {out}");
         }
-    } catch (e: IOError) {
+    } catch e is IOError {
         io.eprint("cannot read {e.path}: {e.message}");
         return 1;
     }
@@ -287,13 +287,13 @@ fun main(args) {
         let tmp = fs.tempDir();
         let sample = fs.join(tmp, "access.log");
         generate(sample);
-        print "(sample log: {fs.stat(sample).size} bytes)\n";
+        print("(sample log: {fs.stat(sample).size} bytes)\n");
         code = run(sample, flags);
         fs.removeAll(tmp);
     } else {
         code = run(path, flags);
     }
 
-    print "\ndone in %.1f ms".format((time.now() - started) * 1000);
+    print("\ndone in %.1f ms".format((time.now() - started) * 1000));
     return code;
 }

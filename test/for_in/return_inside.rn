@@ -4,5 +4,5 @@ fun find(arr, target) {
   }
   return -1;
 }
-print find([5, 6, 7], 7); // expect: 2
-print find([5, 6, 7], 8); // expect: -1
+print(find([5, 6, 7], 7)); // expect: 2
+print(find([5, 6, 7], 8)); // expect: -1

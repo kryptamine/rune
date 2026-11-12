@@ -1,5 +1,3 @@
-[line: 2] TypeError: Cannot call in-place method 'push' of array: its receiver is in an immutable variable.
-    2 |   xs.push(1); // expect runtime error: [line: 2] TypeError: Cannot call in-place method 'push' of array: its receiver is in an immutable variable.
-      |      ^
-  at f (line 2)
-  at <script> (line 5)
+[line: 2] Error at 'xs': Cannot mutate immutable variable 'xs'.
+    2 |   xs.push(1); // Error at 'xs': Cannot mutate immutable variable 'xs'.
+      |   ^

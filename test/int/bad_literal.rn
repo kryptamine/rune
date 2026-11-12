@@ -1,2 +1,2 @@
 // [line: 2] Error: Invalid number literal '12abc'.
-print 12abc;
+print(12abc);

@@ -48,7 +48,6 @@ const (
 	FOR
 	IF
 	NIL
-	PRINT
 	RETURN
 	TRUE
 	WHILE
@@ -64,7 +63,6 @@ const (
 	EXPORT
 	MATCH
 	IMPL
-	NOT
 
 	// Single tokens
 	COLON
@@ -134,15 +132,12 @@ const (
 var Keywords = map[string]TokenType{
 	"let":      LET,
 	"mut":      MUT,
-	"and":      AND,
-	"or":       OR,
 	"else":     ELSE,
 	"false":    FALSE,
 	"fun":      FUN,
 	"for":      FOR,
 	"if":       IF,
 	"nil":      NIL,
-	"print":    PRINT,
 	"return":   RETURN,
 	"true":     TRUE,
 	"while":    WHILE,
@@ -158,7 +153,6 @@ var Keywords = map[string]TokenType{
 	"export":   EXPORT,
 	"match":    MATCH,
 	"impl":     IMPL,
-	"not":      NOT,
 }
 
 func (tokenType TokenType) String() string {
@@ -236,8 +230,6 @@ func (tokenType TokenType) String() string {
 		return "IF"
 	case NIL:
 		return "NIL"
-	case PRINT:
-		return "PRINT"
 	case RETURN:
 		return "RETURN"
 	case TRUE:
@@ -264,8 +256,6 @@ func (tokenType TokenType) String() string {
 		return "EXPORT"
 	case IMPL:
 		return "IMPL"
-	case NOT:
-		return "NOT"
 	case CONTINUE:
 		return "CONTINUE"
 	case IN:

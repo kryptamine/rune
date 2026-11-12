@@ -4,7 +4,7 @@ fun counter() {
 }
 let c = counter();
 c();
-print c(); // expect: 2
+print(c()); // expect: 2
 
 let base = 10;
-print [1, 2].map(x => x + base); // expect: [11, 12]
+print([1, 2].map(x => x + base)); // expect: [11, 12]

@@ -1,20 +1,20 @@
 try {
   throw ValueError { message: "x" };
-} catch (e) {
-  print e;
+} catch e {
+  print(e);
 }
-try { print 1; } catch {}
+try { print(1); } catch {}
 
 try {
   [][0];
-} catch (e: IndexError, KeyError) {
-  print e;
+} catch e is IndexError | KeyError {
+  print(e);
 } catch {
-  print 0;
+  print(0);
 }
 
 try {
   [][0];
-} catch (e: IndexError) {
-  print e;
+} catch e is IndexError {
+  print(e);
 }

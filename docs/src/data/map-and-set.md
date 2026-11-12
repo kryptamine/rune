@@ -8,15 +8,15 @@ in the order they were first added.
 let mut stock = Map();
 stock["apple"] = 3;
 stock["pear"] = 0;
-print stock["apple"];   // 3
-print stock;            // Map {"apple": 3, "pear": 0}
+print(stock["apple"]);   // 3
+print(stock);            // Map {"apple": 3, "pear": 0}
 
 let mut visitors = Set();
 visitors.add("ann");
 visitors.add("bob");
 visitors.add("ann");
-print visitors;         // Set {"ann", "bob"}
-print len(visitors);    // 2
+print(visitors);         // Set {"ann", "bob"}
+print(len(visitors));    // 2
 ```
 
 ## Making one
@@ -25,9 +25,9 @@ print len(visitors);    // 2
 or an array of `[key, value]` pairs; `Set()` and `Set(array)` likewise.
 
 ```rune
-print Map({ host: "localhost", port: 8080 }); // Map {"host": "localhost", "port": 8080}
-print Map([[200, "OK"], [404, "Not Found"]]); // Map {200: "OK", 404: "Not Found"}
-print Set(["a", "b", "a"]);                    // Set {"a", "b"}
+print(Map({ host: "localhost", port: 8080 }));  // Map {"host": "localhost", "port": 8080}
+print(Map([[200, "OK"], [404, "Not Found"]]));  // Map {200: "OK", 404: "Not Found"}
+print(Set(["a", "b", "a"]));                    // Set {"a", "b"}
 ```
 
 ## Keys
@@ -42,8 +42,8 @@ struct Pos { x, y }
 
 let mut grid = Map();
 grid[Pos { x: 0, y: 1 }] = "wall";
-print grid[Pos { x: 0, y: 1 }];                // wall
-print grid.get(Pos { x: 9, y: 9 }, "floor");   // floor
+print(grid[Pos { x: 0, y: 1 }]);                // wall
+print(grid.get(Pos { x: 9, y: 9 }, "floor"));   // floor
 ```
 
 An array, object, map or set is not hashable, as it can change:
@@ -61,8 +61,8 @@ mutable.
 
 ```rune
 let mut prices = Map({ apple: 1.5 });
-print prices?.["kiwi"]; // nil
-print prices["kiwi"];   // KeyError: Key not found: "kiwi".
+print(prices?.["kiwi"]); // nil
+print(prices["kiwi"]);   // KeyError: Key not found: "kiwi".
 ```
 
 Map methods: `get(k[, default])`, `set(k, v)` (returns the map, so calls
@@ -73,14 +73,14 @@ chain), `has(k)`, `delete(k)` (whether it was there), `clear()`, and
 let mut stock = Map();
 stock.set("apple", 3).set("pear", 0).set("plum", 7);
 
-print stock.get("kiwi");     // nil
-print stock.get("kiwi", 0);  // 0
-print stock.has("pear");     // true
-print stock.delete("pear");  // true
-print stock.delete("pear");  // false
-print stock.keys();          // ["apple", "plum"]
-print stock.values();        // [3, 7]
-print stock.entries();       // [["apple", 3], ["plum", 7]]
+print(stock.get("kiwi"));     // nil
+print(stock.get("kiwi", 0));  // 0
+print(stock.has("pear"));     // true
+print(stock.delete("pear"));  // true
+print(stock.delete("pear"));  // false
+print(stock.keys());          // ["apple", "plum"]
+print(stock.values());        // [3, 7]
+print(stock.entries());       // [["apple", 3], ["plum", 7]]
 ```
 
 A set has `add(x)` (returns the set), `has`, `delete`, `clear`, `values()`,
@@ -90,10 +90,10 @@ and `union(s)`, `intersection(s)`, `difference(s)`, new sets.
 let backend = Set(["ann", "bob", "eve"]);
 let frontend = Set(["bob", "kim"]);
 
-print backend.has("eve");               // true
-print backend.union(frontend);          // Set {"ann", "bob", "eve", "kim"}
-print backend.intersection(frontend);   // Set {"bob"}
-print backend.difference(frontend);     // Set {"ann", "eve"}
+print(backend.has("eve"));               // true
+print(backend.union(frontend));          // Set {"ann", "bob", "eve", "kim"}
+print(backend.intersection(frontend));   // Set {"bob"}
+print(backend.difference(frontend));     // Set {"ann", "eve"}
 ```
 
 ## Iterating
@@ -105,7 +105,7 @@ in insertion order.
 ```rune
 let stock = Map({ apple: 3, plum: 7 });
 for name, n in stock {
-    print "{name}: {n}";
+    print("{name}: {n}");
 }
 // apple: 3
 // plum: 7
@@ -126,7 +126,7 @@ let mut counts = Map({ a: 1, b: 2 });
 for k in counts.keys() {
     counts[k + "!"] = 0;
 }
-print counts; // Map {"a": 1, "b": 2, "a!": 0, "b!": 0}
+print(counts); // Map {"a": 1, "b": 2, "a!": 0, "b!": 0}
 ```
 
 ## Equality and conversion
@@ -136,10 +136,10 @@ print counts; // Map {"a": 1, "b": 2, "a!": 0, "b!": 0}
 object, in order. Both are references, like arrays.
 
 ```rune
-print Map({ a: 1, b: 2 }) == Map({ b: 2, a: 1 }); // true
+print(Map({ a: 1, b: 2 }) == Map({ b: 2, a: 1 })); // true
 
 let ids = Set([3, 1, 2]);
-print [...ids];                      // [3, 1, 2]
-print json.stringify(ids);           // [3,1,2]
-print json.stringify(Map({ a: 1 })); // {"a":1}
+print([...ids]);                      // [3, 1, 2]
+print(json.stringify(ids));           // [3,1,2]
+print(json.stringify(Map({ a: 1 }))); // {"a":1}
 ```

@@ -1,3 +1,0 @@
-[line: 18] TypeError: Cannot call in-place method 'remove' of array: its receiver is in an immutable variable.
-   18 | ys.remove(0); // expect runtime error: [line: 18] TypeError: Cannot call in-place method 'remove' of array: its receiver is in an immutable variable.
-      |    ^

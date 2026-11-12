@@ -9,14 +9,14 @@ caught with `try`/`catch`:
 fun parsePort(s) {
     try {
         return int(s);
-    } catch (e) {
-        print "bad port: " + e.message;
+    } catch e {
+        print("bad port: " + e.message);
         return 80;
     }
 }
 
-print parsePort("8080"); // 8080
-print parsePort("http"); // 80
+print(parsePort("8080")); // 8080
+print(parsePort("http")); // 80
 ```
 
 The second call first prints `bad port: int() cannot parse "http" as an integer in base 10.`
@@ -25,7 +25,7 @@ The catch variable is optional:
 
 ```rune
 let mut queue = [];
-try { queue.pop(); } catch { print "queue is empty"; } // queue is empty
+try { queue.pop(); } catch { print("queue is empty"); } // queue is empty
 ```
 
 ## Error Types
@@ -45,10 +45,10 @@ types, each with fields `{ message, line = nil, cause = nil }`:
 ```rune
 try {
     [].pop();
-} catch (e) {
-    print type(e);  // ValueError
-    print e.message; // array.pop() got an empty array.
-    print e.line;    // 2
+} catch e {
+    print(type(e));   // ValueError
+    print(e.message); // array.pop() got an empty array.
+    print(e.line);    // 2
 }
 ```
 
@@ -57,7 +57,8 @@ error at all: `try` does not stop it.
 
 ## Catching by Type
 
-A catch clause can name the struct types it catches. Clauses are tried in
+`catch e is T | U` catches only the struct types it names, the same
+test as `v is T`. Clauses are tried in
 order, and an error none of them catches goes on up with its trace intact.
 A clause without types catches everything and must come last.
 
@@ -67,32 +68,32 @@ let config = { port: 8080 };
 fun get(key) {
     try {
         return config[key];
-    } catch (e: KeyError) {
+    } catch e is KeyError {
         return nil;
     }
 }
 
-print get("port"); // 8080
-print get("host"); // nil
+print(get("port")); // 8080
+print(get("host")); // nil
 ```
 
 ```rune
 fun load(raw) {
     try {
         return json.parse(raw).port + 1;
-    } catch (e: KeyError, IndexError) {
+    } catch e is KeyError | IndexError {
         return "missing: " + e.message;
-    } catch (e: ValueError) {
+    } catch e is ValueError {
         return "invalid JSON";
-    } catch (e) {
+    } catch e {
         return type(e);
     }
 }
 
-print load(r"""{"port": 80}""");   // 81
-print load("\{}");                 // missing: Undefined property 'port'.
-print load("not json");            // invalid JSON
-print load(r"""{"port": "80"}"""); // TypeError
+print(load(r"""{"port": 80}"""));   // 81
+print(load("\{}"));                 // missing: Undefined property 'port'.
+print(load("not json"));            // invalid JSON
+print(load(r"""{"port": "80"}""")); // TypeError
 ```
 
 ## throw
@@ -110,8 +111,8 @@ fun parseAge(v) {
 
 try {
     parseAge(-1);
-} catch (e: AgeError) {
-    print e.value; // -1
+} catch e is AgeError {
+    print(e.value); // -1
 }
 ```
 
@@ -138,10 +139,10 @@ fun positive(n) {
 }
 
 let cfg = { port: 8080 };
-print require(cfg, "port"); // 8080
+print(require(cfg, "port")); // 8080
 
-try { require(cfg, "host"); } catch (e: ConfigError) { print e.message; } // missing host
-try { positive(-2); } catch (e: ValueError) { print e.message; }          // not positive: -2
+try { require(cfg, "host"); } catch e is ConfigError { print(e.message); } // missing host
+try { positive(-2); } catch e is ValueError { print(e.message); }          // not positive: -2
 ```
 
 Wrap a lower-level error in `cause` to keep its details:
@@ -150,16 +151,16 @@ Wrap a lower-level error in `cause` to keep its details:
 fun readConfig(raw) {
     try {
         return json.parse(raw);
-    } catch (e) {
+    } catch e {
         throw ValueError { message: "bad config", cause: e };
     }
 }
 
 try {
     readConfig("port=80");
-} catch (e) {
-    print e.message;       // bad config
-    print type(e.cause);   // ValueError
+} catch e {
+    print(e.message);       // bad config
+    print(type(e.cause));   // ValueError
 }
 ```
 

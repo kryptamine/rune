@@ -1,26 +1,26 @@
 import _lib.math;
 
 let v = math.Vec { x: 1 };
-print v; // expect: Vec {x: 1, y: 0}
-print v is math.Vec; // expect: true
-print math.Vec({x: 2, y: 3}); // expect: Vec {x: 2, y: 3}
+print(v); // expect: Vec {x: 1, y: 0}
+print(v is math.Vec); // expect: true
+print(math.Vec({x: 2, y: 3})); // expect: Vec {x: 2, y: 3}
 
 fun describe(p) {
   return match p {
     math.Vec { x: 0, y } => "on y at {y}",
-    math.Vec => "a vec",
+    _ is math.Vec => "a vec",
     _ => "other",
   };
 }
 
-print describe(math.Vec { x: 0, y: 2 }); // expect: on y at 2
-print describe(v); // expect: a vec
-print describe(1); // expect: other
+print(describe(math.Vec { x: 0, y: 2 })); // expect: on y at 2
+print(describe(v)); // expect: a vec
+print(describe(1)); // expect: other
 
 try {
   throw math.MathError { message: "bad" };
-} catch (e: TypeError, math.MathError) {
-  print e.message; // expect: bad
+} catch e is TypeError | math.MathError {
+  print(e.message); // expect: bad
 }
 
-if v is math.Vec { print "header ok"; } // expect: header ok
+if v is math.Vec { print("header ok"); } // expect: header ok

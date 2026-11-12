@@ -1,4 +1,4 @@
-fun p(x) { print x; return x; }
+fun p(x) { print(x); return x; }
 
 let o = {d: p(1), c: p(2), b: p(3), a: p(4)};
 // expect: 1

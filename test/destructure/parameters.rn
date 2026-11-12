@@ -1,14 +1,14 @@
 fun greet(greeting, { name, age: mut years }, suffix) {
   years += 1;
-  print greeting + " " + name + suffix;
+  print(greeting + " " + name + suffix);
   return years;
 }
 
-print greet("hi", { name: "ann", age: 30 }, "!");
+print(greet("hi", { name: "ann", age: 30 }, "!"));
 // expect: hi ann!
 // expect: 31
 
 let pick = fun ({ a }, { b }) { return a + b; };
-print pick({ a: 1 }, { b: 2 }); // expect: 3
+print(pick({ a: 1 }, { b: 2 })); // expect: 3
 
-print [{ v: 1 }, { v: 2 }].map(fun ({ v }) { return v * 10; }); // expect: [10, 20]
+print([{ v: 1 }, { v: 2 }].map(fun ({ v }) { return v * 10; })); // expect: [10, 20]

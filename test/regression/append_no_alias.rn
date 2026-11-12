@@ -1,6 +1,6 @@
 let a = [1, 2, 3].append(0);
 let b = a.append(4);
 let c = a.append(5);
-print b[4]; // expect: 4
-print c[4]; // expect: 5
-print len(a); // expect: 4
+print(b[4]); // expect: 4
+print(c[4]); // expect: 5
+print(len(a)); // expect: 4

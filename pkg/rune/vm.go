@@ -499,8 +499,7 @@ reload:
 			switch recv := regs[in.a()+1]; recv.Kind() {
 			case value.Struct:
 				ms = recv.Shape().Methods
-			// An object's own properties come before its methods.
-			case value.Object, value.Type:
+			case value.Type:
 				goto slow
 			default:
 				ms = p.kinds[recv.Kind()]

@@ -6,10 +6,10 @@ impl Point {
 
 let p = Point { x: 10 };
 let f = p.plus;
-print f(1); // expect: 11
-print [1, 2].map(p.plus); // expect: [11, 12]
-print type(f); // expect: function
-print p?.plus(2); // expect: 12
+print(f(1)); // expect: 11
+print([1, 2].map(p.plus)); // expect: [11, 12]
+print(type(f)); // expect: function
+print(p?.plus(2)); // expect: 12
 let q = nil;
-print q?.plus(2); // expect: nil
-print p.plus(...[5]); // expect: 15
+print(q?.plus(2)); // expect: nil
+print(p.plus(...[5])); // expect: 15

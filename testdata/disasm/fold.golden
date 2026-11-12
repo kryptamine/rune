@@ -1,16 +1,18 @@
 exit: 0
 -- stdout --
-<script>: arity 1, 5 registers, 0 upvalues
+<script>: arity 1, 7 registers, 0 upvalues
     0  LOADK         1 0 0
     1  LOADK         2 0 0
     2  LOADK         3 0 0
-    3  LOADK         1 0 1
-    4  LOADK         2 0 2
-    5  ADDK          1 1 3
-    6  MULK          1 1 4
-    7  LOADK         4 0 6
-    8  MULK          3 4 5
-    9  LOADK         4 0 7
-   10  PRINT         4 0 0
-   11  RETURNNIL     0 0 0
+    3  LOADK         4 0 1
+    4  LOADK         1 0 2
+    5  LOADK         2 0 3
+    6  ADDK          1 1 4
+    7  MULK          1 1 5
+    8  LOADK         5 0 7
+    9  MULK          3 5 6
+   10  MOVE          5 4 0
+   11  LOADK         6 0 8
+   12  CALL          5 1 0
+   13  RETURNNIL     0 0 0
 -- stderr --

@@ -5,8 +5,8 @@ fun inner() {
 fun outer() {
   try {
     inner();
-  } catch (e: TypeError) {
-    print "unreachable";
+  } catch e is TypeError {
+    print("unreachable");
   }
 }
 

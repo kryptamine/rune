@@ -12,4 +12,4 @@ try {
   c.incr();
 } catch {
 }
-print c.n; // expect: 0
+print(c.n); // expect: 0

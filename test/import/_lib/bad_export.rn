@@ -1,4 +1,4 @@
-export print 1;
+export print(1);
 fun f() {
   export let x = 1;
 }

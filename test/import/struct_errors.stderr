@@ -11,11 +11,11 @@
     7 | o.Vec { x: 1 }; // Error at 'o': 'o' is not a module.
       | ^
 [line: 8] Error at 'square': 'math.square' is not a struct.
-    8 | try {} catch (e: math.square) {} // Error at 'square': 'math.square' is not a struct.
-      |                       ^
+    8 | try {} catch e is math.square {} // Error at 'square': 'math.square' is not a struct.
+      |                        ^
 [line: 9] Error at 'MathError': 'math.MathError' is already caught.
-    9 | try {} catch (e: math.MathError, math.MathError) {} // Error at 'MathError': 'math.MathError' is already caught.
-      |                                       ^
+    9 | try {} catch e is math.MathError | math.MathError {} // Error at 'MathError': 'math.MathError' is already caught.
+      |                                         ^
 [line: 10] Error at 'square': 'math.square' is not a struct.
-   10 | match 1 { math.square => 1, _ => 2 } // Error at 'square': 'math.square' is not a struct.
-      |                ^
+   10 | match 1 { _ is math.square => 1, _ => 2 } // Error at 'square': 'math.square' is not a struct.
+      |                     ^

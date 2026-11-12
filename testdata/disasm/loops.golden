@@ -1,30 +1,33 @@
 exit: 0
 -- stdout --
-<script>: arity 1, 8 registers, 0 upvalues
+<script>: arity 1, 11 registers, 0 upvalues
     0  LOADK         1 0 0
-    1  LOADK         1 0 1
-    2  JMP           0 0 4
-    3  ADDK          1 1 2
-    4  JMPCMPK       1 3 3  x=0 y=true
-    5  LOADK         2 0 1
-    6  LOADK         3 0 4
+    1  LOADK         2 0 1
+    2  LOADK         1 0 2
+    3  JMP           0 0 5
+    4  ADDK          1 1 3
+    5  JMPCMPK       1 4 4  x=0 y=true
+    6  LOADK         3 0 2
     7  LOADK         4 0 5
-    8  FORRANGE      2 0 0
-    9  JMP           0 0 11
-   10  PRINT         7 0 0
-   11  FORRANGENEXT  2 0 10
-   12  LOADK         3 0 2
-   13  LOADK         4 0 5
-   14  ARRAY         2 3 2
-   15  FORITER       2 0 0
-   16  JMP           0 0 20
-   17  JMPCMPK       4 5 19  x=4 y=false
-   18  JMP           0 0 21
-   19  JMP           0 0 20
-   20  FORITERNEXT   2 0 17
+    8  LOADK         5 0 6
+    9  FORRANGE      3 0 0
+   10  JMP           0 0 14
+   11  MOVE          9 2 0
+   12  MOVE          10 8 0
+   13  CALL          9 1 0
+   14  FORRANGENEXT  3 0 11
+   15  LOADK         4 0 3
+   16  LOADK         5 0 6
+   17  ARRAY         3 4 2
+   18  FORITER       3 0 0
+   19  JMP           0 0 23
+   20  JMPCMPK       5 6 22  x=4 y=false
    21  JMP           0 0 24
-   22  JMPIF         1 0 24
-   23  JMP           0 0 25
-   24  JMP           0 0 22
-   25  RETURNNIL     0 0 0
+   22  JMP           0 0 23
+   23  FORITERNEXT   3 0 20
+   24  JMP           0 0 27
+   25  JMPIF         1 0 27
+   26  JMP           0 0 28
+   27  JMP           0 0 25
+   28  RETURNNIL     0 0 0
 -- stderr --

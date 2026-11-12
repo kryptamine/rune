@@ -57,16 +57,16 @@ import lib.money as m;
 cart.add("book", 1250);
 cart.add("pen", 199);
 
-print len(cart.items);        // 2
-print m.format(cart.total()); // 14.49 USD
+print(len(cart.items));        // 2
+print(m.format(cart.total())); // 14.49 USD
 
 let eur = m.Money { cents: 500, currency: "EUR" };
-print eur is m.Money;         // true
+print(eur is m.Money);         // true
 
 try {
     m.add(cart.total(), eur);
-} catch (e: m.CurrencyError) {
-    print "cannot add: " + e.message; // cannot add: USD vs EUR
+} catch e is m.CurrencyError {
+    print("cannot add: " + e.message); // cannot add: USD vs EUR
 }
 ```
 
@@ -89,7 +89,7 @@ import ...shared.util; // Error at '...': Module '...shared.util' is outside the
 Imports come first in a file:
 
 ```rune
-print "start";
+print("start");
 import lib.money; // Error at 'import': Imports must come before other statements.
 ```
 
@@ -102,7 +102,7 @@ wherever it is run from:
 ```rune
 // main.rn
 let prices = fs.read(fs.join(module.dir, "data", "prices.txt"));
-print prices.trim(); // book 12.50
+print(prices.trim()); // book 12.50
 ```
 
 `module` is a namespace of each file's own: in `lib/cart.rn`,
@@ -122,7 +122,7 @@ A module is not a value:
 
 ```rune
 import lib.money;
-print money; // Error at 'money': Module 'money' is not a value; use its members, as in money.name.
+print(money); // Error at 'money': Module 'money' is not a value; use its members, as in money.name.
 ```
 
 A module's variables cannot be assigned from outside:
@@ -142,7 +142,7 @@ export let tags = ["sale"];
 
 ```rune
 import lib.consts;
-consts.tags.push("new"); // TypeError: Cannot call in-place method 'push' of array: its receiver is in an immutable variable.
+consts.tags.push("new"); // Error at 'tags': Cannot mutate immutable variable 'consts.tags'.
 ```
 
 Importing a module shadows a built-in namespace of the same name in that
@@ -157,8 +157,8 @@ export fun floor(x) { return "mine"; }
 ```rune
 import lib.math as mymath;
 
-print mymath.floor(1.5); // mine
-print math.floor(1.5);   // 1
+print(mymath.floor(1.5)); // mine
+print(math.floor(1.5));   // 1
 ```
 
 ## Running Order
@@ -183,9 +183,9 @@ import lib.a; // Error at '.': Import cycle: lib/a.rn -> lib/b.rn -> lib/a.rn.
 ```
 
 An imported file may only declare things at its top level (`fun`, `let`,
-`struct`, `impl`); statements such as `print` belong in the entry file:
+`struct`, `impl`); statements such as `print(...)` belong in the entry file:
 
 ```rune
 // lib/noisy.rn
-print "loaded"; // Error at 'print': Only declarations can be at the top level of a module.
+print("loaded"); // Error at 'print': Only declarations can be at the top level of a module.
 ```

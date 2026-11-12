@@ -3,10 +3,10 @@ struct Point { x, y }
 let o = { a: { b: 1 } };
 let xs = [1];
 
-print o?.z; // expect: nil
-print o.a?.z?.q; // expect: nil
-print xs?.[5]; // expect: nil
-print o?.["z"]; // expect: nil
-print "ab"?.[9]; // expect: nil
-print Point { x: 1, y: 2 }?.z; // expect: nil
-print o?.a.z; // expect runtime error: [line: 12] KeyError: Undefined property 'z'.
+print(o?.z); // expect: nil
+print(o.a?.z?.q); // expect: nil
+print(xs?.[5]); // expect: nil
+print(o?.["z"]); // expect: nil
+print("ab"?.[9]); // expect: nil
+print(Point { x: 1, y: 2 }?.z); // expect: nil
+print(o?.a.z); // expect runtime error: [line: 12] KeyError: Undefined property 'z'.

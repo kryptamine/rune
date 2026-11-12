@@ -13,7 +13,7 @@ fun main(args) {
     }
 
     for name in args {
-        print "hi " + name;
+        print("hi " + name);
     }
 }
 ```
@@ -33,7 +33,7 @@ Arguments are always strings; convert them yourself:
 ```rune
 // repeat.rn
 fun main([word, times = "1"]) {
-    print word.repeat(int(times));
+    print(word.repeat(int(times)));
 }
 ```
 
@@ -49,7 +49,7 @@ Without `main` the top level is the whole program.
 let greeting = "hello";
 
 fun main() {
-    print greeting; // hello
+    print(greeting); // hello
 }
 ```
 

@@ -8,16 +8,16 @@ and `unsetEnv(name)` change it, and `environ()` is all of it as an object.
 
 ```rune
 let port = int(os.env("PORT") ?? "8080");
-print port;                    // 8080
+print(port);                    // 8080
 
 os.setEnv("APP_MODE", "test");
-print os.env("APP_MODE");      // test
+print(os.env("APP_MODE"));      // test
 os.unsetEnv("APP_MODE");
-print os.env("APP_MODE");      // nil
+print(os.env("APP_MODE"));      // nil
 
-print os.environ().has("PATH"); // true
+print(os.environ().has("PATH")); // true
 let shell = os.platform == "windows" ? "cmd" : "sh";
-print shell;                   // sh
+print(shell);                   // sh
 ```
 
 ## exec
@@ -32,21 +32,21 @@ to the current environment; all are optional.
 
 ```rune
 let r = os.exec("echo", ["hello", "world"]);
-print r;   // ExecResult {code: 0, stdout: "hello world\n", stderr: ""}
+print(r);   // ExecResult {code: 0, stdout: "hello world\n", stderr: ""}
 
 let up = os.exec("tr", ["a-z", "A-Z"], { input: "shout\n" });
-print up.stdout.trim();   // SHOUT
+print(up.stdout.trim());   // SHOUT
 
 let greet = os.exec("sh", ["-c", "echo $GREETING"], { env: { GREETING: "hi" } });
-print greet.stdout.trim(); // hi
+print(greet.stdout.trim()); // hi
 
 let ls = os.exec("ls", ["/no/such/dir"]);
-print ls.code;             // 1
+print(ls.code);             // 1
 
 try {
     os.exec("no-such-command");
-} catch (e: IOError) {
-    print e.code;          // notFound
+} catch e is IOError {
+    print(e.code);          // notFound
 }
 ```
 

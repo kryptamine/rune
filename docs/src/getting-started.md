@@ -16,7 +16,7 @@ Save this as `hello.rn`:
 
 ```rune
 let name = "world";
-print "hello, {name}!";
+print("hello, {name}!");
 ```
 
 and run it:
@@ -31,7 +31,7 @@ Arguments after the file go to the program's [`main`](programs/main.md):
 ```rune
 fun main(args) {
     let name = len(args) > 0 ? args[0] : "world";
-    print "hello, {name}!";
+    print("hello, {name}!");
 }
 ```
 

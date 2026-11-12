@@ -1,3 +1,3 @@
 [line: 3] Error at 'floor': Module 'math' has no export 'floor'.
-    3 | print math.floor(1.5); // Error at 'floor': Module 'math' has no export 'floor'.
+    3 | print(math.floor(1.5)); // Error at 'floor': Module 'math' has no export 'floor'.
       |            ^

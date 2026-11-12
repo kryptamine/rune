@@ -2,22 +2,22 @@ struct Point { x, y = 0 }
 struct Empty {}
 
 let p = Point { x: 1 };
-print type(p); // expect: Point
-print type(Point); // expect: struct
-print type(nil); // expect: nil
-print type(1); // expect: number
-print type("s"); // expect: string
-print type([]); // expect: array
-print type({}); // expect: object
-print type(type); // expect: function
-print type(fun () {}); // expect: function
+print(type(p)); // expect: Point
+print(type(Point)); // expect: struct
+print(type(nil)); // expect: nil
+print(type(1)); // expect: number
+print(type("s")); // expect: string
+print(type([])); // expect: array
+print(type({})); // expect: object
+print(type(type)); // expect: function
+print(type(fun () {})); // expect: function
 
-print len(p); // expect: 2
-print len(Empty {}); // expect: 0
+print(len(p)); // expect: 2
+print(len(Empty {})); // expect: 0
 
 let mut o = object(p);
-print o; // expect: {x: 1, y: 0}
+print(o); // expect: {x: 1, y: 0}
 o.x = 5;
-print p.x; // expect: 1
-print object(p) == p; // expect: false
-print Point(object(p)) == p; // expect: true
+print(p.x); // expect: 1
+print(object(p) == p); // expect: false
+print(Point(object(p)) == p); // expect: true

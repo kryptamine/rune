@@ -1,8 +1,23 @@
 # Built-in Functions
 
-`len`, `type`, `object`, `str`, `number`, `int`, `Map` and `Set` are global;
-the operations on a value are its methods, as `xs.map(f)` or `s.split(",")`;
-everything else lives in a namespace, used as `math.floor(x)`.
+`print`, `len`, `type`, `object`, `str`, `number`, `int`, `Map` and `Set`
+are global; the operations on a value are its methods, as `xs.map(f)` or
+`s.split(",")`; everything else lives in a namespace, used as
+`math.floor(x)`.
+
+## print
+
+`print(v)` writes `v` to stdout followed by a newline: a string as it is,
+anything else as it would appear in an array. `io.write`, `io.eprint` and
+`io.ewrite` do the same without a newline or to stderr.
+
+```rune
+print("hi");             // hi
+print([1, "two", nil]);  // [1, "two", nil]
+["a", "b"].map(print);
+// a
+// b
+```
 
 ## len
 
@@ -13,13 +28,13 @@ of a struct, the entries of a Map or Set, or the size of bytes.
 ```rune
 struct User { name, role = "guest" }
 
-print len([10, 20, 30]);             // 3
-print len("héllo");                  // 5
-print len({ id: 1, name: "ann" });   // 2
-print len(User { name: "ann" });     // 2
-print len(Set(["a", "b", "a"]));     // 2
-print len(b"\x00\xff");              // 2
-print "héllo".len();                 // 5
+print(len([10, 20, 30]));             // 3
+print(len("héllo"));                  // 5
+print(len({ id: 1, name: "ann" }));   // 2
+print(len(User { name: "ann" }));     // 2
+print(len(Set(["a", "b", "a"])));     // 2
+print(len(b"\x00\xff"));              // 2
+print("héllo".len());                 // 5
 ```
 
 ## type
@@ -31,13 +46,13 @@ struct's name, `"struct"` for a struct type, or `"namespace"`.
 ```rune
 struct User { name }
 
-print type(nil);                  // nil
-print type(1.5);                  // number
-print type([1]);                  // array
-print type(x => x);               // function
-print type(User { name: "ann" }); // User
-print type(User);                 // struct
-print type(math);                 // namespace
+print(type(nil));                  // nil
+print(type(1.5));                  // number
+print(type([1]));                  // array
+print(type(x => x));               // function
+print(type(User { name: "ann" })); // User
+print(type(User));                 // struct
+print(type(math));                 // namespace
 ```
 
 ## object and str
@@ -49,10 +64,10 @@ print type(math);                 // namespace
 struct User { name, role = "guest" }
 
 let u = User { name: "ann" };
-print object(u);          // {name: "ann", role: "guest"}
-print str(u);             // User {name: "ann", role: "guest"}
-print str([1, "two"]);    // [1, "two"]
-print "items: " + str(3); // items: 3
+print(object(u));          // {name: "ann", role: "guest"}
+print(str(u));             // User {name: "ann", role: "guest"}
+print(str([1, "two"]));    // [1, "two"]
+print("items: " + str(3)); // items: 3
 ```
 
 ## number and int
@@ -67,14 +82,14 @@ is a `ValueError`), or a string parsed as an integer in `base`, 2 to 36,
 default 10.
 
 ```rune
-print number("42");       // 42
-print number(" -2.5e1 "); // -25
-print int(3.9);           // 3
-print int(-3.9);          // -3
-print int("42");          // 42
-print int("ff", 16);      // 255
-print int("0755", 8);     // 493
-print ["10", "2"].map(int); // [10, 2]
+print(number("42"));         // 42
+print(number(" -2.5e1 "));   // -25
+print(int(3.9));             // 3
+print(int(-3.9));            // -3
+print(int("42"));            // 42
+print(int("ff", 16));        // 255
+print(int("0755", 8));       // 493
+print(["10", "2"].map(int)); // [10, 2]
 ```
 
 ```rune
@@ -93,4 +108,10 @@ it costs nothing at run time, and a misspelled member is a compile error.
 
 ```rune
 math.flor(1); // Error at 'flor': math has no member 'flor'.
+```
+
+Built-ins are immutable, as `let` variables are:
+
+```rune
+math.PI = 3; // Error at 'math': Cannot mutate immutable variable 'math'.
 ```

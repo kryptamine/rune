@@ -1,23 +1,26 @@
 exit: 0
 -- stdout --
-<script>: arity 1, 7 registers, 0 upvalues
+<script>: arity 1, 9 registers, 0 upvalues
     0  LOADK         1 0 0
     1  LOADK         2 0 0
     2  LOADK         3 0 0
-    3  CLOSURE       1 0 0
-    4  MOVE          4 1 0
-    5  CALL          4 0 0
-    6  MOVE          2 4 0
-    7  MOVE          4 2 0
-    8  CALL          4 0 0
-    9  PRINT         4 0 0
-   10  CLOSURE       3 0 1
-   11  MOVE          4 3 0
-   12  LOADK         5 0 1
-   13  LOADK         6 0 2
-   14  CALL          4 2 0
-   15  PRINT         4 0 0
-   16  RETURNNIL     0 0 0
+    3  LOADK         4 0 1
+    4  CLOSURE       1 0 0
+    5  MOVE          5 1 0
+    6  CALL          5 0 0
+    7  MOVE          2 5 0
+    8  MOVE          5 4 0
+    9  MOVE          6 2 0
+   10  CALL          6 0 0
+   11  CALL          5 1 0
+   12  CLOSURE       3 0 1
+   13  MOVE          5 4 0
+   14  MOVE          6 3 0
+   15  LOADK         7 0 2
+   16  LOADK         8 0 3
+   17  CALL          6 2 0
+   18  CALL          5 1 0
+   19  RETURNNIL     0 0 0
 
 counter: arity 0, 2 registers, 0 upvalues
     0  LOADK         0 0 0

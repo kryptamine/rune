@@ -6,18 +6,20 @@ must be converted first, with `str` or interpolation. Methods such as
 
 ```rune
 let ticket = 42;
-print "ticket #" + str(ticket);    // ticket #42
-print "ticket #" + ticket;         // TypeError: Operands must be two numbers, two strings or two bytes.
+print("ticket #" + str(ticket));    // ticket #42
+print("ticket #" + ticket);         // TypeError: Operands must be two numbers, two strings or two bytes.
 ```
 
-A string indexes by character, `len` counts characters, and `<`, `<=`,
-`>`, `>=` compare strings by their characters' code points:
+A string indexes by character, a negative index from the end, `len`
+counts characters, and `<`, `<=`, `>`, `>=` compare strings by their
+characters' code points:
 
 ```rune
-print "héllo"[1];       // é
-print len("héllo");     // 5
-print "ann" < "bob";    // true
-print "Zed" < "ann";    // true
+print("héllo"[1]);       // é
+print("héllo"[-1]);      // o
+print(len("héllo"));     // 5
+print("ann" < "bob");    // true
+print("Zed" < "ann");    // true
 ```
 
 ## Escapes
@@ -25,9 +27,9 @@ print "Zed" < "ann";    // true
 `\n`, `\t`, `\r`, `\"`, `\\`, `\{` and `\}`:
 
 ```rune
-print "say \"hi\"";             // say "hi"
-print "C:\\temp";               // C:\temp
-print "shipped\npending";
+print("say \"hi\"");             // say "hi"
+print("C:\\temp");               // C:\temp
+print("shipped\npending");
 // shipped
 // pending
 ```
@@ -41,11 +43,11 @@ Any expression in `{}` inside a string literal is evaluated and inserted as
 let user = { name: "ann", roles: ["admin", "ops"] };
 let total = 59.97;
 
-print "hi {user.name}";                               // hi ann
-print "roles: {user.roles}";                          // roles: ["admin", "ops"]
-print "{len(user.roles)} roles, total {total.fixed(1)}"; // 2 roles, total 60.0
-print "order is {total > 50 ? "big" : "small"}";      // order is big
-print "set \{name} in the template";                  // set {name} in the template
+print("hi {user.name}");                                  // hi ann
+print("roles: {user.roles}");                             // roles: ["admin", "ops"]
+print("{len(user.roles)} roles, total {total.fixed(1)}"); // 2 roles, total 60.0
+print("order is {total > 50 ? "big" : "small"}");         // order is big
+print("set \{name} in the template");                     // set {name} in the template
 ```
 
 So a `{` meant literally, as in JSON, needs `\{` in a plain string. A raw
@@ -56,9 +58,9 @@ json.parse("{\"ok\": true}");                  // Error: Unexpected character: \
 ```
 
 ```rune
-print json.parse("\{\"ok\": true}").ok;        // true
+print(json.parse("\{\"ok\": true}").ok);        // true
 let body = r"""{"id": 7, "tags": ["new"]}""";
-print json.parse(body).id;                     // 7
+print(json.parse(body).id);                     // 7
 ```
 
 ## Raw Strings
@@ -68,8 +70,8 @@ interpolation, so it suits regular expressions and Windows paths. It cannot
 hold `"`; in a pattern write it `\x22`, or use `r"""..."""`.
 
 ```rune
-print r"C:\temp\{x}";                              // C:\temp\{x}
-print regex.test(r"^\d{3}-\d{4}$", "555-1234");    // true
+print(r"C:\temp\{x}");                              // C:\temp\{x}
+print(regex.test(r"^\d{3}-\d{4}$", "555-1234"));    // true
 ```
 
 ## Multi-line Strings
@@ -82,21 +84,21 @@ line; a line indented less, unless blank, is an error.
 
 ```rune
 let user = "ann";
-print """say "hi" to {user}""";    // say "hi" to ann
+print("""say "hi" to {user}""");    // say "hi" to ann
 
 let title = "Orders";
 let page = """
     <h1 class="title">{title}</h1>
       <p>indented by two</p>
     """;
-print page;
+print(page);
 // <h1 class="title">Orders</h1>
 //   <p>indented by two</p>
 
 let css = r"""
     a { color: red; }
     """;
-print css;    // a { color: red; }
+print(css);    // a { color: red; }
 ```
 
 ```rune

@@ -1,15 +1,15 @@
 fun size() { return len("abc"); }
-print size(); // expect: 3
+print(size()); // expect: 3
 len = fun (x) { return 42; };
-print size(); // expect: 42
-print len("z"); // expect: 42
+print(size()); // expect: 42
+print(len("z")); // expect: 42
 
 let s = "a";
-if s == "a" { print "eq"; } else { print "ne"; } // expect: eq
-if s != "b" { print "ne"; } // expect: ne
-print s + "b"; // expect: ab
-print s == nil; // expect: false
+if s == "a" { print("eq"); } else { print("ne"); } // expect: eq
+if s != "b" { print("ne"); } // expect: ne
+print(s + "b"); // expect: ab
+print(s == nil); // expect: false
 
 fun missing() { return nope; }
-try { missing(); } catch (e) { print e.message; } // expect: Undefined variable 'nope'.
+try { missing(); } catch e { print(e.message); } // expect: Undefined variable 'nope'.
 nope = 1; // expect runtime error: [line: 15] NameError: Undefined variable 'nope'.

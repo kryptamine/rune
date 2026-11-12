@@ -1,9 +1,9 @@
 fun pair(a, b) { return [a, b]; }
-for x in pair("a", "b") { print x; }
+for x in pair("a", "b") { print(x); }
 // expect: a
 // expect: b
 
 let words = fun () { return "hi"; };
-for c in words() { print c; }
+for c in words() { print(c); }
 // expect: h
 // expect: i

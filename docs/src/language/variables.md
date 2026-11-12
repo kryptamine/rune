@@ -9,10 +9,10 @@ let name = "ann";
 let mut visits = 0;
 visits += 1;
 visits++;
-print "{name}: {visits}";    // ann: 2
+print("{name}: {visits}");    // ann: 2
 
 let mut lastSeen;
-print lastSeen;              // nil
+print(lastSeen);              // nil
 ```
 
 ```rune
@@ -26,12 +26,13 @@ let limit;       // Error at 'limit': Immutable variable must be initialized.
 
 ## Immutable Arrays and Objects
 
-Through an immutable variable the array or object it holds cannot be changed
-either: index and property assignment (`a[0] = 1`, `o.x += 1`, `a[0]++`, also
-nested like `o.xs[0] = 1`) is a compile error, and the in-place methods
-`push`, `pop`, `sort`, `Map.set`, `Set.add`, `delete` and `clear` a runtime
-`TypeError`, as is taking one as a value.
-Methods that return a new value (`append`, `map`, ...) work as usual.
+Through an immutable variable the array, object or struct it holds cannot
+be changed either: index and property assignment (`a[0] = 1`, `o.x += 1`,
+`a[0]++`, also nested like `o.xs[0] = 1`) and calls of the in-place
+methods (`push`, `pop`, `sort`, `Map.set`, `Set.add`, `delete`, `clear`,
+...) and of `mut self` methods are compile errors. Taking an in-place
+method as a value is a runtime `TypeError`. Methods that return a new value
+(`append`, `map`, ...) work as usual.
 
 ```rune
 let config = { db: { hosts: ["db1"] } };
@@ -40,15 +41,15 @@ config.db.hosts[0] = "db2";    // Error at 'config': Cannot mutate immutable var
 
 ```rune
 let scores = [70, 95];
-print scores.append(80);       // [70, 95, 80]
-print scores;                  // [70, 95]
-scores.push(80);               // TypeError: Cannot call in-place method 'push' of array: its receiver is in an immutable variable.
+print(scores.append(80));       // [70, 95, 80]
+print(scores);                  // [70, 95]
+scores.push(80);                // Error at 'scores': Cannot mutate immutable variable 'scores'.
 ```
 
 ```rune
 let mut scores = [70, 95];
 scores.push(80);
-print scores;                  // [70, 95, 80]
+print(scores);                  // [70, 95, 80]
 ```
 
 ## Parameters and Loop Variables
@@ -63,11 +64,11 @@ fun addTag(mut tags, tag) {
 
 let mut tags = ["new"];
 addTag(tags, "sale");
-print tags;    // ["new", "sale"]
+print(tags);    // ["new", "sale"]
 
 let mut grid = [[0, 0], [0, 0]];
 for i, mut row in grid { row[i] = 1; }
-print grid;    // [[1, 0], [0, 1]]
+print(grid);    // [[1, 0], [0, 1]]
 ```
 
 ```rune
@@ -84,7 +85,7 @@ mutable reference (`let mut b = a;` or a `mut` parameter).
 let scores = [70, 95];
 let mut alias = scores;
 alias.push(80);
-print scores;    // [70, 95, 80]
+print(scores);    // [70, 95, 80]
 ```
 
 ## Scopes
@@ -98,12 +99,12 @@ let total = 10;
 {
     let mut total = 0;
     total += 5;
-    print total;    // 5
+    print(total);    // 5
 }
-print total;        // 10
+print(total);        // 10
 
-let len = 3;        // shadows the built-in len
-print len;          // 3
+let len = 3;         // shadows the built-in len
+print(len);          // 3
 ```
 
 ```rune

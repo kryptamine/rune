@@ -49,12 +49,13 @@ func reachedAll(arm *ast.MatchArm) bool {
 // struct type it names, or else a binding.
 func (p *Resolver) resolvePattern(pat ast.Pattern) ast.Pattern {
 	switch n := pat.(type) {
-	case *ast.NamePattern:
-		if shape := p.structNamed(n.Name.Lexeme); shape != nil {
-			return &ast.StructPattern{Name: n.Name, Shape: shape}
+	case *ast.BindPattern:
+		if name := n.Name.Lexeme; p.structNamed(name) != nil {
+			p.error(n.Name, "'"+name+"' is a struct type; test it with '_ is "+name+"'.")
 		}
-
-		return &ast.BindPattern{Binding: ast.Binding{Name: n.Name}}
+	case *ast.TypePattern:
+		n.Shapes = p.resolveTypes(n.Types)
+		n.Inner = p.resolvePattern(n.Inner)
 	case *ast.OrPattern:
 		for i, alt := range n.Alts {
 			n.Alts[i] = p.resolvePattern(alt)
@@ -84,6 +85,18 @@ func (p *Resolver) resolvePattern(pat ast.Pattern) ast.Pattern {
 	}
 
 	return pat
+}
+
+// resolveTypes returns the struct type each of types names.
+func (p *Resolver) resolveTypes(types []*ast.VarExpr) []*value.Shape {
+	shapes := make([]*value.Shape, len(types))
+
+	for i, t := range types {
+		p.resolveExpr(t)
+		shapes[i] = p.structType(t)
+	}
+
+	return shapes
 }
 
 func (p *Resolver) resolveFields(fields []ast.FieldPattern) {

@@ -58,7 +58,7 @@ impl Parser {
     fun statement(mut self) {
         let [a, b] = [self.peek(), self.tokens?.[self.i + 1]];
 
-        if a.kind == "id" and b?.text == "=" {
+        if a.kind == "id" && b?.text == "=" {
             self.i += 2;
             return Assign { name: a.text, expr: self.expr(0) };
         }
@@ -86,7 +86,7 @@ impl Parser {
         while true {
             let op = self.peek().text;
             let prec = PRECEDENCE.get(op, -1);
-            if prec < minPrec or prec < 0 break;
+            if prec < minPrec || prec < 0 break;
 
             self.next();
             let nextMin = RIGHT_ASSOC.has(op) ? prec : prec + 1;
@@ -147,7 +147,7 @@ impl Env {
         return Env { vars: Map({ pi: math.PI }), funs: Map() };
     }
 
-    fun eval(self, node, locals = {}) {
+    fun eval(mut self, node, locals = {}) {
         let ev = n => self.eval(n, locals);
 
         return match node {
@@ -178,7 +178,7 @@ impl Env {
         };
     }
 
-    fun call(self, name, args) {
+    fun call(mut self, name, args) {
         let f = self.funs.get(name);
         if f != nil {
             if len(args) != len(f.params) throw CalcError { message: "{name} takes {len(f.params)} arguments, got {len(args)}" };
@@ -200,14 +200,14 @@ fun show(v, digits = 6) {
     };
 }
 
-fun run(env, line) {
+fun run(mut env, line) {
     try {
-        print "{line.padEnd(32)} => {show(env.eval(parse(line)))}";
-    } catch (e: CalcError) {
-        print "{line.padEnd(32)} !! {e.message}";
-        if e.pos != nil print " ".repeat(e.pos) + "^";
-    } catch (e: ValueError, TypeError) {
-        print "{line.padEnd(32)} !! {type(e)}: {e.message}";
+        print("{line.padEnd(32)} => {show(env.eval(parse(line)))}");
+    } catch e is CalcError {
+        print("{line.padEnd(32)} !! {e.message}");
+        if e.pos != nil print(" ".repeat(e.pos) + "^");
+    } catch e is ValueError | TypeError {
+        print("{line.padEnd(32)} !! {type(e)}: {e.message}");
     }
 }
 
@@ -232,7 +232,7 @@ let DEMO = [
 ];
 
 fun main(args) {
-    let env = Env.new();
+    let mut env = Env.new();
 
     if args?.[0] == "repl" {
         let mut line = io.readLine();
@@ -252,5 +252,5 @@ fun main(args) {
             stats.set(kind, stats.get(kind, 0) + 1);
         } catch {}
     }
-    print "\nparsed node kinds: {stats}";
+    print("\nparsed node kinds: {stats}");
 }

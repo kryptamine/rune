@@ -1,2 +1,2 @@
 len = 1;
-print len; // expect: 1
+print(len); // expect: 1

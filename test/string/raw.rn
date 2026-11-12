@@ -1,12 +1,12 @@
-print r"\d{3}\n"; // expect: \d{3}\n
-print regex.test(r"^\d{3}$", "123"); // expect: true
-print len(r""); // expect: 0
-print r"a\b" + "!"; // expect: a\b!
-print r"two
-lines";
+print(r"\d{3}\n"); // expect: \d{3}\n
+print(regex.test(r"^\d{3}$", "123")); // expect: true
+print(len(r"")); // expect: 0
+print(r"a\b" + "!"); // expect: a\b!
+print(r"two
+lines");
 // expect: two
 // expect: lines
 
 let r = 1;
-print r; // expect: 1
-print "{r"x"}"; // expect: x
+print(r); // expect: 1
+print("{r"x"}"); // expect: x

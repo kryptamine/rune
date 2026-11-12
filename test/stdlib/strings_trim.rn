@@ -1,12 +1,12 @@
-print "--a-b--".trim("-"); // expect: a-b
-print "\t a \n".trim() + "|"; // expect: a|
-print "  a  ".trimStart() + "|"; // expect: a  |
-print "  a  ".trimEnd() + "|"; // expect:   a|
-print "xyaxy".trimStart("yx"); // expect: axy
-print "xyaxy".trimEnd("yx"); // expect: xya
-print "é-a-é".trim("é"); // expect: -a-
-print "post.md".removeSuffix(".md"); // expect: post
-print "post.md".removeSuffix(".txt"); // expect: post.md
-print "/api/x".removePrefix("/api"); // expect: /x
-print "aaa".removePrefix("a"); // expect: aa
-try { "a".trim(1); } catch (e: TypeError) { print e.message; } // expect: string.trim() expects a string as argument 1, got number.
+print("--a-b--".trim("-")); // expect: a-b
+print("\t a \n".trim() + "|"); // expect: a|
+print("  a  ".trimStart() + "|"); // expect: a  |
+print("  a  ".trimEnd() + "|"); // expect:   a|
+print("xyaxy".trimStart("yx")); // expect: axy
+print("xyaxy".trimEnd("yx")); // expect: xya
+print("é-a-é".trim("é")); // expect: -a-
+print("post.md".removeSuffix(".md")); // expect: post
+print("post.md".removeSuffix(".txt")); // expect: post.md
+print("/api/x".removePrefix("/api")); // expect: /x
+print("aaa".removePrefix("a")); // expect: aa
+try { "a".trim(1); } catch e is TypeError { print(e.message); } // expect: string.trim() expects a string as argument 1, got number.

@@ -1,15 +1,18 @@
 let a = [2, 1];
-try { a.push(3); } catch (e: TypeError) { print e.message; } // expect: Cannot call in-place method 'push' of array: its receiver is in an immutable variable.
-try { a.pop(); } catch (e: TypeError) { print e.message; } // expect: Cannot call in-place method 'pop' of array: its receiver is in an immutable variable.
-try { a.sort(); } catch (e: TypeError) { print e.message; } // expect: Cannot call in-place method 'sort' of array: its receiver is in an immutable variable.
-let o = {xs: []};
-try { o.xs.push(1); } catch (e: TypeError) { print e.message; } // expect: Cannot call in-place method 'push' of array: its receiver is in an immutable variable.
-try { (o?.xs).push(1); } catch (e: TypeError) { print e.message; } // expect: Cannot call in-place method 'push' of array: its receiver is in an immutable variable.
-try { let f = a.push; } catch (e: TypeError) { print e.message; } // expect: Cannot take in-place method 'push' of array as a value.
-print a; // expect: [2, 1]
-
-// A temporary has no variable to protect.
-print [3, 1, 2].sort(); // expect: [1, 2, 3]
-let mut b = a;
-b.push(0);
-print a.sort(); // expect runtime error: [line: 15] TypeError: Cannot call in-place method 'sort' of array: its receiver is in an immutable variable.
+a.push(3); // Error at 'a': Cannot mutate immutable variable 'a'.
+a.pop(); // Error at 'a': Cannot mutate immutable variable 'a'.
+a.sort(); // Error at 'a': Cannot mutate immutable variable 'a'.
+let o = { xs: [] };
+o.xs.push(1); // Error at 'o': Cannot mutate immutable variable 'o'.
+(o?.xs).push(1); // Error at 'o': Cannot mutate immutable variable 'o'.
+o.delete("xs"); // Error at 'o': Cannot mutate immutable variable 'o'.
+let m = Map([["a", 1]]);
+let s = Set([1]);
+m.set("b", 2); // Error at 'm': Cannot mutate immutable variable 'm'.
+m.delete("a"); // Error at 'm': Cannot mutate immutable variable 'm'.
+m.clear(); // Error at 'm': Cannot mutate immutable variable 'm'.
+s.add(2); // Error at 's': Cannot mutate immutable variable 's'.
+s.delete(1); // Error at 's': Cannot mutate immutable variable 's'.
+s.clear(); // Error at 's': Cannot mutate immutable variable 's'.
+a.insert(0, 1); // Error at 'a': Cannot mutate immutable variable 'a'.
+a.remove(0); // Error at 'a': Cannot mutate immutable variable 'a'.

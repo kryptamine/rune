@@ -1,1 +1,1 @@
-print 1 ? 2; // [line: 1] Error at ';': Expect ':' after then branch of '?'.
+print(1 ? 2); // [line: 1] Error at ')': Expect ':' after then branch of '?'.

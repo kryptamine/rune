@@ -1,4 +1,4 @@
 [line: 2] Error at 'print': Only declarations can be at the top level of a module.
   --> _lib/side_effect.rn:2:1
-    2 | print "loaded";
+    2 | print("loaded");
       | ^

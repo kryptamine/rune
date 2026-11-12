@@ -13,10 +13,10 @@ fun status(code) {
     };
 }
 
-print status(201); // ok
-print status(404); // not found
-print status(503); // server error 503
-print status(418); // unknown
+print(status(201)); // ok
+print(status(404)); // not found
+print(status(503)); // server error 503
+print(status(418)); // unknown
 ```
 
 An arm is `pattern => expression`, ended by `,` or `;`, `pattern => { block }`,
@@ -26,8 +26,10 @@ guard, `pattern if condition`, adds a test after the pattern matches.
 ## Patterns
 
 - `_` matches anything;
-- a name binds the value (`mut name` mutably), unless it names a struct
-  type, then it tests the value is of it;
+- a name binds the value (`mut name` mutably); a struct type's name is
+  an error, test the type with `is`;
+- `name is T` and `_ is T` test the value is a `T`, `_ is T | U` one of
+  them, the same test as `v is T` and `catch e is T`;
 - literals: numbers, strings, `true`, `false`, `nil`, compared as by `==`;
 - `p | q` matches if either does;
 - `Point { x, y: 0 }` tests the type, then matches the listed fields;
@@ -45,17 +47,17 @@ fun describe(v) {
         Point { x: 0, y: 0 } => "origin",
         Point { x: 0, y } => "on the y axis at {y}",
         Point { x, y } if x == y => "diagonal",
-        Point => "a point",
+        _ is Point => "a point",
         _ => "other",
     };
 }
 
-print describe(nil);                  // nothing
-print describe(Point { x: 0 });       // origin
-print describe(Point { x: 0, y: 5 }); // on the y axis at 5
-print describe(Point { x: 2, y: 2 }); // diagonal
-print describe(Point { x: 1, y: 2 }); // a point
-print describe(42);                   // other
+print(describe(nil));                  // nothing
+print(describe(Point { x: 0 }));       // origin
+print(describe(Point { x: 0, y: 5 })); // on the y axis at 5
+print(describe(Point { x: 2, y: 2 })); // diagonal
+print(describe(Point { x: 1, y: 2 })); // a point
+print(describe(42));                   // other
 ```
 
 Object patterns pick data apart by shape, which makes small interpreters
@@ -71,17 +73,24 @@ fun eval(e) {
     };
 }
 
-print eval({ op: "+", a: 1, b: { op: "*", a: 2, b: 3 } }); // 7
+print(eval({ op: "+", a: 1, b: { op: "*", a: 2, b: 3 } })); // 7
 ```
 
 ```rune
 let event = { type: "click", "target id": "save" };
 
 match event {
-    { type: "click", "target id": id } => print "clicked " + id; // clicked save
-    { type: "key", key } => print "pressed " + key;
+    { type: "click", "target id": id } => print("clicked " + id); // clicked save
+    { type: "key", key } => print("pressed " + key);
     _ => {}
 }
+```
+
+A bare struct name would bind, so it is an error:
+
+```rune
+struct Point { x, y = 0 }
+match 1 { Point => 1, _ => 2 } // Error at 'Point': 'Point' is a struct type; test it with '_ is Point'.
 ```
 
 Alternatives cannot bind:
@@ -102,9 +111,9 @@ let label = match count {
     1 => "one item",
     n => "{n} items",
 };
-print label; // 3 items
+print(label); // 3 items
 
-print match 7 { 1 => "a" }; // ValueError: No match arm for 7.
+print(match 7 { 1 => "a" }); // ValueError: No match arm for 7.
 ```
 
 At the start of a statement it is a statement: values are dropped and no
@@ -114,15 +123,15 @@ arm matching does nothing. An arm may `return` from the enclosing function:
 fun handle(cmd) {
     match cmd {
         "quit" => return "bye";
-        "help" => print "usage: add | list | quit";
+        "help" => print("usage: add | list | quit");
         _ => {}
     }
     return "continue";
 }
 
-print handle("help"); // continue
-print handle("quit"); // bye
-print handle("save"); // continue
+print(handle("help")); // continue
+print(handle("quit")); // bye
+print(handle("save")); // continue
 ```
 
 The first call prints `usage: add | list | quit` before `continue`.

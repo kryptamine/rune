@@ -4,8 +4,8 @@ fun page({ title, root ! "." }) { // Error at '!': Expect '}' after pattern.
 
 fun a() {
     let y = { k: 1 ! }; // Error at '!': Expect '}' after object properties.
-    if y { print ); } // Error at ')': Expect expression.
-    print "still";
+    if y { print(1 +); } // Error at ')': Expect expression.
+    print("still");
 }
 
 fun b() {

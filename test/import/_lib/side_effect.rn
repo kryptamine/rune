@@ -1,2 +1,2 @@
 export fun ok() {}
-print "loaded";
+print("loaded");

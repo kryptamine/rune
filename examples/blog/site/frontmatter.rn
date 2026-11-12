@@ -4,7 +4,7 @@ export struct FrontMatterError { message, path, line }
 
 export fun parse(src, path) {
     let lines = src.split("\n");
-    if len(lines) == 0 or lines[0].trim() != "---" return { meta: {}, body: src };
+    if len(lines) == 0 || lines[0].trim() != "---" return { meta: {}, body: src };
 
     let mut meta = {};
     for i in 1..len(lines) {
@@ -22,7 +22,7 @@ export fun parse(src, path) {
 }
 
 fun parseValue(v) {
-    if v.startsWith("[") and v.endsWith("]") {
+    if v.startsWith("[") && v.endsWith("]") {
         return v.slice(1, -1).split(",").map(s => s.trim()).filter(s => s != "");
     }
     return match v {

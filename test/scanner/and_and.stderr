@@ -1,6 +1,0 @@
-[line: 1] Error: Unexpected '&&'; use 'and'.
-    1 | print true && false; // [line: 1] Error: Unexpected '&&'; use 'and'.
-      |            ^
-[line: 2] Error: Unexpected '||'; use 'or'.
-    2 | print true || false; // [line: 2] Error: Unexpected '||'; use 'or'.
-      |            ^

@@ -11,12 +11,6 @@ type WildcardPattern struct {
 	Token Token
 }
 
-// NamePattern is a bare name, which the resolver replaces with a
-// StructPattern if it names a struct type and a BindPattern otherwise.
-type NamePattern struct {
-	Name Token
-}
-
 // BindPattern binds the value to a variable.
 type BindPattern struct {
 	Binding
@@ -47,6 +41,15 @@ type StructPattern struct {
 	Shape  *value.Shape
 }
 
+// TypePattern is name is T | U, or _ is T: Inner, a BindPattern or a
+// WildcardPattern, after testing the value is one of Types; the resolver
+// sets Shapes.
+type TypePattern struct {
+	Inner  Pattern
+	Types  []*VarExpr
+	Shapes []*value.Shape
+}
+
 // ObjectPattern is { key: pattern, ... }, matching an object or a struct
 // that has every key; other keys are allowed.
 type ObjectPattern struct {
@@ -55,12 +58,12 @@ type ObjectPattern struct {
 }
 
 func (*WildcardPattern) patternNode() {}
-func (*NamePattern) patternNode()     {}
 func (*BindPattern) patternNode()     {}
 func (*LiteralPattern) patternNode()  {}
 func (*OrPattern) patternNode()       {}
 func (*StructPattern) patternNode()   {}
 func (*ObjectPattern) patternNode()   {}
+func (*TypePattern) patternNode()     {}
 
 // Bindings returns the variables p binds; alternatives bind none.
 func Bindings(p Pattern) []*Binding {
@@ -71,6 +74,8 @@ func Bindings(p Pattern) []*Binding {
 		switch n := p.(type) {
 		case *BindPattern:
 			out = append(out, &n.Binding)
+		case *TypePattern:
+			walk(n.Inner)
 		case *StructPattern:
 			for _, f := range n.Fields {
 				walk(f.Pattern)
