@@ -207,7 +207,7 @@ type Builtin struct {
 }
 
 // Types are the built-in struct types, which programs see by name.
-var Types = slices.Concat(errors.Kinds, []*value.Shape{FileInfo, ExecOptions, ExecResult, Match, HttpOptions, HttpResponse})
+var Types = slices.Concat(errors.Kinds, []*value.Shape{FileInfo, ExecOptions, ExecResult, Match, HttpOptions, HttpResponse, Date})
 
 // FieldNames returns each field name of Types as its one string.
 func FieldNames() map[string]string {
@@ -339,13 +339,15 @@ var Methods = func() (out []Method) {
 		}
 	}
 
-	add(value.Array, false, arrayMethods, arraySequenceMethods)
+	add(value.Array, false, arrayMethods, arraySequenceMethods, lenMethod("array"))
 	add(value.Array, true, arrayInPlace)
-	add(value.String, false, stringMethods, stringSequenceMethods)
+	add(value.String, false, stringMethods, stringSequenceMethods, lenMethod("string"))
 	add(value.Number, false, numberMethods)
-	add(value.Map, false, mapMethods)
-	add(value.Set, false, setMethods)
-	add(value.Bytes, false, bytesMethods)
+	add(value.Object, false, objectMethods, lenMethod("object"))
+	add(value.Object, true, objectInPlace)
+	add(value.Map, false, mapMethods, lenMethod("Map"))
+	add(value.Set, false, setMethods, lenMethod("Set"))
+	add(value.Bytes, false, bytesMethods, lenMethod("bytes"))
 	add(value.Stream, false, streamMethods)
 
 	return out

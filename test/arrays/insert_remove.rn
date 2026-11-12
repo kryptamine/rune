@@ -1,0 +1,18 @@
+let mut xs = [1, 2, 3];
+print xs.remove(0);       // expect: 1
+print xs.remove(-1);      // expect: 3
+print xs;                 // expect: [2]
+print xs.insert(0, 1);    // expect: 2
+print xs.insert(2, 3);    // expect: 3
+print xs.insert(-1, 9);   // expect: 4
+print xs;                 // expect: [1, 2, 9, 3]
+
+let ys = xs;
+xs.remove(2);
+print ys;                 // expect: [1, 2, 3]
+
+try { xs.remove(3); } catch (e: IndexError) { print e.message; } // expect: array.remove() index 3 out of bounds of 3 elements.
+try { xs.insert(5, 0); } catch (e: IndexError) { print e.message; } // expect: array.insert() index 5 out of bounds of 3 elements.
+try { [].remove(0); } catch (e: IndexError) { print e.message; } // expect: array.remove() index 0 out of bounds of 0 elements.
+
+ys.remove(0); // expect runtime error: [line: 18] TypeError: Cannot call in-place method 'remove' of array: its receiver is in an immutable variable.

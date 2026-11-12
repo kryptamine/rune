@@ -1,0 +1,3 @@
+[line: 24] TypeError: Cannot call in-place method 'delete' of object: its receiver is in an immutable variable.
+   24 | c.delete("a"); // expect runtime error: [line: 24] TypeError: Cannot call in-place method 'delete' of object: its receiver is in an immutable variable.
+      |   ^

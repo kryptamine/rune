@@ -7,7 +7,6 @@ import (
 	"rune/pkg/errors"
 	"rune/pkg/helpers"
 	"rune/pkg/value"
-	"slices"
 	"strconv"
 	"strings"
 )
@@ -28,35 +27,23 @@ func Convert(token *ast.Token, shape *value.Shape, v value.Value) (value.Value, 
 		"Cannot convert %s to %s.", helpers.TypeName(v), shape.Name))
 }
 
-// structOf walks the fields, not the keys, so no map order shows; the
-// least extra key is the one reported.
 func structOf(token *ast.Token, shape *value.Shape, obj map[string]value.Value) (value.Value, error) {
 	v, fields := value.NewStruct(shape)
-	given := 0
-
-	for i, name := range shape.Fields {
-		if f, ok := obj[name]; ok {
-			fields[i] = f
-			given++
-		} else if def, ok := shape.Default(i); ok {
-			fields[i] = value.Fresh(def)
-		} else {
-			return value.NilValue, errors.NewRuntimeError(errors.KeyError, *token, errors.MissingField(shape.Name, name))
-		}
+	for i := range fields {
+		fields[i] = value.UndefinedValue
 	}
 
-	if given == len(obj) {
-		return v, nil
+	extra, known := shape.Assign(fields, obj)
+
+	if missing, ok := shape.Fill(fields); !ok {
+		return value.NilValue, errors.NewRuntimeError(errors.KeyError, *token, errors.MissingField(shape.Name, missing))
 	}
 
-	var extra []string
-	for k := range obj {
-		if shape.Index(k) < 0 {
-			extra = append(extra, k)
-		}
+	if !known {
+		return value.NilValue, errors.NewRuntimeError(errors.KeyError, *token, errors.NoField(shape.Name, extra))
 	}
 
-	return value.NilValue, errors.NewRuntimeError(errors.KeyError, *token, errors.NoField(shape.Name, slices.Min(extra)))
+	return v, nil
 }
 
 // conversionNatives are global, like the struct types, which convert too.

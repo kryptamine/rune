@@ -203,6 +203,48 @@ func (s *Shape) Index(name string) int {
 	return -1
 }
 
+// Assign copies into fields the keys of obj that name fields, walking the
+// fields so no map order shows; extra is the least key naming none.
+func (s *Shape) Assign(fields []Value, obj map[string]Value) (extra string, ok bool) {
+	given := 0
+
+	for i, name := range s.Fields {
+		if v, found := obj[name]; found {
+			fields[i] = v
+			given++
+		}
+	}
+
+	if given == len(obj) {
+		return "", true
+	}
+
+	first := true
+	for k := range obj {
+		if s.Index(k) < 0 && (first || k < extra) {
+			extra, first = k, false
+		}
+	}
+
+	return extra, false
+}
+
+// Fill gives each undefined field a fresh copy of its default; missing is
+// the first that has none.
+func (s *Shape) Fill(fields []Value) (missing string, ok bool) {
+	for i, f := range fields {
+		switch {
+		case !f.IsUndefined():
+		case s.decls[i].Required:
+			return s.Fields[i], false
+		default:
+			fields[i] = Fresh(s.decls[i].Default)
+		}
+	}
+
+	return "", true
+}
+
 // InternedMethod is FindMethod for a key sharing the name's storage, as
 // the compiler arranges; a miss does not mean there is no such method.
 func InternedMethod(ms []Method, key Value) *Method {

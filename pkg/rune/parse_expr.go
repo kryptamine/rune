@@ -623,6 +623,14 @@ func (s *Parser) structPairs() ([]ast.StructPair, error) {
 	var pairs []ast.StructPair
 
 	err := s.braceList("Duplicate field name.", "Expect '}' after struct fields.", func() (string, ast.Token, error) {
+		if s.check(ast.DOT_DOT_DOT) {
+			tok := s.peek()
+			v, err := s.item(true)
+			pairs = append(pairs, ast.StructPair{Key: tok, Value: v})
+
+			return "", tok, err
+		}
+
 		key, err := s.consume(ast.IDENTIFIER, "Expect field name.")
 		if err != nil {
 			return "", key, err
@@ -652,6 +660,8 @@ func (s *Parser) isStructLiteralStart(offset int) bool {
 	switch s.peekAt(offset + 1) {
 	case ast.RIGHT_BRACE:
 		return s.structs == structsAll
+	case ast.DOT_DOT_DOT:
+		return true
 	case ast.IDENTIFIER:
 		after := s.peekAt(offset + 2)
 		return after == ast.COLON || after == ast.COMMA || after == ast.RIGHT_BRACE

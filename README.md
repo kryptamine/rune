@@ -30,7 +30,7 @@ Rune is a dynamically typed interpreted programming language inspired by [Lox](h
 - Destructuring of objects, structs and arrays, in `let`, parameters and `for`, with defaults: `let { x, y = 0 } = p;`, `let [head, ...tail] = xs;`
 - Nil-safe access and defaults: `resp?.data?.items ?? []`
 - Conditional expressions: `n > 0 ? "pos" : "neg"`
-- Spread and rest: `[...a, ...b]`, `{...o, x: 1}`, `f(...args)`, `fun log(level, ...parts)`
+- Spread and rest: `[...a, ...b]`, `{...o, x: 1}`, `Point { ...p, x: 1 }`, `f(...args)`, `fun log(level, ...parts)`
 - Strings compare with `<`, `<=`, `>`, `>=` and index by character: `"héllo"[1]` is `"é"`
 - Pattern matching with `match`, as an expression or a statement
 - Error handling with `try`/`catch` and `throw`, also as an expression: `x ?? throw E { ... }`
@@ -364,6 +364,19 @@ q = Point { x: q.x + 1, y: q.y }; // rebinding is fine
 `v is Point` is `true` only for a `Point`; it has the precedence of `==`,
 and its right operand must be a struct type.
 
+A literal may spread a struct of the same type, or an object of some of
+its fields, as `T { ...t, x: 1 }` does an update without changing `t`.
+Items apply in order, later ones winning, and a field none of them gives
+takes its default; one with no default, a key that is not a field, or a
+struct of another type is a runtime error.
+
+```javascript
+let p = Point { x: 1, y: 2 };
+Point { ...p, y: 5 };        // Point {x: 1, y: 5}
+Point { ...{ x: 3 } };       // Point {x: 3, y: 0}
+Point { y: 5, ...p };        // Point {x: 1, y: 2}
+```
+
 Calling a struct type converts to it. From an object the keys must be
 exactly the fields, the defaulted ones optional; a struct of the same
 type is returned as is, and any other value is an error. There are no
@@ -531,8 +544,9 @@ let parity = n => n % 2 == 0 ? "even" : "odd";
 
 ## Spread and Rest
 
-`...` spreads an array into an array literal or a call's arguments, and an
-object or struct into an object literal, where later keys win. Spreading
+`...` spreads an array into an array literal or a call's arguments, an
+object or struct into an object literal, where later keys win, and into a
+struct literal a struct of its type or an object (see [Structs](#structs)). Spreading
 anything else is a `TypeError`.
 
 ```javascript
@@ -682,7 +696,7 @@ fun main(args) {
 the operations on a value are its methods, as `xs.map(f)` or `s.split(",")`;
 everything else lives in a namespace, used as `math.floor(x)`:
 
-- **`len(value)`** — Returns the length of an array, object or string (in characters), the number of fields of a struct, the entries of a Map or Set, or the size of bytes.
+- **`len(value)`**, also the method `v.len()` of each type but structs — Returns the length of an array, object or string (in characters), the number of fields of a struct, the entries of a Map or Set, or the size of bytes.
 - **`type(value)`** — Returns `"nil"`, `"boolean"`, `"number"`, `"string"`, `"array"`, `"object"`, `"function"`, `"Map"`, `"Set"`, `"bytes"`, `"Stream"`, a struct's name, `"struct"` for a struct type, or `"namespace"`.
 - **`object(s)`** — Returns a new object with the fields of struct `s`.
 - **`str(v)`** — `v` as `print` shows it.
@@ -704,6 +718,8 @@ math.flor(1); // Error at 'flor': math has no member 'flor'.
 - `append(v1, ...)` — returns a new array with the values appended. It copies, so building an array with it in a loop is quadratic; use `push` for that.
 - `map(f)`, `filter(f)`, `reduce(f[, init])` — return new values; `f` may be any function, built-ins included.
 - `sort([cmp])` — sorts **in place** and returns the array; stable. Without `cmp` the elements must be all numbers or all strings; `cmp(a, b) < 0` puts `a` first.
+- `insert(i, v)` — inserts `v` before index `i` **in place** (`len` appends) and returns the new length; `remove(i)` — removes element `i` in place and returns it. A negative `i` counts from the end; one out of bounds is an `IndexError`.
+- `every(f)`, `some(f)` — whether `f` is truthy for all or any element, stopping once that is known; `find(f)` — the first element for which it is, or `nil`; `findIndex(f)` — its index, or `-1`.
 - `slice(start[, end])` (negative bounds count from the end), `reverse()`, `contains(item)`, `indexOf(item)`, `join(sep)`.
 
 ```javascript
@@ -711,6 +727,13 @@ let mut people = [{name: "bob", age: 25}, {name: "ann", age: 31}];
 people.sort((a, b) => a.age - b.age);
 print people.map(({ name }) => name).join(", "); // bob, ann
 ```
+
+### Object methods
+
+`has(k)`, `get(k[, default])` (`nil` if missing), `keys()`, `values()`,
+`entries()` (`[key, value]` pairs, in the sorted order of `for`), and
+`delete(k)`, **in place**, whether `k` was there. An object's own property
+of the same name comes first, so `{keys: 1}.keys` is `1`.
 
 ### String and number methods
 
@@ -750,7 +773,7 @@ print regex.replace("\\s+", "a  b   c", " "); // a b c
 
 `floor(x)`, `ceil(x)`, `round(x)` (integers when one holds the result), `abs(x)`, `sqrt(x)`, `pow(x, y)`, `min(a, ...)`, `max(a, ...)` (the argument itself), `idiv(a, b)` (integer division, toward zero), `isInt(x)`, `random()` (in `[0, 1)`), constants `PI`, `INF`, `MAX_INT` and `MIN_INT`.
 
-### json, http, time
+### json, http
 
 - `json.parse(s)` — parses JSON (object, array or primitive); malformed input is a `ValueError`.
 - `json.stringify(v)` — encodes `nil`, booleans, numbers, strings, arrays, objects (keys sorted) and structs (fields in order) compactly; a function is a `TypeError`, a non-finite number or a cycle a `ValueError`.
@@ -764,7 +787,27 @@ let r = http.request("POST", "https://example.com/api", {
 });
 if r.status != 201 throw IOError { message: "status {r.status}" };
 ```
-- `time.now()` — the current time in seconds, with sub-second precision.
+
+### time
+
+A time is a number of seconds since 1970-01-01 UTC. A time zone is
+`"local"` (the default), `"UTC"` or an IANA name, `"Europe/Kyiv"`; an
+unknown one is a `ValueError`.
+
+- `now()` — the current time, with sub-second precision.
+- `date([t[, zone]])` — `t` (default now) on the calendar of `zone`: a `Date { year, month = 1, day = 1, hour = 0, minute = 0, second = 0, weekday, yearDay, zone = "local" }`, `weekday` from 1, Monday, to 7.
+- `make(d[, zone])` — the time of the `Date` `d`, or an object converted to one, in `zone` or else `d.zone`. Fields past their range carry over, `day: 32` into the next month; `weekday` and `yearDay` are ignored. A whole second gives an integer.
+- `format(t[, layout[, zone]])` — `t` as a string, `layout` defaulting to ISO 8601, `"%Y-%m-%dT%H:%M:%S%:z"`.
+- `parse(s[, layout[, zone]])` — the time `s` holds in `layout`, read in `zone` unless it has an offset; anything else, or a date that does not exist, is a `ValueError`.
+
+Layouts take `%Y` (year), `%y` (two digits), `%m`, `%d`, `%e` (day padded with a space), `%j` (day of the year), `%H`, `%I` (12-hour), `%M`, `%S`, `%f` (microseconds; parsed, any fraction), `%p` (`AM`/`PM`), `%b`/`%B` (month name, short and long), `%a`/`%A` (weekday), `%u` (weekday from 1), `%z` (`+0200`), `%:z` (`+02:00`, `Z` for UTC), `%Z` (zone abbreviation; parsed, only `UTC` and `GMT`), `%s` (seconds since the epoch) and `%%`. Parsing ignores case in names; a weekday it reads is not checked against the date.
+
+```javascript
+let d = time.date(time.now());
+let tomorrow = time.make(Date { ...d, day: d.day + 1 }); // same wall clock, across DST too
+print time.format(tomorrow, "%a %d %b %H:%M");            // Fri 13 Nov 20:15
+print time.parse("2026-11-12", "%Y-%m-%d", "UTC");        // 1794441600
+```
 
 ### fs
 

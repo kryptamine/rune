@@ -57,12 +57,17 @@ const (
 	opJmpNil     // if (R[A] is nil) == Y: pc = C
 	opJmpDefined // if R[A] is defined: pc = C
 
-	opArray    // R[A] = [R[B], ..., R[B+C-1]]
-	opConcat   // R[A] = R[B] .. R[B+C-1] as printed, appended to R[A] if X
-	opObject   // R[A] = {keys[C][i]: R[B+i]}
-	opStruct   // R[A] = struct of type K[C] with fields R[B...]
-	opGetIndex // R[A] = R[B][R[C]]
-	opGetProp  // R[A] = R[B].K[C]; with X one missing from an object or struct is undefined
+	opArray  // R[A] = [R[B], ..., R[B+C-1]]
+	opConcat // R[A] = R[B] .. R[B+C-1] as printed, appended to R[A] if X
+	opObject // R[A] = {keys[C][i]: R[B+i]}
+	opStruct // R[A] = struct of type K[C] with fields R[B...]
+	// A struct literal with spreads starts its fields undefined; those
+	// still undefined at the end take their defaults.
+	opUndef        // R[A..A+B-1] = undefined
+	opStructSpread // R[A...] = the fields of R[B], a struct of type K[C] or an object of some of its fields
+	opStructFill   // R[A] = struct of type K[C] with fields R[B...], defaults for the undefined
+	opGetIndex     // R[A] = R[B][R[C]]
+	opGetProp      // R[A] = R[B].K[C]; with X one missing from an object or struct is undefined
 	// The optional forms give nil for a missing element, property or field.
 	opGetIndexOpt
 	opGetPropOpt
@@ -238,7 +243,7 @@ var opNames = [...]string{
 	"CHECKDEFINED", "SETCELL!", "SETUPVAL!", "UNDEFINED",
 	"ADD", "SUB", "MUL", "DIV", "MOD", "ADDK", "SUBK", "MULK", "DIVK", "MODK", "CMP", "CMPK", "IS", "NEG", "NOT", "INCR", "BITWISE", "BITNOT",
 	"JMP", "JMPIF", "JMPCMP", "JMPCMPK", "JMPNOTTYPE", "JMPNIL", "JMPDEFINED",
-	"ARRAY", "CONCAT", "OBJECT", "STRUCT", "GETINDEX", "GETPROP", "GETINDEX?", "GETPROP?", "SETINDEX", "SETPROP", "CHECKPROP", "TESTPROP", "RANGE", "SPREAD", "UNPACK",
+	"ARRAY", "CONCAT", "OBJECT", "STRUCT", "UNDEF", "STRUCTSPREAD", "STRUCTFILL", "GETINDEX", "GETPROP", "GETINDEX?", "GETPROP?", "SETINDEX", "SETPROP", "CHECKPROP", "TESTPROP", "RANGE", "SPREAD", "UNPACK",
 	"CLOSURE", "CALL", "CALLARRAY", "INVOKE", "METHOD", "RETURN", "RETURNNIL", "PRINT", "THROW", "RETHROW", "NOMATCH", "TRY", "ENDTRY",
 	"FORRANGE", "FORRANGENEXT", "FORITER", "FORITERNEXT",
 }

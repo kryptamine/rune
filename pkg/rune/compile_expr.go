@@ -329,11 +329,17 @@ func (fs *funcState) spreadLiteral(dst int32, n int, item func(i int) ast.Expr, 
 func (fs *funcState) structLiteral(n *ast.StructExpr, dst int32) {
 	shape := n.Shape
 	base := fs.free
-	given := make([]bool, len(shape.Fields))
 
 	for range shape.Fields {
 		fs.alloc()
 	}
+
+	if slices.ContainsFunc(n.Pairs, func(p ast.StructPair) bool { return ast.IsSpread(p.Value) }) {
+		fs.spreadStruct(n, base, dst)
+		return
+	}
+
+	given := make([]bool, len(shape.Fields))
 
 	for _, pair := range n.Pairs {
 		given[pair.Slot] = true
@@ -349,6 +355,27 @@ func (fs *funcState) structLiteral(n *ast.StructExpr, dst int32) {
 	}
 
 	fs.emit(ins{op: opStruct, a: dst, b: base, c: fs.constant(value.NewType(shape))}, nil)
+}
+
+// spreadStruct fills the fields in source order, each spread copying
+// those it has over the ones before.
+func (fs *funcState) spreadStruct(n *ast.StructExpr, base, dst int32) {
+	typ := fs.constant(value.NewType(n.Shape))
+	fs.emit(ins{op: opUndef, a: base, b: int32(len(n.Shape.Fields))}, nil)
+
+	for _, pair := range n.Pairs {
+		sp, ok := pair.Value.(*ast.SpreadExpr)
+		if !ok {
+			fs.expr(pair.Value, base+int32(pair.Slot))
+			continue
+		}
+
+		free := fs.free
+		fs.emit(ins{op: opStructSpread, a: base, b: fs.exprAny(sp.Expr), c: typ}, &sp.Token)
+		fs.free = free
+	}
+
+	fs.emit(ins{op: opStructFill, a: dst, b: base, c: typ}, &n.Type.Name)
 }
 
 // writesEarly reports whether compiling e into a register writes it
