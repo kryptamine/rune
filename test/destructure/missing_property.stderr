@@ -1,0 +1,3 @@
+[line: 1] KeyError: Undefined property 'y'.
+    1 | let { x, y } = { x: 1 }; // expect runtime error: [line: 1] KeyError: Undefined property 'y'.
+      |          ^

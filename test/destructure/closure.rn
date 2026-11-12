@@ -1,0 +1,17 @@
+let { f, n } = { f: fun () { return n; }, n: 5 };
+print f(); // expect: 5
+
+fun make() {
+  let { mut count } = { count: 0 };
+  return fun () { count += 1; return count; };
+}
+
+let c = make();
+c();
+print c(); // expect: 2
+
+fun capture({ x }) {
+  return fun () { return x; };
+}
+
+print capture({ x: 7 })(); // expect: 7

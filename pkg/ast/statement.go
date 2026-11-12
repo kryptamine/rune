@@ -6,6 +6,7 @@ type StmtVisitor interface {
 	VisitPrintStmt(printStmt *PrintStmt) error
 	VisitExprStmt(exprStmt *ExprStmt) error
 	VisitVarStmt(VarStmt *VarStmt) error
+	VisitDestructureStmt(stmt *DestructureStmt) error
 	VisitBlockStmt(blockStmt *BlockStmt) error
 	VisitIfStmt(ifStmt *IfStmt) error
 	VisitWhileStmt(whileStmt *WhileStmt) error
@@ -34,6 +35,41 @@ type VarStmt struct {
 
 func NewVarStmt(initializer Expr, binding Binding) Stmt {
 	return &VarStmt{Initializer: initializer, Binding: binding}
+}
+
+// DestructureField binds the property Key (by its Lexeme) of the value.
+type DestructureField struct {
+	Key Token
+	Binding
+}
+
+// DestructureStmt is let { a, mut b, c: d } = value;
+type DestructureStmt struct {
+	Fields      []DestructureField
+	Initializer Expr
+}
+
+func NewDestructureStmt(fields []DestructureField, initializer Expr) Stmt {
+	return &DestructureStmt{Fields: fields, Initializer: initializer}
+}
+
+// Declared returns the variables stmt declares, structs aside.
+func Declared(stmt Stmt) []*Binding {
+	switch s := stmt.(type) {
+	case *VarStmt:
+		return []*Binding{&s.Binding}
+	case *FunctionStmt:
+		return []*Binding{&s.Binding}
+	case *DestructureStmt:
+		bs := make([]*Binding, len(s.Fields))
+		for i := range s.Fields {
+			bs[i] = &s.Fields[i].Binding
+		}
+
+		return bs
+	}
+
+	return nil
 }
 
 type ReturnStmt struct {
@@ -119,16 +155,15 @@ func NewContinueStmt(keyword Token) Stmt {
 	return &ContinueStmt{Keyword: keyword}
 }
 
-// FunctionStmt declares a function; Local is its name's, as in Binding.
+// FunctionStmt declares a function; its Binding is never mutable.
 type FunctionStmt struct {
-	Name       Token
+	Binding
 	Parameters []Binding
 	Body       []Stmt
-	Local      *Local
 }
 
 func NewFunctionStmt(name Token, parameters []Binding, body []Stmt) Stmt {
-	return &FunctionStmt{Name: name, Parameters: parameters, Body: body}
+	return &FunctionStmt{Binding: Binding{Name: name}, Parameters: parameters, Body: body}
 }
 
 // TryStmt runs Body and, if it fails with a runtime error or a throw, runs
@@ -198,6 +233,10 @@ func (n *ExprStmt) Accept(v StmtVisitor) error {
 
 func (n *VarStmt) Accept(v StmtVisitor) error {
 	return v.VisitVarStmt(n)
+}
+
+func (n *DestructureStmt) Accept(v StmtVisitor) error {
+	return v.VisitDestructureStmt(n)
 }
 
 func (n *BlockStmt) Accept(v StmtVisitor) error {

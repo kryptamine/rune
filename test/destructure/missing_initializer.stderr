@@ -1,0 +1,3 @@
+[line: 1] Error at ';': Expect '=' after pattern.
+    1 | let { x }; // Error at ';': Expect '=' after pattern.
+      |          ^

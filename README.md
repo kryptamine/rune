@@ -18,6 +18,7 @@ Rune is a dynamically typed interpreted programming language inspired by [Lox](h
 - Number literals with exponents: `1e3`, `2.5E-2`
 - Object property access with `obj.name` as sugar for `obj["name"]`
 - Immutable structs with required and default fields: `struct Point { x, y = 0 }`
+- Destructuring of objects and structs, in `let` and parameters: `let { x, y } = p;`
 - Strings compare with `<`, `<=`, `>`, `>=` and index by character: `"héllo"[1]` is `"é"`
 - Error handling with `try`/`catch` and `throw`
 - Two loops only: `while` and `for x in ...` over arrays, strings, objects and ranges (`a..b`)
@@ -231,6 +232,25 @@ struct, so `Point { x: 1, y: 2 } == { "x": 1, "y": 2 }` is `false`.
 `for k, v in p` walks the fields in declaration order. Reading a field
 that does not exist is a runtime error. `object(p)` copies a struct into
 a new object, `len(p)` is its number of fields and `type(p)` its name.
+
+## Destructuring
+
+A pattern binds properties of an object or fields of a struct to variables,
+in `let` and in function parameters. `key: name` renames, `mut x` and
+`key: mut name` make a variable mutable, `let mut { ... }` makes them all
+mutable. A string key needs a name. A missing property or field is a runtime
+error, as with `obj.name`.
+
+```javascript
+let { x, y } = { x: 1, y: 2 };
+let { x: px, y: mut py, "full name": name } = person;
+
+fun length({ x, y }) {
+    return x * x + y * y;
+}
+
+length(Point { x: 3, y: 4 }); // 25
+```
 
 ## Imports
 

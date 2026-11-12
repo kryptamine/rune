@@ -71,12 +71,9 @@ func parseFile(tokens []ast.Token, module bool) ([]importDecl, []ast.Stmt, []err
 }
 
 func isDeclaration(stmt ast.Stmt) bool {
-	switch stmt.(type) {
-	case *ast.VarStmt, *ast.FunctionStmt, *ast.StructStmt:
-		return true
-	}
+	_, isStruct := stmt.(*ast.StructStmt)
 
-	return false
+	return isStruct || len(ast.Declared(stmt)) > 0
 }
 
 // importDecl parses a.b; after "import".

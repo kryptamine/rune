@@ -1,0 +1,12 @@
+struct Point { x, y = 0 }
+
+let { x, y: why } = Point { x: 3 };
+print x; // expect: 3
+print why; // expect: 0
+
+fun len2({ x, y }) {
+  return x * x + y * y;
+}
+
+print len2(Point { x: 3, y: 4 }); // expect: 25
+print len2({ x: 1, y: 1 }); // expect: 2

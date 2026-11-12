@@ -1,0 +1,5 @@
+[line: 3] KeyError: Point has no field 'z'.
+    3 | fun f({ z }) { return z; }
+      |         ^
+  at f (line 3)
+  at <script> (line 5)
