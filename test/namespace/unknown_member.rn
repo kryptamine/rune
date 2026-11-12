@@ -1,2 +1,3 @@
 math.flor(1); // [line: 1] Error at 'flor': math has no member 'flor'.
 string["nope"]; // [line: 2] Error at ']': string has no member 'nope'.
+os.join("a"); // [line: 3] Error at 'join': os has no member 'join'. Did you mean fs.join?

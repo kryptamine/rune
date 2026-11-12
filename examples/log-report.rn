@@ -1,0 +1,299 @@
+// Access log report: per-endpoint latency percentiles, status classes, top clients, slow requests
+//
+//   ./rune run examples/log-report.rn               generate a sample log and analyze it
+//   ./rune run examples/log-report.rn access.log    analyze your own log
+//   ./rune run examples/log-report.rn access.log -j write the report as JSON too
+
+struct Entry { ip, time, method, path, status, bytes, latency }
+
+struct ParseError { message, line }
+
+let LINE_RE = r"^(?P<ip>\S+) \S+ \S+ \[(?P<time>[^\]]+)\] \x22(?P<method>[A-Z]+) (?P<path>\S+) [^\x22]*\x22 (?P<status>\d{3}) (?P<bytes>\d+|-) (?P<latency>[\d.]+)$";
+
+fun parseLine(line, n) {
+    let m = regex.find(LINE_RE, line) ?? throw ParseError { message: "malformed line", line: n };
+    let { ip, time, method, path, status, bytes, latency } = m.named;
+
+    return Entry {
+        ip,
+        time,
+        method,
+        path: normalize(path),
+        status: int(status),
+        bytes: bytes == "-" ? 0 : int(bytes),
+        latency: number(latency) * 1000,
+    };
+}
+
+fun normalize(path) {
+    let [base, ..._] = path.split("?");
+    return base.split("/").map(seg => regex.test(r"^(\d+|[0-9a-f]{8,})$", seg) ? ":id" : seg).join("/");
+}
+
+fun statusClass(code) {
+    return match code {
+        _ if code < 200 => "1xx",
+        _ if code < 300 => "2xx",
+        304 => "304",
+        _ if code < 400 => "3xx",
+        404 => "404",
+        429 => "429",
+        _ if code < 500 => "4xx",
+        _ => "5xx",
+    };
+}
+
+struct Stats { count = 0, errors = 0, bytes = 0, latencies = [] }
+
+impl Stats {
+    fun add(mut self, { status, bytes, latency }) {
+        self.count++;
+        self.bytes += bytes;
+        if status >= 500 self.errors++;
+        self.latencies.push(latency);
+    }
+
+    fun percentiles(self, ...ps) {
+        let mut xs = self.latencies.slice(0);
+        xs.sort();
+        return ps.map(p => xs[math.min(len(xs) - 1, math.floor(len(xs) * p / 100))]);
+    }
+
+    fun errorRate(self) {
+        return self.count == 0 ? 0 : self.errors / self.count * 100;
+    }
+}
+
+let TOP_SLOW = 5;
+
+struct Report {
+    total = 0,
+    skipped = [],
+    endpoints = Map(),
+    statuses = Map(),
+    clients = Map(),
+    slowest = [],
+}
+
+impl Report {
+    fun add(mut self, e) {
+        self.total++;
+
+        let key = "{e.method} {e.path}";
+        let mut s = self.endpoints.get(key) ?? Stats {};
+        s.add(e);
+        self.endpoints.set(key, s);
+
+        let cls = statusClass(e.status);
+        self.statuses.set(cls, self.statuses.get(cls, 0) + 1);
+
+        let mut c = self.clients.get(e.ip) ?? { hits: 0, paths: Set() };
+        c.hits++;
+        c.paths.add(e.path);
+        self.clients.set(e.ip, c);
+
+        self.slowest.push(e);
+        self.slowest.sort((a, b) => b.latency - a.latency);
+        if len(self.slowest) > TOP_SLOW self.slowest.pop();
+    }
+
+    fun skip(mut self, err) {
+        self.skipped.push(err.line);
+    }
+
+    fun topClients(self, n = 3) {
+        let mut rows = [];
+        for ip, { hits, paths } in self.clients rows.push({ ip, hits, distinct: len(paths) });
+        rows.sort((a, b) => b.hits - a.hits);
+        return rows.slice(0, n);
+    }
+}
+
+fun analyze(path) {
+    let mut report = Report {};
+
+    for i, line in fs.open(path) {
+        if line.trim() == "" continue;
+        try {
+            report.add(parseLine(line, i + 1));
+        } catch (e: ParseError) {
+            report.skip(e);
+        }
+    }
+
+    return report;
+}
+
+fun bar(value, max, width = 24) {
+    let n = max == 0 ? 0 : math.round(value / max * width);
+    return "█".repeat(n) + "·".repeat(width - n);
+}
+
+// The first column is aligned left, the others, numbers, right.
+fun table(headers, rows) {
+    let mut widths = headers.map(h => len(h));
+    for row in rows {
+        for i, cell in row widths[i] = math.max(widths[i], len(str(cell)));
+    }
+
+    let fmt = cells => {
+        let mut out = [];
+        for i, c in cells {
+            let s = str(c);
+            out.push(i == 0 ? s.padEnd(widths[i]) : s.padStart(widths[i]));
+        }
+        return out.join("  ");
+    };
+
+    print fmt(headers);
+    print widths.map(w => "─".repeat(w)).join("  ");
+    for row in rows print fmt(row);
+}
+
+fun printReport(r) {
+    print "== {r.total} requests, {len(r.skipped)} malformed lines skipped" + (len(r.skipped) > 0 ? " (lines {r.skipped.slice(0, 5).join(", ")})" : "");
+    print "";
+
+    let mut rows = [];
+    for key, s in r.endpoints {
+        let [p50, p95, p99] = s.percentiles(50, 95, 99);
+        rows.push([
+            key,
+            s.count,
+            "%.1f".format(p50),
+            "%.1f".format(p95),
+            "%.1f".format(p99),
+            "%.1f%%".format(s.errorRate()),
+            "%.1f".format(s.bytes / 1024),
+        ]);
+    }
+    rows.sort((a, b) => b[1] - a[1]);
+    table(["endpoint", "hits", "p50 ms", "p95 ms", "p99 ms", "5xx", "KiB"], rows);
+
+    print "";
+    print "status classes:";
+    let mut max = 0;
+    for _, n in r.statuses max = math.max(max, n);
+    let mut classes = r.statuses.keys();
+    for cls in classes.sort() {
+        let n = r.statuses[cls];
+        print "  %-4s %s %5d  %5.1f%%".format(cls, bar(n, max), n, n / r.total * 100);
+    }
+
+    print "";
+    print "top clients:";
+    for { ip, hits, distinct } in r.topClients() {
+        print "  %-15s %4d hits, %d distinct endpoints".format(ip, hits, distinct);
+    }
+
+    print "";
+    print "slowest requests:";
+    for { time, method, path, status, latency } in r.slowest {
+        let flag = status >= 500 ? " !" : "";
+        print "  %8.1f ms  %s  %s %s → %d%s".format(latency, time, method, path, status, flag);
+    }
+}
+
+fun toJson(r) {
+    let mut endpoints = {};
+    for key, s in r.endpoints {
+        let [p50, p95] = s.percentiles(50, 95);
+        endpoints[key] = { hits: s.count, p50, p95, errorRate: s.errorRate() };
+    }
+    return json.stringify({
+        total: r.total,
+        skipped: r.skipped,
+        statuses: r.statuses,
+        endpoints,
+        slowest: r.slowest,
+    });
+}
+
+struct Rng { seed }
+
+impl Rng {
+    fun next(mut self) {
+        self.seed = (self.seed * 1103515245 + 12345) & 0x7fffffff;
+        return self.seed >> 8;
+    }
+
+    fun int(mut self, n) { return self.next() % n; }
+
+    fun pick(mut self, xs) { return xs[self.int(len(xs))]; }
+}
+
+let IPS = ["203.0.113.7", "198.51.100.23", "192.0.2.44", "203.0.113.90", "198.51.100.5"];
+
+let ROUTES = [
+    { method: "GET", path: _ => "/api/users", ms: 20 },
+    { method: "GET", path: n => "/api/users/{n % 1000}", ms: 12 },
+    { method: "POST", path: _ => "/api/orders", ms: 80 },
+    { method: "GET", path: n => "/api/orders/{n % 100000}?expand=items", ms: 35 },
+    { method: "GET", path: _ => "/health", ms: 1 },
+    { method: "GET", path: n => "/static/app." + (n % 2 == 0 ? "js" : "css"), ms: 3 },
+];
+
+fun generate(path, n = 400) {
+    let mut rng = Rng { seed: 42 };
+    let out = fs.open(path, "w");
+
+    for i in 0..n {
+        let route = rng.pick(ROUTES);
+        let roll = rng.int(100);
+        let status = match roll {
+            _ if roll < 82 => route.method == "POST" ? 201 : 200,
+            _ if roll < 88 => 304,
+            _ if roll < 93 => 404,
+            _ if roll < 95 => 429,
+            _ => [500, 502, 503][rng.int(3)],
+        };
+        let spike = rng.int(50) == 0 ? 40 : 1;
+        let latency = route.ms * spike * (0.5 + rng.int(1000) / 1000) / 1000;
+        let size = status == 304 ? "-" : str(200 + rng.int(8000));
+        let sec = i * 7;
+        let time = "12/Nov/2026:%02d:%02d:%02d".format(10 + math.idiv(sec, 3600), math.idiv(sec, 60) % 60, sec % 60);
+
+        out.write("{rng.pick(IPS)} - - [{time}] \"{route.method} {route.path(rng.next())} HTTP/1.1\" {status} {size} {latency.fixed(4)}\n");
+        if i == 100 or i == 250 out.write("garbage line from a misconfigured proxy\n");
+    }
+
+    out.close();
+}
+
+fun run(path, flags) {
+    try {
+        let report = analyze(path);
+        printReport(report);
+
+        if flags.contains("-j") {
+            let out = fs.join(fs.dir(path), "report.json");
+            fs.write(out, toJson(report));
+            print "\njson report: {out}";
+        }
+    } catch (e: IOError) {
+        io.eprint("cannot read {e.path}: {e.message}");
+        return 1;
+    }
+
+    return 0;
+}
+
+fun main(args) {
+    let started = time.now();
+    let [path, ...flags] = len(args) > 0 ? args : [nil];
+    let mut code = nil;
+
+    if path == nil {
+        let tmp = fs.tempDir();
+        let sample = fs.join(tmp, "access.log");
+        generate(sample);
+        print "(sample log: {fs.stat(sample).size} bytes)\n";
+        code = run(sample, flags);
+        fs.removeAll(tmp);
+    } else {
+        code = run(path, flags);
+    }
+
+    print "\ndone in %.1f ms".format((time.now() - started) * 1000);
+    return code;
+}

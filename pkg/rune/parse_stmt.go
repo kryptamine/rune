@@ -63,20 +63,16 @@ func (s *Parser) structDeclaration() (ast.Stmt, error) {
 		}
 
 		var def ast.Expr
+		var at ast.Token
 
 		if s.match(ast.EQUAL) {
-			at := s.peek()
-
+			at = s.peek()
 			if def, err = s.expression(); err != nil {
 				return "", field, err
 			}
-
-			if _, ok := literalOf(def); !ok {
-				s.errors = append(s.errors, errors.NewSyntaxError(at, "Field default must be a literal."))
-			}
 		}
 
-		fields = append(fields, ast.StructField{Name: field, Default: def})
+		fields = append(fields, ast.StructField{Name: field, Default: def, DefaultAt: at})
 
 		return field.Lexeme, field, nil
 	})
@@ -250,16 +246,27 @@ func (s *Parser) paramDefault(rest bool) (ast.Expr, error) {
 // hidden parameter destructured at the start of the body. A rest
 // parameter is a binding.
 func (s *Parser) parameter(i int, rest bool) (ast.Binding, ast.Stmt, error) {
+	if rest {
+		param, err := s.binding("Expect parameter name.")
+		return param, nil, err
+	}
+
+	return s.bindingOrPattern(fmt.Sprintf("{%d}", i), "Expect parameter name.")
+}
+
+// bindingOrPattern parses a binding, or a pattern binding the variable
+// named hidden, which the statement returned destructures.
+func (s *Parser) bindingOrPattern(hiddenName, msg string) (ast.Binding, ast.Stmt, error) {
 	hidden := func() ast.Binding {
 		name := s.previous()
 		name.TokenType = ast.IDENTIFIER
-		name.Lexeme = fmt.Sprintf("{%d}", i)
+		name.Lexeme = hiddenName
 
 		return ast.Binding{Name: name}
 	}
 
 	switch {
-	case !rest && s.match(ast.LEFT_BRACE):
+	case s.match(ast.LEFT_BRACE):
 		fields, err := s.pattern(false)
 		if err != nil {
 			return ast.Binding{}, nil, err
@@ -268,7 +275,7 @@ func (s *Parser) parameter(i int, rest bool) (ast.Binding, ast.Stmt, error) {
 		b := hidden()
 
 		return b, &ast.DestructureStmt{Fields: fields, Initializer: ast.NewVarExpr(b.Name)}, nil
-	case !rest && s.match(ast.LEFT_BRACKET):
+	case s.match(ast.LEFT_BRACKET):
 		d, err := s.arrayPattern(false)
 		if err != nil {
 			return ast.Binding{}, nil, err
@@ -279,8 +286,8 @@ func (s *Parser) parameter(i int, rest bool) (ast.Binding, ast.Stmt, error) {
 
 		return b, d, nil
 	default:
-		param, err := s.binding("Expect parameter name.")
-		return param, nil, err
+		b, err := s.binding(msg)
+		return b, nil, err
 	}
 }
 
@@ -711,44 +718,16 @@ func (s *Parser) whileStatement() (ast.Stmt, error) {
 
 func (s *Parser) forStatement() (ast.Stmt, error) {
 	keyword := s.previous()
+	start, nerrs := s.current, len(s.errors)
 
-	if !s.isForInStart() {
+	key, val, unpack, ok := s.forBindings()
+	if !ok {
+		s.current, s.errors = start, s.errors[:nerrs]
 		err := errors.NewSyntaxError(s.peek(), "Expect 'name in' after 'for'.")
 		s.skipBadForHeader()
 
 		return nil, err
 	}
-
-	return s.forInStatement(keyword)
-}
-
-// isForInStart reports whether the tokens after "for" are "name in" or
-// "name, name in", each name optionally preceded by "mut".
-func (s *Parser) isForInStart() bool {
-	i := s.bindingEnd(0)
-
-	if i >= 0 && s.peekAt(i) == ast.COMMA {
-		i = s.bindingEnd(i + 1)
-	}
-
-	return i >= 0 && s.peekAt(i) == ast.IN
-}
-
-// forInStatement parses the rest of `for x in expr { ... }` or
-// `for k, v in expr { ... }` after "for".
-func (s *Parser) forInStatement(keyword ast.Token) (ast.Stmt, error) {
-	// The bindings were checked by isForInStart, so they cannot fail.
-	var key *ast.Binding
-
-	val, _ := s.binding("")
-
-	if s.match(ast.COMMA) {
-		k := val
-		key = &k
-		val, _ = s.binding("")
-	}
-
-	s.advance() // "in", checked by isForInStart
 
 	iterable, err := s.expressionWithStructs(structsNone)
 	if err != nil {
@@ -760,7 +739,39 @@ func (s *Parser) forInStatement(keyword ast.Token) (ast.Stmt, error) {
 		return nil, err
 	}
 
+	if unpack != nil {
+		if b, ok := body.(*ast.BlockStmt); ok {
+			b.Stmts = append([]ast.Stmt{unpack}, b.Stmts...)
+		} else {
+			body = ast.NewBlockStmt([]ast.Stmt{unpack, body})
+		}
+	}
+
 	return ast.NewForInStmt(keyword, key, val, iterable, body), nil
+}
+
+// forBindings parses "x in" or "k, x in" after "for": names, and x may be
+// a pattern, which unpack destructures; ok is false if they are not that.
+func (s *Parser) forBindings() (key *ast.Binding, val ast.Binding, unpack ast.Stmt, ok bool) {
+	val, unpack, err := s.bindingOrPattern("{for}", "")
+	if err != nil {
+		return nil, val, nil, false
+	}
+
+	if s.match(ast.COMMA) {
+		comma, k, keyPattern := s.previous(), val, unpack
+		key = &k
+
+		if val, unpack, err = s.bindingOrPattern("{for}", ""); err != nil {
+			return nil, val, nil, false
+		}
+
+		if keyPattern != nil {
+			s.errors = append(s.errors, errors.NewSyntaxError(comma, "A for-in key cannot be a pattern."))
+		}
+	}
+
+	return key, val, unpack, s.match(ast.IN)
 }
 
 // loopJumpStatement parses `break;` or `continue;` (the keyword is consumed).

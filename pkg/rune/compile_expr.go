@@ -343,7 +343,8 @@ func (fs *funcState) structLiteral(n *ast.StructExpr, dst int32) {
 	for i := range shape.Fields {
 		if !given[i] {
 			def, _ := shape.Default(i)
-			fs.emit(ins{op: opLoadK, a: base + int32(i), c: fs.constant(def)}, nil)
+			op := helpers.If(value.Mutable(def), opLoadFresh, opLoadK)
+			fs.emit(ins{op: op, a: base + int32(i), c: fs.constant(def)}, nil)
 		}
 	}
 

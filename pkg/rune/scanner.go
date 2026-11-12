@@ -337,15 +337,42 @@ func (s *Scanner) string(isBytes bool) {
 	}
 
 	if s.isAtEnd() {
-		s.truncated = true
-		s.startLine, s.startCol = line, col
-		s.errorAt(helpers.If(isBytes, "Unterminated bytes.", "Unterminated string."))
-
+		s.unterminated(line, col, helpers.If(isBytes, "Unterminated bytes.", "Unterminated string."))
 		return
 	}
 
 	s.advance()
 	piece(end)
+}
+
+// rawString scans r"...", taken as written: no escapes, no interpolation.
+func (s *Scanner) rawString() {
+	from := s.current
+
+	for s.peek() != '"' && !s.isAtEnd() {
+		c := s.source[s.current]
+		s.current++
+
+		if c == '\n' {
+			s.newline()
+		}
+	}
+
+	if s.isAtEnd() {
+		s.unterminated(s.startLine, s.startCol, "Unterminated string.")
+		return
+	}
+
+	text := s.source[from:s.current]
+	s.advance()
+	s.addTokenWithLiteral(ast.STRING, text)
+}
+
+// unterminated reports a literal that started at line, col and ran to the end.
+func (s *Scanner) unterminated(line, col int, msg string) {
+	s.truncated = true
+	s.startLine, s.startCol = line, col
+	s.errorAt(msg)
 }
 
 // hexByte reads the two hex digits that start s.
@@ -419,6 +446,13 @@ func (s *Scanner) identifier() {
 	if text == "b" && s.peek() == '"' {
 		s.advance()
 		s.string(true)
+
+		return
+	}
+
+	if text == "r" && s.peek() == '"' {
+		s.advance()
+		s.rawString()
 
 		return
 	}

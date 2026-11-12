@@ -86,10 +86,14 @@ func (p *Resolver) resolveTopLevel(stmts []ast.Stmt) {
 		if s, ok := stmt.(*ast.StructStmt); ok {
 			p.declareMain(s.Name, nil)
 			p.mod.globalMutable[s.Name.Lexeme] = false
-			l := &ast.Local{TopLevel: true}
-			p.mod.topLevel[s.Name.Lexeme] = l
+			p.mod.topLevel[s.Name.Lexeme] = &ast.Local{TopLevel: true}
+		}
+	}
+
+	for _, stmt := range stmts {
+		if s, ok := stmt.(*ast.StructStmt); ok {
 			s.Shape = p.shape(s)
-			p.structs[l] = s.Shape
+			p.structs[p.mod.topLevel[s.Name.Lexeme]] = s.Shape
 		}
 	}
 
@@ -315,11 +319,59 @@ func (p *Resolver) shape(s *ast.StructStmt) *value.Shape {
 	for i, f := range s.Fields {
 		name := p.intern(f.Name.Lexeme)
 
-		def, _ := literalOf(f.Default)
+		var def value.Value
+		if f.Default != nil {
+			var ok bool
+			if def, ok = p.constantOf(f.Default); !ok {
+				p.error(f.DefaultAt, "Field default must be a constant: a literal, or an array, object, Map() or Set() of them.")
+			}
+		}
 		fields[i] = value.Field{Name: name, Default: def, Required: f.Default == nil}
 	}
 
 	return value.NewShape(s.Name.Lexeme, fields)
+}
+
+func (p *Resolver) constantOf(e ast.Expr) (value.Value, bool) {
+	if v, ok := literalOf(e); ok {
+		return v, true
+	}
+
+	switch n := unwrap(e).(type) {
+	case *ast.ArrayExpr:
+		items := make([]value.Value, len(n.Items))
+		for i, item := range n.Items {
+			v, ok := p.constantOf(item)
+			if !ok {
+				return value.NilValue, false
+			}
+			items[i] = v
+		}
+		return value.NewArray(items), true
+	case *ast.ObjectExpr:
+		fields := make(map[string]value.Value, len(n.Pairs))
+		for _, pair := range n.Pairs {
+			v, ok := p.constantOf(pair.Value)
+			if !ok {
+				return value.NilValue, false
+			}
+			fields[pair.Key] = v
+		}
+		return value.NewObject(fields), true
+	case *ast.CallExpr:
+		callee, ok := n.Callee.(*ast.VarExpr)
+		if !ok || len(n.Args) > 0 || callee.Module != nil || !p.isBuiltin(callee.Name.Lexeme) {
+			return value.NilValue, false
+		}
+		switch callee.Name.Lexeme {
+		case "Map":
+			return value.NewMap(value.NewHashMap(0)), true
+		case "Set":
+			return value.NewSet(value.NewHashMap(0)), true
+		}
+	}
+
+	return value.NilValue, false
 }
 
 // intern returns the one string of a field or method name.
@@ -558,7 +610,11 @@ func (p *Resolver) resolveMember(expr *ast.IndexExpr) {
 	case found:
 		expr.Member = &v
 	case isNamespace:
-		p.error(expr.Token, ns.Name.Lexeme+" has no member '"+key.Value.Str()+"'.")
+		msg := ns.Name.Lexeme + " has no member '" + key.Value.Str() + "'."
+		if owner := stdlib.Owner(key.Value.Str()); owner != "" {
+			msg += " Did you mean " + owner + "." + key.Value.Str() + "?"
+		}
+		p.error(expr.Token, msg)
 	}
 }
 

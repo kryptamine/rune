@@ -371,7 +371,7 @@ func (fs *funcState) constant(v value.Value) int32 {
 		if name, ok := fs.unit.names[key.str]; ok {
 			v = value.NewString(name)
 		}
-	case value.Function, value.Type, value.Struct:
+	case value.Function, value.Type, value.Struct, value.Array, value.Object, value.Map, value.Set:
 		key.ptr = v.Ptr()
 	}
 
