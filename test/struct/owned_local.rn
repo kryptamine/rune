@@ -1,15 +1,18 @@
-// A mutable local that never lets its struct go changes it in place once
-// it holds a copy of its own; none of these may see it change.
+// A mutable local that never lets its struct go lends it to mut self
+// methods, which change it in place once it holds a copy of its own;
+// none of these may see it change.
 struct P { x = 0, y = 0 }
 
 impl P {
   fun bump(mut self) { self.x++; }
   fun get(self) { return self.x; }
+  fun setX(mut self, v) { self.x = v; }
+  fun setY(mut self, v) { self.y = v; }
 }
 
 fun fresh() {
   let mut p = P {};
-  for i in 0..5 { p.x += i; }
+  for i in 0..5 { p.setX(p.x + i); }
   p.bump();
   return p.x;
 }
@@ -17,16 +20,16 @@ print(fresh());                     // expect: 11
 
 fun copied(q) {
   let mut p = q;
-  p.x = 5;
+  p.setX(5);
   return [p.x, q.x];
 }
 print(copied(P { x: 1 }));          // expect: [5, 1]
 
 fun reassigned(q) {
   let mut p = P {};
-  p.x = 1;
+  p.setX(1);
   p = q;
-  p.x = 2;
+  p.setX(2);
   return [p.x, q.x];
 }
 print(reassigned(P { x: 7 }));      // expect: [2, 7]
@@ -35,7 +38,7 @@ fun inLoop() {
   let mut out = [];
   for i in 0..3 {
     let mut p = P {};
-    p.x = i;
+    p.setX(i);
     out.push(p.x);
   }
   return out;
@@ -45,9 +48,9 @@ print(inLoop());                    // expect: [0, 1, 2]
 fun leaked() {
   let mut p = P {};
   let mut kept = [];
-  p.x = 1;
+  p.setX(1);
   kept.push(p);
-  p.x = 2;
+  p.setX(2);
   return [kept[0].x, p.x];
 }
 print(leaked());                    // expect: [1, 2]
@@ -55,7 +58,7 @@ print(leaked());                    // expect: [1, 2]
 fun captured() {
   let mut p = P {};
   let f = () => p.x;
-  p.x = 3;
+  p.setX(3);
   return f();
 }
 print(captured());                  // expect: 3
@@ -63,7 +66,7 @@ print(captured());                  // expect: 3
 fun bound() {
   let mut p = P { x: 1 };
   let g = p.get;
-  p.x = 4;
+  p.setX(4);
   return [g(), p.x];
 }
 print(bound());                     // expect: [1, 4]
@@ -72,7 +75,7 @@ fun nested() {
   struct_like();
   let mut p = P {};
   let inner = p;
-  p.y = 9;
+  p.setY(9);
   return [p.y, inner.y];
 }
 fun struct_like() {}
@@ -88,7 +91,7 @@ print(objects());                   // expect: 2
 fun empty() {
   let mut p;
   p = P {};
-  p.x = 6;
+  p.setX(6);
   return p.x;
 }
 print(empty());                     // expect: 6

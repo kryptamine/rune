@@ -1,0 +1,3 @@
+[line: 10] TypeError: Cannot set field 'x' of Point outside its mut self methods.
+   10 | p.x++; // expect runtime error: [line: 10] TypeError: Cannot set field 'x' of Point outside its mut self methods.
+      |   ^

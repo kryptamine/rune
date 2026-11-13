@@ -17,10 +17,8 @@ type varUses struct {
 	reads  map[*ast.VarExpr]bool
 	props  map[*ast.VarExpr]string
 	calls  map[*ast.VarExpr]string
-	// deep names the methods called on a place below the variable, and
-	// sets is set when a field of it, or below it, is set.
+	// deep names the methods called on a place below the variable.
 	deep []string
-	sets bool
 	// assigned is set when a self is assigned a whole new value.
 	assigned bool
 }
@@ -93,13 +91,6 @@ func (p *Resolver) rootUses(e ast.Expr) *varUses {
 	return nil
 }
 
-// useSet records the set of a field of a variable, or below it.
-func (p *Resolver) useSet(expr *ast.SetIndexExpr) {
-	if u := p.rootUses(expr.Array); u != nil && expr.Property {
-		u.sets = true
-	}
-}
-
 func (p *Resolver) useAssign(expr *ast.AssignExpr) {
 	if p.self != nil && expr.Local == p.self.method.Parameters[0].Local {
 		p.self.assigned = true
@@ -132,6 +123,12 @@ func (p *Resolver) resolveMethods(stmt *ast.ImplStmt) {
 		delete(p.locals, u.local)
 		p.selves = append(p.selves, u)
 	}
+
+	for _, m := range stmt.Methods {
+		if m.Method.Self {
+			m.Fn.Parameters[0].Local.MutSelf = m.Fn.Parameters[0].Mutable
+		}
+	}
 }
 
 // ownVars marks the variables that may change a struct in place once
@@ -140,7 +137,7 @@ func (p *Resolver) resolveMethods(stmt *ast.ImplStmt) {
 // it that keep self too; it is never captured or assigned. Another
 // mutable variable, if not captured or exported, gives its copy up on
 // each read that lets the value go, which ownVars marks; it is owned
-// only if that saves a copy, of a field set or a mutating call.
+// only if that saves a copy on a mutating call.
 func (p *Resolver) ownVars() {
 	byName := map[*value.Shape]map[string]*varUses{}
 	escapes := map[*varUses]bool{}
@@ -198,7 +195,7 @@ func (p *Resolver) ownVars() {
 	}
 
 	for _, u := range p.locals {
-		if u.local.Captured || exported[u.local] || !u.sets && !callsAny(u, mutating) {
+		if u.local.Captured || exported[u.local] || !callsAny(u, mutating) {
 			continue
 		}
 

@@ -11,6 +11,8 @@ struct ApiError { message, status, path }
 struct Client { base = BASE, token = nil, refreshToken = nil, refreshes = 0 }
 
 impl Client {
+    fun new() { return Client {}; }
+
     fun login(mut self, username, password) {
         let r = self.send("POST", "/auth/login", { username, password, expiresInMins: 30 });
         self.token = r.accessToken;
@@ -24,6 +26,8 @@ impl Client {
         self.refreshToken = r.refreshToken;
         self.refreshes++;
     }
+
+    fun expire(mut self) { self.token = "expired"; }
 
     fun get(mut self, path) { return self.authed("GET", path); }
     fun post(mut self, path, body) { return self.authed("POST", path, body); }
@@ -110,7 +114,7 @@ fun showProducts(query, { products, total }) {
 fun main([query = "phone"]) {
     let username = os.env("SHOP_USER") ?? "emilys";
     let password = os.env("SHOP_PASS") ?? "emilyspass";
-    let mut api = Client {};
+    let mut api = Client.new();
 
     section("login");
     try {
@@ -143,7 +147,7 @@ fun main([query = "phone"]) {
     print("created #{created.id}: " + json.stringify(created));
 
     section("expired token");
-    api.token = "expired";
+    api.expire();
     let again = api.get("/me");
     print("got {again.username} after {api.refreshes} refresh");
 
@@ -154,7 +158,7 @@ fun main([query = "phone"]) {
         print("{e.status} on {e.path}: {e.message}");
     }
 
-    let mut anon = Client {};
+    let mut anon = Client.new();
     try {
         anon.get("/me");
     } catch e is ApiError {

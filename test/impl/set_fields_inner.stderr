@@ -1,0 +1,5 @@
+[line: 5] TypeError: Cannot set field 'y' of Point outside its mut self methods.
+    5 |   fun lift(mut self) { self.to.y = 1; }
+      |                                ^
+  at Line.lift (line 5)
+  at <script> (line 9)

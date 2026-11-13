@@ -1,8 +1,10 @@
 struct Point { x, y }
 
+impl Point {
+  fun step(mut self) { self.x++; self.y--; return self.x++; }
+}
+
 let mut p = Point { x: 1, y: 2 };
-p.x++;
-p.y--;
-print(p); // expect: Point {x: 2, y: 1}
-print(p.x++); // expect: 2
-print(p.x); // expect: 3
+print(p.step()); // expect: 2
+print(p); // expect: Point {x: 3, y: 1}
+p.x++; // expect runtime error: [line: 10] TypeError: Cannot set field 'x' of Point outside its mut self methods.

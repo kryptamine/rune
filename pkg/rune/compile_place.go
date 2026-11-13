@@ -34,7 +34,7 @@ func (fs *funcState) place(array, index ast.Expr, prop bool, tok *ast.Token, lat
 // before more code runs.
 func (pl *place) check() {
 	if pl.prop {
-		pl.fs.emit(ins{op: opCheckProp, a: pl.t.reg, b: pl.i, y: uint8(boolNum(pl.t.writable()))}, pl.tok)
+		pl.fs.emit(ins{op: opCheckProp, a: pl.t.reg, b: pl.i, y: uint8(boolNum(pl.t.isSelf()))}, pl.tok)
 	}
 }
 
@@ -42,21 +42,20 @@ func (pl *place) load(dst int32) {
 	pl.fs.emit(ins{op: pick(pl.prop, opGetProp, opGetIndex), a: dst, b: pl.t.reg, c: pl.i}, pl.tok)
 }
 
-// store writes v. A struct read from a variable or a place takes a field
-// as a copy, which goes back there unless the target turns out to be an
-// object or array.
+// store writes v. Only a mut self takes a field set, as a copy that goes
+// back to self unless self is changed in place or is no struct.
 func (pl *place) store(v int32) {
 	fs, t := pl.fs, pl.t
-	writable := t.writable()
+	self := t.isSelf()
 
-	if pl.prop && t.v != nil && t.v.Local.Owned && t.inPlace() {
+	if pl.prop && self && t.v.Local.Owned && t.inPlace() {
 		fs.emit(ins{op: opSetOwned, a: t.reg, b: pl.i, c: v}, pl.tok)
 		return
 	}
 
-	set := fs.emit(ins{op: pick(pl.prop, opSetProp, opSetIndex), a: t.reg, b: pl.i, c: v, y: uint8(boolNum(writable))}, pl.tok)
+	set := fs.emit(ins{op: pick(pl.prop, opSetProp, opSetIndex), a: t.reg, b: pl.i, c: v, y: uint8(boolNum(self))}, pl.tok)
 
-	if !writable || t.inPlace() {
+	if !self || t.inPlace() {
 		return
 	}
 
@@ -125,9 +124,6 @@ func (lv *lval) check() {
 	}
 }
 
-// writable reports whether a struct in reg can go back where it was read from.
-func (lv *lval) writable() bool { return lv.v != nil || lv.at != nil }
-
 // writeBack puts reg back where it was read from.
 func (lv *lval) writeBack() {
 	fs := lv.fs
@@ -140,6 +136,9 @@ func (lv *lval) writeBack() {
 		fs.store(kind, r, lv.reg, fs.checked(lv.v.Local), &lv.v.Name)
 	}
 }
+
+// isSelf reports whether reg is read from the self of a mut self method.
+func (lv *lval) isSelf() bool { return lv.v != nil && lv.v.Local.MutSelf }
 
 // inPlace reports whether reg is the variable's own register, so it needs
 // no writing back.

@@ -1,3 +1,3 @@
-[line: 10] TypeError: Cannot set field 'c' of R: it is not in a variable, element or property.
-   10 | mk().c.incr(); // expect runtime error: [line: 10] TypeError: Cannot set field 'c' of R: it is not in a variable, element or property.
+[line: 10] TypeError: Cannot set field 'c' of R outside its mut self methods.
+   10 | mk().c.incr(); // expect runtime error: [line: 10] TypeError: Cannot set field 'c' of R outside its mut self methods.
       |      ^

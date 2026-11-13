@@ -1,0 +1,5 @@
+[line: 6] TypeError: Cannot set field 'x' of Point outside its mut self methods.
+    6 |     o.x = self.x;
+      |       ^
+  at Point.copyTo (line 6)
+  at <script> (line 12)

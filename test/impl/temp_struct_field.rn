@@ -7,4 +7,4 @@ struct R { c }
 fun mk() { return R { c: C { n: 7 } }; }
 
 print(mk().c.get()); // expect: 7
-mk().c.incr(); // expect runtime error: [line: 10] TypeError: Cannot set field 'c' of R: it is not in a variable, element or property.
+mk().c.incr(); // expect runtime error: [line: 10] TypeError: Cannot set field 'c' of R outside its mut self methods.

@@ -6,6 +6,4 @@ fun side() {
 }
 
 let mut p = Point { x: 1, y: 2 };
-p.x += side(); // expect: side
-print(p.x); // expect: 2
-p.z += side(); // expect runtime error: [line: 11] KeyError: Point has no field 'z'.
+p.y += side(); // expect runtime error: [line: 9] TypeError: Cannot set field 'y' of Point outside its mut self methods.

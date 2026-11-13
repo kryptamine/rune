@@ -1,0 +1,15 @@
+struct Point { x, y }
+
+impl Point {
+  fun grow(mut self) { self.x += side(); print(self.x); self.z += side(); }
+}
+
+fun side() {
+  print("side");
+  return 1;
+}
+
+let mut p = Point { x: 1, y: 2 };
+p.grow(); // expect: side
+// expect: 2
+// expect runtime error: [line: 4] KeyError: Point has no field 'z'.

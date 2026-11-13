@@ -1,6 +1,10 @@
 struct Point { x, y }
 
+impl Point {
+  fun set(mut self, k, v) { self[k] = v; }
+}
+
 let mut p = Point { x: 1, y: 2 };
-p["x"] = 3;
+p.set("x", 3);
 print(p); // expect: Point {x: 3, y: 2}
-p["z"] = 1; // expect runtime error: [line: 6] KeyError: Point has no field 'z'.
+p["x"] = 1; // expect runtime error: [line: 10] TypeError: Cannot set field 'x' of Point outside its mut self methods.

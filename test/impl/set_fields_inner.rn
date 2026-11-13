@@ -1,0 +1,9 @@
+struct Point { x, y }
+struct Line { from, to }
+
+impl Line {
+  fun lift(mut self) { self.to.y = 1; }
+}
+
+let mut l = Line { from: Point { x: 0, y: 0 }, to: Point { x: 1, y: 1 } };
+l.lift(); // expect runtime error: [line: 5] TypeError: Cannot set field 'y' of Point outside its mut self methods.

@@ -21,8 +21,12 @@ func undefinedField(token *ast.Token, shape *value.Shape, key string) error {
 }
 
 func readOnlyField(token *ast.Token, shape *value.Shape, key string) error {
+	if shape.Namespace {
+		return errors.NewRuntimeError(errors.TypeError, *token, fmt.Sprintf("Cannot set member '%s' of a namespace.", key))
+	}
+
 	return errors.NewRuntimeError(errors.TypeError, *token, fmt.Sprintf(
-		"Cannot set field '%s' of %s: it is not in a variable, element or property.", key, shape.Name))
+		"Cannot set field '%s' of %s outside its mut self methods.", key, shape.Name))
 }
 
 // setField copies the struct target with the field key names set to v.

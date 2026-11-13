@@ -76,8 +76,8 @@ const (
 	// writing R[A] back.
 	opSetIndex // R[A][R[B]] = R[C]
 	opSetProp  // R[A].K[B] = R[C]
-	// SetOwned is SetProp on a variable that never lets its value go, with
-	// a flag in R[A+1] set once R[A] is a struct of its own, which it
+	// SetOwned is SetProp on a mut self that never lets its struct go,
+	// with a flag in R[A+1] set once R[A] is a struct of its own, which it
 	// changes in place; until then it copies the struct.
 	opSetOwned
 	opCheckProp // R[A] must take property K[B]: an object, or with Y a struct with that field

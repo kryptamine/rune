@@ -456,15 +456,6 @@ reload:
 
 		case opSetOwned:
 			t := *at(regs, in.a())
-			if k := t.Kind(); k == value.Object {
-				fr.pc = pc
-				t.Obj().Set(at(consts, in.b()).Str(), *at(regs, in.c()))
-
-				goto reload
-			} else if k != value.Struct {
-				goto slow
-			}
-
 			slot := t.InternedSlot(*at(consts, in.b()))
 			if slot < 0 {
 				goto slow
