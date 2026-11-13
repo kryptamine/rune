@@ -599,8 +599,8 @@ func (s *Parser) patternInitializer() (ast.Expr, error) {
 }
 
 func (s *Parser) statement() (ast.Stmt, error) {
-	if s.match(ast.RETURN) {
-		return s.returnStmt()
+	if s.match(ast.RETURN, ast.BREAK, ast.CONTINUE) {
+		return s.jumpStatement()
 	}
 
 	if s.match(ast.WHILE) {
@@ -609,10 +609,6 @@ func (s *Parser) statement() (ast.Stmt, error) {
 
 	if s.match(ast.TRY) {
 		return s.tryStatement()
-	}
-
-	if s.match(ast.BREAK, ast.CONTINUE) {
-		return s.loopJumpStatement()
 	}
 
 	if s.match(ast.MATCH) {
@@ -647,26 +643,21 @@ func (s *Parser) statement() (ast.Stmt, error) {
 	return s.expressionStatement()
 }
 
-func (s *Parser) returnStmt() (ast.Stmt, error) {
+// jumpStatement parses `return x;`, `break;` or `continue;` (the keyword
+// is consumed).
+func (s *Parser) jumpStatement() (ast.Stmt, error) {
 	keyword := s.previous()
-	var value ast.Expr
 
-	if !s.check(ast.SEMICOLON) {
-		v, err := s.expression()
-
-		value = v
-
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	_, err := s.consume(ast.SEMICOLON, "Expect ';' after return value.")
+	j, err := s.jumpExpr()
 	if err != nil {
 		return nil, err
 	}
 
-	return ast.NewReturnStmt(value, keyword), nil
+	if _, err := s.consume(ast.SEMICOLON, fmt.Sprintf("Expect ';' after '%s'.", keyword.Lexeme)); err != nil {
+		return nil, err
+	}
+
+	return j.Stmt, nil
 }
 
 func (s *Parser) expressionStatement() (ast.Stmt, error) {
@@ -746,11 +737,21 @@ func (s *Parser) ifStatement() (ast.Stmt, error) {
 	return ast.NewIfStmt(condition, then, el), nil
 }
 
-// stmtKeyword reports whether t starts a statement that is no expression
-// or declaration.
+// stmtKeyword reports whether t starts a statement that is no
+// declaration: a block statement or a jump.
 func stmtKeyword(t ast.TokenType) bool {
 	switch t {
-	case ast.RETURN, ast.THROW, ast.BREAK, ast.CONTINUE, ast.IF, ast.WHILE, ast.FOR, ast.TRY:
+	case ast.RETURN, ast.THROW, ast.BREAK, ast.CONTINUE:
+		return true
+	}
+
+	return blockKeyword(t)
+}
+
+// blockKeyword reports whether t starts a statement that is no expression.
+func blockKeyword(t ast.TokenType) bool {
+	switch t {
+	case ast.IF, ast.WHILE, ast.FOR, ast.TRY:
 		return true
 	}
 
@@ -873,21 +874,6 @@ func (s *Parser) forBindings() (key *ast.Binding, val ast.Binding, unpack ast.St
 	}
 
 	return key, val, unpack, s.match(ast.IN)
-}
-
-// loopJumpStatement parses `break;` or `continue;` (the keyword is consumed).
-func (s *Parser) loopJumpStatement() (ast.Stmt, error) {
-	keyword := s.previous()
-
-	if _, err := s.consume(ast.SEMICOLON, fmt.Sprintf("Expect ';' after '%s'.", keyword.Lexeme)); err != nil {
-		return nil, err
-	}
-
-	if keyword.TokenType == ast.BREAK {
-		return ast.NewBreakStmt(keyword), nil
-	}
-
-	return ast.NewContinueStmt(keyword), nil
 }
 
 // tryStatement parses `try { ... }` and its catch clauses: `catch { ... }`,

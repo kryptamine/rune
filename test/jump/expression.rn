@@ -1,0 +1,86 @@
+fun inc(x) {
+    let v = x ?? return 0;
+    return v + 1;
+}
+
+print(inc(nil)); // expect: 0
+print(inc(1)); // expect: 2
+
+fun get(x) {
+    let v = x ?? return;
+    return v;
+}
+
+print(get(nil)); // expect: nil
+
+let mut out = [];
+for x in [1, nil, 3, nil, 5, 6] {
+    let v = x ?? continue;
+    if v > 5 break;
+    out.push(v);
+}
+print(out); // expect: [1, 3, 5]
+
+let mut n = 0;
+while true {
+    n = n < 3 ? n + 1 : break;
+}
+print(n); // expect: 3
+
+fun pair(a, b) {
+    return [a ?? return "no a", b ?? return "no b"];
+}
+
+print(pair(1, nil)); // expect: no b
+print(pair(1, 2)); // expect: [1, 2]
+
+fun kind(v) {
+    let k = match v {
+        0 => return "early",
+        _ => "late",
+    };
+    return k;
+}
+
+print(kind(0)); // expect: early
+print(kind(1)); // expect: late
+
+for i in 0..3 {
+    match i {
+        1 => continue,
+        _ => print(i),
+    }
+}
+// expect: 0
+// expect: 2
+
+fun guarded(x) {
+    try {
+        let v = x ?? return "nil";
+        return v;
+    } catch {
+        return "caught";
+    }
+}
+
+print(guarded(nil)); // expect: nil
+print(guarded(2)); // expect: 2
+
+for x in [nil, 7] {
+    try { print(x ?? continue); } catch {}
+}
+// expect: 7
+
+struct Counter { n }
+
+impl Counter {
+    fun add(mut self, d) {
+        let by = d ?? return;
+        self.n += by;
+    }
+}
+
+let mut c = Counter { n: 1 };
+c.add(nil);
+c.add(2);
+print(c.n); // expect: 3

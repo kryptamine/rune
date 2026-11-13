@@ -20,7 +20,8 @@ print(status(418)); // unknown
 ```
 
 An arm is `pattern => expression`, ended by `,` or `;`, `pattern => { block }`,
-or a bare statement starting with a keyword, `pattern => return x;`. As
+or a bare `if`, `while`, `for` or `try` statement. `return`, `break`,
+`continue` and `throw` are expressions, so `pattern => return x,` works. As
 after an arrow function's `=>`, braces that look like an object are one:
 `1 => { a: 1 }` and `1 => { x }` give an object. A guard,
 `pattern if condition`, adds a test after the pattern matches.

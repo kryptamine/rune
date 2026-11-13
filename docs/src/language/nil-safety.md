@@ -87,3 +87,29 @@ print(nil ?? nil ?? "last");  // last
 ```
 
 `??` binds looser than `||` and tighter than ranges and `? :`.
+
+## Leaving Early
+
+`return`, `break` and `continue` are also expressions, like
+[`throw`](error-handling.md#throw), so a missing value can end the function
+or the iteration right where it is read. `return` takes a value unless
+`;`, `,`, `:` or a closing bracket follows.
+
+```rune
+fun port(cfg) {
+    let p = cfg?.port ?? return 80;
+    return int(p);
+}
+
+print(port({ port: "8080" }));  // 8080
+print(port(nil));               // 80
+
+let mut ids = [];
+for row in [{ id: 1 }, {}, { id: 3 }] {
+    ids.push(row?.id ?? continue);
+}
+print(ids);                     // [1, 3]
+```
+
+They fit in `? :` and match arms too: `n < 10 ? n + 1 : break`,
+`0 => return "zero",`.

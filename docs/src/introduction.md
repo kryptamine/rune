@@ -86,6 +86,7 @@ Language chapters in order.
 - Pattern matching with `match`, as an expression or a statement
 - Logical operators `&&`, `||` and `!`, type tests with `is`: `v is Point`, `catch e is KeyError`, `p is Point =>`
 - Error handling with `try`/`catch` and `throw`, also as an expression: `x ?? throw E { ... }`
+- `return`, `break` and `continue` as expressions: `let v = x ?? return nil;`, `row?.id ?? continue`
 - Two loops only: `while` and `for x in ...` over arrays, strings, objects and ranges (`a..b`)
 - `break` and `continue` in both
 - `if`/`else`, `while` and `for` bodies are blocks, or a bare statement starting with a name or keyword: `if v < 0 return;`, `for x in xs out.push(x);`

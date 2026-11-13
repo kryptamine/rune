@@ -634,6 +634,12 @@ func (p *Resolver) VisitThrowExpr(expr *ast.ThrowExpr) (value.Value, error) {
 	return value.NilValue, nil
 }
 
+func (p *Resolver) VisitJumpExpr(expr *ast.JumpExpr) (value.Value, error) {
+	p.resolveStmt(expr.Stmt)
+
+	return value.NilValue, nil
+}
+
 func (p *Resolver) VisitUnaryExpr(expr *ast.UnaryExpr) (value.Value, error) {
 	p.resolveExpr(expr.Right)
 

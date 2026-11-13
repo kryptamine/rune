@@ -295,6 +295,15 @@ func (s *Parser) unary() (ast.Expr, error) {
 		return &ast.ThrowExpr{Value: v, Keyword: keyword}, nil
 	}
 
+	if s.match(ast.RETURN, ast.BREAK, ast.CONTINUE) {
+		j, err := s.jumpExpr()
+		if err != nil {
+			return nil, err
+		}
+
+		return j, nil
+	}
+
 	if s.match(ast.BANG, ast.MINUS, ast.TILDE) {
 		operator := s.previous()
 		right, err := s.unary()
@@ -318,6 +327,32 @@ func (s *Parser) unary() (ast.Expr, error) {
 	}
 
 	return s.postfix()
+}
+
+// jumpExpr parses return, break or continue in an expression (the keyword
+// is consumed); return takes a value unless what follows ends the expression.
+func (s *Parser) jumpExpr() (*ast.JumpExpr, error) {
+	keyword := s.previous()
+
+	switch keyword.TokenType {
+	case ast.BREAK:
+		return &ast.JumpExpr{Stmt: ast.NewBreakStmt(keyword)}, nil
+	case ast.CONTINUE:
+		return &ast.JumpExpr{Stmt: ast.NewContinueStmt(keyword)}, nil
+	}
+
+	var v ast.Expr
+
+	switch s.peek().TokenType {
+	case ast.SEMICOLON, ast.COMMA, ast.RIGHT_PAREN, ast.RIGHT_BRACKET, ast.RIGHT_BRACE, ast.COLON:
+	default:
+		var err error
+		if v, err = s.assignment(); err != nil {
+			return nil, err
+		}
+	}
+
+	return &ast.JumpExpr{Stmt: ast.NewReturnStmt(v, keyword)}, nil
 }
 
 func (s *Parser) postfix() (ast.Expr, error) {

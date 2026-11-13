@@ -84,6 +84,9 @@ func assigns(e ast.Expr) bool {
 		return assigns(n.Cond) || assigns(n.Then) || assigns(n.Else)
 	case *ast.ThrowExpr:
 		return assigns(n.Value)
+	case *ast.JumpExpr:
+		r, ok := n.Stmt.(*ast.ReturnStmt)
+		return ok && r.Value != nil && assigns(r.Value)
 	case *ast.UnaryExpr:
 		return assigns(n.Right)
 	case *ast.CallExpr:
@@ -290,6 +293,8 @@ func (fs *funcState) expr(e ast.Expr, dst int32) {
 	case *ast.ThrowExpr:
 		fs.expr(n.Value, dst)
 		fs.emit(ins{op: opThrow, a: dst}, &n.Keyword)
+	case *ast.JumpExpr:
+		fs.stmt(n.Stmt)
 	default:
 		panic(fmt.Sprintf("compile: unknown expression %T", e))
 	}
