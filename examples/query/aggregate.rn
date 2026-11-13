@@ -1,0 +1,95 @@
+// GROUP BY: rows to one row per group, its keys then its aggregates
+
+import .ast;
+import .expr;
+
+enum Agg { Count, Sum, Avg, Min, Max }
+
+struct AggSpec { fn, arg, distinct }
+
+// specs compiles the aggregate calls against the rows' scope.
+export fun specs(calls, scope) {
+    return calls.map(e => {
+        if e.args.len() != (e.star ? 0 : 1) throw ast.SqlError { message: "{e.name} takes one argument", pos: e.pos };
+        if !e.star && ast.aggregatesIn(e.args[0]).len() > 0 throw ast.SqlError { message: "aggregates cannot nest", pos: e.pos };
+        return AggSpec {
+            fn: Agg(e.name[0] + e.name.slice(1).lower()),
+            arg: e.star ? nil : expr.compile(e.args[0], expr.Ctx { scope }),
+            distinct: e.distinct,
+        };
+    });
+}
+
+export fun aggregate(rows, keys, aggs) {
+    let nk = keys.len();
+    let na = aggs.len();
+    let mut slots = map();
+    let mut groups = [];
+
+    let fresh = () => aggs.map(a => match a {
+        AggSpec { distinct: true } => set(),
+        AggSpec { fn: Agg.Count } => 0,
+        AggSpec { fn: Agg.Avg } => [0, 0],
+        _ => nil,
+    });
+
+    for r in rows {
+        let k = match nk {
+            0 => nil,
+            1 => (keys[0])(r),
+            _ => string(keys.map(f => f(r))),
+        };
+        let mut g = slots.get(k);
+        if g == nil {
+            groups.push([keys.map(f => f(r)), fresh()]);
+            g = groups.len() - 1;
+            slots.set(k, g);
+        }
+
+        let mut acc = groups[g][1];
+        for i in 0..na {
+            let a = aggs[i];
+            if a.arg == nil {
+                acc[i]++;
+                continue;
+            }
+            let v = (a.arg)(r);
+            if v == nil continue;
+            if a.distinct {
+                acc[i].add(v);
+                continue;
+            }
+            match a.fn {
+                Agg.Count => acc[i]++,
+                Agg.Sum => acc[i] = (acc[i] ?? 0) + v,
+                Agg.Avg => {
+                    acc[i][0] += v;
+                    acc[i][1]++;
+                }
+                Agg.Min => if acc[i] == nil || expr.compare(v, acc[i]) < 0 acc[i] = v;
+                Agg.Max => if acc[i] == nil || expr.compare(v, acc[i]) > 0 acc[i] = v;
+            }
+        }
+    }
+
+    if nk == 0 && groups.len() == 0 groups.push([[], fresh()]);
+
+    return groups.map(([ks, acc]) => [...ks, ...aggs.map((a, i) => finish(a, acc[i]))]);
+}
+
+fun finish(a, v) {
+    if a.distinct {
+        let xs = [...v];
+        return match a.fn {
+            Agg.Count => xs.len(),
+            Agg.Sum => xs.len() == 0 ? nil : xs.reduce((x, y) => x + y),
+            Agg.Avg => xs.len() == 0 ? nil : xs.reduce((x, y) => x + y) / xs.len(),
+            Agg.Min => xs.reduce((x, y) => expr.compare(x, y) <= 0 ? x : y, nil),
+            Agg.Max => xs.reduce((x, y) => expr.compare(x, y) >= 0 ? x : y, nil),
+        };
+    }
+    return match a.fn {
+        Agg.Avg => v[1] == 0 ? nil : v[0] / v[1],
+        _ => v,
+    };
+}

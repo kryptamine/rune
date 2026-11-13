@@ -1,1 +1,1 @@
-[1].map(fun (a, b) { return a; }); // expect runtime error: [line: 1] ArgumentError: Expected 2 arguments but got 1.
+[1].map(fun (a, b, c) { return a; }); // expect runtime error: [line: 1] ArgumentError: Expected 3 arguments but got 2.

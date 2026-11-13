@@ -137,6 +137,60 @@ func (lv *lval) writeBack() {
 	}
 }
 
+// guard checks that the variable a write-back after a call goes to still
+// holds what was read from it: a closure or a function the call runs can
+// change one in a cell or an upvalue, and the write-back would lose that.
+// A field set (self.x = f()) has the same hazard, unchecked: its SetProp
+// copies over the register holding what was read.
+type guard struct {
+	fs   *funcState
+	v    *ast.VarExpr
+	read int32
+	copy bool
+}
+
+// guard is nil unless lv's root variable can change behind the call. A
+// receiver that is the variable itself is loaded into the call's
+// registers, which the call overwrites, so guard reserves a register
+// to keep it in; call it before allocating those.
+func (fs *funcState) guard(lv *lval) *guard {
+	root := lv
+	for root != nil && root.at != nil {
+		root = root.at.t
+	}
+
+	if root == nil || root.v == nil {
+		return nil
+	}
+
+	if kind, _ := fs.lookup(root.v.Local); kind != varCell && kind != varUpval {
+		return nil
+	}
+
+	if root == lv {
+		return &guard{fs: fs, v: root.v, read: fs.alloc(), copy: true}
+	}
+
+	return &guard{fs: fs, v: root.v, read: root.reg}
+}
+
+// keep saves the receiver loaded into self.
+func (g *guard) keep(self int32) {
+	if g != nil && g.copy {
+		g.fs.move(g.read, self)
+	}
+}
+
+func (g *guard) check(tok *ast.Token) {
+	if g == nil {
+		return
+	}
+
+	cur := g.fs.alloc()
+	g.fs.varExpr(g.v, cur)
+	g.fs.emit(ins{op: opSame, a: cur, b: g.read, c: g.fs.constant(value.NewString(g.v.Name.Lexeme))}, tok)
+}
+
 // isSelf reports whether reg is read from the self of a mut self method.
 func (lv *lval) isSelf() bool { return lv.v != nil && lv.v.Local.MutSelf }
 

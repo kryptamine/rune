@@ -29,31 +29,24 @@ var arrayMethods = []*Native{
 		return value.NewString(string(buf))
 	}},
 	{"array.map", 2, 2, func(c *call) value.Value {
-		items, f := c.arr(0), c.fn(1)
-		out := make([]value.Value, len(items))
-		buf := make([]value.Value, 1)
-
-		for i, item := range items {
-			buf[0] = item
-			if out[i] = c.invoke(f, buf); !c.ok() {
-				return value.NilValue
-			}
-		}
+		out := make([]value.Value, len(c.arr(0)))
+		c.each(func(i int, _, r value.Value) bool {
+			out[i] = r
+			return true
+		})
 
 		return value.NewArray(out)
 	}},
 	{"array.filter", 2, 2, func(c *call) value.Value {
-		items, f := c.arr(0), c.fn(1)
-		buf := make([]value.Value, 1)
-
 		var out []value.Value
 
-		for _, item := range items {
-			buf[0] = item
-			if keep := c.invoke(f, buf); helpers.IsTruthy(keep) && c.ok() {
+		c.each(func(_ int, item, keep value.Value) bool {
+			if helpers.IsTruthy(keep) {
 				out = append(out, item)
 			}
-		}
+
+			return true
+		})
 
 		return value.NewArray(out)
 	}},
@@ -98,22 +91,46 @@ var arrayMethods = []*Native{
 	}},
 }
 
-// firstWhere is the index of the first element for which args[1] gives
-// a value as truthy as want, or -1.
-func firstWhere(c *call, want bool) int {
+// each calls args[1] on the elements of args[0] in order, passing the
+// index too if it requires two arguments, and gives visit each element
+// with the result until visit returns false or a call fails.
+func (c *call) each(visit func(i int, item, r value.Value) bool) {
 	items, f := c.arr(0), c.fn(1)
-	buf := make([]value.Value, 1)
+	if !c.ok() {
+		return
+	}
+
+	buf := make([]value.Value, 1, 2)
+	if c.caller.Required(f) >= 2 {
+		buf = buf[:2]
+	}
 
 	for i, item := range items {
 		buf[0] = item
-		if r := c.invoke(f, buf); !c.ok() {
-			return -1
-		} else if helpers.IsTruthy(r) == want {
-			return i
+		if len(buf) == 2 {
+			buf[1] = value.NewInt(int64(i))
+		}
+
+		if r := c.invoke(f, buf); !c.ok() || !visit(i, item, r) {
+			return
 		}
 	}
+}
 
-	return -1
+// firstWhere is the index of the first element for which args[1] gives
+// a value as truthy as want, or -1.
+func firstWhere(c *call, want bool) int {
+	found := -1
+
+	c.each(func(i int, _, r value.Value) bool {
+		if helpers.IsTruthy(r) == want {
+			found = i
+		}
+
+		return found < 0
+	})
+
+	return found
 }
 
 // arrayInPlace are the methods that change their array.

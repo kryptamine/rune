@@ -177,6 +177,23 @@ func (p *Interpreter) CallValue(fn value.Value, args []value.Value, token *ast.T
 	return value.NilValue, errors.NewRuntimeError(errors.TypeError, *token, "Can only call functions.")
 }
 
+func (p *Interpreter) Required(fn value.Value) int {
+	if fn.Kind() == value.Function {
+		switch f := fn.Fn().(type) {
+		case *Closure:
+			return f.proto.required
+		case *BoundMethod:
+			return f.fn.proto.required - 1
+		case *BoundNative:
+			return f.fn.Min() - 1
+		case *stdlib.Native:
+			return f.Min()
+		}
+	}
+
+	return 1
+}
+
 // enter pushes a frame calling cl with the nargs arguments at stack[base:].
 func (p *Interpreter) enter(cl *Closure, base, nargs int, tok *ast.Token) error {
 	f := cl.proto

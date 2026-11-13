@@ -1,0 +1,46 @@
+// Printing results: an aligned table, CSV or JSON; errors with a caret
+
+import .table;
+
+export let FORMATS = ["table", "csv", "json"];
+
+export fun write(format, columns, rows) {
+    match format {
+        "csv" => {
+            io.write(columns.map(table.quoteCsv).join(",") + "\n");
+            for r in rows io.write(r.map(table.quoteCsv).join(",") + "\n");
+        }
+        "json" => io.write(json.stringify(rows.map(r => object(columns.map((c, i) => [c, r[i]]))), 2) + "\n"),
+        _ => printTable(columns, rows),
+    }
+}
+
+fun printTable(columns, rows) {
+    let cells = rows.map(r => r.map(cell));
+    let mut widths = columns.map(c => c.len());
+    for row in cells {
+        for i, c in row widths[i] = math.max(widths[i], c.len());
+    }
+    let right = columns.map((_, i) => rows.len() > 0 && rows.every(r => r[i] == nil || r[i] is number));
+
+    let line = row => row.map((c, i) => right[i] ? c.padStart(widths[i]) : c.padEnd(widths[i])).join("  ").trimEnd() + "\n";
+    io.write(line(columns));
+    io.write(widths.map(w => "─".repeat(w)).join("  ") + "\n");
+    for row in cells io.write(line(row));
+}
+
+fun cell(v) {
+    return match v {
+        nil => "NULL",
+        _ is number if !math.isInt(v) => string(math.round(v * 100) / 100),
+        _ => string(v),
+    };
+}
+
+export fun error(src, e) {
+    io.eprint("error: {e.message}");
+    if e.pos != nil {
+        io.eprint("  {src}");
+        io.eprint("  " + " ".repeat(e.pos) + "^");
+    }
+}

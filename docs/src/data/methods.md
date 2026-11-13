@@ -92,6 +92,25 @@ try {
 print(acc.balance);    // 60
 ```
 
+The copy replaces the receiver only if nothing changed the receiver while
+the method ran, such as a closure over `self` the method calls; that
+change would be lost, so it is a `ValueError` instead:
+
+```rune
+struct Parser { i = 0 }
+impl Parser {
+  fun next(mut self) { self.i++; }
+  fun twice(mut self, f) { f(); self.next(); }
+  fun run(mut self) { self.twice(() => self.next()); }
+}
+
+let mut p = Parser {};
+p.run(); // ValueError: 'self' changed while its mut method 'twice' ran; that change would be lost.
+```
+
+Call the closure outside the mutating call, or have the method take what
+it needs as arguments.
+
 The copy is shallow: an array, object, map or set in a field is shared
 with the old struct, so changing it in place (`self.items.push(x)`) shows
 through both. Assign a new one (`self.items = self.items.append(x)`) to

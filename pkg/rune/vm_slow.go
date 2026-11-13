@@ -294,6 +294,9 @@ func (p *Interpreter) slow(in Instr) error {
 	case opNoMatch:
 		return errors.NewRuntimeError(errors.ValueError, *tok, "No match arm for "+helpers.Quoted(regs[in.a()])+".")
 
+	case opSame:
+		return errors.NewRuntimeError(errors.ValueError, *tok, fmt.Sprintf("'%s' changed while its mut method '%s' ran; that change would be lost.", consts[in.c()].Str(), tok.Lexeme))
+
 	case opRethrow:
 		return *regs[in.a()].Internal().(*errors.RuntimeError)
 

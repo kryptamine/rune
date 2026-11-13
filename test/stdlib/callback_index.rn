@@ -1,0 +1,22 @@
+let xs = ["a", "b", "c"];
+
+print(xs.map((x, i) => "{i}:{x}"));             // expect: ["0:a", "1:b", "2:c"]
+print(xs.filter((_, i) => i != 1));              // expect: ["a", "c"]
+print(xs.find((_, i) => i == 2));                // expect: c
+print(xs.findIndex((x, i) => i > 0 && x == "c")); // expect: 2
+print(xs.some((_, i) => i == 5));                // expect: false
+print(xs.every((_, i) => i < 3));                // expect: true
+
+// Only a function requiring two arguments gets the index.
+print(["10", "2"].map(int));                     // expect: [10, 2]
+print(xs.map((x, sep = "!") => x + sep));        // expect: ["a!", "b!", "c!"]
+
+fun pair(x, i) { return [x, i]; }
+print(xs.map(pair));                             // expect: [["a", 0], ["b", 1], ["c", 2]]
+
+struct Tag { k }
+impl Tag {
+  fun at(self, x, i) { return "{self.k}{x}{i}"; }
+}
+print(xs.map(Tag { k: "#" }.at));                // expect: ["#a0", "#b1", "#c2"]
+print([2, 3].map(math.pow));                     // expect: [1, 3]

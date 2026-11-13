@@ -1,0 +1,106 @@
+// Tables: CSV files of a directory, loaded once each
+
+import .ast;
+
+export struct Table { name, columns, rows }
+
+export struct Catalog { dir, tables = map() }
+
+impl Catalog {
+    fun new(dir) { return Catalog { dir }; }
+
+    fun load(mut self, name, pos = nil) {
+        let cached = self.tables.get(name);
+        if cached != nil return cached;
+
+        let path = fs.join(self.dir, name + ".csv");
+        if !fs.exists(path) {
+            let names = fs.list(self.dir).filter(f => fs.ext(f.name) == ".csv").map(f => fs.stem(f.name));
+            throw ast.SqlError { message: "no table '{name}' in {self.dir}" + ast.suggest(name, names), pos };
+        }
+        let t = loadCsv(path);
+        self.tables.set(name, t);
+        return t;
+    }
+}
+
+// Columns whose cells all parse as numbers become numbers; an empty cell is NULL.
+fun loadCsv(path) {
+    let src = fs.open(path);
+    let header = src.readLine() ?? throw ast.SqlError { message: "{path} is empty" };
+    let columns = splitCsv(header).map(c => c.trim());
+
+    let mut rows = [];
+    for i, line in src {
+        if line == "" continue;
+        let cells = splitCsv(line);
+        if cells.len() != columns.len() {
+            throw ast.SqlError { message: "{fs.base(path)} line {i + 2}: {cells.len()} cells, expected {columns.len()}" };
+        }
+        rows.push(cells);
+    }
+    src.close();
+
+    for c in 0..columns.len() {
+        let mut numeric = true;
+        for mut row in rows {
+            let v = row[c];
+            if v == "" {
+                row[c] = nil;
+            } else if numeric {
+                try {
+                    row[c] = number(v);
+                } catch e is ValueError {
+                    numeric = false;
+                }
+            }
+        }
+        if !numeric {
+            for mut row in rows {
+                if row[c] is number row[c] = string(row[c]);
+            }
+        }
+    }
+
+    return Table { name: fs.stem(path), columns, rows };
+}
+
+fun splitCsv(line) {
+    if !line.contains("\"") return line.split(",");
+
+    let mut cells = [];
+    let mut cell = [];
+    let mut quoted = false;
+    let chars = line.split("");
+    let mut i = 0;
+    while i < chars.len() {
+        let c = chars[i];
+        if quoted {
+            if c == "\"" {
+                if chars?.[i + 1] == "\"" {
+                    cell.push("\"");
+                    i++;
+                } else {
+                    quoted = false;
+                }
+            } else {
+                cell.push(c);
+            }
+        } else if c == "\"" {
+            quoted = true;
+        } else if c == "," {
+            cells.push(cell.join(""));
+            cell = [];
+        } else {
+            cell.push(c);
+        }
+        i++;
+    }
+    cells.push(cell.join(""));
+    return cells;
+}
+
+export fun quoteCsv(v) {
+    let s = v == nil ? "" : string(v);
+    return s.contains(",") || s.contains("\"") ? "\"" + s.replace("\"", "\"\"") + "\"" : s;
+}

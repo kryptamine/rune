@@ -1,0 +1,104 @@
+// SQL over CSV files: a recursive-descent parser, a planner that compiles
+// expressions to closures, pushes filters down and picks hash joins, GROUP BY
+// with aggregates, HAVING, ORDER BY, LIMIT, EXPLAIN
+//
+//   ./rune run examples/query/main.rn                     demo: generate a shop dataset, run queries, time them
+//   ./rune run examples/query/main.rn "SELECT ..." [-d dir] [-f table|csv|json]
+//   ./rune run examples/query/main.rn repl [-d dir]       one query per line from stdin
+//
+// Tables are the CSV files of the directory (default: the current one), named by file stem.
+
+import .ast;
+import .demo;
+import .output;
+import .parser;
+import .plan;
+import .table;
+
+fun run(src, mut catalog, format) {
+    let started = time.now();
+    let q = parser.parse(src);
+    let p = plan.plan(q, catalog);
+
+    if q.explain {
+        for i, s in p.steps print("{"  ".repeat(i)}{i == 0 ? "" : "└ "}{s.label}");
+        return;
+    }
+
+    let rows = p.execute();
+    output.write(format, p.columns, rows);
+    if format == "table" print("({rows.len()} row{rows.len() == 1 ? "" : "s"}, {((time.now() - started) * 1000).fixed(1)} ms)");
+}
+
+// tryRun runs a query, reporting a mistake in it; it returns whether there was none.
+fun tryRun(src, mut catalog, format = "table") {
+    try {
+        run(src, catalog, format);
+        return true;
+    } catch e is ast.SqlError {
+        output.error(src, e);
+        return false;
+    }
+}
+
+fun showDemo() {
+    let dir = fs.tempDir();
+    let n = int(os.env("ORDERS") ?? "100000");
+
+    let mut started = time.now();
+    demo.generate(dir, n);
+    print("generated {n} orders in {((time.now() - started) * 1000).fixed(0)} ms\n");
+
+    let mut catalog = table.Catalog.new(dir);
+    for name in demo.TABLES {
+        started = time.now();
+        let t = catalog.load(name);
+        print("loaded %-10s %7d rows  %6.0f ms".format(name, t.rows.len(), (time.now() - started) * 1000));
+    }
+
+    for src in demo.QUERIES {
+        let text = regex.replace(r"\s+", src, " ");
+        print("\n> {text}\n");
+        tryRun(text, catalog);
+    }
+
+    fs.removeAll(dir);
+}
+
+fun main(args) {
+    if args.len() == 0 return showDemo();
+
+    let mut dir = ".";
+    let mut format = "table";
+    let mut rest = [];
+    let mut i = 0;
+    while i < args.len() {
+        match args[i] {
+            "-d" => dir = args?.[++i] ?? return usage(),
+            "-f" => format = args?.[++i] ?? return usage(),
+            a => rest.push(a),
+        }
+        i++;
+    }
+    if !output.FORMATS.contains(format) return usage();
+
+    let mut catalog = table.Catalog.new(dir);
+
+    if rest == ["repl"] {
+        let mut failed = 0;
+        let mut line = io.readLine();
+        while line != nil {
+            if line.trim() != "" && !tryRun(line, catalog, format) failed++;
+            line = io.readLine();
+        }
+        return failed > 0 ? 1 : 0;
+    }
+
+    if rest.len() != 1 return usage();
+    return tryRun(rest[0], catalog, format) ? 0 : 1;
+}
+
+fun usage() {
+    io.eprint("usage: main.rn [\"SELECT ...\" | repl] [-d dir] [-f table|csv|json]");
+    return 2;
+}
