@@ -1,0 +1,601 @@
+// Config validator: a schema written as data, every problem reported with its path,
+// migrations that upgrade old config versions before the check
+//
+//   ./rune run examples/validate.rn                            demo: a good, a legacy and a broken config
+//   ./rune run examples/validate.rn check gateway.json         report problems, exit 1 on any error
+//   ./rune run examples/validate.rn migrate gateway.json [-w]  print the config upgraded to the latest version, or write it back
+//   ./rune run examples/validate.rn normalize gateway.json     print it checked, defaults filled, durations in ms, sizes in bytes
+
+// --- schema nodes ---
+
+struct Str { min = 0, max = nil, pattern = nil, like = nil, oneOf = nil }
+struct Int { min = nil, max = nil }
+struct Flag {}
+struct Duration { min = nil, max = nil }
+struct Size { min = nil, max = nil }
+struct Url { schemes = ["http", "https"] }
+struct Addr {}
+struct List { of, min = 0, max = nil, unique = nil }
+struct Dict { of, key = nil, min = 0 }
+struct Obj { fields, strict = true }
+struct Tagged { tag, variants }
+struct Opt { of, default = nil }
+struct Deprecated { of, hint }
+
+const LATEST = 3;
+const MB = 1024 * 1024;
+const NAME = r"^[a-z][a-z0-9-]*$";
+const METHODS = ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"];
+
+let slug = Str { pattern: NAME, like: "lowercase letters, digits and dashes", max: 63 };
+
+let AUTH = Tagged {
+    tag: "type",
+    variants: {
+        none: Obj { fields: {} },
+        jwt: Obj { fields: {
+            issuer: Url { schemes: ["https"] },
+            audience: Opt { of: Str { min: 1 } },
+            leeway: Opt { of: Duration { max: 5 * 60 * 1000 }, default: "30s" },
+        } },
+        basic: Obj { fields: {
+            realm: Opt { of: Str { min: 1 }, default: "restricted" },
+            users: List { of: Str { pattern: r"^[^:]+:\$2[aby]\$", like: "htpasswd lines with bcrypt hashes" }, min: 1 },
+        } },
+        apiKey: Obj { fields: {
+            header: Opt { of: Str { pattern: r"^[A-Za-z][A-Za-z0-9-]*$", like: "a header name" }, default: "X-Api-Key" },
+            keys: List { of: Str { min: 24 }, min: 1, unique: true },
+        } },
+    },
+};
+
+let HEALTH = Obj { fields: {
+    path: Opt { of: Str { pattern: "^/", like: "a path starting with /" }, default: "/healthz" },
+    interval: Opt { of: Duration { min: 1000 }, default: "10s" },
+    timeout: Opt { of: Duration { min: 100 }, default: "2s" },
+} };
+
+let SCHEMA = Obj { fields: {
+    version: Int { min: 1, max: LATEST },
+    name: slug,
+    listen: Addr {},
+    tls: Opt { of: Obj { fields: { cert: Str { min: 1 }, key: Str { min: 1 } } } },
+    log: Opt { default: {}, of: Obj { fields: {
+        level: Opt { of: Str { oneOf: ["debug", "info", "warn", "error"] }, default: "info" },
+        format: Opt { of: Str { oneOf: ["json", "text"] }, default: "json" },
+        color: Deprecated { of: Flag {}, hint: "colors follow the terminal now, remove it" },
+    } } },
+    limits: Opt { default: {}, of: Obj { fields: {
+        timeout: Opt { of: Duration { min: 100, max: 5 * 60 * 1000 }, default: "30s" },
+        body: Opt { of: Size { max: 100 * MB }, default: "1MB" },
+        rate: Opt { of: Int { min: 1 } },
+    } } },
+    upstreams: Dict { key: slug, min: 1, of: Obj { fields: {
+        url: Url {},
+        weight: Opt { of: Int { min: 1, max: 100 }, default: 1 },
+        health: Opt { of: HEALTH },
+    } } },
+    routes: List { min: 1, unique: "pattern", of: Obj { fields: {
+        pattern: Str { pattern: r"^/\S*$", like: "a path starting with /" },
+        upstream: Str { min: 1 },
+        methods: Opt { of: List { of: Str { oneOf: METHODS }, min: 1, unique: true }, default: ["GET"] },
+        auth: Opt { of: AUTH, default: { type: "none" } },
+        stripPrefix: Opt { of: Flag {}, default: false },
+    } } },
+} };
+
+// --- checking: each node returns the normalized value, or nil after reporting why not ---
+
+enum Level { Error, Warning }
+
+struct Issue { path, message, level = Level.Error }
+
+fun fail(mut out, path, message) {
+    out.push(Issue { path, message });
+    return nil;
+}
+
+fun warn(mut out, path, message) {
+    out.push(Issue { path, message, level: Level.Warning });
+}
+
+fun check(s, v, path, mut out) {
+    return match s {
+        Opt { of } => check(of, v, path, out),
+        Deprecated { of, hint } => {
+            warn(out, path, "deprecated: {hint}");
+            return check(of, v, path, out);
+        }
+        _ is Str => checkStr(s, v, path, out),
+        Int { min, max } => {
+            if !want("number", v, path, out) return nil;
+            if int(v) != v return fail(out, path, "expected an integer, got {v}");
+            return bounded(v, min, max, path, out);
+        }
+        _ is Flag => want("boolean", v, path, out) ? v : nil,
+        Duration { min, max } => {
+            if !want("string", v, path, out) return nil;
+            let ms = parseDuration(v) ?? return fail(out, path, "{show(v)} is not a duration like \"30s\" or \"1m30s\"");
+            return bounded(ms, min, max, path, out, duration);
+        }
+        Size { min, max } => {
+            if !want("string", v, path, out) return nil;
+            let n = parseSize(v) ?? return fail(out, path, "{show(v)} is not a size like \"512KB\" or \"8MB\"");
+            return bounded(n, min, max, path, out, size);
+        }
+        _ is Url => checkUrl(s, v, path, out),
+        _ is Addr => checkAddr(v, path, out),
+        _ is List => checkList(s, v, path, out),
+        _ is Dict => checkDict(s, v, path, out),
+        _ is Obj => checkObj(s, v, path, out),
+        _ is Tagged => checkTagged(s, v, path, out),
+    };
+}
+
+fun want(t, v, path, mut out) {
+    if type(v) == t return true;
+    fail(out, path, "expected {t}, got {v == nil ? "null" : show(v)}");
+    return false;
+}
+
+fun bounded(v, min, max, path, mut out, unit = string) {
+    if min != nil && v < min return fail(out, path, "{unit(v)} is below the minimum {unit(min)}");
+    if max != nil && v > max return fail(out, path, "{unit(v)} is above the maximum {unit(max)}");
+    return v;
+}
+
+fun checkStr({ min, max, pattern, like, oneOf }, v, path, mut out) {
+    if !want("string", v, path, out) return nil;
+    if oneOf != nil && !oneOf.contains(v) {
+        return fail(out, path, "{show(v)} is not one of {oneOf.join(", ")}" + suggest(v, oneOf));
+    }
+    if v.len() < min return fail(out, path, min == 1 ? "must not be empty" : "shorter than {min} characters");
+    if max != nil && v.len() > max return fail(out, path, "longer than {max} characters");
+    if pattern != nil && !regex.test(pattern, v) return fail(out, path, "{show(v)} is not {like ?? "matching " + pattern}");
+    return v;
+}
+
+const URL_RE = r"^(?P<scheme>[a-z][a-z0-9+.-]*)://(?P<host>[^/:?#\s]+)(?::(?P<port>\d+))?(?:[/?#]\S*)?$";
+
+fun checkUrl({ schemes }, v, path, mut out) {
+    if !want("string", v, path, out) return nil;
+    let m = regex.find(URL_RE, v) ?? return fail(out, path, "{show(v)} is not a URL");
+    let { scheme, port } = m.named;
+    if !schemes.contains(scheme) return fail(out, path, "scheme {scheme} is not allowed, use {schemes.join(" or ")}");
+    if port != nil && !validPort(int(port)) return fail(out, path, "port {port} is out of range 1-65535");
+    return v;
+}
+
+fun checkAddr(v, path, mut out) {
+    if !want("string", v, path, out) return nil;
+    let m = regex.find(r"^(?:[\w.-]*|\[[0-9a-fA-F:]+\]):(\d+)$", v) ?? return fail(out, path, "{show(v)} is not host:port");
+    let port = int(m.groups[0]);
+    return validPort(port) ? v : fail(out, path, "port {port} is out of range 1-65535");
+}
+
+fun validPort(p) {
+    return p >= 1 && p <= 65535;
+}
+
+fun checkList({ of, min, max, unique }, v, path, mut out) {
+    if !want("array", v, path, out) return nil;
+    if v.len() < min fail(out, path, min == 1 ? "must not be empty" : "needs at least {min} items");
+    if max != nil && v.len() > max fail(out, path, "has {v.len()} items, at most {max} allowed");
+
+    let mut seen = map();
+    let mut items = [];
+    for i, item in v {
+        let at = [...path, i];
+        items.push(check(of, item, at, out));
+        if unique == nil continue;
+
+        let [key, keyAt] = unique == true ? [item, at] : [item is object ? item.get(unique) : nil, [...at, unique]];
+        if !(key is string || key is number) continue;
+        if seen.has(key) {
+            fail(out, keyAt, "duplicate {show(key)}, first at {fmtPath(seen[key])}");
+        } else {
+            seen[key] = keyAt;
+        }
+    }
+    return items;
+}
+
+fun checkDict({ of, key, min }, v, path, mut out) {
+    if !want("object", v, path, out) return nil;
+    if v.len() < min fail(out, path, min == 1 ? "must not be empty" : "needs at least {min} entries");
+
+    let mut entries = {};
+    for k, item in v {
+        let at = [...path, k];
+        if key != nil && check(key, k, at, out) == nil continue;
+        entries[k] = check(of, item, at, out);
+    }
+    return entries;
+}
+
+fun checkObj({ fields, strict }, v, path, mut out) {
+    if !want("object", v, path, out) return nil;
+
+    let mut result = {};
+    for field, s in fields {
+        let at = [...path, field];
+        let given = v.get(field);
+        if given != nil {
+            let value = check(s, given, at, out);
+            if value != nil result[field] = value;
+            continue;
+        }
+        match s {
+            Opt { of, default } if default != nil => result[field] = check(of, default, at, out);
+            _ is Opt | Deprecated => {}
+            _ => fail(out, at, "missing required field");
+        }
+    }
+
+    if strict {
+        for k in v.keys() {
+            if !fields.has(k) fail(out, [...path, k], "unknown field" + suggest(k, fields.keys()));
+        }
+    }
+    return result;
+}
+
+fun checkTagged({ tag, variants }, v, path, mut out) {
+    if !want("object", v, path, out) return nil;
+
+    let at = [...path, tag];
+    let kind = v.get(tag) ?? return fail(out, at, "missing required field");
+    if !want("string", kind, at, out) return nil;
+    let variant = variants.get(kind)
+        ?? return fail(out, at, "unknown {tag} {show(kind)}, expected {variants.keys().join(", ")}" + suggest(kind, variants.keys()));
+
+    let rest = check(variant, object(v.entries().filter(([k]) => k != tag)), path, out) ?? return nil;
+    return { [tag]: kind, ...rest };
+}
+
+// --- checks across fields, on the normalized config; any part of it may be missing ---
+
+fun knownUpstreams(cfg, mut out) {
+    let names = (cfg?.upstreams ?? {}).keys();
+    let mut used = set();
+
+    for i, route in cfg?.routes ?? [] {
+        let up = route?.upstream ?? continue;
+        used.add(up);
+        if !names.contains(up) fail(out, ["routes", i, "upstream"], "no upstream named {show(up)}" + suggest(up, names));
+    }
+    for n in names {
+        if !used.contains(n) warn(out, ["upstreams", n], "not used by any route");
+    }
+}
+
+fun tlsOnHttpsPort(cfg, mut out) {
+    let port = regex.find(r":(\d+)$", cfg?.listen ?? "")?.groups[0];
+    if port == "443" && cfg?.tls == nil fail(out, ["tls"], "required when listening on port 443");
+}
+
+fun probesFitInterval(cfg, mut out) {
+    for n, up in cfg?.upstreams ?? {} {
+        let h = up?.health ?? continue;
+        if h?.timeout == nil || h?.interval == nil continue;
+        if h.timeout >= h.interval {
+            fail(out, ["upstreams", n, "health", "timeout"], "{duration(h.timeout)} must be shorter than the interval {duration(h.interval)}");
+        }
+    }
+}
+
+let RULES = [knownUpstreams, tlsOnHttpsPort, probesFitInterval];
+
+fun validate(raw) {
+    let mut issues = [];
+    let cfg = check(SCHEMA, raw, [], issues);
+    for rule in RULES rule(cfg, issues);
+    return { cfg, issues };
+}
+
+// --- migrations: each takes a config of one version to the next, noting what it changed ---
+
+struct MigrationError { message }
+
+fun v1to2(cfg, mut notes) {
+    let { server = {}, log_level = nil, version: _, ...rest } = cfg;
+    let { host = "0.0.0.0", port = 80, timeout = nil, ...dropped } = server;
+
+    let mut next = { version: 2, ...rest, listen: "{host}:{port}" };
+    notes.push("server.host, server.port → listen \"{host}:{port}\"");
+    if timeout != nil {
+        next.limits = { timeout: "{timeout}s" };
+        notes.push("server.timeout {timeout} (seconds) → limits.timeout \"{timeout}s\"");
+    }
+    if log_level != nil {
+        next.log = { level: log_level };
+        notes.push("log_level → log.level");
+    }
+    for k in dropped.keys() notes.push("server.{k} dropped, no longer supported");
+    return next;
+}
+
+fun v2to3(cfg, mut notes) {
+    let { version: _, backends = [], routes = [], ...rest } = cfg;
+
+    let mut upstreams = {};
+    for { name, ...up } in backends upstreams[name] = up;
+    notes.push("backends → upstreams, keyed by name");
+
+    let next = routes.map(({ path, backend, auth = "none", ...more }) => {
+        return { pattern: path.endsWith("/") ? path + "*" : path, upstream: backend, ...more, auth: { type: auth } };
+    });
+    notes.push("routes: path → pattern, backend → upstream, auth \"name\" → auth.type");
+
+    return { version: 3, ...rest, upstreams, routes: next };
+}
+
+fun upgrade(raw, mut notes) {
+    if !(raw is object) return raw;
+    let mut cfg = raw;
+
+    while true {
+        let v = cfg.get("version", 1);
+        try {
+            cfg = match v {
+                1 => v1to2(cfg, notes),
+                2 => v2to3(cfg, notes),
+                LATEST => return cfg,
+                _ if v is number && v > LATEST => throw MigrationError { message: "version {v} is newer than this tool knows ({LATEST})" },
+                _ => throw MigrationError { message: "unknown version {show(v)}" },
+            };
+        } catch e is KeyError | TypeError {
+            throw MigrationError { message: "cannot migrate v{v} to v{v + 1}: {e.message}" };
+        }
+    }
+}
+
+// --- output ---
+
+fun fmtPath(path) {
+    let mut s = "";
+    for seg in path {
+        s += match seg {
+            _ is number => "[{seg}]",
+            _ if regex.test(r"^[A-Za-z_][\w-]*$", seg) => s == "" ? seg : "." + seg,
+            _ => "[%q]".format(seg),
+        };
+    }
+    return s == "" ? "(root)" : s;
+}
+
+fun show(v) {
+    let s = "%q".format(v);
+    return s.len() > 40 ? s.slice(0, 37) + "..." : s;
+}
+
+fun suggest(word, options) {
+    let mut best = nil;
+    let mut bestDist = math.max(2, int(word.len() / 3));
+    for o in options {
+        let d = distance(word.lower(), o.lower());
+        if d < bestDist || (d == bestDist && best == nil) {
+            best = o;
+            bestDist = d;
+        }
+    }
+    return best == nil ? "" : ", did you mean {show(best)}?";
+}
+
+fun distance(a, b) {
+    let mut prev = [];
+    for j in 0..b.len() + 1 prev.push(j);
+
+    for i in 1..a.len() + 1 {
+        let mut row = [i];
+        for j in 1..b.len() + 1 {
+            let cost = a[i - 1] == b[j - 1] ? 0 : 1;
+            row.push(math.min(prev[j] + 1, row[j - 1] + 1, prev[j - 1] + cost));
+        }
+        prev = row;
+    }
+    return prev[b.len()];
+}
+
+const UNITS = { h: 60 * 60 * 1000, m: 60 * 1000, s: 1000, ms: 1 };
+const SIZES = { GB: 1024 * MB, MB, KB: 1024, B: 1 };
+
+fun parseDuration(s) {
+    if !regex.test(r"^(\d+(ms|s|m|h))+$", s) return nil;
+    return regex.findAll(r"(\d+)(ms|s|m|h)", s).reduce((ms, m) => ms + int(m.groups[0]) * UNITS[m.groups[1]], 0);
+}
+
+fun parseSize(s) {
+    let m = regex.find(r"^(\d+)\s*(B|KB|MB|GB)$", s) ?? return nil;
+    return int(m.groups[0]) * SIZES[m.groups[1]];
+}
+
+fun inUnits(n, units) {
+    for unit, k in units {
+        if n >= k && n % k == 0 return "{n / k}{unit}";
+    }
+    return string(n);
+}
+
+fun duration(ms) { return inUnits(ms, UNITS); }
+fun size(n) { return inUnits(n, SIZES); }
+
+fun report(issues) {
+    let errors = issues.filter(i => i.level == Level.Error).len();
+    let warnings = issues.len() - errors;
+    let width = issues.reduce((w, i) => math.max(w, fmtPath(i.path).len()), 0);
+
+    for { path, message, level } in issues {
+        let tag = match level { Level.Error => "error", Level.Warning => "warn" };
+        print("  %-5s  %-*s  %s".format(tag, width, fmtPath(path), message));
+    }
+    print(match [errors, warnings] {
+        [0, 0] => "  ok",
+        [0, w] => "  ok, {w} warning{plural(w)}",
+        [e, w] => "  {e} error{plural(e)}, {w} warning{plural(w)}",
+    });
+    return errors;
+}
+
+fun plural(n) { return n == 1 ? "" : "s"; }
+
+// --- commands ---
+
+struct UsageError { message }
+
+fun load(path) {
+    let text = fs.readText(path);
+    try {
+        return json.parse(text);
+    } catch e is ValueError {
+        throw ValueError { message: "{path} is not valid JSON: {e.message}", cause: e };
+    }
+}
+
+fun run([cmd = "help", path = nil, ...flags]) {
+    if cmd == "help" {
+        print(usage());
+        return 0;
+    }
+    if !["check", "migrate", "normalize"].contains(cmd) throw UsageError { message: "unknown command '{cmd}'" };
+    if path == nil throw UsageError { message: "{cmd}: which file?" };
+
+    let raw = load(path);
+    let mut notes = [];
+    let cfg = upgrade(raw, notes);
+
+    match cmd {
+        "check" => {
+            for n in notes io.eprint("  migrated: {n}");
+            return report(validate(cfg).issues) > 0 ? 1 : 0;
+        }
+        "migrate" => {
+            for n in notes io.eprint("  {n}");
+            if notes.len() == 0 io.eprint("  already at version {LATEST}");
+            if !flags.contains("-w") {
+                print(json.stringify(cfg, 2));
+            } else if notes.len() > 0 {
+                fs.write(path + ".tmp", json.stringify(cfg, 2) + "\n");
+                fs.rename(path + ".tmp", path);
+                io.eprint("  wrote {path}");
+            }
+            return 0;
+        }
+        "normalize" => {
+            let { cfg: clean, issues } = validate(cfg);
+            if issues.some(i => i.level == Level.Error) {
+                report(issues);
+                return 1;
+            }
+            print(json.stringify(clean, 2));
+            return 0;
+        }
+    }
+}
+
+fun usage() {
+    return """
+        usage: validate <command> <file.json>
+          check       report problems; exit 1 on any error
+          migrate     print the config upgraded to version {LATEST}; -w writes it back
+          normalize   print it with defaults filled, durations in ms, sizes in bytes
+        """;
+}
+
+// --- demo ---
+
+let EDGE = r"""
+{
+  "version": 3,
+  "name": "edge",
+  "listen": "0.0.0.0:443",
+  "tls": { "cert": "/etc/edge/cert.pem", "key": "/etc/edge/key.pem" },
+  "limits": { "timeout": "15s", "body": "8MB", "rate": 200 },
+  "upstreams": {
+    "accounts": { "url": "http://10.0.1.10:8080", "health": { "interval": "5s" } },
+    "payments": { "url": "https://payments.internal", "weight": 3 }
+  },
+  "routes": [
+    {
+      "pattern": "/api/accounts/*", "upstream": "accounts", "methods": ["GET", "POST"],
+      "auth": { "type": "jwt", "issuer": "https://auth.example.com", "audience": "edge" }
+    },
+    {
+      "pattern": "/api/payments/*", "upstream": "payments", "methods": ["POST"],
+      "auth": { "type": "apiKey", "keys": ["pk_live_4f9a1c2e8b7d6a5f3e2d1c0b"] }
+    },
+    { "pattern": "/status", "upstream": "accounts" }
+  ]
+}
+""";
+
+let BILLING_V1 = r"""
+{
+  "name": "billing",
+  "server": { "host": "127.0.0.1", "port": 8080, "timeout": 20, "workers": 4 },
+  "log_level": "debug",
+  "backends": [
+    { "name": "invoices", "url": "http://10.0.2.5:9000" },
+    { "name": "ledger", "url": "http://10.0.2.6:9000", "weight": 2 }
+  ],
+  "routes": [
+    { "path": "/invoices/", "backend": "invoices", "auth": "jwt" },
+    { "path": "/ledger/", "backend": "ledger", "methods": ["GET"] }
+  ]
+}
+""";
+
+let BROKEN = r"""
+{
+  "version": 3,
+  "name": "Edge_Gateway",
+  "listen": "0.0.0.0:99999",
+  "log": { "level": "verbose", "color": true },
+  "limits": { "timout": "30s", "body": "2GB" },
+  "upstreams": {
+    "accounts": { "url": "ftp://10.0.1.10", "weight": 0 },
+    "payments": { "url": "https://payments.internal", "health": { "interval": "5s", "timeout": "10s" } },
+    "search": { "url": "http://10.0.3.1:7700" }
+  },
+  "routes": [
+    { "pattern": "/api/accounts/*", "upstream": "acounts", "methods": ["GET", "PATCHH"] },
+    { "pattern": "/api/payments/*", "upstream": "payments", "auth": { "type": "basic", "users": [] } },
+    { "pattern": "/api/accounts/*", "upstream": "accounts", "methods": ["GET", "GET"], "auth": { "type": "oauth" } },
+    { "upstream": "payments", "stripPrefix": "yes", "timeout": 5 }
+  ]
+}
+""";
+
+fun demo() {
+    let dir = fs.tempDir();
+    let files = { "edge.json": EDGE, "billing.json": BILLING_V1, "broken.json": BROKEN };
+    for file, text in files fs.write(fs.join(dir, file), text);
+
+    let session = [
+        "check edge.json",
+        "normalize edge.json",
+        "check billing.json",
+        "migrate billing.json",
+        "check broken.json",
+    ];
+    for line in session {
+        let [cmd, file] = line.split(" ");
+        print("$ validate {line}");
+        let code = run([cmd, fs.join(dir, file)]);
+        print(code == 0 ? "" : "(exit {code})\n");
+    }
+    fs.removeAll(dir);
+}
+
+fun main(args) {
+    try {
+        if args.len() == 0 demo(); else return run(args);
+    } catch e is UsageError {
+        io.eprint("validate: {e.message}");
+        io.eprint(usage());
+        return 2;
+    } catch e is IOError | ValueError | MigrationError {
+        io.eprint("validate: {e.message}");
+        return 1;
+    }
+}

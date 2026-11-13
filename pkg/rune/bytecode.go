@@ -56,6 +56,7 @@ const (
 	opJmpNotType // if R[A] is not of type K[B]: pc = C
 	opJmpNil     // if (R[A] is nil) == Y: pc = C
 	opJmpDefined // if R[A] is defined: pc = C
+	opJmpNotLen  // if R[A] is not an array of B elements, or with X at least B: pc = C
 
 	opArray  // R[A] = [R[B], ..., R[B+C-1]]
 	opConcat // R[A] = R[B] .. R[B+C-1] as printed, appended to R[A] if X
@@ -256,7 +257,7 @@ var opNames = [...]string{
 	"MOVE", "LOADK", "LOADFRESH", "NEWCELL", "GETCELL", "SETCELL", "GETUPVAL", "SETUPVAL",
 	"CHECKDEFINED", "SETCELL!", "SETUPVAL!", "UNDEFINED",
 	"ADD", "SUB", "MUL", "DIV", "MOD", "ADDK", "SUBK", "MULK", "DIVK", "MODK", "CMP", "CMPK", "IS", "NEG", "NOT", "INCR", "BITWISE", "BITNOT",
-	"JMP", "JMPIF", "JMPCMP", "JMPCMPK", "JMPNOTTYPE", "JMPNIL", "JMPDEFINED",
+	"JMP", "JMPIF", "JMPCMP", "JMPCMPK", "JMPNOTTYPE", "JMPNIL", "JMPDEFINED", "JMPNOTLEN",
 	"ARRAY", "CONCAT", "OBJECT", "STRUCT", "UNDEF", "STRUCTSPREAD", "STRUCTFILL", "GETINDEX", "GETPROP", "GETINDEX?", "GETPROP?", "SETINDEX", "SETPROP", "SETOWNED", "CHECKPROP", "TESTPROP", "RANGE", "SPREAD", "UNPACK", "OMIT",
 	"CLOSURE", "CALL", "CALLARRAY", "INVOKE", "METHOD", "RETURN", "RETURNNIL", "THROW", "RETHROW", "NOMATCH", "TRY", "ENDTRY",
 	"FORRANGE", "FORRANGENEXT", "FORITER", "FORITERNEXT",

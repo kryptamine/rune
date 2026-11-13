@@ -385,6 +385,11 @@ reload:
 				pc = in.c()
 			}
 
+		case opJmpNotLen:
+			if v := at(regs, in.a()); v.Kind() != value.Array || !(len(v.Arr()) == in.b() || in.x() != 0 && len(v.Arr()) > in.b()) {
+				pc = in.c()
+			}
+
 		case opTestProp:
 			t := *at(regs, in.b())
 			if k := t.Kind(); k == value.Struct {

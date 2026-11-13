@@ -112,9 +112,37 @@ func (fs *funcState) pattern(p ast.Pattern, s int32) []int {
 		}
 
 		return miss
+	case *ast.ArrayPattern:
+		return fs.arrayTest(s, n)
 	}
 
 	panic("compile: unknown pattern")
+}
+
+// arrayTest matches R[s] against [p, q, ...rest]: tests the length, then
+// unpacks the elements into temporaries and matches each.
+func (fs *funcState) arrayTest(s int32, n *ast.ArrayPattern) []int {
+	count := len(n.Elems)
+	miss := []int{fs.emit(ins{op: opJmpNotLen, a: s, b: int32(count), x: uint8(boolNum(n.Open))}, nil)}
+
+	if count == 0 && n.Rest == nil {
+		return miss
+	}
+
+	free := fs.free
+	defer func() { fs.free = free }()
+
+	base := fs.unpackTo(s, count, count, n.Rest != nil, &n.Bracket)
+
+	for i, e := range n.Elems {
+		miss = append(miss, fs.pattern(e, base+int32(i))...)
+	}
+
+	if n.Rest != nil {
+		fs.pattern(n.Rest, base+int32(count))
+	}
+
+	return miss
 }
 
 // anyOf emits n tests, each giving the jumps it takes on a mismatch, and

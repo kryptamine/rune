@@ -76,6 +76,8 @@ func assigns(e ast.Expr) bool {
 		return assigns(n.Expr)
 	case *ast.SpreadExpr:
 		return assigns(n.Expr)
+	case *ast.ComputedExpr:
+		return assigns(n.Key) || assigns(n.Value)
 	case *ast.BinaryExpr:
 		return assigns(n.Left) || assigns(n.Right)
 	case *ast.LogicalExpr:
@@ -308,8 +310,8 @@ const literalChunk = 256
 
 func (fs *funcState) literal(dst int32, n int, item func(i int) ast.Expr, build func(from, to int, base int32) ins) {
 	for i := range n {
-		if ast.IsSpread(item(i)) {
-			fs.spreadLiteral(dst, n, item, build)
+		if ast.Standalone(item(i)) {
+			fs.piecewiseLiteral(dst, n, item, build)
 			return
 		}
 	}
@@ -336,9 +338,10 @@ func (fs *funcState) literal(dst int32, n int, item func(i int) ast.Expr, build 
 	fs.move(dst, target)
 }
 
-// spreadLiteral builds a literal with spreads from an empty one, adding
-// each run of plain items a chunk at a time and each spread on its own.
-func (fs *funcState) spreadLiteral(dst int32, n int, item func(i int) ast.Expr, build func(from, to int, base int32) ins) {
+// piecewiseLiteral builds a literal with standalone items from an empty
+// one, adding each run of plain items a chunk at a time and each
+// standalone item on its own.
+func (fs *funcState) piecewiseLiteral(dst int32, n int, item func(i int) ast.Expr, build func(from, to int, base int32) ins) {
 	target := dst
 	if dst < fs.nactive {
 		target = fs.alloc()
@@ -351,12 +354,19 @@ func (fs *funcState) spreadLiteral(dst int32, n int, item func(i int) ast.Expr, 
 	for from := 0; from < n; {
 		base := fs.free
 
-		if sp, ok := item(from).(*ast.SpreadExpr); ok {
-			fs.emit(ins{op: opSpread, a: target, b: fs.exprAny(sp.Expr)}, &sp.Token)
+		switch it := item(from).(type) {
+		case *ast.SpreadExpr:
+			fs.emit(ins{op: opSpread, a: target, b: fs.exprAny(it.Expr)}, &it.Token)
 			from++
-		} else {
+		case *ast.ComputedExpr:
+			k, v := fs.alloc(), fs.alloc()
+			fs.expr(it.Key, k)
+			fs.expr(it.Value, v)
+			fs.emit(ins{op: opSetIndex, a: target, b: k, c: v}, &it.Bracket)
+			from++
+		default:
 			to := from
-			for to < n && to-from < literalChunk && !ast.IsSpread(item(to)) {
+			for to < n && to-from < literalChunk && !ast.Standalone(item(to)) {
 				fs.expr(item(to), fs.alloc())
 				to++
 			}

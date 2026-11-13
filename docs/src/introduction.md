@@ -75,7 +75,7 @@ Language chapters in order.
 - Objects, `map` and `set` keep their keys in insertion order; a `map` or `set` key may be any hashable value
 - `bytes`: immutable binary data, with literals `b"\x00\xff"`
 - Streams: files and HTTP bodies read line by line or in chunks, `for line in fs.open(path)`
-- Object property access with `obj.name` as sugar for `obj["name"]`; shorthand `{ ip, hits }` for `{ ip: ip, hits: hits }`
+- Object property access with `obj.name` as sugar for `obj["name"]`; shorthand `{ ip, hits }` for `{ ip: ip, hits: hits }`, computed keys `{ [name]: value }`
 - Structs with required and default fields, values whose fields only their `mut self` methods set: `struct Point { x, y = 0 }`, `Point { ...p, x: 1 }`
 - Methods in `impl` blocks, on structs and built-in types: `p.len()`, `Point.origin()`, `fun move(mut self)`; a function in a property is called as `(o.f)()`
 - Destructuring of objects, structs and arrays, in `let`, parameters and `for`, with defaults: `let { x, y = 0 } = p;`, `let [head, ...tail] = xs;`
@@ -83,7 +83,7 @@ Language chapters in order.
 - Conditional expressions: `n > 0 ? "pos" : "neg"`
 - Spread and rest: `[...a, ...b]`, `{...o, x: 1}`, `Point { ...p, x: 1 }`, `f(...args)`, `fun log(level, ...parts)`
 - Strings compare with `<`, `<=`, `>`, `>=` and index by character: `"héllo"[1]` is `"é"`; a negative index counts from the end: `xs[-1]`
-- Pattern matching with `match`, as an expression or a statement
+- Pattern matching with `match`, as an expression or a statement, on literals, types, structs, objects and arrays: `[cmd, ...args] =>`
 - Logical operators `&&`, `||` and `!`, type tests with `is`: `v is Point`, `catch e is KeyError`, `p is Point =>`
 - Error handling with `try`/`catch` and `throw`, also as an expression: `x ?? throw E { ... }`
 - `return`, `break` and `continue` as expressions: `let v = x ?? return nil;`, `row?.id ?? continue`

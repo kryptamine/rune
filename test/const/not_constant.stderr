@@ -1,9 +1,9 @@
-[line: 3] Error at 'A': Constant 'A' must be a constant expression: literals, other constants, operators on them and arrays of these.
-    3 | const A = f(); // Error at 'A': Constant 'A' must be a constant expression: literals, other constants, operators on them and arrays of these.
+[line: 3] Error at 'A': Constant 'A' must be a constant: a literal, a const or operators on them, an enum variant, or an array, object, map() or set() of them.
+    3 | const A = f(); // Error at 'A': Constant 'A' must be a constant: a literal, a const or operators on them, an enum variant, or an array, object, map() or set() of them.
       |       ^
-[line: 4] Error at 'B': Constant 'B' must be a constant expression: literals, other constants, operators on them and arrays of these.
-    4 | const B = x; // Error at 'B': Constant 'B' must be a constant expression: literals, other constants, operators on them and arrays of these.
+[line: 4] Error at 'B': Constant 'B' must be a constant: a literal, a const or operators on them, an enum variant, or an array, object, map() or set() of them.
+    4 | const B = x; // Error at 'B': Constant 'B' must be a constant: a literal, a const or operators on them, an enum variant, or an array, object, map() or set() of them.
       |       ^
-[line: 5] Error at 'D': Constant 'D' must be a constant expression: literals, other constants, operators on them and arrays of these.
-    5 | const D = 1 % 0; // Error at 'D': Constant 'D' must be a constant expression: literals, other constants, operators on them and arrays of these.
+[line: 5] Error at 'D': Constant 'D' must be a constant: a literal, a const or operators on them, an enum variant, or an array, object, map() or set() of them.
+    5 | const D = 1 % 0; // Error at 'D': Constant 'D' must be a constant: a literal, a const or operators on them, an enum variant, or an array, object, map() or set() of them.
       |       ^

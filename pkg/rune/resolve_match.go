@@ -91,6 +91,14 @@ func (p *Resolver) resolvePattern(pat ast.Pattern) ast.Pattern {
 		p.resolveFields(n.Fields)
 	case *ast.ObjectPattern:
 		p.resolveFields(n.Fields)
+	case *ast.ArrayPattern:
+		for i, e := range n.Elems {
+			n.Elems[i] = p.resolvePattern(e)
+		}
+
+		if n.Rest != nil {
+			p.checkBind(n.Rest)
+		}
 	case *ast.VariantPattern:
 		return p.resolveVariantPattern(n)
 	}

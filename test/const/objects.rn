@@ -1,0 +1,33 @@
+const MB = 1024 * 1024;
+const UNITS = { ms: 1, s: 1000, m: 60 * 1000 };
+const SIZES = { KB: 1024, MB, limits: { body: 8 * MB, parts: [1, MB] } };
+const ROUTES = [{ path: "/", auth: false }, { path: "/admin", auth: true }];
+
+print(UNITS);                  // expect: {ms: 1, s: 1000, m: 60000}
+print(UNITS.s * 30);           // expect: 30000
+print(UNITS["m"]);             // expect: 60000
+print(SIZES.limits.body);      // expect: 8388608
+print(SIZES.limits.parts[1]);  // expect: 1048576
+print(ROUTES[1].path);         // expect: /admin
+print(UNITS.keys());           // expect: ["ms", "s", "m"]
+
+// Used before its declaration, and as a struct field's default.
+print(LATER.ok); // expect: true
+const LATER = { ok: true };
+
+struct Config { units = UNITS }
+print(Config {}.units.s); // expect: 1000
+
+// Every read shares the one object; a copy is a new one.
+let mut copy = { ...UNITS, h: 60 * UNITS.m };
+print(copy.h); // expect: 3600000
+print(UNITS.has("h")); // expect: false
+
+// Enum variants, map() and set() are constants too.
+enum Color { Red, Green }
+const DEFAULT = Color.Green;
+const PALETTE = { main: Color.Red, all: [Color.Red, DEFAULT] };
+const EMPTY = map();
+print(PALETTE.all);    // expect: [Color.Red, Color.Green]
+print(match Color.Green { DEFAULT => "default", _ => "other" }); // expect: default
+print(EMPTY.len());    // expect: 0

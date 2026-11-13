@@ -104,17 +104,11 @@ func (p *Resolver) resolveTopLevel(stmts []ast.Stmt) {
 		}
 	}
 
+	// Enums first, as constants and field defaults may name their
+	// variants; structs after the constants their defaults may name.
+	p.shapeStructs(stmts, true)
 	p.resolveConsts(stmts)
-
-	// Enums first, as field defaults may name their variants.
-	for _, enums := range []bool{true, false} {
-		for _, stmt := range stmts {
-			if s, ok := stmt.(*ast.StructStmt); ok && s.Enum == enums {
-				s.Shape = p.shape(s)
-				p.structs[p.mod.topLevel[s.Name.Lexeme]] = s.Shape
-			}
-		}
-	}
+	p.shapeStructs(stmts, false)
 
 	for _, stmt := range stmts {
 		if s, ok := stmt.(*ast.ImplStmt); ok {
@@ -124,6 +118,15 @@ func (p *Resolver) resolveTopLevel(stmts []ast.Stmt) {
 	}
 
 	p.resolveStmts(stmts)
+}
+
+func (p *Resolver) shapeStructs(stmts []ast.Stmt, enums bool) {
+	for _, stmt := range stmts {
+		if s, ok := stmt.(*ast.StructStmt); ok && s.Enum == enums {
+			s.Shape = p.shape(s)
+			p.structs[p.mod.topLevel[s.Name.Lexeme]] = s.Shape
+		}
+	}
 }
 
 // declareMain takes a top-level declaration of name as the entry point
@@ -660,6 +663,13 @@ func (p *Resolver) VisitOptionalExpr(expr *ast.OptionalExpr) (value.Value, error
 
 func (p *Resolver) VisitSpreadExpr(expr *ast.SpreadExpr) (value.Value, error) {
 	p.resolveExpr(expr.Expr)
+
+	return value.NilValue, nil
+}
+
+func (p *Resolver) VisitComputedExpr(expr *ast.ComputedExpr) (value.Value, error) {
+	p.resolveExpr(expr.Key)
+	p.resolveExpr(expr.Value)
 
 	return value.NilValue, nil
 }

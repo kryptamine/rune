@@ -1,6 +1,7 @@
 package stdlib
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -31,14 +32,49 @@ var jsonNatives = []*Native{
 
 		return v
 	}},
-	{"json.stringify", 1, 1, func(c *call) value.Value {
+	{"json.stringify", 1, 2, func(c *call) value.Value {
+		indent := ""
+		if c.has(1) {
+			indent = jsonIndent(c)
+		}
+
 		buf := appendJSON(c, nil, c.args[0], 0)
 		if !c.ok() {
 			return value.NilValue
 		}
 
+		if indent != "" {
+			// buf is JSON appendJSON made, which Indent cannot reject.
+			var out bytes.Buffer
+			_ = json.Indent(&out, buf, "", indent)
+			buf = out.Bytes()
+		}
+
 		return value.NewString(string(buf))
 	}},
+}
+
+// jsonIndent is stringify's indent: a number of spaces, or a string of
+// spaces and tabs, at most 10 either way.
+func jsonIndent(c *call) string {
+	switch v := c.args[1]; {
+	case v.IsNil():
+		return ""
+	case v.IsString():
+		s := v.Str()
+		if len(s) > 10 || strings.Trim(s, " \t") != "" {
+			c.fail(errors.ValueError, "indent must be at most 10 spaces or tabs, got %s.", helpers.Quoted(v))
+		}
+
+		return s
+	default:
+		n := c.int(1)
+		if c.ok() && (n < 0 || n > 10) {
+			c.fail(errors.ValueError, "indent must be 0 to 10 spaces, got %d.", n)
+		}
+
+		return strings.Repeat(" ", max(n, 0))
+	}
 }
 
 // parseJSON reads numbers without a fraction or an exponent as integers,

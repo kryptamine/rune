@@ -4,3 +4,6 @@
 [line: 2] Error at 'a': Cannot bind variables in '|' patterns.
     2 | match {} { { a } | { b: 1 } => 1 }; // [line: 2] Error at 'a': Cannot bind variables in '|' patterns.
       |              ^
+[line: 3] Error at 'a': Cannot bind variables in '|' patterns.
+    3 | match [1] { [a] | [1, 2] => 1 }; // [line: 3] Error at 'a': Cannot bind variables in '|' patterns.
+      |              ^

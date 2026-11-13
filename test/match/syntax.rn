@@ -2,5 +2,5 @@ match 1 { }; // [line: 1] Error at '}': Expect match arm.
 match 1 { { } => 1 }; // [line: 2] Error at '{': Expect property name in pattern.
 match 1 { 1 => 2 3 => 4 }; // [line: 3] Error at '3': Expect '}' after match arms.
 match 1 { 1 -> 2 }; // [line: 4] Error at '-': Expect '=>' after pattern.
-match 1 { [] => 1 }; // [line: 5] Error at '[': Expect pattern.
+match 1 { [...a, b] => 1 }; // [line: 5] Error at ',': Rest element must be last.
 match P {}; // [line: 6] Error at '}': Expect match arm.

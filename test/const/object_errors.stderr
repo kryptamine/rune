@@ -1,0 +1,21 @@
+[line: 3] Error at 'B': Constant 'B' must be a constant: a literal, a const or operators on them, an enum variant, or an array, object, map() or set() of them.
+    3 | const B = { b: x }; // Error at 'B': Constant 'B' must be a constant: a literal, a const or operators on them, an enum variant, or an array, object, map() or set() of them.
+      |       ^
+[line: 4] Error at 'C': Constant 'C' must be a constant: a literal, a const or operators on them, an enum variant, or an array, object, map() or set() of them.
+    4 | const C = { ...A }; // Error at 'C': Constant 'C' must be a constant: a literal, a const or operators on them, an enum variant, or an array, object, map() or set() of them.
+      |       ^
+[line: 5] Error at 'D': Constant 'D' must be a constant: a literal, a const or operators on them, an enum variant, or an array, object, map() or set() of them.
+    5 | const D = { ["d"]: 1 }; // Error at 'D': Constant 'D' must be a constant: a literal, a const or operators on them, an enum variant, or an array, object, map() or set() of them.
+      |       ^
+[line: 6] Error at 'A': Cannot mutate immutable variable 'A'.
+    6 | A.a = 2; // Error at 'A': Cannot mutate immutable variable 'A'.
+      | ^
+[line: 7] Error at 'A': Cannot mutate immutable variable 'A'.
+    7 | A["a"] = 2; // Error at 'A': Cannot mutate immutable variable 'A'.
+      | ^
+[line: 8] Error at 'A': Constant 'A' is a mutable object, which a pattern cannot test.
+    8 | match 1 { A => 1, _ => 2 } // Error at 'A': Constant 'A' is a mutable object, which a pattern cannot test.
+      |           ^
+[line: 10] Error at 'S': Constant 'S' is a mutable set, which a pattern cannot test.
+   10 | match 1 { S => 1, _ => 2 } // Error at 'S': Constant 'S' is a mutable set, which a pattern cannot test.
+      |           ^

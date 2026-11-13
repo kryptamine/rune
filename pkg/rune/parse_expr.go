@@ -591,7 +591,7 @@ func (s *Parser) braceList(dup, closeMsg string, item func() (string, ast.Token,
 
 		// Report but keep parsing: the parser is not in a confused state.
 		// A spread has no name.
-		if seen[name] && tok.TokenType != ast.DOT_DOT_DOT {
+		if name != "" && seen[name] {
 			s.errors = append(s.errors, errors.NewSyntaxError(tok, dup))
 		}
 
@@ -623,7 +623,20 @@ func (s *Parser) objectLiteral() (ast.Expr, error) {
 			return "", tok, err
 		}
 
+		var computed *ast.ComputedExpr
+
 		switch {
+		case s.match(ast.LEFT_BRACKET):
+			computed = &ast.ComputedExpr{Bracket: s.previous()}
+
+			var err error
+			if computed.Key, err = s.expressionWithStructs(structsAll); err != nil {
+				return "", computed.Bracket, err
+			}
+
+			if _, err := s.consume(ast.RIGHT_BRACKET, "Expect ']' after computed property name."); err != nil {
+				return "", computed.Bracket, err
+			}
 		case s.match(ast.IDENTIFIER):
 			key = s.previous().Lexeme
 		case s.match(ast.STRING):
@@ -644,6 +657,14 @@ func (s *Parser) objectLiteral() (ast.Expr, error) {
 		}
 
 		v, err := s.expressionWithStructs(structsAll)
+
+		if computed != nil {
+			computed.Value = v
+			pairs = append(pairs, ast.ObjectPair{Value: computed})
+
+			return "", tok, err
+		}
+
 		pairs = append(pairs, ast.ObjectPair{Key: key, Value: v})
 
 		return key, tok, err
@@ -822,9 +843,28 @@ func (s *Parser) isObjectLiteralStart() bool {
 
 	key, after := s.peekAt(1), s.peekAt(2)
 
-	return key == ast.DOT_DOT_DOT ||
+	return key == ast.DOT_DOT_DOT || key == ast.LEFT_BRACKET && s.computedKeyStart() ||
 		(key == ast.IDENTIFIER || key == ast.STRING) && after == ast.COLON ||
 		key == ast.IDENTIFIER && endsItem(after)
+}
+
+// computedKeyStart reports whether the "[" after the "{" closes before a
+// ':', as in { [key]: value }, rather than starting a block with an array.
+func (s *Parser) computedKeyStart() bool {
+	depth := 0
+
+	for i := 1; ; i++ {
+		switch s.peekAt(i) {
+		case ast.LEFT_BRACKET, ast.LEFT_PAREN, ast.LEFT_BRACE:
+			depth++
+		case ast.RIGHT_BRACKET, ast.RIGHT_PAREN, ast.RIGHT_BRACE:
+			if depth--; depth == 0 {
+				return s.peekAt(i+1) == ast.COLON
+			}
+		case ast.EOF, ast.SEMICOLON:
+			return false
+		}
+	}
 }
 
 // endsItem reports whether t ends an item of a brace list, as after a

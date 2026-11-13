@@ -27,6 +27,7 @@ type ExprVisitor interface {
 	VisitInterpolationExpr(interpolationExpr *InterpolationExpr) (value.Value, error)
 	VisitOptionalExpr(optionalExpr *OptionalExpr) (value.Value, error)
 	VisitSpreadExpr(spreadExpr *SpreadExpr) (value.Value, error)
+	VisitComputedExpr(computedExpr *ComputedExpr) (value.Value, error)
 	VisitConditionalExpr(conditionalExpr *ConditionalExpr) (value.Value, error)
 	VisitThrowExpr(throwExpr *ThrowExpr) (value.Value, error)
 	VisitJumpExpr(jumpExpr *JumpExpr) (value.Value, error)
@@ -302,8 +303,30 @@ func IsSpread(e Expr) bool {
 	return ok
 }
 
+// ComputedExpr is [key]: value, an item of an object literal.
+type ComputedExpr struct {
+	Bracket    Token
+	Key, Value Expr
+}
+
+func (n *ComputedExpr) Accept(v ExprVisitor) (value.Value, error) {
+	return v.VisitComputedExpr(n)
+}
+
+// Standalone reports whether e is an item a literal adds on its own, as
+// a spread or a computed property is, rather than in a run of plain ones.
+func Standalone(e Expr) bool {
+	switch e.(type) {
+	case *SpreadExpr, *ComputedExpr:
+		return true
+	}
+
+	return false
+}
+
 // ObjectPair is a single "key: value" entry of an object literal, or a
-// spread, whose Value is a *SpreadExpr.
+// spread or computed property, whose Value is a *SpreadExpr or a
+// *ComputedExpr.
 type ObjectPair struct {
 	Key   string
 	Value Expr

@@ -1,0 +1,3 @@
+[line: 1] Error at ',': Rest element must be last.
+    1 | match [1] { [_, _] => 1, [...rest, x] => 2 }; // [line: 1] Error at ',': Rest element must be last.
+      |                                  ^

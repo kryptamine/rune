@@ -170,7 +170,7 @@ func (s *Parser) patternField() (ast.DestructureField, error) {
 		return f, err
 	}
 
-	f.Default, err = s.patternDefault(false)
+	f.Default, err = s.patternDefault(f.Discards())
 
 	return f, err
 }

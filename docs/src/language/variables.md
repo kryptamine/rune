@@ -92,7 +92,7 @@ print(scores);    // [70, 95, 80]
 
 `const` names a value known before the program runs: a number, string,
 `true`, `false` or `nil`, written as a literal or computed from other
-constants with operators, or an array of such values. A constant costs
+constants with operators, or an array or object of such values. A constant costs
 nothing to read: each use is the value itself. Constants are declared at
 the top level only, can be used before their declaration, as a struct
 field's default, and [exported](../programs/modules.md).
@@ -102,14 +102,16 @@ const KB = 1 << 10;
 const LIMIT = 4 * KB;
 const UNIT = "bytes";
 const SIZES = [KB, LIMIT, [0, -KB]];
+const UNITS = { KB, MB: KB * KB, limits: { body: 8 * KB } };
 
 print("{LIMIT} {UNIT}");    // 4096 bytes
 print(SIZES);               // [1024, 4096, [0, -1024]]
+print(UNITS.limits.body);   // 8192
 ```
 
 ```rune
 let size = 4;
-const LIMIT = size * 2;    // Error at 'LIMIT': Constant 'LIMIT' must be a constant expression: literals, other constants, operators on them and arrays of these.
+const LIMIT = size * 2;    // Error at 'LIMIT': Constant 'LIMIT' must be a constant: a literal, a const or operators on them, an enum variant, or an array, object, map() or set() of them.
 ```
 
 ```rune
@@ -117,13 +119,13 @@ const LIMIT = 10;
 LIMIT = 20;    // Error at 'LIMIT': Cannot assign to constant 'LIMIT'.
 ```
 
-A constant array is one array, shared by every read. Like an array held
-by a `let` it cannot be changed through its name, but still changes
-through a mutable reference to it. An object is no constant; hold it in
-a `let`.
+A constant array or object is one value, shared by every read. Like
+one held by a `let` it cannot be changed through its name, but still
+changes through a mutable reference to it. Spreads and computed keys
+are not constant.
 
 In a [pattern](pattern-matching.md#patterns) a constant's name tests for
-its value; an array constant cannot be one.
+its value; an array or object constant cannot be one.
 
 ## Scopes
 

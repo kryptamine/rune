@@ -12,6 +12,8 @@ print("%x %X %o %b %+d".format(255, 255, 8, 5, 3)); // expect: ff FF 10 101 +3
 print("%v %s %q".format([1, "a"], nil, "hi")); // expect: [1, "a"] nil "hi"
 print("100%% %v".format(true)); // expect: 100% true
 print("%.2s".format("héllo")); // expect: hé
+print("[%*s][%-*s][%*s]".format(4, "ab", 4, "é", -4, "x")); // expect: [  ab][é   ][x   ]
+print("[%.*f][%*.*f][%0*d]".format(2, 3.14159, 7, 1, 2.25, 5, 42)); // expect: [3.14][    2.2][00042]
 
 try { "ab".charCode(2); } catch e is IndexError { print(e.message); } // expect: string.charCode() index 2 out of bounds of 2 characters.
 try { string.fromCharCode(55296); } catch e is ValueError { print(e.message); } // expect: string.fromCharCode() 55296 is not a valid character code.
@@ -23,3 +25,7 @@ try { "%f".format("x"); } catch e is TypeError { print(e.message); } // expect: 
 try { "%y".format(1); } catch e is ValueError { print(e.message); } // expect: string.format() unknown verb '%y'.
 try { "abc %5".format(); } catch e is ValueError { print(e.message); } // expect: string.format() incomplete directive '%5' at 4.
 try { "%99999d".format(1); } catch e is ValueError { print(e.message); } // expect: string.format() bad directive '%99999d' at 0.
+try { "%*s".format("4", "a"); } catch e is TypeError { print(e.message); } // expect: string.format() expects an integer as argument 1, got string.
+try { "%*s".format(10000, "a"); } catch e is ValueError { print(e.message); } // expect: string.format() '%*s' at 0 got 10000 for '*', out of range -9999 to 9999.
+try { "%*s".format(3); } catch e is ArgumentError { print(e.message); } // expect: string.format() '%*s' at 0 has no argument.
+try { "%1*s".format(3, "a"); } catch e is ValueError { print(e.message); } // expect: string.format() bad directive '%1*s' at 0.

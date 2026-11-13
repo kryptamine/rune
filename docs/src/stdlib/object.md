@@ -1,5 +1,20 @@
 # Object Methods
 
+A key in brackets is computed: its value, a string, is the key.
+
+```rune
+fun counter(name) { return { [name]: 0, [name + "Max"]: 10 }; }
+print(counter("retries")); // {retries: 0, retriesMax: 10}
+
+let fields = ["host", "port"].map(f => ({ [f]: nil }));
+print(fields);              // [{host: nil}, {port: nil}]
+```
+
+```rune
+print({ [1]: "one" }); // TypeError: Object properties must be accessed with string keys.
+```
+
+
 - `has(k)` — whether the object has the key `k`.
 - `get(k[, default])` — the value of `k`, or `default` (`nil` if not given) when missing; `obj[k]` and `obj.k` are a `KeyError` instead.
 - `keys()`, `values()`, `entries()` — new arrays of the keys, the values, or `[key, value]` pairs, in the order the keys were added, as `for` walks them.

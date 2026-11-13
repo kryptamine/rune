@@ -144,6 +144,8 @@ func (s *Parser) patternAlt() (ast.Pattern, error) {
 		}
 
 		return &ast.ObjectPattern{Brace: brace, Fields: fields}, err
+	case s.match(ast.LEFT_BRACKET):
+		return s.arrayMatchPattern()
 	case s.check(ast.MUT):
 		b, err := s.binding("Expect variable name.")
 		if err != nil {
@@ -189,6 +191,46 @@ func (s *Parser) patternAlt() (ast.Pattern, error) {
 	}
 
 	return nil, errors.NewSyntaxError(s.peek(), "Expect pattern.")
+}
+
+// arrayMatchPattern parses [p, q, ...rest] after the "[".
+func (s *Parser) arrayMatchPattern() (ast.Pattern, error) {
+	pat := &ast.ArrayPattern{Bracket: s.previous()}
+
+	for !s.check(ast.RIGHT_BRACKET) && !s.isAtEnd() {
+		if s.match(ast.DOT_DOT_DOT) {
+			b, err := s.binding("Expect variable name.")
+			if err != nil {
+				return nil, err
+			}
+
+			pat.Open = true
+			if !b.Discards() {
+				pat.Rest = &ast.BindPattern{Binding: b}
+			}
+
+			if !s.check(ast.RIGHT_BRACKET) {
+				return nil, errors.NewSyntaxError(s.peek(), "Rest element must be last.")
+			}
+
+			break
+		}
+
+		p, err := s.matchPattern()
+		if err != nil {
+			return nil, err
+		}
+
+		pat.Elems = append(pat.Elems, p)
+
+		if !s.match(ast.COMMA) {
+			break
+		}
+	}
+
+	_, err := s.consume(ast.RIGHT_BRACKET, "Expect ']' after pattern.")
+
+	return pat, err
 }
 
 // typePattern parses an optional 'is T | U' after the pattern p, a name or _.

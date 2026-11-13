@@ -42,7 +42,10 @@ after an arrow function's `=>`, braces that look like an object are one:
 - `Color.White` matches that [enum](../data/enums.md) variant;
 - `Point { x, y: 0 }` tests the type, then matches the listed fields;
 - `{ key, "other key": p }` matches an object, or a struct, that has the
-  keys; other keys are allowed and a missing one is no match.
+  keys; other keys are allowed and a missing one is no match;
+- `[p, q]` matches an array of exactly that many elements, `[p, ...rest]`
+  one of at least as many, `rest` taking the others as a new array
+  (`..._` ignores them).
 
 Struct patterns test the type and the fields at once:
 
@@ -93,6 +96,32 @@ match event {
     _ => {}
 }
 ```
+
+Array patterns suit tuples, command lines and `entries()` pairs:
+
+```rune
+fun run(args) {
+    return match args {
+        [] => "usage: tool <command>",
+        ["add", name] => "adding " + name,
+        ["rm", first, ...more] => "removing {first} and {more.len()} more",
+        [cmd, ..._] => "unknown command " + cmd,
+    };
+}
+
+print(run([]));                   // usage: tool <command>
+print(run(["add", "milk"]));      // adding milk
+print(run(["rm", "a", "b"]));     // removing a and 1 more
+print(run(["ls", "-l"]));         // unknown command ls
+
+for pair in map({ ok: 3, failed: 0 }).entries() {
+    print(match pair { [k, 0] => "{k}: none", [k, n] => "{k}: {n}" });
+}
+// ok: 3
+// failed: none
+```
+
+Anything but an array, a string included, is no match.
 
 A bare struct name would bind, so it is an error:
 

@@ -7,3 +7,6 @@
 [line: 3] Error at '=': A rest element or _ cannot have a default.
     3 | let [...r = 1] = []; // Error at '=': A rest element or _ cannot have a default.
       |           ^
+[line: 4] Error at '=': A rest element or _ cannot have a default.
+    4 | let { v: _ = 1 } = {}; // Error at '=': A rest element or _ cannot have a default.
+      |            ^

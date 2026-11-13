@@ -1,3 +1,4 @@
 let [a = 1, b] = [1, 2]; // Error at 'b': An element without a default cannot follow one with a default.
 let [_ = 1] = []; // Error at '=': A rest element or _ cannot have a default.
 let [...r = 1] = []; // Error at '=': A rest element or _ cannot have a default.
+let { v: _ = 1 } = {}; // Error at '=': A rest element or _ cannot have a default.
