@@ -60,6 +60,10 @@ type Resolver struct {
 	self   *varUses
 	selves []*varUses
 	locals map[*ast.Local]*varUses
+	// consts holds the constants of the file being resolved, and how far
+	// each one's value is; constDecls finds them by declaration.
+	consts     map[*ast.VarStmt]constState
+	constDecls map[*ast.Local]*ast.VarStmt
 }
 
 func NewResolver() *Resolver {
@@ -100,6 +104,8 @@ func (p *Resolver) resolveTopLevel(stmts []ast.Stmt) {
 			p.mod.topLevel[s.Name.Lexeme] = &ast.Local{TopLevel: true}
 		}
 	}
+
+	p.resolveConsts(stmts)
 
 	// Enums first, as field defaults may name their variants.
 	for _, enums := range []bool{true, false} {
@@ -153,6 +159,17 @@ func (p *Resolver) VisitExprStmt(exprStmt *ast.ExprStmt) error {
 }
 
 func (p *Resolver) VisitVarStmt(stmt *ast.VarStmt) error {
+	if stmt.Const {
+		if _, topLevel := p.consts[stmt]; !topLevel {
+			p.error(stmt.Name, "Constants must be declared at the top level.")
+		}
+
+		stmt.Local = p.declare(stmt.Binding)
+		p.define(stmt.Name)
+
+		return nil
+	}
+
 	stmt.Local = p.declare(stmt.Binding)
 	p.trackLocal(stmt.Binding, stmt.Local)
 
@@ -359,9 +376,11 @@ func (p *Resolver) shape(s *ast.StructStmt) *value.Shape {
 
 		var def value.Value
 		if f.Default != nil {
+			p.resolveExpr(f.Default)
+
 			var ok bool
 			if def, ok = p.constantOf(f.Default); !ok {
-				p.error(f.DefaultAt, "Field default must be a constant: a literal, an enum variant, or an array, object, map() or set() of them.")
+				p.error(f.DefaultAt, "Field default must be a constant: a literal, a const, an enum variant, or an array, object, map() or set() of them.")
 			}
 		}
 		fields[i] = value.Field{Name: name, Default: def, Required: f.Default == nil}
@@ -767,7 +786,10 @@ func (p *Resolver) VisitObjectExpr(expr *ast.ObjectExpr) (value.Value, error) {
 
 // requireMutable reports name if it is bound immutably; verb says what was tried.
 func (p *Resolver) requireMutable(name ast.Token, verb string) {
-	if !p.isMutable(name.Lexeme) {
+	switch {
+	case p.constNamed(name.Lexeme) != nil:
+		p.error(name, "Cannot "+verb+" constant '"+name.Lexeme+"'.")
+	case !p.isMutable(name.Lexeme):
 		p.error(name, "Cannot "+verb+" immutable variable '"+name.Lexeme+"'.")
 	}
 }

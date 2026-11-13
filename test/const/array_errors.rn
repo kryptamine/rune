@@ -1,0 +1,8 @@
+let x = 1;
+const A = [1, 2];
+const B = [1, [x]]; // Error at 'B': Constant 'B' must be a constant expression: literals, other constants, operators on them and arrays of these.
+const C = [...A]; // Error at 'C': Constant 'C' must be a constant expression: literals, other constants, operators on them and arrays of these.
+const D = [D]; // Error at 'D': Constant 'D' depends on itself.
+A.push(3); // Error at 'A': Cannot mutate immutable variable 'A'.
+A[0] = 3; // Error at 'A': Cannot mutate immutable variable 'A'.
+match 1 { A => 1, _ => 2 } // Error at 'A': Constant 'A' is an array, which a pattern cannot test.

@@ -1,0 +1,2 @@
+const A = 1;
+const A = 2; // Error at 'A': Variable with this name already declared in this scope.

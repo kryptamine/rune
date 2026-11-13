@@ -1,0 +1,29 @@
+const BISHOP = [-11, -9, 9, 11];
+const SLIDES = [nil, BISHOP, ROOK, [N * 2, "x"]];
+const ROOK = [-N, -1, 1, N];
+const N = 10;
+const EMPTY = [];
+
+fun total(dirs) {
+    let mut sum = 0;
+    for d in dirs { sum += d * d; }
+    return sum;
+}
+
+print(SLIDES); // expect: [nil, [-11, -9, 9, 11], [-10, -1, 1, 10], [20, "x"]]
+print(total(ROOK)); // expect: 202
+print([BISHOP[1], BISHOP.len(), EMPTY.len()]); // expect: [-9, 4, 0]
+print(BISHOP.map(d => d + 1)); // expect: [-10, -8, 10, 12]
+print(BISHOP.append(0)); // expect: [-11, -9, 9, 11, 0]
+print(BISHOP); // expect: [-11, -9, 9, 11]
+
+// Every read is the same array.
+fun bishop() { return BISHOP; }
+let mut alias = bishop();
+alias.push(0);
+print(SLIDES[1]); // expect: [-11, -9, 9, 11, 0]
+
+struct Piece { dirs = ROOK, reach = N * 2 }
+let mut p = Piece {};
+p.dirs.push(0);
+print([p.dirs.len(), ROOK.len(), p.reach]); // expect: [5, 4, 20]

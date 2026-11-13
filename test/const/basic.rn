@@ -1,0 +1,31 @@
+fun area(r) { return PI2 * r + ZERO; }
+fun cmp(x) { return LIMIT > x; }
+
+const LIMIT = ZERO + 3;
+const ZERO = 0;
+const PI2 = 2 * 3;
+const NAME = "ab" + "c";
+const MASK = ~(1 << 4) & 0xFF;
+const ON = !false;
+const NONE = nil;
+let mut count = LIMIT;
+
+print(area(2)); // expect: 12
+print(cmp(2)); // expect: true
+print(cmp(3)); // expect: false
+print(5 + count + 0.5); // expect: 8.5
+print([NAME, NAME.len(), "{NAME}!"]); // expect: ["abc", 3, "abc!"]
+print([MASK, -LIMIT, ON, NONE]); // expect: [239, -3, true, nil]
+print(LATE); // expect: 1
+
+for i in ZERO..LIMIT step 2 { print(i); }
+// expect: 0
+// expect: 2
+
+fun shadow() {
+    let LIMIT = "local";
+    return LIMIT;
+}
+print(shadow()); // expect: local
+
+const LATE = 1;

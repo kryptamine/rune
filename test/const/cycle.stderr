@@ -1,0 +1,3 @@
+[line: 2] Error at 'A': Constant 'A' depends on itself.
+    2 | const B = A; // Error at 'A': Constant 'A' depends on itself.
+      |           ^

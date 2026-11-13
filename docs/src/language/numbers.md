@@ -80,9 +80,9 @@ for `>>` of a negative), and a negative one is a `ValueError`. They bind tighter
 `&=`, `|=`, `^=`, `<<=`, `>>=`, `>>>=`.
 
 ```rune
-let READ = 0b001;
-let WRITE = 0b010;
-let EXEC = 0b100;
+const READ = 0b001;
+const WRITE = 0b010;
+const EXEC = 0b100;
 
 let mut perms = READ | WRITE;
 print(perms);                     // 3

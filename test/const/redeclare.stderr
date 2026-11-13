@@ -1,0 +1,4 @@
+[line: 2] Error at 'A': Variable with this name already declared in this scope.
+    2 | const A = 2; // Error at 'A': Variable with this name already declared in this scope.
+      |       ^
+  note: first declared at line 1

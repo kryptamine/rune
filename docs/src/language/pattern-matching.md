@@ -30,6 +30,9 @@ after an arrow function's `=>`, braces that look like an object are one:
 - `_` matches anything;
 - a name binds the value (`mut name` mutably); a struct type's name is
   an error, test the type with `is`;
+- the name of a [constant](variables.md#constants), `LIMIT` or `m.LIMIT`,
+  matches its value, as the literal would; as a bare key in `{ LIMIT }`,
+  or after `mut`, it still binds;
 - `name is T` and `_ is T` test the value is a `T`, a struct type or a
   built-in one like `string` or `nil`, `_ is T | U` one of them, the same
   [test](values.md#type-tests) as `v is T` and `catch e is T`;

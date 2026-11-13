@@ -83,7 +83,7 @@ func (fs *funcState) ref(e ast.Expr, later ...ast.Expr) *lval {
 
 	switch n := e.(type) {
 	case *ast.VarExpr:
-		if n.Module == nil && n.Local != nil {
+		if n.Module == nil && n.Local != nil && !n.Local.IsConst {
 			lv.v = n
 		}
 	case *ast.IndexExpr:

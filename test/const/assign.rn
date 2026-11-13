@@ -1,0 +1,3 @@
+const A = 1;
+A = 2; // Error at 'A': Cannot assign to constant 'A'.
+A++; // Error at 'A': Cannot assign to constant 'A'.

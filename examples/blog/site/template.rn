@@ -34,7 +34,7 @@ export fun postLink(p, root = ".") {
     return """<li><time>{p.date}</time> <a href="{root}/posts/{p.slug}.html">{inline.escape(p.title)}</a> {tags}</li>""";
 }
 
-export let STYLE = r"""
+export const STYLE = r"""
     body { font: 16px/1.6 system-ui, sans-serif; max-width: 42rem; margin: 2rem auto; padding: 0 1rem; }
     pre { background: #f4f4f4; padding: .75rem; overflow-x: auto; }
     code { font-family: ui-monospace, monospace; }

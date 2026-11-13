@@ -1,0 +1,3 @@
+[line: 2] Error at 'X': Constants must be declared at the top level.
+    2 |   const X = 1; // Error at 'X': Constants must be declared at the top level.
+      |         ^

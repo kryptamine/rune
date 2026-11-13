@@ -64,8 +64,7 @@ type Local struct {
 	// that tracks whether it holds a struct of its own, which it changes
 	// in place.
 	Owned bool
-	// Const is the value every read of a top-level constant folds to, if
-	// IsConst: an immutable one given a literal before any code runs.
+	// Const is the value every read of a constant folds to, if IsConst.
 	Const   value.Value
 	IsConst bool
 }

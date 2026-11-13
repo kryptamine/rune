@@ -45,17 +45,22 @@ func reachedAll(arm *ast.MatchArm) bool {
 	return arm.Guard == nil && ast.Irrefutable(arm.Pattern)
 }
 
-// resolvePattern returns pat with each bare name replaced by a test of the
-// struct type it names, or else a binding.
+// resolvePattern returns pat with each bare name of a constant replaced by
+// a test of its value; any other bare name binds.
 func (p *Resolver) resolvePattern(pat ast.Pattern) ast.Pattern {
 	switch n := pat.(type) {
 	case *ast.BindPattern:
-		if name := n.Name.Lexeme; p.structNamed(name) != nil {
-			p.error(n.Name, "'"+name+"' is a struct type; test it with '_ is "+name+"'.")
+		if l := p.constNamed(n.Name.Lexeme); l != nil && !n.Mutable {
+			return p.constPattern(n.Name, l)
 		}
+
+		p.checkBind(n)
 	case *ast.TypePattern:
 		n.Shapes = p.resolveTypes(n.Types)
-		n.Inner = p.resolvePattern(n.Inner)
+
+		if b, ok := n.Inner.(*ast.BindPattern); ok {
+			p.checkBind(b)
+		}
 	case *ast.OrPattern:
 		for i, alt := range n.Alts {
 			n.Alts[i] = p.resolvePattern(alt)
@@ -150,7 +155,17 @@ func (p *Resolver) kindType(t ast.Expr) *value.Shape {
 
 func (p *Resolver) resolveFields(fields []ast.FieldPattern) {
 	for i := range fields {
-		fields[i].Pattern = p.resolvePattern(fields[i].Pattern)
+		if f := &fields[i]; f.Shorthand {
+			p.checkBind(f.Pattern.(*ast.BindPattern))
+		} else {
+			f.Pattern = p.resolvePattern(f.Pattern)
+		}
+	}
+}
+
+func (p *Resolver) checkBind(n *ast.BindPattern) {
+	if name := n.Name.Lexeme; p.structNamed(name) != nil {
+		p.error(n.Name, "'"+name+"' is a struct type; test it with '_ is "+name+"'.")
 	}
 }
 

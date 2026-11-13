@@ -6,7 +6,7 @@ exit: 0
     2  LOADK         3 0 0
     3  LOADK         4 0 1
     4  LOADK         1 0 2
-    5  LOADK         2 0 3
+    5  ADDK          1 1 3
     6  ADDK          1 1 4
     7  MULK          1 1 5
     8  LOADK         5 0 7

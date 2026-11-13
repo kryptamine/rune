@@ -1,0 +1,30 @@
+const PAWN = 1;
+const KING = 6;
+const NAME = "king";
+
+fun kind(p) {
+    return match p {
+        PAWN => "pawn",
+        KING | NAME => "king",
+        other => "other {other}",
+    };
+}
+
+print(kind(1)); // expect: pawn
+print(kind(6)); // expect: king
+print(kind("king")); // expect: king
+print(kind(2)); // expect: other 2
+
+// A shorthand key, mut and a local still bind.
+match { PAWN: 5, piece: 6 } {
+    { PAWN, piece: KING } => print(PAWN), // expect: 5
+    _ => print("no"),
+}
+
+print(match 9 { mut PAWN => PAWN }); // expect: 9
+
+fun local() {
+    let KING = 0;
+    return match 3 { KING => KING };
+}
+print(local()); // expect: 3

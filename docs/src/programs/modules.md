@@ -1,7 +1,8 @@
 # Modules
 
 A program can be split into files. Each file has its own top level: names
-it declares are private unless marked `export` (`fun`, `let`, `struct`),
+it declares are private unless marked `export` (`fun`, `let`, `const`,
+`struct`, `enum`),
 and another file reaches them only through the module, as `m.name`.
 
 A small shop, in three files:

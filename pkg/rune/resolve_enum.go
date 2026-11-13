@@ -79,6 +79,10 @@ func (p *Resolver) resolveVariantPattern(n *ast.VariantPattern) ast.Pattern {
 	t := &ast.VarExpr{Module: n.Module, Name: n.Enum}
 
 	if n.Module == nil && p.isModule(t) {
+		if l := p.mod.imports[n.Enum.Lexeme].exports[n.Variant.Lexeme]; l != nil && l.IsConst {
+			return p.constPattern(n.Variant, l)
+		}
+
 		p.error(n.Variant, "Expect '{' after struct name; test the type with '_ is "+n.Enum.Lexeme+"."+n.Variant.Lexeme+"'.")
 		return missing
 	}

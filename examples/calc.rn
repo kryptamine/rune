@@ -17,7 +17,7 @@ struct FunDef { name, params, body }
 
 struct CalcError { message, pos = nil }
 
-let TOKEN_RE = "(?P<num>\\d+(?:\\.\\d+)?)|(?P<id>[a-zA-Z_]\\w*)|(?P<op>\\*\\*|[-+*/%^(),=])|(?P<bad>\\S)";
+const TOKEN_RE = "(?P<num>\\d+(?:\\.\\d+)?)|(?P<id>[a-zA-Z_]\\w*)|(?P<op>\\*\\*|[-+*/%^(),=])|(?P<bad>\\S)";
 
 fun tokenize(src) {
     let mut tokens = [];
@@ -213,7 +213,7 @@ fun run(mut env, line) {
     }
 }
 
-let DEMO = [
+const DEMO = [
     "1 + 2 * 3",
     "(1 + 2) * 3",
     "2 ^ 3 ^ 2",
