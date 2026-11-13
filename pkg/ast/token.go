@@ -13,6 +13,8 @@ type Token struct {
 	Col int
 	// File indexes the program's files; 0 is the entry file.
 	File int
+	// Offset is the byte offset of the token's start in its file.
+	Offset int
 }
 
 func NewToken(tokenType TokenType, lexeme string, literal string, line int) Token {

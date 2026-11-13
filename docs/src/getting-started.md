@@ -65,6 +65,7 @@ hello, ann!
 - `evaluate` — evaluates a single expression in the file and prints its value.
 - `tokenize` — prints the tokens of the file.
 - `disasm` — prints the bytecode the file compiles to.
+- `fmt` — prints the file formatted; `fmt -w <path>...` rewrites files and directories in place, `fmt --check <path>...` lists the unformatted ones and exits 1.
 - `version` — prints the interpreter's version.
 
 ```sh

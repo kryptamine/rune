@@ -15,4 +15,4 @@ Each `test/**/*.rn` script runs in-process, in parallel, with a 5s timeout. Dire
 - `// expect runtime error: [line: N] <message>` — uncaught runtime error.
 
 `foo.stderr` next to `foo.rn` holds the full error report (snippet, caret, trace); a missing file means empty stderr.
-`testdata/<command>/*.rn` are run through the CLI command (`tokenize`, `evaluate`, `run`, `disasm`) and compared with `.golden` files: exit code, stdout and stderr.
+`testdata/<command>/*.rn` are run through the CLI command (`tokenize`, `evaluate`, `run`, `disasm`, `fmt`) and compared with `.golden` files: exit code, stdout and stderr.

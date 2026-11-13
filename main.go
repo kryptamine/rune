@@ -46,6 +46,7 @@ func printUsage() {
 	fmt.Fprintf(os.Stderr, "  evaluate  - Evaluates a single expression from the input file\n")
 	fmt.Fprintf(os.Stderr, "  run       - Runs the program from the input file\n")
 	fmt.Fprintf(os.Stderr, "  disasm    - Prints the bytecode of the program in the input file\n")
+	fmt.Fprintf(os.Stderr, "  fmt       - Formats the input files; -w rewrites them, --check lists unformatted ones\n")
 	fmt.Fprintf(os.Stderr, "  version   - Prints the version of the interpreter\n")
 	os.Exit(1)
 }
@@ -55,6 +56,7 @@ var commands = map[string]func(stdout, stderr io.Writer, path string, src []byte
 	"evaluate": evaluate,
 	"run":      run,
 	"disasm":   disasm,
+	"fmt":      formatFile,
 }
 
 // soleFile is src as the one file of a program.
@@ -179,6 +181,10 @@ func main() {
 	if len(os.Args) < 3 {
 		printUsage()
 		return
+	}
+
+	if flag := os.Args[2]; command == "fmt" && (flag == "-w" || flag == "--check") {
+		os.Exit(formatPaths(os.Stdout, os.Stderr, flag == "--check", os.Args[3:]))
 	}
 
 	fileName := os.Args[2]
