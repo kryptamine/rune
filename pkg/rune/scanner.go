@@ -256,7 +256,7 @@ func (s *Scanner) addTokenWithLiteral(tokenType ast.TokenType, literal string) {
 	lexeme := s.source[s.start:s.current]
 
 	token := ast.NewToken(tokenType, lexeme, literal, s.startLine)
-	token.Col, token.File = s.startCol, s.file
+	token.Col, token.File, token.Offset = s.startCol, s.file, s.start
 	s.tokens = append(s.tokens, token)
 	s.endLine, s.endCol = s.line, s.col(s.current)
 }
@@ -358,6 +358,23 @@ func (s *Scanner) string(isBytes, triple bool) {
 	s.current += helpers.If(triple, 3, 1)
 	piece(end)
 	text.dedent(s, line, col)
+}
+
+// StringEnd is the index of the STRING_END closing the interpolated
+// string whose first piece is tokens[i]. Every piece after a string's
+// first starts with the '}' that ends an interpolation.
+func StringEnd(tokens []ast.Token, i int) int {
+	depth := 0
+	for ; ; i++ {
+		switch t := tokens[i]; {
+		case t.TokenType == ast.INTERPOLATION && !strings.HasPrefix(t.Lexeme, "}"):
+			depth++
+		case t.TokenType == ast.STRING_END:
+			if depth--; depth == 0 {
+				return i
+			}
+		}
+	}
 }
 
 // tripleQuote reports whether the '"' just scanned opens a """ string,

@@ -1,0 +1,22 @@
+exit: 0
+-- stdout --
+// header
+
+struct P { x, y } // point
+let a = 1;        // one
+let bb = 22;      // two
+
+fun f(x) {
+    // leading
+
+    if x {
+        return 1; // early
+    }
+    // before else
+    else {
+        return 2;
+    }
+
+    // dangling
+}
+-- stderr --

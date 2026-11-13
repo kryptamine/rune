@@ -1,0 +1,6 @@
+exit: 65
+-- stdout --
+-- stderr --
+[line: 1] Error: Unterminated string.
+    1 | let s = "unterminated;
+      |         ^

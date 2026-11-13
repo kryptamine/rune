@@ -21,7 +21,7 @@ fun createList(arr) {
             tail = node;
         }
     }
-    
+
     tail["next"] = nil;
 
     return head;
@@ -61,4 +61,3 @@ list = reverseList(list);
 
 print("Reversed list: ");
 printList(list);
-
