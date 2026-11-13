@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-const version = "0.1"
+var version = "dev"
 
 const (
 	exitCodeOk         = 0
