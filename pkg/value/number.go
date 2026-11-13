@@ -122,6 +122,7 @@ const (
 	BitXor
 	BitShl
 	BitShr
+	BitUshr
 )
 
 // IntArith applies op to integers; ok is false on overflow and for % 0.
@@ -175,8 +176,10 @@ func Bitwise(op Bit, a, b int64) (Value, bool) {
 		return NewInt(a ^ b), true
 	case BitShl:
 		return NewInt(a << uint64(b)), b >= 0
-	default:
+	case BitShr:
 		return NewInt(a >> uint64(b)), b >= 0
+	default:
+		return NewInt(int64(uint64(a) >> uint64(b))), b >= 0
 	}
 }
 

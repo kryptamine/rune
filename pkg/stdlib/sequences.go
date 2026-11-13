@@ -1,6 +1,8 @@
 package stdlib
 
 import (
+	"math"
+	"rune/pkg/errors"
 	"rune/pkg/helpers"
 	"rune/pkg/value"
 	"slices"
@@ -14,6 +16,20 @@ var arraySequenceMethods = []*Native{
 		start, end := sliceBounds(c, len(items))
 
 		return value.NewArray(slices.Clone(items[start:end]))
+	}},
+	{"array.repeat", 2, 2, func(c *call) value.Value {
+		items, n := c.arr(0), c.int(1)
+
+		switch {
+		case !c.ok():
+			return value.NilValue
+		case n < 0:
+			return c.fail(errors.ValueError, "count must not be negative.")
+		case len(items) > 0 && n > math.MaxInt32/len(items):
+			return c.fail(errors.ValueError, "result is too large.")
+		}
+
+		return value.NewArray(slices.Repeat(items, n))
 	}},
 	{"array.reverse", 1, 1, func(c *call) value.Value {
 		out := slices.Clone(c.arr(0))

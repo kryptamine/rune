@@ -17,10 +17,10 @@ print(type(x => x * 2));       // function
 
 ## Type Tests
 
-`v is T` tests that `v` is of type `T`: a struct type, or one of the
-built-in `nil`, `boolean`, `number`, `string`, `array`, `object`,
-`function`, `map`, `set`, `bytes`, `stream` and `struct`, which is what
-`type` says of a struct type itself. It has the precedence of `==`; the
+`v is T` tests that `v` is of type `T`: a struct or enum type, or one of
+the built-in `nil`, `boolean`, `number`, `string`, `array`, `object`,
+`function`, `map`, `set`, `bytes`, `stream`, `struct` and `enum`, which
+are what `type` says of a struct type and an enum type themselves. It has the precedence of `==`; the
 same test is `name is T` in [match](pattern-matching.md) and `catch e is T`.
 
 ```rune

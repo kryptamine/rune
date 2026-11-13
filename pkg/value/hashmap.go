@@ -75,7 +75,7 @@ func keyOf(k Value) (hashKey, error) {
 		return hashKey{tag: tagString, s: k.Str()}, nil
 	case Bytes:
 		return hashKey{tag: tagBytes, s: string(k.Bytes())}, nil
-	case Function, Type:
+	case Function, Type, Enum:
 		return hashKey{tag: tagRef, p: k.p, n: k.n}, nil
 	case Struct:
 		buf, err := appendStructKey(nil, k, 0)

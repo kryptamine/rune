@@ -35,6 +35,7 @@ after an arrow function's `=>`, braces that look like an object are one:
   [test](values.md#type-tests) as `v is T` and `catch e is T`;
 - literals: numbers, strings, `true`, `false`, `nil`, compared as by `==`;
 - `p | q` matches if either does;
+- `Color.White` matches that [enum](../data/enums.md) variant;
 - `Point { x, y: 0 }` tests the type, then matches the listed fields;
 - `{ key, "other key": p }` matches an object, or a struct, that has the
   keys; other keys are allowed and a missing one is no match.

@@ -1,0 +1,6 @@
+enum Dir { North, East }
+
+print(Dir.East.name);                  // expect: East
+print(Dir.values().map(d => d.name));  // expect: ["North", "East"]
+print(Dir(Dir.North.name));            // expect: Dir.North
+print("facing {Dir.East.name}");       // expect: facing East

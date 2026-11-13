@@ -1,0 +1,3 @@
+[line: 3] Error at 'B': C has no variant 'B'.
+    3 | print(match C.A { C.B => 1, _ => 2 });
+      |                     ^

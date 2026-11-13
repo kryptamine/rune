@@ -158,6 +158,8 @@ func appendJSON(c *call, buf []byte, v value.Value, depth int) []byte {
 		return appendJSONPairs(c, buf, v.Obj().All(), depth)
 	case value.Struct:
 		return appendJSONPairs(c, buf, v.FieldPairs(), depth)
+	case value.Enum:
+		return appendJSON(c, buf, value.NewString(v.Variant().Name), depth)
 	case value.Set:
 		return appendJSON(c, buf, keysOf(v.HashMap()), depth)
 	case value.Map:

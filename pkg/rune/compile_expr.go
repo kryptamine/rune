@@ -476,6 +476,11 @@ func (fs *funcState) assign(n *ast.AssignExpr) int32 {
 
 	if kind == varLocal && !checked {
 		fs.assignLocal(n, r)
+
+		if n.Local.Owned {
+			fs.ownership(r+1, n.Value)
+		}
+
 		return r
 	}
 

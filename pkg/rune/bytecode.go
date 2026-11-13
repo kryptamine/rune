@@ -74,8 +74,12 @@ const (
 	// The sets take a struct only with Y, for a mut self, copying it into
 	// R[A]; with X they resume past the jump that follows, over code
 	// writing R[A] back.
-	opSetIndex  // R[A][R[B]] = R[C]
-	opSetProp   // R[A].K[B] = R[C]
+	opSetIndex // R[A][R[B]] = R[C]
+	opSetProp  // R[A].K[B] = R[C]
+	// SetOwned is SetProp on a variable that never lets its value go, with
+	// a flag in R[A+1] set once R[A] is a struct of its own, which it
+	// changes in place; until then it copies the struct.
+	opSetOwned
 	opCheckProp // R[A] must take property K[B]: an object, or with Y a struct with that field
 	// TestProp needs four operands, so it skips over the instruction after
 	// it, a jump to the mismatch, instead of taking a target.
@@ -242,12 +246,12 @@ var opNames = [...]string{
 	"CHECKDEFINED", "SETCELL!", "SETUPVAL!", "UNDEFINED",
 	"ADD", "SUB", "MUL", "DIV", "MOD", "ADDK", "SUBK", "MULK", "DIVK", "MODK", "CMP", "CMPK", "IS", "NEG", "NOT", "INCR", "BITWISE", "BITNOT",
 	"JMP", "JMPIF", "JMPCMP", "JMPCMPK", "JMPNOTTYPE", "JMPNIL", "JMPDEFINED",
-	"ARRAY", "CONCAT", "OBJECT", "STRUCT", "UNDEF", "STRUCTSPREAD", "STRUCTFILL", "GETINDEX", "GETPROP", "GETINDEX?", "GETPROP?", "SETINDEX", "SETPROP", "CHECKPROP", "TESTPROP", "RANGE", "SPREAD", "UNPACK",
+	"ARRAY", "CONCAT", "OBJECT", "STRUCT", "UNDEF", "STRUCTSPREAD", "STRUCTFILL", "GETINDEX", "GETPROP", "GETINDEX?", "GETPROP?", "SETINDEX", "SETPROP", "SETOWNED", "CHECKPROP", "TESTPROP", "RANGE", "SPREAD", "UNPACK",
 	"CLOSURE", "CALL", "CALLARRAY", "INVOKE", "METHOD", "RETURN", "RETURNNIL", "THROW", "RETHROW", "NOMATCH", "TRY", "ENDTRY",
 	"FORRANGE", "FORRANGENEXT", "FORITER", "FORITERNEXT",
 }
 
-var bitNames = [...]string{"AND", "OR", "XOR", "SHL", "SHR"}
+var bitNames = [...]string{"AND", "OR", "XOR", "SHL", "SHR", "USHR"}
 
 // opName names in; ownX says the name already shows its X.
 func opName(in Instr) (string, bool) {

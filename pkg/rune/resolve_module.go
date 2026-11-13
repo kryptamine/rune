@@ -76,6 +76,8 @@ func (p *Resolver) ResolveModules(files []*fileAST) []error {
 		}
 	}
 
+	p.ownVars()
+
 	return p.errors
 }
 

@@ -450,6 +450,30 @@ reload:
 
 			goto slow
 
+		case opSetOwned:
+			t := regs[in.a()]
+			if k := t.Kind(); k == value.Object {
+				fr.pc = pc
+				t.Obj().Set(consts[in.b()].Str(), regs[in.c()])
+
+				goto reload
+			} else if k != value.Struct {
+				goto slow
+			}
+
+			slot := t.InternedSlot(consts[in.b()])
+			if slot < 0 {
+				goto slow
+			}
+
+			if own := &regs[in.a()+1]; *own != value.True {
+				t = t.Clone()
+				regs[in.a()] = t
+				*own = value.True
+			}
+
+			t.Fields()[slot] = regs[in.c()]
+
 		case opCheckProp:
 			t := regs[in.a()]
 			if k := t.Kind(); k == value.Object {
@@ -498,6 +522,8 @@ reload:
 			switch recv := regs[in.a()+1]; recv.Kind() {
 			case value.Struct:
 				ms = recv.Shape().Methods
+			case value.Enum:
+				ms = recv.Variant().Shape.Methods
 			case value.Type:
 				goto slow
 			default:
@@ -610,6 +636,8 @@ reload:
 				if ticks--; ticks == 0 {
 					goto tick
 				}
+			} else {
+				p.release(c)
 			}
 
 		default:

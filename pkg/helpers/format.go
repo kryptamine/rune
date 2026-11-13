@@ -28,7 +28,9 @@ func TypeName(v value.Value) string {
 	case value.Struct:
 		return v.Shape().Name
 	case value.Type:
-		return "struct"
+		return If(v.TypeShape().Enum, "enum", "struct")
+	case value.Enum:
+		return v.Variant().Shape.Name
 	case value.Map:
 		return "map"
 	case value.Set:
@@ -161,7 +163,9 @@ func stringify(v value.Value, seen map[uintptr]bool) string {
 
 		return shape.Name + " {" + strings.Join(pairs, ", ") + "}"
 	case value.Type:
-		return "<struct " + v.TypeShape().Name + ">"
+		return "<" + TypeName(v) + " " + v.TypeShape().Name + ">"
+	case value.Enum:
+		return v.Variant().Shape.Name + "." + v.Variant().Name
 	case value.Map, value.Set:
 		return stringifyTable(v, seen)
 	case value.Bytes:

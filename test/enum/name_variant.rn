@@ -1,0 +1,2 @@
+// [line: 2] Error at 'name': A variant cannot be named 'name'.
+enum C { name }

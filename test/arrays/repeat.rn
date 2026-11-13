@@ -1,0 +1,11 @@
+print([0].repeat(3));    // expect: [0, 0, 0]
+print([1, 2].repeat(2)); // expect: [1, 2, 1, 2]
+print([].repeat(5));     // expect: []
+print([1].repeat(0));    // expect: []
+
+// Elements are shared, not copied.
+let mut rows = [[]].repeat(2);
+rows[0].push(1);
+print(rows);             // expect: [[1], [1]]
+
+print([1].repeat(-1)); // expect runtime error: [line: 11] ValueError: array.repeat() count must not be negative.

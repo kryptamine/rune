@@ -29,9 +29,11 @@ type funcState struct {
 	// has passed, so reading them needs no check.
 	defined map[*ast.Local]bool
 	unit    *unit
-	// selfCell is set when a closure captures a method's mut self, so
-	// returns put it back into register 0 for the caller.
+	// A mut self lives outside register 0 when a closure captures it,
+	// in a cell there if selfCell, or when it is owned, in register
+	// selfReg; returns put it back into register 0 for the caller.
 	selfCell bool
+	selfReg  int32
 }
 
 // unit is what the functions of a program share: each field name's one
@@ -282,6 +284,11 @@ func (fs *funcState) functionNamed(decl *ast.FunctionStmt, name string, mutSelf 
 	}
 
 	f.selfCell = mutSelf != nil && mutSelf.Captured
+	if mutSelf != nil && mutSelf.Owned {
+		f.selfReg = f.declare(mutSelf)
+		f.emit(ins{op: opMove, a: f.selfReg, b: 0}, nil)
+		f.ownership(f.declare(nil), nil)
+	}
 
 	f.stmts(decl.Body)
 	f.returnSelf()
@@ -293,10 +300,13 @@ func (fs *funcState) functionNamed(decl *ast.FunctionStmt, name string, mutSelf 
 	return int32(len(fs.proto.protos) - 1)
 }
 
-// returnSelf puts a captured mut self back into register 0 before a return.
+// returnSelf puts a mut self kept elsewhere back into register 0 before a return.
 func (fs *funcState) returnSelf() {
-	if fs.selfCell {
+	switch {
+	case fs.selfCell:
 		fs.emit(ins{op: opGetCell, a: 0, b: 0}, nil)
+	case fs.selfReg != 0:
+		fs.move(0, fs.selfReg)
 	}
 }
 
@@ -356,7 +366,7 @@ func (fs *funcState) constant(v value.Value) int32 {
 		if name, ok := fs.unit.names[key.str]; ok {
 			v = value.NewString(name)
 		}
-	case value.Function, value.Type, value.Struct, value.Array, value.Object, value.Map, value.Set:
+	case value.Function, value.Type, value.Enum, value.Struct, value.Array, value.Object, value.Map, value.Set:
 		key.ptr = v.Ptr()
 	}
 

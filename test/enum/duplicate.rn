@@ -1,0 +1,2 @@
+// [line: 2] Error at 'A': Duplicate variant name.
+enum C { A, A }

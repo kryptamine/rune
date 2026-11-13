@@ -48,6 +48,8 @@ type Interpreter struct {
 	// methods holds the closure of each method; kinds the built-in types'.
 	methods []value.Value
 	kinds   *[value.NumKinds][]value.Method
+	// cursors holds array cursors of finished loops, for reuse.
+	cursors []*cursor
 }
 
 func NewInterpreter(stdio *stdlib.Stdio) *Interpreter {

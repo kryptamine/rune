@@ -1,0 +1,40 @@
+// Loops one after another and nested see their own snapshots.
+let mut a = [1, 2, 3];
+let mut out = [];
+for x in a {
+  for y in [10, 20] {
+    for z in a out.push(x * y + z);
+    a[0] = 100;
+  }
+}
+print(out.len());          // expect: 18
+print(out.slice(0, 3));    // expect: [11, 12, 13]
+print(out.slice(3, 6));    // expect: [120, 22, 23]
+
+let mut seen = [];
+for x in [1, 2, 3] {
+  if x == 2 break;
+  seen.push(x);
+}
+for x in ["a", "b"] seen.push(x);
+for x in [true] seen.push(x);
+print(seen);               // expect: [1, "a", "b", true]
+
+fun walk(xs, depth) {
+  let mut s = 0;
+  for x in xs {
+    s += x;
+    if depth > 0 s += walk([x, x], depth - 1);
+  }
+  return s;
+}
+print(walk([1, 2], 3));    // expect: 45
+
+struct P { a, b }
+let mut keys = [];
+let p1 = P { a: 1, b: 2 };
+for k in p1 keys.push(k);
+for k in p1 keys.push(k);
+for x in [9, 9, 9] keys.push(x);
+for k in p1 keys.push(k);
+print(keys);               // expect: ["a", "b", "a", "b", 9, 9, 9, "a", "b"]

@@ -22,6 +22,10 @@ func (s *Parser) declaration() (ast.Stmt, error) {
 		return s.structDeclaration()
 	}
 
+	if s.match(ast.ENUM) {
+		return s.enumDeclaration()
+	}
+
 	if s.match(ast.IMPL) {
 		return s.implDeclaration()
 	}
@@ -81,6 +85,45 @@ func (s *Parser) structDeclaration() (ast.Stmt, error) {
 	}
 
 	return ast.NewStructStmt(name, fields), nil
+}
+
+// enumDeclaration parses enum Name { A, B }; "enum" has already been consumed.
+func (s *Parser) enumDeclaration() (ast.Stmt, error) {
+	name, err := s.consume(ast.IDENTIFIER, "Expect enum name.")
+	if err != nil {
+		return nil, err
+	}
+
+	brace, err := s.consume(ast.LEFT_BRACE, "Expect '{' after enum name.")
+	if err != nil {
+		return nil, err
+	}
+
+	var variants []ast.Token
+
+	err = s.braceList("Duplicate variant name.", "Expect '}' after enum variants.", func() (string, ast.Token, error) {
+		v, err := s.consume(ast.IDENTIFIER, "Expect variant name.")
+		if err != nil {
+			return "", v, err
+		}
+
+		if v.Lexeme == enumValues || v.Lexeme == enumName {
+			s.errors = append(s.errors, errors.NewSyntaxError(v, "A variant cannot be named '"+v.Lexeme+"'."))
+		}
+
+		variants = append(variants, v)
+
+		return v.Lexeme, v, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(variants) == 0 {
+		s.errors = append(s.errors, errors.NewSyntaxError(brace, "Expect at least one variant."))
+	}
+
+	return &ast.StructStmt{Name: name, Enum: true, Variants: variants}, nil
 }
 
 // implDeclaration parses impl Name { fun m(self) { ... } ... }; "impl" has
@@ -876,7 +919,7 @@ func (s *Parser) catchClause() (ast.CatchClause, error) {
 	return c, err
 }
 
-// typeList parses the types after 'is': T, m.T, nil or struct, joined by '|'.
+// typeList parses the types after 'is': T, m.T, nil, struct or enum, joined by '|'.
 func (s *Parser) typeList() ([]*ast.VarExpr, error) {
 	var types []*ast.VarExpr
 
@@ -897,7 +940,7 @@ func (s *Parser) typeList() ([]*ast.VarExpr, error) {
 }
 
 // isTypeKeyword reports whether t is a keyword that names a type after 'is'.
-func isTypeKeyword(t ast.TokenType) bool { return t == ast.NIL || t == ast.STRUCT }
+func isTypeKeyword(t ast.TokenType) bool { return t == ast.NIL || t == ast.STRUCT || t == ast.ENUM }
 
 func (s *Parser) typeName() (*ast.VarExpr, error) {
 	if isTypeKeyword(s.peek().TokenType) {

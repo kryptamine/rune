@@ -14,6 +14,10 @@ import (
 // Convert is Shape(v): v itself if already of that shape, or a struct
 // built from an object holding every required field and no other.
 func Convert(token *ast.Token, shape *value.Shape, v value.Value) (value.Value, error) {
+	if shape.Enum {
+		return variantOf(token, shape, v)
+	}
+
 	switch v.Kind() {
 	case value.Struct:
 		if v.Shape() == shape {
@@ -25,6 +29,29 @@ func Convert(token *ast.Token, shape *value.Shape, v value.Value) (value.Value, 
 
 	return value.NilValue, errors.NewRuntimeError(errors.TypeError, *token, fmt.Sprintf(
 		"Cannot convert %s to %s.", helpers.TypeName(v), shape.Name))
+}
+
+// variantOf is Enum(v): v itself if a variant of it, or the variant at
+// ordinal v, or named v.
+func variantOf(token *ast.Token, shape *value.Shape, v value.Value) (value.Value, error) {
+	switch {
+	case v.Kind() == value.Enum && v.Variant().Shape == shape:
+		return v, nil
+	case v.IsInt():
+		if i := v.Int(); i >= 0 && i < int64(len(shape.Variants)) {
+			return shape.Variants[i], nil
+		}
+	case v.IsString():
+		if x, ok := shape.Variant(v.Str()); ok {
+			return x, nil
+		}
+	default:
+		return value.NilValue, errors.NewRuntimeError(errors.TypeError, *token, fmt.Sprintf(
+			"Cannot convert %s to %s.", helpers.TypeName(v), shape.Name))
+	}
+
+	return value.NilValue, errors.NewRuntimeError(errors.ValueError, *token, fmt.Sprintf(
+		"%s has no variant %s.", shape.Name, helpers.Quoted(v)))
 }
 
 func structOf(token *ast.Token, shape *value.Shape, obj *value.Obj) (value.Value, error) {
@@ -72,6 +99,10 @@ var conversionNatives = []*Native{
 		return c.typeError(0, "a number or a string")
 	}},
 	{"int", 1, 2, func(c *call) value.Value {
+		if v := c.args[0]; v.Kind() == value.Enum && !c.has(1) {
+			return value.NewInt(int64(v.Variant().Ordinal))
+		}
+
 		if v := c.args[0]; v.IsNumber() && !c.has(1) {
 			if v.IsInt() {
 				return v

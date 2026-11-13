@@ -1,0 +1,2 @@
+enum Dir { North }
+print(Dir([])); // expect runtime error: [line: 2] TypeError: Cannot convert array to Dir.

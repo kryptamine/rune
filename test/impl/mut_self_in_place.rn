@@ -1,0 +1,59 @@
+// A mut self method that keeps self changes its own copy in place; none
+// of these may see it change.
+struct P { x = 0, y = 0, log = [] }
+
+let mut kept = [];
+
+impl P {
+  fun bump(mut self) { self.x++; self.y += 2; }
+  fun twice(mut self) { self.bump(); self.bump(); self.x *= 10; }
+  fun keep(mut self) { self.x = 1; kept.push(self); self.x = 2; }
+  fun alias(mut self) { let before = self; self.x = 5; return before.x; }
+  fun bound(mut self) { let f = self.get; self.x = 7; return f(); }
+  fun get(self) { return self.x; }
+  fun leak(self) { kept.push(self); }
+  fun viaLeak(mut self) { self.x = 3; self.leak(); self.x = 4; }
+  fun closure(mut self) { let f = () => self.x; self.x = 9; return f(); }
+  fun reset(mut self) { self = P {}; self.x = 8; }
+  fun fail(mut self) { self.x = 100; throw "no"; }
+}
+
+let mut p = P {};
+let before = p;
+p.bump();
+print([p.x, p.y, before.x]);   // expect: [1, 2, 0]
+
+p.twice();
+print(p.x);                    // expect: 30
+
+p.keep();
+print([kept[0].x, p.x]);       // expect: [1, 2]
+
+print([p.alias(), p.x]);       // expect: [2, 5]
+print([p.bound(), p.x]);       // expect: [5, 7]
+
+p.viaLeak();
+print([kept[1].x, p.x]);       // expect: [3, 4]
+
+print([p.closure(), p.x]);     // expect: [9, 9]
+
+let saved = p;
+p.reset();
+print([p.x, saved.x]);         // expect: [8, 9]
+
+try { p.fail(); } catch _ {}
+print(p.x);                    // expect: 8
+
+let mut ps = [P {}, P {}];
+let first = ps[0];
+ps[0].bump();
+print([ps[0].x, first.x]);     // expect: [1, 0]
+
+struct Box { p }
+impl Box {
+  fun step(mut self) { self.p.bump(); self.p.bump(); }
+}
+let mut b = Box { p: P {} };
+let inner = b.p;
+b.step();
+print([b.p.x, inner.x]);       // expect: [2, 0]

@@ -16,6 +16,33 @@ type cursor struct {
 	arr  []value.Value
 	i    int
 	next func() (key, val value.Value, ok bool, err error)
+	// own is set when arr is the cursor's own snapshot, so a loop that
+	// runs to its end can hand the cursor on to the next.
+	own bool
+}
+
+// maxCursors bounds the cursors kept for reuse.
+const maxCursors = 64
+
+// arrayCursor walks a snapshot of items, in a cursor a finished loop left.
+func (p *Interpreter) arrayCursor(items []value.Value) *cursor {
+	n := len(p.cursors)
+	if n == 0 {
+		return &cursor{arr: slices.Clone(items), own: true}
+	}
+
+	c := p.cursors[n-1]
+	p.cursors = p.cursors[:n-1]
+	c.arr, c.i = append(c.arr[:0], items...), 0
+
+	return c
+}
+
+// release keeps the cursor of a loop that ran to its end for reuse.
+func (p *Interpreter) release(c *cursor) {
+	if c.own && len(p.cursors) < maxCursors {
+		p.cursors = append(p.cursors, c)
+	}
 }
 
 func (c *cursor) advance() (key, val value.Value, ok bool, err error) {
@@ -47,10 +74,10 @@ func indexed(at func(i int) (value.Value, bool)) func() (value.Value, value.Valu
 // cursorOf snapshots arrays and walks maps and sets in place. Objects
 // yield their keys in sorted order and structs in declaration order; a
 // loop that binds only one variable walks them like an array of keys.
-func cursorOf(v value.Value, hasKey bool, keyword *ast.Token) (*cursor, error) {
+func (p *Interpreter) cursorOf(v value.Value, hasKey bool, keyword *ast.Token) (*cursor, error) {
 	switch v.Kind() {
 	case value.Array:
-		return &cursor{arr: slices.Clone(v.Arr())}, nil
+		return p.arrayCursor(v.Arr()), nil
 	case value.String:
 		s := v.Str()
 

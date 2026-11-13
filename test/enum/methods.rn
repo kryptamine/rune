@@ -1,0 +1,10 @@
+enum Side { White, Black }
+
+impl Side {
+  fun other(self) { return self == Side.White ? Side.Black : Side.White; }
+  fun parse(s) { return s == "w" ? Side.White : Side.Black; }
+}
+
+print(Side.White.other());       // expect: Side.Black
+print(Side.parse("b").other());  // expect: Side.White
+print(Side.values().map(Side.other)); // expect: [Side.Black, Side.White]

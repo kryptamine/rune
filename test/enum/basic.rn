@@ -1,0 +1,27 @@
+enum Color { White, Black }
+
+let c = Color.White;
+print(c);                     // expect: Color.White
+print([c, Color.Black]);      // expect: [Color.White, Color.Black]
+print("{c} to move");         // expect: Color.White to move
+print(type(c));               // expect: Color
+print(type(Color));           // expect: enum
+print(Color);                 // expect: <enum Color>
+print(c is Color);            // expect: true
+print("White" is Color);      // expect: false
+print(c == Color.White);      // expect: true
+print(c == Color.Black);      // expect: false
+print(c ? "yes" : "no");      // expect: yes
+
+let alias = Color;
+print(alias.Black);           // expect: Color.Black
+
+struct P { x }
+print(Color is enum);         // expect: true
+print(Color is struct);       // expect: false
+print(P is enum);             // expect: false
+print(c is enum);             // expect: false
+
+struct Task { text, priority = Level.Mid }
+enum Level { Low, Mid }
+print(Task { text: "a" }.priority); // expect: Level.Mid

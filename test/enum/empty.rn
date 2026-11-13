@@ -1,0 +1,2 @@
+// [line: 2] Error at '{': Expect at least one variant.
+enum C { }

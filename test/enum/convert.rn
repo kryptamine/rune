@@ -1,0 +1,16 @@
+enum Dir { North, East, South, West }
+
+print(int(Dir.South));               // expect: 2
+print(Dir(3));                       // expect: Dir.West
+print(Dir("East"));                  // expect: Dir.East
+print(Dir(Dir.North));               // expect: Dir.North
+print(Dir.values());                 // expect: [Dir.North, Dir.East, Dir.South, Dir.West]
+print(Dir.values().map(int));        // expect: [0, 1, 2, 3]
+print(json.stringify({ to: Dir.East })); // expect: {"to":"East"}
+
+let mut seen = map();
+seen[Dir.East] = "e";
+print(seen[Dir.East]);               // expect: e
+print(set([Dir.East, Dir.East]).len()); // expect: 1
+
+print(Dir(4)); // expect runtime error: [line: 16] ValueError: Dir has no variant 4.

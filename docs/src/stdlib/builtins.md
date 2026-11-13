@@ -24,8 +24,9 @@ print([1, "two", nil]);  // [1, "two", nil]
 ## type
 
 `type(value)` is `"nil"`, `"boolean"`, `"number"`, `"string"`, `"array"`,
-`"object"`, `"function"`, `"map"`, `"set"`, `"bytes"`, `"stream"`, a
-struct's name, `"struct"` for a struct type, or `"namespace"`.
+`"object"`, `"function"`, `"map"`, `"set"`, `"bytes"`, `"stream"`, the
+name of a value's struct or enum, `"struct"` for a struct type, `"enum"`
+for an enum type, or `"namespace"`.
 
 ```rune
 struct User { name }

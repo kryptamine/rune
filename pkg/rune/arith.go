@@ -16,6 +16,7 @@ var arithOps = map[ast.TokenType]value.Arith{
 var bitOps = map[ast.TokenType]value.Bit{
 	ast.AMP: value.BitAnd, ast.PIPE: value.BitOr, ast.CARET: value.BitXor,
 	ast.LESS_LESS: value.BitShl, ast.GREATER_GREATER: value.BitShr,
+	ast.GREATER_GREATER_GREATER: value.BitUshr,
 }
 
 // binaryIns is the instruction applying the arithmetic or bit operator

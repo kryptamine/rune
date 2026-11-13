@@ -60,6 +60,10 @@ type Local struct {
 	Captured bool
 	// TopLevel is set for a declaration outside any block or function.
 	TopLevel bool
+	// Owned is set by the resolver on a mutable local, or mut self, that
+	// never lets its value go, so it may change its own copy of a struct
+	// in place.
+	Owned bool
 }
 
 type AssignExpr struct {

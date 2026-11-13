@@ -100,14 +100,17 @@ print([[1, 2], [3, 4]].indexOf([3, 4]));        // 1
 
 ## Slicing and joining
 
-`slice(start[, end])` (negative bounds count from the end), `reverse()` and
-`join(sep)` return new values.
+`slice(start[, end])` (negative bounds count from the end), `reverse()`,
+`repeat(n)` and `join(sep)` return new values. `repeat` makes an array of a
+given size; its elements are shared, not copied, so `[[]].repeat(3)` holds
+one array three times.
 
 ```rune
 let xs = [10, 20, 30, 40, 50];
 print(xs.slice(1, 3));   // [20, 30]
 print(xs.slice(-2));     // [40, 50]
 print(xs.reverse());     // [50, 40, 30, 20, 10]
+print([0].repeat(3));    // [0, 0, 0]
 print(xs);               // [10, 20, 30, 40, 50]
 print(["a", "b", "c"].join(", ")); // a, b, c
 ```

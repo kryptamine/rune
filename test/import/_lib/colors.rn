@@ -1,0 +1,10 @@
+export enum Color { Red, Green }
+
+impl Color {
+  fun hex(self) {
+    return match self {
+      Color.Red => "#f00",
+      Color.Green => "#0f0",
+    };
+  }
+}

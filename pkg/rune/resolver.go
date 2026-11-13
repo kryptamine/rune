@@ -55,6 +55,11 @@ type Resolver struct {
 	impls map[*ast.ImplStmt]bool
 	// mutators holds the method names that always change their receiver.
 	mutators map[string]bool
+	// self records the uses of the self of the method being resolved,
+	// selves those of every method of the file.
+	self   *varUses
+	selves []*varUses
+	locals map[*ast.Local]*varUses
 }
 
 func NewResolver() *Resolver {
@@ -66,6 +71,7 @@ func NewResolver() *Resolver {
 		structs:    map[*ast.Local]*value.Shape{},
 		fieldNames: stdlib.FieldNames(),
 		impls:      map[*ast.ImplStmt]bool{},
+		locals:     map[*ast.Local]*varUses{},
 		nmethods:   len(stdlib.Methods),
 	}
 
@@ -95,10 +101,13 @@ func (p *Resolver) resolveTopLevel(stmts []ast.Stmt) {
 		}
 	}
 
-	for _, stmt := range stmts {
-		if s, ok := stmt.(*ast.StructStmt); ok {
-			s.Shape = p.shape(s)
-			p.structs[p.mod.topLevel[s.Name.Lexeme]] = s.Shape
+	// Enums first, as field defaults may name their variants.
+	for _, enums := range []bool{true, false} {
+		for _, stmt := range stmts {
+			if s, ok := stmt.(*ast.StructStmt); ok && s.Enum == enums {
+				s.Shape = p.shape(s)
+				p.structs[p.mod.topLevel[s.Name.Lexeme]] = s.Shape
+			}
 		}
 	}
 
@@ -145,6 +154,7 @@ func (p *Resolver) VisitExprStmt(exprStmt *ast.ExprStmt) error {
 
 func (p *Resolver) VisitVarStmt(stmt *ast.VarStmt) error {
 	stmt.Local = p.declare(stmt.Binding)
+	p.trackLocal(stmt)
 
 	if stmt.Initializer != nil {
 		p.resolveExpr(stmt.Initializer)
@@ -216,6 +226,7 @@ func (p *Resolver) VisitVarExpr(expr *ast.VarExpr) (value.Value, error) {
 	}
 
 	expr.Local, _ = p.use(expr.Name, "read")
+	p.useVar(expr, false)
 
 	return value.NilValue, nil
 }
@@ -321,7 +332,7 @@ func (p *Resolver) VisitFunctionStmt(fnStmt *ast.FunctionStmt) error {
 // resolveTopLevel has given their shapes.
 func (p *Resolver) VisitStructStmt(stmt *ast.StructStmt) error {
 	if stmt.Shape == nil {
-		p.error(stmt.Name, "Structs must be declared at the top level.")
+		p.error(stmt.Name, helpers.If(stmt.Enum, "Enums", "Structs")+" must be declared at the top level.")
 		return nil
 	}
 
@@ -332,6 +343,15 @@ func (p *Resolver) VisitStructStmt(stmt *ast.StructStmt) error {
 }
 
 func (p *Resolver) shape(s *ast.StructStmt) *value.Shape {
+	if s.Enum {
+		names := make([]string, len(s.Variants))
+		for i, v := range s.Variants {
+			names[i] = v.Lexeme
+		}
+
+		return value.NewEnum(s.Name.Lexeme, names)
+	}
+
 	fields := make([]value.Field, len(s.Fields))
 
 	for i, f := range s.Fields {
@@ -341,7 +361,7 @@ func (p *Resolver) shape(s *ast.StructStmt) *value.Shape {
 		if f.Default != nil {
 			var ok bool
 			if def, ok = p.constantOf(f.Default); !ok {
-				p.error(f.DefaultAt, "Field default must be a constant: a literal, or an array, object, map() or set() of them.")
+				p.error(f.DefaultAt, "Field default must be a constant: a literal, an enum variant, or an array, object, map() or set() of them.")
 			}
 		}
 		fields[i] = value.Field{Name: name, Default: def, Required: f.Default == nil}
@@ -376,6 +396,8 @@ func (p *Resolver) constantOf(e ast.Expr) (value.Value, bool) {
 			fields.Set(pair.Key, v)
 		}
 		return value.NewObject(fields), true
+	case *ast.IndexExpr:
+		return p.variantOf(n)
 	case *ast.CallExpr:
 		callee, ok := n.Callee.(*ast.VarExpr)
 		if !ok || len(n.Args) > 0 || callee.Module != nil || !p.isBuiltin(callee.Name.Lexeme) {
@@ -412,6 +434,11 @@ func (p *Resolver) VisitStructExpr(expr *ast.StructExpr) (value.Value, error) {
 
 	shape := p.structType(expr.Type)
 	if shape == nil {
+		return value.NilValue, nil
+	}
+
+	if shape.Enum {
+		p.error(expr.Type.Name, notStruct(shape))
 		return value.NilValue, nil
 	}
 
@@ -521,6 +548,8 @@ func (p *Resolver) VisitAssignExpr(expr *ast.AssignExpr) (value.Value, error) {
 		p.requireMutable(expr.Name, "assign to")
 	}
 
+	p.useAssign(expr)
+
 	return value.NilValue, nil
 }
 
@@ -539,6 +568,8 @@ func (p *Resolver) VisitCallExpr(callExpr *ast.CallExpr) (value.Value, error) {
 	}
 
 	if prop, ok := callExpr.Callee.(*ast.IndexExpr); ok && isMethodCall(prop) {
+		p.useCall(prop)
+
 		callExpr.Writable = p.writable(prop.Array)
 
 		if name := p.immutableRoot(prop.Array); name != "" {
@@ -627,6 +658,9 @@ func (p *Resolver) VisitIndexExpr(expr *ast.IndexExpr) (value.Value, error) {
 	p.resolveMember(expr)
 	p.resolveExpr(expr.Array)
 	p.resolveExpr(expr.Index)
+	p.resolveVariant(expr)
+
+	p.useProp(expr)
 
 	return value.NilValue, nil
 }
@@ -689,6 +723,7 @@ func (p *Resolver) VisitSetIndexExpr(expr *ast.SetIndexExpr) (value.Value, error
 	p.resolveExpr(expr.Index)
 	p.resolveExpr(expr.Value)
 	p.requireMutableRoot(expr.Array)
+	p.useVar(expr.Array, true)
 
 	return value.NilValue, nil
 }

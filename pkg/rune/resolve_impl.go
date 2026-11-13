@@ -13,9 +13,7 @@ func (p *Resolver) VisitImplStmt(stmt *ast.ImplStmt) error {
 		return nil
 	}
 
-	for _, m := range stmt.Methods {
-		p.resolveFn(m.Fn)
-	}
+	p.resolveMethods(stmt)
 
 	return nil
 }
@@ -75,6 +73,12 @@ func (p *Resolver) declareImpl(stmt *ast.ImplStmt) {
 			p.error(fn.Name, "Only methods of structs can take 'mut self'.")
 		case shape != nil && shape.Index(m.Name) >= 0:
 			p.error(fn.Name, name+" has a field '"+m.Name+"'.")
+		case shape != nil && shape.Enum && m.Mut:
+			p.error(fn.Name, "Methods of enum "+name+" cannot take 'mut self'.")
+		case shape != nil && shape.Enum && hasVariant(shape, m.Name):
+			p.error(fn.Name, name+" has a variant '"+m.Name+"'.")
+		case shape != nil && shape.Enum && m.Self && m.Name == enumName:
+			p.error(fn.Name, "Variants of "+name+" have a property '"+enumName+"'.")
 		}
 
 		// A method of the program replaces a built-in one.

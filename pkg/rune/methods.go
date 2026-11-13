@@ -32,6 +32,8 @@ func (p *Interpreter) methodsOf(v value.Value) ([]value.Method, string) {
 		return v.Shape().Methods, v.Shape().Name
 	case value.Type:
 		return v.TypeShape().Methods, v.TypeShape().Name
+	case value.Enum:
+		return v.Variant().Shape.Methods, v.Variant().Shape.Name
 	}
 
 	return p.kinds[v.Kind()], helpers.TypeName(v)
@@ -53,6 +55,10 @@ func own(tok *ast.Token, t, key value.Value) (value.Value, bool) {
 // object or struct does not have is missing, unless that is nil.
 func (p *Interpreter) property(tok *ast.Token, t, key value.Value, missing *value.Value) (value.Value, error) {
 	if v, ok := own(tok, t, key); ok {
+		return v, nil
+	}
+
+	if v, ok := enumProperty(t, key.Str()); ok {
 		return v, nil
 	}
 
@@ -109,6 +115,13 @@ func (p *Interpreter) invoke(fr *frame, in Instr, tok *ast.Token) error {
 
 	m := value.FindMethod(ms, key.Str())
 	switch {
+	case m == nil && isValuesCall(t, key.Str()):
+		v, err := variants(tok, t.TypeShape(), n)
+		if err == nil {
+			p.stack[at] = v
+		}
+
+		return err
 	case m == nil:
 		if _, ok := own(tok, t, key); ok {
 			return notMethod(tok, t, owner, key.Str())
