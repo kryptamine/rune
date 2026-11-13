@@ -73,6 +73,10 @@ func (p *Resolver) resolvePattern(pat ast.Pattern) ast.Pattern {
 			p.error(n.Name, "'"+n.Name.Lexeme+"' is not a struct.")
 		}
 
+		if n.Shape != nil && n.Shape.Enum {
+			p.error(n.Name, notStruct(n.Shape))
+		}
+
 		for _, f := range n.Fields {
 			if n.Shape != nil && n.Shape.Index(f.Key.Lexeme) < 0 {
 				p.error(f.Key, errors.NoField(n.Shape.Name, f.Key.Lexeme))
@@ -82,6 +86,8 @@ func (p *Resolver) resolvePattern(pat ast.Pattern) ast.Pattern {
 		p.resolveFields(n.Fields)
 	case *ast.ObjectPattern:
 		p.resolveFields(n.Fields)
+	case *ast.VariantPattern:
+		return p.resolveVariantPattern(n)
 	}
 
 	return pat
@@ -121,6 +127,7 @@ var kindTypes = func() map[string]*value.Shape {
 
 	ts["nil"] = &value.Shape{Name: "nil", Builtin: true, Kind: value.Nil}
 	ts["struct"] = &value.Shape{Name: "struct", Builtin: true, Kind: value.Type}
+	ts["enum"] = &value.Shape{Name: "enum", Builtin: true, Kind: value.Type, Enum: true}
 
 	return ts
 }()

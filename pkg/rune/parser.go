@@ -224,7 +224,7 @@ func (s *Parser) synchronize() {
 
 		if s.depth[s.current] == s.blockDepth {
 			switch t := s.peek().TokenType; t {
-			case ast.FUN, ast.LET, ast.STRUCT, ast.IMPL, ast.IMPORT, ast.EXPORT, ast.MATCH:
+			case ast.FUN, ast.LET, ast.STRUCT, ast.ENUM, ast.IMPL, ast.IMPORT, ast.EXPORT, ast.MATCH:
 				return
 			case ast.RIGHT_BRACE:
 				if s.blockDepth > 0 {

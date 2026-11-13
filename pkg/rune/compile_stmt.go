@@ -100,6 +100,10 @@ func (fs *funcState) varStmt(s *ast.VarStmt) {
 		fs.free = r
 		fs.declare(l)
 
+		if l.Owned {
+			fs.ownership(fs.declare(nil), s.Initializer)
+		}
+
 		return
 	}
 

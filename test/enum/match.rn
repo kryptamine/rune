@@ -1,0 +1,16 @@
+enum Piece { Pawn, Knight, Bishop }
+
+fun value(p) {
+  return match p {
+    Piece.Pawn => 1,
+    Piece.Knight | Piece.Bishop => 3,
+  };
+}
+
+print(value(Piece.Pawn));    // expect: 1
+print(value(Piece.Bishop));  // expect: 3
+
+print(match Piece.Knight {
+  p is Piece if p != Piece.Pawn => "minor",
+  _ => "other",
+});                          // expect: minor

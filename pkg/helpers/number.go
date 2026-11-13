@@ -72,7 +72,7 @@ func basePrefix(c byte) func(byte) bool {
 
 // ParseLiteral parses a number literal the scanner found: an integer
 // unless it has a fraction or an exponent. ok is false for an integer
-// int64 cannot hold.
+// int64 cannot hold; a 0x, 0o or 0b one holds 64 bits, two's complement.
 func ParseLiteral(lexeme string) (value.Value, bool) {
 	s := strings.ReplaceAll(lexeme, "_", "")
 
@@ -85,6 +85,11 @@ func ParseLiteral(lexeme string) (value.Value, bool) {
 	base := 0
 	if len(s) > 1 && isDecimal(s[1]) {
 		base = 10
+	}
+
+	if base == 0 && len(s) > 1 && basePrefix(s[1]) != nil {
+		n, err := strconv.ParseUint(s, 0, 64)
+		return value.NewInt(int64(n)), err == nil
 	}
 
 	n, err := strconv.ParseInt(s, base, 64)

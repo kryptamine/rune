@@ -31,3 +31,12 @@ print(match 5 {
   1 | 5 => "one or five",
   _ => "other",
 });                  // expect: one or five
+
+// >>> shifts in zeros, as on the 64 bits unsigned.
+print(-16 >>> 62);   // expect: 3
+print(-1 >>> 1 == math.MAX_INT); // expect: true
+print(-1 >>> 64);    // expect: 0
+print(16 >>> 2);     // expect: 4
+let mut u = -1;
+u >>>= 63;
+print(u);            // expect: 1

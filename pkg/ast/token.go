@@ -58,6 +58,7 @@ const (
 	CONTINUE
 	IN
 	STRUCT
+	ENUM
 	IS
 	IMPORT
 	EXPORT
@@ -111,11 +112,13 @@ const (
 	TILDE
 	LESS_LESS
 	GREATER_GREATER
+	GREATER_GREATER_GREATER
 	AMP_EQUAL
 	PIPE_EQUAL
 	CARET_EQUAL
 	LESS_LESS_EQUAL
 	GREATER_GREATER_EQUAL
+	GREATER_GREATER_GREATER_EQUAL
 
 	// Types
 	OBJECT
@@ -148,6 +151,7 @@ var Keywords = map[string]TokenType{
 	"continue": CONTINUE,
 	"in":       IN,
 	"struct":   STRUCT,
+	"enum":     ENUM,
 	"is":       IS,
 	"import":   IMPORT,
 	"export":   EXPORT,
@@ -246,6 +250,8 @@ func (tokenType TokenType) String() string {
 		return "BREAK"
 	case STRUCT:
 		return "STRUCT"
+	case ENUM:
+		return "ENUM"
 	case IS:
 		return "IS"
 	case MATCH:
@@ -316,6 +322,8 @@ func (tokenType TokenType) String() string {
 		return "LESS_LESS"
 	case GREATER_GREATER:
 		return "GREATER_GREATER"
+	case GREATER_GREATER_GREATER:
+		return "GREATER_GREATER_GREATER"
 	case AMP_EQUAL:
 		return "AMP_EQUAL"
 	case PIPE_EQUAL:
@@ -326,6 +334,8 @@ func (tokenType TokenType) String() string {
 		return "LESS_LESS_EQUAL"
 	case GREATER_GREATER_EQUAL:
 		return "GREATER_GREATER_EQUAL"
+	case GREATER_GREATER_GREATER_EQUAL:
+		return "GREATER_GREATER_GREATER_EQUAL"
 	default:
 		return "Undefined token."
 	}

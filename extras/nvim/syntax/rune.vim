@@ -2,7 +2,7 @@ if exists("b:current_syntax")
   finish
 endif
 
-syn keyword runeKeyword let mut fun return struct impl import export match is in
+syn keyword runeKeyword let mut fun return struct enum impl import export match is in
 syn keyword runeConditional if else
 syn keyword runeRepeat for while break continue
 syn keyword runeException try catch throw
@@ -16,7 +16,7 @@ syn keyword runeBuiltin print type object number int map set
 
 syn match runeFuncDecl "\<fun\s\+\zs\h\w*"
 syn match runeFuncCall "\h\w*\ze\s*("
-syn match runeStructName "\<\(struct\|impl\)\s\+\zs\h\w*"
+syn match runeStructName "\<\(struct\|enum\|impl\)\s\+\zs\h\w*"
 syn match runeConst "\<\u[A-Z0-9_]\+\>"
 
 syn match runeNumber "\<\d[0-9_]*\(\.\d[0-9_]*\)\=\([eE][+-]\=\d[0-9_]*\)\=\>"

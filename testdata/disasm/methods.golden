@@ -5,9 +5,9 @@ exit: 0
     1  LOADK         2 0 1
     2  LOADK         3 0 2
     3  CLOSURE       4 0 0
-    4  METHOD        4 0 81
+    4  METHOD        4 0 82
     5  CLOSURE       4 0 1
-    6  METHOD        4 0 82
+    6  METHOD        4 0 83
     7  LOADK         4 0 3
     8  STRUCT        2 4 0
     9  MOVE          5 2 0
@@ -27,10 +27,13 @@ C.get: arity 1, 2 registers, 0 upvalues
     1  RETURN        1 0 0
     2  RETURNNIL     0 0 0
 
-C.incr: arity 1, 2 registers, 0 upvalues
-    0  CHECKPROP     0 0 0  x=0 y=true
-    1  GETPROP       1 0 0
-    2  INCR          1 1 0
-    3  SETPROP       0 0 1  x=0 y=true
-    4  RETURNNIL     0 0 0
+C.incr: arity 1, 4 registers, 0 upvalues
+    0  MOVE          1 0 0
+    1  LOADK         2 0 0
+    2  CHECKPROP     1 1 0  x=0 y=true
+    3  GETPROP       3 1 1
+    4  INCR          3 3 0
+    5  SETOWNED      1 1 3
+    6  MOVE          0 1 0
+    7  RETURNNIL     0 0 0
 -- stderr --

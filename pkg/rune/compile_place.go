@@ -48,6 +48,12 @@ func (pl *place) load(dst int32) {
 func (pl *place) store(v int32) {
 	fs, t := pl.fs, pl.t
 	writable := t.writable()
+
+	if pl.prop && t.v != nil && t.v.Local.Owned && t.inPlace() {
+		fs.emit(ins{op: opSetOwned, a: t.reg, b: pl.i, c: v}, pl.tok)
+		return
+	}
+
 	set := fs.emit(ins{op: pick(pl.prop, opSetProp, opSetIndex), a: t.reg, b: pl.i, c: v, y: uint8(boolNum(writable))}, pl.tok)
 
 	if !writable || t.inPlace() {
@@ -144,4 +150,15 @@ func (lv *lval) inPlace() bool {
 
 	kind, r := lv.fs.lookup(lv.v.Local)
 	return kind == varLocal && r == lv.reg
+}
+
+// ownership sets the flag in register own, after an owned variable's,
+// telling whether it holds a struct of its own: one a literal just made.
+func (fs *funcState) ownership(own int32, v ast.Expr) {
+	var fresh bool
+	if v != nil {
+		_, fresh = unwrap(v).(*ast.StructExpr)
+	}
+
+	fs.emit(ins{op: opLoadK, a: own, c: fs.constant(value.NewBool(fresh))}, nil)
 }

@@ -1,0 +1,3 @@
+[line: 3] Error at 'C': 'C' is an enum, not a struct; its values are C.A and so on.
+    3 | print(C { });
+      |       ^

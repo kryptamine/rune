@@ -1,0 +1,3 @@
+[line: 2] TypeError: Cannot convert array to Dir.
+    2 | print(Dir([])); // expect runtime error: [line: 2] TypeError: Cannot convert array to Dir.
+      |             ^

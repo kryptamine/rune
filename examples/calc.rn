@@ -3,6 +3,8 @@
 //   ./rune run examples/calc.rn          demo
 //   ./rune run examples/calc.rn repl     read lines from stdin
 
+enum Kind { Num, Id, Op, Eof }
+
 struct Token { kind, text, pos }
 
 struct Num { value }
@@ -23,15 +25,15 @@ fun tokenize(src) {
     for m in regex.findAll(TOKEN_RE, src) {
         let { bad } = m.named;
         let kind = match m.named {
-            { num } if num != nil => "num",
-            { id } if id != nil => "id",
-            { op } if op != nil => "op",
+            { num } if num != nil => Kind.Num,
+            { id } if id != nil => Kind.Id,
+            { op } if op != nil => Kind.Op,
             _ => throw CalcError { message: "unexpected '{bad}'", pos: m.index },
         };
         tokens.push(Token { kind, text: m.text, pos: m.index });
     }
 
-    tokens.push(Token { kind: "eof", text: "end of input", pos: src.len() });
+    tokens.push(Token { kind: Kind.Eof, text: "end of input", pos: src.len() });
     return tokens;
 }
 
@@ -58,7 +60,7 @@ impl Parser {
     fun statement(mut self) {
         let [a, b] = [self.peek(), self.tokens?.[self.i + 1]];
 
-        if a.kind == "id" && b?.text == "=" {
+        if a.kind == Kind.Id && b?.text == "=" {
             self.i += 2;
             return Assign { name: a.text, expr: self.expr(0) };
         }
@@ -100,14 +102,14 @@ impl Parser {
         let t = self.next();
 
         return match t {
-            Token { kind: "num", text } => Num { value: number(text) },
-            Token { kind: "op", text: "-" } => Unary { op: "-", expr: self.expr(25) },
-            Token { kind: "op", text: "(" } => {
+            Token { kind: Kind.Num, text } => Num { value: number(text) },
+            Token { kind: Kind.Op, text: "-" } => Unary { op: "-", expr: self.expr(25) },
+            Token { kind: Kind.Op, text: "(" } => {
                 let e = self.expr(0);
                 self.expect(")");
                 return e;
             },
-            Token { kind: "id", text: name } if self.peek().text == "(" => {
+            Token { kind: Kind.Id, text: name } if self.peek().text == "(" => {
                 self.next();
                 let mut args = [];
                 while self.peek().text != ")" {
@@ -117,7 +119,7 @@ impl Parser {
                 self.expect(")");
                 return Call { name, args };
             },
-            Token { kind: "id", text: name } => Var { name },
+            Token { kind: Kind.Id, text: name } => Var { name },
             _ => throw CalcError { message: "unexpected '{t.text}'", pos: t.pos },
         };
     }
@@ -127,7 +129,7 @@ fun parse(src) {
     let mut p = Parser { tokens: tokenize(src) };
     let ast = p.statement();
     let end = p.peek();
-    if end.kind != "eof" throw CalcError { message: "unexpected '{end.text}'", pos: end.pos };
+    if end.kind != Kind.Eof throw CalcError { message: "unexpected '{end.text}'", pos: end.pos };
     return ast;
 }
 

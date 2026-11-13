@@ -23,7 +23,8 @@ func (s *Parser) assignment() (ast.Expr, error) {
 	}
 
 	if s.match(ast.EQUAL, ast.PLUS_EQUAL, ast.MINUS_EQUAL, ast.STAR_EQUAL, ast.SLASH_EQUAL, ast.PERCENT_EQUAL,
-		ast.AMP_EQUAL, ast.PIPE_EQUAL, ast.CARET_EQUAL, ast.LESS_LESS_EQUAL, ast.GREATER_GREATER_EQUAL) {
+		ast.AMP_EQUAL, ast.PIPE_EQUAL, ast.CARET_EQUAL, ast.LESS_LESS_EQUAL, ast.GREATER_GREATER_EQUAL,
+		ast.GREATER_GREATER_GREATER_EQUAL) {
 		equals := s.previous()
 		value, err := s.assignment()
 
@@ -72,6 +73,8 @@ var compoundOps = map[ast.TokenType]ast.TokenType{
 	ast.CARET_EQUAL:           ast.CARET,
 	ast.LESS_LESS_EQUAL:       ast.LESS_LESS,
 	ast.GREATER_GREATER_EQUAL: ast.GREATER_GREATER,
+
+	ast.GREATER_GREATER_GREATER_EQUAL: ast.GREATER_GREATER_GREATER,
 }
 
 // conditional parses cond ? then : else, right-associative.
@@ -231,7 +234,7 @@ func parseBitXor(s *Parser) (ast.Expr, error) { return s.binaryLevel(parseBitAnd
 func parseBitAnd(s *Parser) (ast.Expr, error) { return s.binaryLevel(parseShift, ast.AMP) }
 
 func parseShift(s *Parser) (ast.Expr, error) {
-	return s.binaryLevel((*Parser).term, ast.LESS_LESS, ast.GREATER_GREATER)
+	return s.binaryLevel((*Parser).term, ast.LESS_LESS, ast.GREATER_GREATER, ast.GREATER_GREATER_GREATER)
 }
 
 // binaryLevel parses a left-associative chain of operands joined by ops.

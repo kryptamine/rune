@@ -187,7 +187,11 @@ func (s *Scanner) scanToken() {
 	case '>':
 		switch {
 		case s.match('>'):
-			s.addToken(helpers.If(s.match('='), ast.GREATER_GREATER_EQUAL, ast.GREATER_GREATER))
+			if s.match('>') {
+				s.addToken(helpers.If(s.match('='), ast.GREATER_GREATER_GREATER_EQUAL, ast.GREATER_GREATER_GREATER))
+			} else {
+				s.addToken(helpers.If(s.match('='), ast.GREATER_GREATER_EQUAL, ast.GREATER_GREATER))
+			}
 		case s.match('='):
 			s.addToken(ast.GREATER_EQUAL)
 		default:

@@ -1,0 +1,3 @@
+[line: 2] Error at 'values': A variant cannot be named 'values'.
+    2 | enum C { values }
+      |          ^

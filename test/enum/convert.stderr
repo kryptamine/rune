@@ -1,0 +1,3 @@
+[line: 16] ValueError: Dir has no variant 4.
+   16 | print(Dir(4)); // expect runtime error: [line: 16] ValueError: Dir has no variant 4.
+      |            ^

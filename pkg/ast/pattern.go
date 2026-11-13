@@ -41,6 +41,14 @@ type StructPattern struct {
 	Shape  *value.Shape
 }
 
+// VariantPattern is Enum.Variant, or m.Enum.Variant, matching that
+// variant; the resolver replaces it with a LiteralPattern.
+type VariantPattern struct {
+	Module  *Token
+	Enum    Token
+	Variant Token
+}
+
 // TypePattern is name is T | U, or _ is T: Inner, a BindPattern or a
 // WildcardPattern, after testing the value is one of Types; the resolver
 // sets Shapes.
@@ -64,6 +72,7 @@ func (*OrPattern) patternNode()       {}
 func (*StructPattern) patternNode()   {}
 func (*ObjectPattern) patternNode()   {}
 func (*TypePattern) patternNode()     {}
+func (*VariantPattern) patternNode()  {}
 
 // Bindings returns the variables p binds; alternatives bind none.
 func Bindings(p Pattern) []*Binding {

@@ -169,6 +169,11 @@ func (s *Parser) patternAlt() (ast.Pattern, error) {
 			pat.Module, pat.Name = &name, typ
 		}
 
+		if pat.Module != nil && s.match(ast.DOT) {
+			variant, err := s.consume(ast.IDENTIFIER, "Expect variant name after '.'.")
+			return &ast.VariantPattern{Module: pat.Module, Enum: pat.Name, Variant: variant}, err
+		}
+
 		if s.match(ast.LEFT_BRACE) {
 			fields, err := s.fieldPatterns(false)
 			pat.Fields = fields
@@ -177,7 +182,7 @@ func (s *Parser) patternAlt() (ast.Pattern, error) {
 		}
 
 		if pat.Module != nil {
-			return nil, errors.NewSyntaxError(s.peek(), "Expect '{' after struct name; test the type with '_ is "+name.Lexeme+"."+pat.Name.Lexeme+"'.")
+			return &ast.VariantPattern{Enum: name, Variant: pat.Name}, nil
 		}
 
 		return s.typePattern(&ast.BindPattern{Binding: ast.Binding{Name: name}})

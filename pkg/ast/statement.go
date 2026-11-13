@@ -264,12 +264,15 @@ type StructField struct {
 	DefaultAt Token
 }
 
-// StructStmt declares a struct type; the resolver sets Local and Shape.
+// StructStmt declares a struct type, or an enum type of Variants if
+// Enum; the resolver sets Local and Shape.
 type StructStmt struct {
-	Name   Token
-	Fields []StructField
-	Local  *Local
-	Shape  *value.Shape
+	Name     Token
+	Fields   []StructField
+	Enum     bool
+	Variants []Token
+	Local    *Local
+	Shape    *value.Shape
 }
 
 func NewStructStmt(name Token, fields []StructField) Stmt {

@@ -111,7 +111,7 @@ func isEqual(left, right value.Value, seen map[refPair]bool) bool {
 		}
 
 		return true
-	case value.Type:
+	case value.Type, value.Enum:
 		return left.Ptr() == right.Ptr()
 	case value.Bytes:
 		return string(left.Bytes()) == string(right.Bytes())

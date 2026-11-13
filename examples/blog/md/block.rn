@@ -6,6 +6,17 @@ export struct Heading { level, text, id }
 
 struct Doc { html = [], headings = [] }
 
+enum ListKind { Bullet, Numbered }
+
+impl ListKind {
+    fun tag(self) {
+        return match self {
+            ListKind.Bullet => "ul",
+            ListKind.Numbered => "ol",
+        };
+    }
+}
+
 export fun slug(s) {
     return regex.replace(r"[^a-z0-9]+", s.lower(), "-").trim("-");
 }
@@ -60,11 +71,11 @@ export fun render(src) {
 
         let item = listItem(line);
         if item != nil {
-            let tag = item.ordered ? "ol" : "ul";
+            let tag = item.kind.tag();
             let mut items = [];
             while i < lines.len() {
                 let it = listItem(lines[i]);
-                if it == nil || it.ordered != item.ordered break;
+                if it == nil || it.kind != item.kind break;
                 items.push("<li>{inline.render(it.text)}</li>");
                 i++;
             }
@@ -84,7 +95,7 @@ fun listItem(line) {
     let m = regex.find(r"^\s*([-*]|\d+\.)\s+(.*)$", line);
     if m == nil return nil;
     let [marker, text] = m.groups;
-    return { ordered: marker.endsWith("."), text };
+    return { kind: marker.endsWith(".") ? ListKind.Numbered : ListKind.Bullet, text };
 }
 
 fun startsBlock(line) {

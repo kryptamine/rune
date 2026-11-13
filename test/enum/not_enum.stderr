@@ -1,0 +1,3 @@
+[line: 3] Error at 'P': 'P' is not an enum.
+    3 | print(match 1 { P.A => 1, _ => 2 });
+      |                 ^

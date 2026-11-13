@@ -19,7 +19,8 @@ renders pages with `"""` templates, parses Markdown with `regex`.
 ### [`todo.rn`](https://github.com/kryptamine/rune/blob/master/examples/todo.rn) — task tracker
 
 Tasks with tags, priorities and due dates, kept in a JSON file. Shows
-`fun main` with arguments, structs with `impl`, `match` on commands,
+`fun main` with arguments, structs with `impl`, a `Priority` enum read
+back from JSON by name, `match` on commands,
 `time` for dates, and writes the file atomically with `fs.rename`.
 Tasks live in `$TODO_FILE`, or `~/.todo.json`.
 
@@ -40,10 +41,26 @@ groups with `map`, writes JSON.
 ./rune run examples/log-report.rn access.log -j   # your own log, plus a JSON report
 ```
 
+### [`chess.rn`](https://github.com/kryptamine/rune/blob/master/examples/chess.rn) — chess engine
+
+Move generation on a 10×12 mailbox board, perft, alpha-beta search with
+quiescence, a transposition table on Zobrist keys and iterative deepening.
+Moves are packed into integers with bitwise operators; the position is a
+struct changed in place by `mut self` methods `make` and `unmake`; table
+entries record their bound as an enum.
+
+```sh
+./rune run examples/chess.rn                     # perft check, a mate puzzle, self-play
+./rune run examples/chess.rn perft 4             # leaf nodes per root move
+./rune run examples/chess.rn go -t 3             # best move from the start position
+./rune run examples/chess.rn play black -t 2     # play against the engine
+```
+
 ### [`calc.rn`](https://github.com/kryptamine/rune/blob/master/examples/calc.rn) — calculator
 
 Tokenizer, Pratt parser and evaluator with variables and functions. A good
-read for structs, `match` on AST nodes and `throw` for parse errors.
+read for structs, an enum of token kinds matched inside struct patterns,
+`match` on AST nodes and `throw` for parse errors.
 
 ```sh
 ./rune run examples/calc.rn        # demo

@@ -166,11 +166,11 @@ func (p *Interpreter) slow(in Instr) error {
 
 		regs[in.a()] = v
 
-	case opSetIndex, opSetProp:
+	case opSetIndex, opSetProp, opSetOwned:
 		t, key := regs[in.a()], setKey(in, regs, consts)
 
 		switch {
-		case t.Kind() == value.Struct && in.y():
+		case t.Kind() == value.Struct && (in.y() || in.op() == opSetOwned):
 			v, err := setField(tok, t, key, regs[in.c()])
 			if err == nil {
 				regs[in.a()] = v
@@ -298,7 +298,7 @@ func (p *Interpreter) slow(in Instr) error {
 		regs[in.a()+3] = value.NewInt(0)
 
 	case opForIter:
-		c, err := cursorOf(regs[in.a()], in.x() != 0, tok)
+		c, err := p.cursorOf(regs[in.a()], in.x() != 0, tok)
 		if err == nil {
 			regs[in.a()] = value.NewInternal(c)
 		}
@@ -382,7 +382,7 @@ func (p *Interpreter) callNativeMethod(at, n int, nat *stdlib.Native, tok *ast.T
 
 // setKey is the key a set writes: K[B] for a property, R[B] for an element.
 func setKey(in Instr, regs, consts []value.Value) value.Value {
-	if in.op() == opSetProp {
+	if in.op() != opSetIndex {
 		return consts[in.b()]
 	}
 

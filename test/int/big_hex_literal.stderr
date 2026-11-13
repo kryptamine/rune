@@ -1,0 +1,3 @@
+[line: 2] Error: Integer literal is too large.
+    2 | print(0x1_0000_0000_0000_0000);
+      |       ^

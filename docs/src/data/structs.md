@@ -18,8 +18,9 @@ print(User { name, role: "admin" }); // User {name: "bob", role: "admin", tags: 
 
 `User { name }` is shorthand for `User { name: name }`.
 
-A default is a constant: a literal or operators on literals (`60 * 60`), an
-array or object of them, `map()` or `set()`. Each struct made gets its own copy of an array, object, map or
+A default is a constant: a literal or operators on literals (`60 * 60`), a
+variant of an [enum](enums.md) of the file, an array or object of them,
+`map()` or `set()`. Each struct made gets its own copy of an array, object, map or
 set, so `tags = []` is never shared:
 
 ```rune

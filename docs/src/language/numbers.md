@@ -3,14 +3,16 @@
 A number is a 64-bit integer or a float; `type` says `"number"` for both
 and `math.isInt` tells them apart. A literal without a fraction or an
 exponent is an integer; `0x`, `0o` and `0b` prefix hex, octal and binary
-ones, and `_` may separate digits. An integer literal past `math.MAX_INT`
-is a compile error.
+ones, and `_` may separate digits. A decimal integer literal past
+`math.MAX_INT` is a compile error; a prefixed one may take all 64 bits,
+read as two's complement, so `0xFFFF_FFFF_FFFF_FFFF` is `-1`.
 
 ```rune
 print(1_000_000);    // 1000000
 print(0xff);         // 255
 print(0o17);         // 15
 print(0b1010);       // 10
+print(0x8000_0000_0000_0000 == math.MIN_INT); // true
 print(1e3);          // 1000
 print(2.5e-3);       // 0.0025
 print(math.isInt(42));    // true
@@ -68,13 +70,14 @@ print(0.1 + 0.2);                                  // 0.30000000000000004
 
 ## Bitwise Operators
 
-The bitwise operators `&`, `|`, `^`, `~`, `<<` and `>>` take integers, or
-floats with an integer value, and give an integer; `>>` keeps the sign, a
-shift by 64 or more gives `0` (or `-1`), and a negative one is a
-`ValueError`. They bind tighter than comparisons and looser than `+`, with
+The bitwise operators `&`, `|`, `^`, `~`, `<<`, `>>` and `>>>` take
+integers, or floats with an integer value, and give an integer; `>>` keeps
+the sign and `>>>` shifts in zeros, as on 64 unsigned bits. A shift never
+overflows: bits shifted out are lost, one by 64 or more gives `0` (or `-1`
+for `>>` of a negative), and a negative one is a `ValueError`. They bind tighter than comparisons and looser than `+`, with
 `|` loosest, then `^`, `&` and the shifts: `1 + 2 & 3` is `3`, and
 `flags & MASK == 0` needs no parentheses. Each has a compound assignment:
-`&=`, `|=`, `^=`, `<<=`, `>>=`.
+`&=`, `|=`, `^=`, `<<=`, `>>=`, `>>>=`.
 
 ```rune
 let READ = 0b001;
@@ -89,6 +92,7 @@ perms |= EXEC;
 print(perms);                     // 5
 print(1 << 10);                   // 1024
 print(-16 >> 2);                  // -4
+print(-16 >>> 60);                // 15
 ```
 
 ```rune

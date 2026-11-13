@@ -1,0 +1,3 @@
+[line: 3] Error at 'A': C has a variant 'A'.
+    3 | impl C { fun A() {} }
+      |              ^

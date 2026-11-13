@@ -1,0 +1,12 @@
+import _lib.colors;
+
+let c = colors.Color.Green;
+print(c);                    // expect: Color.Green
+print(c.hex());              // expect: #0f0
+print(c is colors.Color);    // expect: true
+print(colors.Color(0));      // expect: Color.Red
+print(colors.Color.values()); // expect: [Color.Red, Color.Green]
+print(match c {
+  colors.Color.Red => "red",
+  colors.Color.Green => "green",
+});                          // expect: green

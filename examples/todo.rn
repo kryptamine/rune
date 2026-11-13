@@ -14,14 +14,18 @@ struct Task {
     text,
     created,
     tags = [],
-    priority = "normal",
+    priority = Priority.Normal,
     due = nil,
     completed = nil,
 }
 
 struct UsageError { message }
 
-let PRIORITIES = { low: 0, normal: 1, high: 2 };
+enum Priority { Low, Normal, High }
+
+fun priorityNamed(word) {
+    return Priority.values().find(p => p.name.lower() == word);
+}
 let WEEKDAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 let DAY = "%Y-%m-%d";
 
@@ -87,7 +91,7 @@ impl Store {
     fun load(path) {
         if !fs.exists(path) return Store { path };
         let data = json.parse(fs.readText(path));
-        return Store { path, tasks: data.tasks.map(o => Task(o)), nextId: data.nextId };
+        return Store { path, tasks: data.tasks.map(o => Task({ ...o, priority: Priority(o.priority) })), nextId: data.nextId };
     }
 
     fun save(self) {
@@ -128,7 +132,7 @@ fun parseTask(words, now) {
     for w in words {
         match w {
             _ if w.startsWith("+") && w.len() > 1 => task.tags.push(w.slice(1));
-            _ if w.startsWith("!") && PRIORITIES.has(w.slice(1)) => task.priority = w.slice(1);
+            _ if w.startsWith("!") && priorityNamed(w.slice(1)) != nil => task.priority = priorityNamed(w.slice(1));
             _ if w.startsWith("due:") => task.due = parseDate(w.removePrefix("due:"), now);
             _ => text.push(w);
         }
@@ -153,13 +157,13 @@ fun byUrgency(a, b) {
         if b.due == nil return -1;
         return a.due < b.due ? -1 : 1;
     }
-    if a.priority != b.priority return PRIORITIES[b.priority] - PRIORITIES[a.priority];
+    if a.priority != b.priority return int(b.priority) - int(a.priority);
     return a.id - b.id;
 }
 
 fun show(t, now) {
     let mark = t.completed != nil ? "x" : t.due != nil && t.due < now ? "!" : " ";
-    let prio = match t.priority { "high" => "↑", "low" => "↓", _ => " " };
+    let prio = match t.priority { Priority.High => "↑", Priority.Low => "↓", Priority.Normal => " " };
     let due = t.due != nil ? relative(t.due, now) : "";
     let tags = t.tags.map(tag => "+" + tag).join(" ");
     return "[%s] %3d %s %-28s %-10s %s".format(mark, t.id, prio, t.text, due, tags).trimEnd();

@@ -27,6 +27,7 @@
 - [Bytes](data/bytes.md)
 - [Structs](data/structs.md)
 - [Methods](data/methods.md)
+- [Enums](data/enums.md)
 
 # Programs
 

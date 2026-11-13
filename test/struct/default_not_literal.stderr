@@ -1,9 +1,9 @@
-[line: 1] Error at '1': Field default must be a constant: a literal, or an array, object, map() or set() of them.
-    1 | struct Point { x = 1 + n, y } // [line: 1] Error at '1': Field default must be a constant: a literal, or an array, object, map() or set() of them.
+[line: 1] Error at '1': Field default must be a constant: a literal, an enum variant, or an array, object, map() or set() of them.
+    1 | struct Point { x = 1 + n, y } // [line: 1] Error at '1': Field default must be a constant: a literal, an enum variant, or an array, object, map() or set() of them.
       |                    ^
-[line: 2] Error at '[': Field default must be a constant: a literal, or an array, object, map() or set() of them.
-    2 | struct Box { xs = [n] } // [line: 2] Error at '[': Field default must be a constant: a literal, or an array, object, map() or set() of them.
+[line: 2] Error at '[': Field default must be a constant: a literal, an enum variant, or an array, object, map() or set() of them.
+    2 | struct Box { xs = [n] } // [line: 2] Error at '[': Field default must be a constant: a literal, an enum variant, or an array, object, map() or set() of them.
       |                   ^
-[line: 4] Error at 'map': Field default must be a constant: a literal, or an array, object, map() or set() of them.
-    4 | struct Bag { m = map() } // [line: 4] Error at 'map': Field default must be a constant: a literal, or an array, object, map() or set() of them.
+[line: 4] Error at 'map': Field default must be a constant: a literal, an enum variant, or an array, object, map() or set() of them.
+    4 | struct Bag { m = map() } // [line: 4] Error at 'map': Field default must be a constant: a literal, an enum variant, or an array, object, map() or set() of them.
       |                  ^

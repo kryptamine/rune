@@ -33,6 +33,8 @@ const (
 	Bytes
 	// Stream is an open file or a body being read.
 	Stream
+	// Enum is a variant of an enum type.
+	Enum
 	NumKinds
 )
 
@@ -120,7 +122,38 @@ type Shape struct {
 	// values of Kind against.
 	Builtin bool
 	Kind    Kind
-	decls   []Field
+	// Enum marks an enum type, whose values are Variants, in order.
+	Enum     bool
+	Variants []Value
+	decls    []Field
+}
+
+// Variant is a value of an enum type: its Ordinal-th, named Name.
+type Variant struct {
+	Shape   *Shape
+	Ordinal int
+	Name    string
+}
+
+func NewEnum(name string, variants []string) *Shape {
+	s := &Shape{Name: name, Enum: true, Variants: make([]Value, len(variants))}
+
+	for i, v := range variants {
+		s.Variants[i] = Value{p: unsafe.Pointer(&Variant{Shape: s, Ordinal: i, Name: v}), n: uint64(Enum) << kindShift}
+	}
+
+	return s
+}
+
+// Variant returns the variant of the enum s named name.
+func (s *Shape) Variant(name string) (Value, bool) {
+	for _, v := range s.Variants {
+		if v.Variant().Name == name {
+			return v, true
+		}
+	}
+
+	return NilValue, false
 }
 
 // Method is a method of an impl block or a built-in type; ID indexes the
@@ -135,7 +168,16 @@ type Method struct {
 // Has reports whether v is of the type s.
 func (s *Shape) Has(v Value) bool {
 	k := v.Kind()
-	return k == Struct && v.Shape() == s || s.Builtin && k == s.Kind
+	switch {
+	case k == Struct:
+		return v.Shape() == s
+	case k == Enum:
+		return v.Variant().Shape == s
+	case k == Type && s.Builtin:
+		return s.Kind == Type && v.TypeShape().Enum == s.Enum
+	}
+
+	return s.Builtin && k == s.Kind
 }
 
 // FindMethod returns the method of ms named name, or nil.
@@ -463,6 +505,14 @@ func (v Value) InternedField(key Value) (Value, bool) {
 	return NilValue, false
 }
 
+// Clone returns a copy of the struct v.
+func (v Value) Clone() Value {
+	c, fields := NewStruct(v.Shape())
+	copy(fields, v.Fields())
+
+	return c
+}
+
 // With returns a copy of v with field slot set to x.
 func (v Value) With(slot int, x Value) Value {
 	c, fields := NewStruct(v.Shape())
@@ -471,6 +521,9 @@ func (v Value) With(slot int, x Value) Value {
 
 	return c
 }
+
+// Variant returns an enum value's variant; only meaningful when Kind() == Enum.
+func (v Value) Variant() *Variant { return (*Variant)(v.p) }
 
 // TypeShape returns the shape a struct type describes; only meaningful when Kind() == Type.
 func (v Value) TypeShape() *Shape { return (*Shape)(v.p) }
