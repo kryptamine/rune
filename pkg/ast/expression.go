@@ -60,10 +60,14 @@ type Local struct {
 	Captured bool
 	// TopLevel is set for a declaration outside any block or function.
 	TopLevel bool
-	// Owned is set by the resolver on a mutable local, or mut self, that
-	// never lets its value go, so it may change its own copy of a struct
+	// Owned is set by the resolver on a mutable variable, or mut self,
+	// that tracks whether it holds a struct of its own, which it changes
 	// in place.
 	Owned bool
+	// Const is the value every read of a top-level constant folds to, if
+	// IsConst: an immutable one given a literal before any code runs.
+	Const   value.Value
+	IsConst bool
 }
 
 type AssignExpr struct {
@@ -100,6 +104,10 @@ type VarExpr struct {
 	Module *Token
 	Name   Token
 	Local  *Local
+	// Leaks is set on a read of an owned variable that lets its value go,
+	// Lends on one that calls a method which may mutate it.
+	Leaks bool
+	Lends bool
 }
 
 func NewVarExpr(name Token) Expr {

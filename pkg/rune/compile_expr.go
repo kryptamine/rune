@@ -13,6 +13,9 @@ var cmpOps = map[ast.TokenType]uint8{
 	ast.EQUAL_EQUAL: cmpEQ, ast.BANG_EQUAL: cmpNE,
 }
 
+// flipped is each comparison with its operands swapped.
+var flipped = [...]uint8{cmpLT: cmpGT, cmpLE: cmpGE, cmpGT: cmpLT, cmpGE: cmpLE, cmpEQ: cmpEQ, cmpNE: cmpNE}
+
 // exprAny returns a register holding e: a plain local's own register, or
 // a new temporary.
 func (fs *funcState) exprAny(e ast.Expr) int32 {
@@ -20,6 +23,8 @@ func (fs *funcState) exprAny(e ast.Expr) int32 {
 	case *ast.VarExpr:
 		if kind, r := fs.lookup(n.Local); kind == varLocal {
 			fs.checkDefined(n.Local, r, &n.Name)
+			fs.leak(n)
+
 			return r
 		}
 	case *ast.AssignExpr:
@@ -141,9 +146,17 @@ func literalOf(e ast.Expr) (value.Value, bool) {
 	switch n := unwrap(e).(type) {
 	case *ast.LiteralExpr:
 		return n.Value, true
+	case *ast.VarExpr:
+		if n.Local != nil && n.Local.IsConst {
+			return n.Local.Const, true
+		}
 	case *ast.IndexExpr:
 		if n.Member != nil && n.Member.IsNumber() {
 			return *n.Member, true
+		}
+
+		if n.Export != nil {
+			return literalOf(n.Export)
 		}
 	case *ast.UnaryExpr:
 		v, ok := literalOf(n.Right)
@@ -425,11 +438,24 @@ func (fs *funcState) checkDefined(l *ast.Local, r int32, name *ast.Token) {
 	}
 }
 
+// leak clears the flag of an owned variable whose value the read n lets go.
+func (fs *funcState) leak(n *ast.VarExpr) {
+	if n.Leaks {
+		fs.ownership(fs.locals[n.Local]+1, nil)
+	}
+}
+
 func (fs *funcState) varExpr(n *ast.VarExpr, dst int32) {
+	if v, ok := literalOf(n); ok {
+		fs.emit(ins{op: opLoadK, a: dst, c: fs.constant(v)}, nil)
+		return
+	}
+
 	switch kind, r := fs.lookup(n.Local); kind {
 	case varLocal:
 		fs.checkDefined(n.Local, r, &n.Name)
 		fs.move(dst, r)
+		fs.leak(n)
 	case varCell:
 		fs.emit(ins{op: opGetCell, a: dst, b: r}, &n.Name)
 	case varUpval:
@@ -488,6 +514,10 @@ func (fs *funcState) assign(n *ast.AssignExpr) int32 {
 	fs.store(kind, r, v, checked, &n.Name)
 
 	if kind == varLocal {
+		if n.Local.Owned {
+			fs.ownership(r+1, n.Value)
+		}
+
 		return r
 	}
 
@@ -508,13 +538,19 @@ func (fs *funcState) binary(n *ast.BinaryExpr, dst int32) {
 	arith, isArith := arithOps[op.TokenType]
 	cmp, isCmp := cmpOps[op.TokenType]
 
+	// A number on the left of an operator that commutes goes right.
+	left, kcmp := n.Left, cmp
+	if lc, ok := literalOf(n.Left); ok && !rConst && lc.IsNumber() && (isCmp || isArith && (arith == value.OpAdd || arith == value.OpMul)) {
+		left, rc, rConst, kcmp = n.Right, lc, true, flipped[cmp]
+	}
+
 	if k, ok := fs.operandConst(rc, rConst, maxC); ok && (isArith || isCmp) {
-		l := fs.operand(n.Left)
+		l := fs.operand(left)
 
 		if isArith {
 			fs.emit(ins{op: arithOp(arith, true), a: dst, b: l, c: k}, op)
 		} else {
-			fs.emit(ins{op: opCmpK, x: cmp, a: dst, b: l, c: k}, op)
+			fs.emit(ins{op: opCmpK, x: kcmp, a: dst, b: l, c: k}, op)
 		}
 
 		return
@@ -635,11 +671,28 @@ func (fs *funcState) invoke(n *ast.CallExpr, prop *ast.IndexExpr, dst int32) {
 		fs.expr(arg, fs.alloc())
 	}
 
+	// An owned variable passes its flag and takes it back from the
+	// register after self.
+	owned := lv != nil && lv.v != nil && lv.v.Lends
+	if owned {
+		if len(n.Args) == 0 {
+			fs.alloc()
+		}
+
+		fs.emit(ins{op: opMove, a: base, b: fs.locals[lv.v.Local] + 1}, nil)
+	}
+
 	name := fs.constant(value.NewString(prop.Token.Lexeme))
-	fs.emit(ins{op: opInvoke, a: base, b: int32(len(n.Args)), c: name, x: uint8(boolNum(n.Frozen)), y: uint8(boolNum(n.Writable))}, &prop.Token)
+	x := uint8(boolNum(n.Frozen)) | uint8(boolNum(owned))<<1
+	fs.emit(ins{op: opInvoke, a: base, b: int32(len(n.Args)), c: name, x: x, y: uint8(boolNum(n.Writable))}, &prop.Token)
 
 	if lv != nil {
 		skip := fs.emit(ins{op: opJmp}, &prop.Token)
+
+		if owned {
+			fs.emit(ins{op: opMove, a: fs.locals[lv.v.Local] + 1, b: self + 1}, &prop.Token)
+		}
+
 		lv.writeBack()
 		fs.patch([]int{skip})
 	}
@@ -840,7 +893,7 @@ func (fs *funcState) jumpIf(e ast.Expr, sense bool) []int {
 			break
 		}
 
-		_, lConst := literalOf(n.Left)
+		lc, lConst := literalOf(n.Left)
 		rc, rConst := literalOf(n.Right)
 
 		if lConst && rConst {
@@ -849,9 +902,14 @@ func (fs *funcState) jumpIf(e ast.Expr, sense bool) []int {
 
 		op := &n.Operator
 
+		left, kcmp := n.Left, cmp
+		if lConst && lc.IsNumber() {
+			left, rc, rConst, kcmp = n.Right, lc, true, flipped[cmp]
+		}
+
 		if k, ok := fs.operandConst(rc, rConst, maxAB); ok {
-			l := fs.operand(n.Left)
-			return []int{fs.emit(ins{op: opJmpCmpK, x: cmp, y: y, a: l, b: k}, op)}
+			l := fs.operand(left)
+			return []int{fs.emit(ins{op: opJmpCmpK, x: kcmp, y: y, a: l, b: k}, op)}
 		}
 
 		l := fs.operand(n.Left, n.Right)

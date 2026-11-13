@@ -136,7 +136,7 @@ func (p *Interpreter) invoke(fr *frame, in Instr, tok *ast.Token) error {
 	case m.Mut && !in.y():
 		return errors.NewRuntimeError(errors.TypeError, *tok, fmt.Sprintf(
 			"Cannot call mutating method '%s' of %s: the receiver is not a mutable variable, element or property.", m.Name, owner))
-	case m.InPlace && in.x() != 0:
+	case m.InPlace && in.x()&1 != 0:
 		return errors.NewRuntimeError(errors.TypeError, *tok, fmt.Sprintf(
 			"Cannot call in-place method '%s' of %s: its receiver is in an immutable variable.", m.Name, owner))
 	}
@@ -146,13 +146,19 @@ func (p *Interpreter) invoke(fr *frame, in Instr, tok *ast.Token) error {
 		return p.callNativeMethod(at, n, nat, tok)
 	}
 
-	if f := (*Closure)(fn.Ptr()); !f.proto.accepts(n + 1) {
-		return argumentError(f.proto, n+1, 1, tok)
+	f := (*Closure)(fn.Ptr()).proto
+	if !f.accepts(n + 1) {
+		return argumentError(f, n+1, 1, tok)
 	}
 
-	// A mutating method resumes past the jump over its write-back.
+	// A mutating method resumes past the jump over its write-back, and
+	// one without an owned self past the instruction taking its flag.
 	if m.Mut {
 		fr.pc++
+
+		if in.x()&2 != 0 && f.selfReg == 0 {
+			fr.pc++
+		}
 	}
 
 	p.stack[at] = fn

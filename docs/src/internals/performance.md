@@ -7,7 +7,10 @@ Before running, the resolved AST is compiled to bytecode for a register machine,
 - comparisons in `if` and loop conditions jump directly; constant operands and literal expressions are folded; loops test their condition at the bottom;
 - a value is two words: numbers, booleans and strings are stored inline and never allocate;
 - a struct is one allocation of its fields; the compiler interns field names, so `p.x` finds the field by pointer, with no hashing or string comparison;
-- setting a field copies the struct, as structs are values; but a `mut self` method, or a `let mut` local of a function, that never lets its struct go (no passing, returning, capturing or binding it, and calling only methods that keep `self` too) copies it once, on its first write, and then sets fields in place; a local just given a struct literal needs no copy at all;
+- setting a field copies the struct, as structs are values; but a `mut self` method that never lets its struct go (no passing, returning, capturing or binding it, and calling only methods that keep `self` too) copies it once, on its first write, and then sets fields in place. A `let mut` variable or `mut` parameter no function captures does the same, copying again only after a read that lets the struct go; one just given a struct literal needs no copy at all;
+- a `mut self` method called on such a variable changes the variable's own struct in place, unless a `try` is open in the calling function, which must find the struct unchanged after an error;
+- a top-level `let` given a literal before any code runs is a constant: reads of it fold like the literal;
+- a map or a set is an open-addressing table over the values themselves, in insertion order;
 - a `for`-`in` over an array walks a snapshot, whose buffer a loop that runs to its end hands on to the next;
 - `print` output is buffered and flushed when the program ends (also on a runtime error).
 
@@ -49,6 +52,11 @@ at the bottom (1), where `JMPCMPK` compares `left` with the constant `0`
 and jumps back to the body (2) while it holds, with no boolean made in
 between; `left -= 1` is a single `SUBK` with a constant operand, and
 `60 * 1000` was folded to `60000` at compile time (4).
+
+## Garbage collection
+
+`rune` lets the heap grow to five times the live data before collecting
+(`GOGC=400`), which matters most on a single CPU. Set `GOGC` to override it.
 
 ## Benchmarks
 

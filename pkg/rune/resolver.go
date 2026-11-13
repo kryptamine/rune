@@ -154,7 +154,7 @@ func (p *Resolver) VisitExprStmt(exprStmt *ast.ExprStmt) error {
 
 func (p *Resolver) VisitVarStmt(stmt *ast.VarStmt) error {
 	stmt.Local = p.declare(stmt.Binding)
-	p.trackLocal(stmt)
+	p.trackLocal(stmt.Binding, stmt.Local)
 
 	if stmt.Initializer != nil {
 		p.resolveExpr(stmt.Initializer)
@@ -724,6 +724,7 @@ func (p *Resolver) VisitSetIndexExpr(expr *ast.SetIndexExpr) (value.Value, error
 	p.resolveExpr(expr.Value)
 	p.requireMutableRoot(expr.Array)
 	p.useVar(expr.Array, true)
+	p.useSet(expr)
 
 	return value.NilValue, nil
 }
@@ -932,6 +933,7 @@ func (p *Resolver) resolveFn(fn *ast.FunctionStmt) {
 
 		fn.Parameters[i].Local = p.declare(param)
 		p.define(param.Name)
+		p.trackLocal(param, fn.Parameters[i].Local)
 	}
 
 	p.resolveStmts(fn.Body)

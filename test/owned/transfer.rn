@@ -1,0 +1,145 @@
+struct C { n = 0, tag = "c" }
+
+impl C {
+  fun incr(mut self) { self.n++; }
+  fun add(mut self, k = 1) { self.n += k; return k; }
+  fun twice(mut self) { self.incr(); self.incr(); }
+  fun get(self) { return self.n; }
+  fun keep(mut self) { kept.push(self); self.n = -1; }
+  fun fail(mut self) { self.n = 99; throw Err { message: "x" }; }
+  fun noop(mut self) {}
+}
+
+struct Err { message }
+
+let mut kept = [];
+
+fun counted(n) {
+    let mut c = C {};
+    for i in 0..n { c.incr(); }
+    c.twice();
+    print("{c.add()} {c.add(5)} {c.get()}"); // expect: 1 5 11
+    return c;
+}
+
+print(counted(3)); // expect: C {n: 11, tag: "c"}
+
+// A copy taken before a call keeps its value.
+fun aliased() {
+    let mut a = C {};
+    a.incr();
+    let b = a;
+    a.incr();
+    a.incr();
+    let d = a;
+    a.twice();
+    print("{a.n} {b.n} {d.n}"); // expect: 5 1 3
+}
+
+aliased();
+
+// A parameter starts as a copy of the argument.
+fun bump(mut c, times) {
+    for i in 0..times { c.incr(); }
+    return c.n;
+}
+
+fun params() {
+    let mut c = C { n: 10 };
+    print("{bump(c, 3)} {c.n}"); // expect: 13 10
+    c.incr();
+    print("{bump(c, 1)} {c.n}"); // expect: 12 11
+}
+
+params();
+
+// A method that lets self go gives the variable a shared struct.
+fun leaky() {
+    let mut c = C {};
+    c.incr();
+    c.keep();
+    c.incr();
+    print("{c.n} {kept[0].n}"); // expect: 0 1
+}
+
+leaky();
+
+// An error leaves the variable as it was before the call.
+fun failing() {
+    let mut c = C {};
+    c.incr();
+    try { c.fail(); } catch e { print(e.message); } // expect: x
+    print(c.n); // expect: 1
+    try { c.incr(); c.fail(); } catch e {}
+    print(c.n); // expect: 2
+    c.noop();
+    c.incr();
+    print(c.n); // expect: 3
+}
+
+failing();
+
+// Top-level variables own their structs too.
+let mut t = C {};
+t.incr();
+let u = t;
+t.twice();
+t.tag = "t";
+print("{t} {u}"); // expect: C {n: 3, tag: "t"} C {n: 1, tag: "c"}
+
+// Recursion passes copies down.
+fun down(mut c, depth) {
+    c.incr();
+    if depth > 0 { down(c, depth - 1); }
+    c.incr();
+    return c.n;
+}
+
+print(down(C {}, 3)); // expect: 2
+
+// A struct held in a field goes back there.
+struct Box { c, label = "b" }
+
+impl Box {
+  fun bump(mut self) { self.c.incr(); self.c.n += 10; }
+}
+
+fun boxed() {
+    let mut b = Box { c: C {} };
+    let inner = b.c;
+    b.bump();
+    b.c.incr();
+    b.label = "x";
+    print("{b.c.n} {inner.n} {b.label}"); // expect: 12 0 x
+}
+
+boxed();
+
+// A try in a caller further out does not see the struct.
+fun inner() {
+    let mut c = C {};
+    c.incr();
+    c.fail();
+}
+
+fun outer() {
+    let mut c = C {};
+    try { c.incr(); inner(); } catch e { print(c.n); } // expect: 1
+    c.twice();
+    print(c.n); // expect: 3
+}
+
+outer();
+
+// An error in a method that lets self go is traced to the call.
+impl C {
+  fun bad(mut self) { kept.push(self); return self + 0; }
+}
+
+fun traced() {
+    let mut c = C {};
+    c.n = 1;
+    c.bad();
+}
+
+try { traced(); } catch e { print(e.message); } // expect: Operands must be two numbers, two strings or two bytes.

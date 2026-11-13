@@ -9,6 +9,7 @@ import (
 	"rune/pkg/helpers"
 	"rune/pkg/rune"
 	"rune/pkg/stdlib"
+	"runtime/debug"
 	"strings"
 )
 
@@ -21,6 +22,9 @@ const (
 	exitCodeEvalError  = 70
 
 	runeExtension = ".rn"
+
+	// gcPercent trades a larger heap for fewer collections; GOGC overrides it.
+	gcPercent = 400
 )
 
 func printUsage() {
@@ -157,6 +161,10 @@ func disasm(stdout, stderr io.Writer, path string, _ []byte, _ []string) int {
 }
 
 func main() {
+	if os.Getenv("GOGC") == "" {
+		debug.SetGCPercent(gcPercent)
+	}
+
 	if len(os.Args) < 2 {
 		printUsage()
 		return

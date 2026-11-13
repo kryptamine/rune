@@ -97,6 +97,12 @@ const (
 	// Invoke calls method K[C] of R[A+1] with it and R[A+2], ..., R[A+1+B].
 	// With Y the next instruction jumps over code that writes R[A+1] back
 	// to the receiver; a mutating method resumes after that jump.
+	//
+	// With X&2 the receiver is an owned variable, whose flag is in R[A]:
+	// if set, a method with an owned self changes the struct in place.
+	// Such a method leaves the flag of its self in R[A+2], and the write
+	// back starts with an instruction taking it, which other mutating
+	// methods resume past.
 	opInvoke
 	opMethod    // methods[C] = R[A]
 	opReturn    // return R[A]
@@ -186,14 +192,18 @@ type Proto struct {
 	rest     bool
 	// exact is the argument count the inlined call takes: arity, or -1
 	// with a rest parameter, so it checks one field.
-	exact  int
-	nregs  int
-	code   []Instr
-	toks   []*ast.Token
-	consts []value.Value
-	protos []*Proto
-	keys   [][]string
-	upvals []upvalDesc
+	exact int
+	// selfReg is the register of an owned mut self, its flag in the next,
+	// or 0. The code then starts with the two instructions that set them,
+	// which a call passing the struct as the method's own skips.
+	selfReg int
+	nregs   int
+	code    []Instr
+	toks    []*ast.Token
+	consts  []value.Value
+	protos  []*Proto
+	keys    [][]string
+	upvals  []upvalDesc
 }
 
 // accepts reports whether f takes n arguments.

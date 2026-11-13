@@ -47,6 +47,13 @@ func (fs *funcState) stmt(stmt ast.Stmt) {
 			fs.emit(ins{op: opReturnNil}, nil)
 		} else {
 			v := fs.exprAny(s.Value)
+
+			// Register 1 takes the flag of an owned self.
+			if fs.selfReg != 0 && v == 1 {
+				v = fs.alloc()
+				fs.move(v, 1)
+			}
+
 			fs.returnSelf()
 			fs.emit(ins{op: opReturn, a: v}, nil)
 		}
@@ -109,6 +116,10 @@ func (fs *funcState) varStmt(s *ast.VarStmt) {
 
 	fs.predeclare(l)
 	fs.initialize(l, func(dst int32) { fs.exprOrNil(s.Initializer, dst) })
+
+	if l.Owned {
+		fs.ownership(fs.locals[l]+1, s.Initializer)
+	}
 }
 
 func (fs *funcState) destructure(s *ast.DestructureStmt) {

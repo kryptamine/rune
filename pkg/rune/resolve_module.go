@@ -68,6 +68,7 @@ func (p *Resolver) ResolveModules(files []*fileAST) []error {
 		}
 
 		p.resolveTopLevel(f.stmts)
+		foldConstants(f.stmts)
 
 		for _, stmt := range f.exports {
 			for _, name := range declaredNames(stmt) {
@@ -204,4 +205,42 @@ func qualified(module *ast.Token, name ast.Token) string {
 	}
 
 	return module.Lexeme + "." + name.Lexeme
+}
+
+// foldConstants marks the immutable variables a file gives a literal
+// before any of its code can run: those among its leading declarations,
+// which only declare functions and types or hold literals themselves.
+func foldConstants(stmts []ast.Stmt) {
+	for _, stmt := range stmts {
+		switch s := stmt.(type) {
+		case *ast.FunctionStmt, *ast.StructStmt, *ast.ImplStmt:
+		case *ast.VarStmt:
+			v, ok := literalOf(s.Initializer)
+
+			switch {
+			case ok && !s.Mutable && s.Local != nil:
+				s.Local.Const, s.Local.IsConst = v, true
+			case !ok && !literalArray(s.Initializer):
+				return
+			}
+		default:
+			return
+		}
+	}
+}
+
+// literalArray reports whether e is an array of literals and such arrays.
+func literalArray(e ast.Expr) bool {
+	arr, ok := unwrap(e).(*ast.ArrayExpr)
+	if !ok {
+		return false
+	}
+
+	for _, item := range arr.Items {
+		if _, ok := literalOf(item); !ok && !literalArray(item) {
+			return false
+		}
+	}
+
+	return true
 }
