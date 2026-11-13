@@ -5,29 +5,29 @@
 //   ./rune run examples/chess.rn go [fen] [-d depth] [-t sec]  best move for a position
 //   ./rune run examples/chess.rn play [white|black] [-t sec]  play against the engine on stdin
 
-let EMPTY = 0;
-let OFF = 99;
-let PAWN = 1;
-let KNIGHT = 2;
-let BISHOP = 3;
-let ROOK = 4;
-let QUEEN = 5;
-let KING = 6;
+const EMPTY = 0;
+const OFF = 99;
+const PAWN = 1;
+const KNIGHT = 2;
+const BISHOP = 3;
+const ROOK = 4;
+const QUEEN = 5;
+const KING = 6;
 
-let DOUBLE = 1;
-let EN_PASSANT = 2;
-let CASTLE = 3;
+const DOUBLE = 1;
+const EN_PASSANT = 2;
+const CASTLE = 3;
 
-let KNIGHT_DIRS = [-21, -19, -12, -8, 8, 12, 19, 21];
-let BISHOP_DIRS = [-11, -9, 9, 11];
-let ROOK_DIRS = [-10, -1, 1, 10];
-let KING_DIRS = [-11, -10, -9, -1, 1, 9, 10, 11];
-let SLIDES = [nil, nil, nil, BISHOP_DIRS, ROOK_DIRS, KING_DIRS, nil];
+const KNIGHT_DIRS = [-21, -19, -12, -8, 8, 12, 19, 21];
+const BISHOP_DIRS = [-11, -9, 9, 11];
+const ROOK_DIRS = [-10, -1, 1, 10];
+const KING_DIRS = [-11, -10, -9, -1, 1, 9, 10, 11];
+const SLIDES = [nil, nil, nil, BISHOP_DIRS, ROOK_DIRS, KING_DIRS, nil];
 
-let PIECE_CHARS = ".pnbrqk";
-let START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-let MATE = 100000;
-let INF = 1000000;
+const PIECE_CHARS = ".pnbrqk";
+const START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+const MATE = 100000;
+const INF = 1000000;
 
 struct FenError { message }
 
@@ -49,8 +49,8 @@ fun moveName(m) {
 }
 
 // Piece-square tables from white's side, a8 first (Michniewski's simplified evaluation)
-let VALUE = [0, 100, 320, 330, 500, 900, 0];
-let PST = [
+const VALUE = [0, 100, 320, 330, 500, 900, 0];
+const PST = [
     nil,
     [
          0,  0,  0,  0,  0,  0,  0,  0,
@@ -484,7 +484,7 @@ fun perft(mut pos, depth) {
 }
 
 enum Bound { Exact, Lower, Upper }
-let TT_LIMIT = 1 << 20;
+const TT_LIMIT = 1 << 20;
 
 struct Entry { depth, score, bound, move }
 

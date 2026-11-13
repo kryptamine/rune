@@ -1,0 +1,3 @@
+export const MAX = 1 << 4;
+export const LABEL = "max";
+const HIDDEN = 1;

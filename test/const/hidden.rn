@@ -1,0 +1,2 @@
+import _lib.limits;
+print(limits.HIDDEN); // Error at 'HIDDEN': Module 'limits' has no export 'HIDDEN'.

@@ -4,7 +4,7 @@ export fun escape(s) {
     return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
 }
 
-let CODE_RE = r"`([^`]+)`";
+const CODE_RE = r"`([^`]+)`";
 
 export fun render(text) {
     let mut out = [];

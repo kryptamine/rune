@@ -1,0 +1,6 @@
+import _lib.limits;
+
+const DOUBLE = limits.MAX * 2;
+
+print(DOUBLE); // expect: 32
+print(match 16 { limits.MAX => limits.LABEL, _ => "no" }); // expect: max

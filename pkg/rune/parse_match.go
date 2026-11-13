@@ -244,7 +244,7 @@ func (s *Parser) fieldPatterns(object bool) ([]ast.FieldPattern, error) {
 				return "", key, errors.NewSyntaxError(s.peek(), "Expect ':' after string key.")
 			}
 
-			fields = append(fields, ast.FieldPattern{Key: key, Pattern: &ast.BindPattern{Binding: ast.Binding{Name: key}}})
+			fields = append(fields, ast.FieldPattern{Key: key, Pattern: &ast.BindPattern{Binding: ast.Binding{Name: key}}, Shorthand: true})
 
 			return key.Lexeme, key, nil
 		}

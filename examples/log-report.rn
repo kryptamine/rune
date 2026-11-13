@@ -8,7 +8,7 @@ struct Entry { ip, time, method, path, status, bytes, latency }
 
 struct ParseError { message, line }
 
-let LINE_RE = r"^(?P<ip>\S+) \S+ \S+ \[(?P<time>[^\]]+)\] \x22(?P<method>[A-Z]+) (?P<path>\S+) [^\x22]*\x22 (?P<status>\d{3}) (?P<bytes>\d+|-) (?P<latency>[\d.]+)$";
+const LINE_RE = r"^(?P<ip>\S+) \S+ \S+ \[(?P<time>[^\]]+)\] \x22(?P<method>[A-Z]+) (?P<path>\S+) [^\x22]*\x22 (?P<status>\d{3}) (?P<bytes>\d+|-) (?P<latency>[\d.]+)$";
 
 fun parseLine(line, n) {
     let m = regex.find(LINE_RE, line) ?? throw ParseError { message: "malformed line", line: n };
@@ -64,7 +64,7 @@ impl Stats {
     }
 }
 
-let TOP_SLOW = 5;
+const TOP_SLOW = 5;
 
 struct Report {
     total = 0,
@@ -223,7 +223,7 @@ impl Rng {
     fun pick(mut self, xs) { return xs[self.int(xs.len())]; }
 }
 
-let IPS = ["203.0.113.7", "198.51.100.23", "192.0.2.44", "203.0.113.90", "198.51.100.5"];
+const IPS = ["203.0.113.7", "198.51.100.23", "192.0.2.44", "203.0.113.90", "198.51.100.5"];
 
 let ROUTES = [
     { method: "GET", path: _ => "/api/users", ms: 20 },

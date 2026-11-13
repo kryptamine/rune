@@ -99,6 +99,10 @@ func (fs *funcState) leaveLoop() *loop {
 // varStmt computes a plain local's value before declaring it, so a call
 // there can put its result in the local's register with no move.
 func (fs *funcState) varStmt(s *ast.VarStmt) {
+	if s.Const {
+		return
+	}
+
 	l := s.Local
 
 	if !l.TopLevel && !l.Captured {

@@ -21,6 +21,10 @@ var flipped = [...]uint8{cmpLT: cmpGT, cmpLE: cmpGE, cmpGT: cmpLT, cmpGE: cmpLE,
 func (fs *funcState) exprAny(e ast.Expr) int32 {
 	switch n := unwrap(e).(type) {
 	case *ast.VarExpr:
+		if isConst(n) {
+			break
+		}
+
 		if kind, r := fs.lookup(n.Local); kind == varLocal {
 			fs.checkDefined(n.Local, r, &n.Name)
 			fs.leak(n)
@@ -140,6 +144,9 @@ func unwrap(e ast.Expr) ast.Expr {
 	}
 }
 
+// isConst reports whether n names a constant, which has no register.
+func isConst(n *ast.VarExpr) bool { return n.Local != nil && n.Local.IsConst }
+
 // literalOf returns the value of a literal, or of operators on literals
 // that fold without an error.
 func literalOf(e ast.Expr) (value.Value, bool) {
@@ -147,7 +154,7 @@ func literalOf(e ast.Expr) (value.Value, bool) {
 	case *ast.LiteralExpr:
 		return n.Value, true
 	case *ast.VarExpr:
-		if n.Local != nil && n.Local.IsConst {
+		if isConst(n) {
 			return n.Local.Const, true
 		}
 	case *ast.IndexExpr:
@@ -784,6 +791,10 @@ func (fs *funcState) simple(e ast.Expr) bool {
 	case *ast.LiteralExpr:
 		return true
 	case *ast.VarExpr:
+		if isConst(n) {
+			return true
+		}
+
 		kind, _ := fs.lookup(n.Local)
 		return kind == varLocal
 	}

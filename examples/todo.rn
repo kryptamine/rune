@@ -26,8 +26,8 @@ enum Priority { Low, Normal, High }
 fun priorityNamed(word) {
     return Priority.values().find(p => p.name.lower() == word);
 }
-let WEEKDAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
-let DAY = "%Y-%m-%d";
+const WEEKDAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+const DAY = "%Y-%m-%d";
 
 // --- dates: local calendar days, as YYYY-MM-DD ---
 

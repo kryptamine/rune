@@ -1,0 +1,6 @@
+fun f() { return 1; }
+let x = 1;
+const A = f(); // Error at 'A': Constant 'A' must be a constant expression: literals, other constants, operators on them and arrays of these.
+const B = x; // Error at 'B': Constant 'B' must be a constant expression: literals, other constants, operators on them and arrays of these.
+const D = 1 % 0; // Error at 'D': Constant 'D' must be a constant expression: literals, other constants, operators on them and arrays of these.
+const E = A + 1;

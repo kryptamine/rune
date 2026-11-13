@@ -39,6 +39,7 @@ const (
 
 	// Keywords
 	LET
+	CONST
 	MUT
 	AND
 	OR
@@ -134,6 +135,7 @@ const (
 
 var Keywords = map[string]TokenType{
 	"let":      LET,
+	"const":    CONST,
 	"mut":      MUT,
 	"else":     ELSE,
 	"false":    FALSE,
@@ -217,6 +219,8 @@ func (tokenType TokenType) String() string {
 		// keywords
 	case LET:
 		return "LET"
+	case CONST:
+		return "CONST"
 	case MUT:
 		return "MUT"
 	case AND:

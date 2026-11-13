@@ -1,0 +1,3 @@
+[line: 1] Error at ';': Expect '=' after constant name.
+    1 | const A; // Error at ';': Expect '=' after constant name.
+      |        ^

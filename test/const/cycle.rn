@@ -1,0 +1,2 @@
+const A = B + 1;
+const B = A; // Error at 'A': Constant 'A' depends on itself.

@@ -35,9 +35,12 @@ type Binding struct {
 // Discards reports whether b is _, which takes a value and declares nothing.
 func (b Binding) Discards() bool { return b.Name.Lexeme == "_" }
 
+// VarStmt is let name = value; or, if Const, const NAME = value; whose
+// value the resolver computes.
 type VarStmt struct {
 	Binding
 	Initializer Expr
+	Const       bool
 }
 
 func NewVarStmt(initializer Expr, binding Binding) Stmt {

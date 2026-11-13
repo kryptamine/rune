@@ -20,7 +20,7 @@ for i, p in points {
 }
 ```
 
-- immutable by default (`let` / `let mut`), structs and enums with `impl` methods
+- immutable by default (`let` / `let mut`), compile-time `const`, structs and enums with `impl` methods
 - pattern matching, destructuring, spread, nil-safe chains `a?.b ?? c`
 - `try`/`catch` with typed errors, modules with `export` / `import`
 - standard library: `string`, `regex`, `math`, `json`, `http`, `time`, `fs`, `io`, `os`

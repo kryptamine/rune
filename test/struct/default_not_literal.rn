@@ -1,5 +1,5 @@
-struct Point { x = 1 + n, y } // [line: 1] Error at '1': Field default must be a constant: a literal, an enum variant, or an array, object, map() or set() of them.
-struct Box { xs = [n] } // [line: 2] Error at '[': Field default must be a constant: a literal, an enum variant, or an array, object, map() or set() of them.
+struct Point { x = 1 + n, y } // [line: 1] Error at '1': Field default must be a constant: a literal, a const, an enum variant, or an array, object, map() or set() of them.
+struct Box { xs = [n] } // [line: 2] Error at '[': Field default must be a constant: a literal, a const, an enum variant, or an array, object, map() or set() of them.
 fun map() {}
-struct Bag { m = map() } // [line: 4] Error at 'map': Field default must be a constant: a literal, an enum variant, or an array, object, map() or set() of them.
+struct Bag { m = map() } // [line: 4] Error at 'map': Field default must be a constant: a literal, a const, an enum variant, or an array, object, map() or set() of them.
 let n = 1;

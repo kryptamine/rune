@@ -26,10 +26,12 @@ type OrPattern struct {
 	Alts []Pattern
 }
 
-// FieldPattern matches the property or field Key (by its Lexeme) with Pattern.
+// FieldPattern matches the property or field Key (by its Lexeme) with
+// Pattern; Shorthand is a bare key, binding the value to its name.
 type FieldPattern struct {
-	Key     Token
-	Pattern Pattern
+	Key       Token
+	Pattern   Pattern
+	Shorthand bool
 }
 
 // StructPattern tests the value is a Name and matches its Fields; the

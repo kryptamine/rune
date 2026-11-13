@@ -18,6 +18,10 @@ func (s *Parser) declaration() (ast.Stmt, error) {
 		return s.varDeclaration()
 	}
 
+	if s.match(ast.CONST) {
+		return s.constDeclaration()
+	}
+
 	if s.match(ast.STRUCT) {
 		return s.structDeclaration()
 	}
@@ -548,6 +552,34 @@ func (s *Parser) varDeclaration() (ast.Stmt, error) {
 	}
 
 	return ast.NewVarStmt(initializer, binding), nil
+}
+
+// constDeclaration parses const NAME = value; "const" has already been consumed.
+func (s *Parser) constDeclaration() (ast.Stmt, error) {
+	name, err := s.consume(ast.IDENTIFIER, "Expect constant name.")
+	if err != nil {
+		return nil, err
+	}
+
+	binding := ast.Binding{Name: name}
+	if binding.Discards() {
+		s.errors = append(s.errors, errors.NewSyntaxError(name, "Expect constant name."))
+	}
+
+	if _, err := s.consume(ast.EQUAL, "Expect '=' after constant name."); err != nil {
+		return nil, err
+	}
+
+	initializer, err := s.expression()
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := s.consume(ast.SEMICOLON, "Expect ';' after constant declaration."); err != nil {
+		return nil, err
+	}
+
+	return &ast.VarStmt{Binding: binding, Initializer: initializer, Const: true}, nil
 }
 
 // patternInitializer parses "= value;" after the pattern of a let.
