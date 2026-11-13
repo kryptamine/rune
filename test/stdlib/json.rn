@@ -13,3 +13,25 @@ try { json.stringify(math.INF); } catch e is ValueError { print(e.message); } //
 let mut xs = [];
 xs.push(xs);
 try { json.stringify(xs); } catch e is ValueError { print(e.message); } // expect: json.stringify() cannot encode a cyclic or too deeply nested value.
+
+let doc = { name: "ann", tags: ["a"], empty: [], none: {}, nested: { ok: true } };
+print(json.stringify(doc, 2));
+// expect: {
+// expect:   "name": "ann",
+// expect:   "tags": [
+// expect:     "a"
+// expect:   ],
+// expect:   "empty": [],
+// expect:   "none": {},
+// expect:   "nested": {
+// expect:     "ok": true
+// expect:   }
+// expect: }
+print(json.stringify([1, { a: 2 }], "\t") == "[\n\t1,\n\t\{\n\t\t\"a\": 2\n\t}\n]"); // expect: true
+print(json.stringify([1, 2], 0)); // expect: [1,2]
+print(json.stringify([1, 2], nil)); // expect: [1,2]
+print(json.parse(json.stringify(doc, 4)) == doc); // expect: true
+
+try { json.stringify(1, 11); } catch e is ValueError { print(e.message); } // expect: json.stringify() indent must be 0 to 10 spaces, got 11.
+try { json.stringify(1, "ab"); } catch e is ValueError { print(e.message); } // expect: json.stringify() indent must be at most 10 spaces or tabs, got "ab".
+try { json.stringify(1, true); } catch e is TypeError { print(e.message); } // expect: json.stringify() expects an integer as argument 2, got boolean.

@@ -1,0 +1,61 @@
+fun shape(v) {
+    return match v {
+        [] => "empty",
+        [0, 0] => "origin",
+        [x, 0] => "on the x axis at {x}",
+        [_, [a, b]] => "nested {a} {b}",
+        [first, ...rest] if rest.len() > 2 => "{first} then {rest.len()} more",
+        [x, y] => "pair {x} {y}",
+        [_ is string, ..._] => "starts with a string",
+        [{ id }, ...mut others] => {
+            others.push(id);
+            return others;
+        }
+        _ => "other",
+    };
+}
+
+print(shape([]));                 // expect: empty
+print(shape([0, 0]));             // expect: origin
+print(shape([3, 0]));             // expect: on the x axis at 3
+print(shape([1, [2, 3]]));        // expect: nested 2 3
+print(shape([1, 2, 3, 4]));       // expect: 1 then 3 more
+print(shape([1, 2]));             // expect: pair 1 2
+print(shape(["a", 1, 2]));        // expect: starts with a string
+print(shape([{ id: 9 }, 1, 2]));  // expect: [1, 2, 9]
+print(shape([1, 2, 3]));          // expect: other
+
+// Only arrays match, and the length must fit.
+print(shape("ab"));               // expect: other
+print(shape(nil));                // expect: other
+print(shape({ a: 1 }));           // expect: other
+print(match [1] { [a, b] => "two", [a] => "one {a}" }); // expect: one 1
+print(match [1] { [_, ...rest] => rest });              // expect: []
+
+// Constants and variants inside elements test their value.
+const LIMIT = 10;
+enum Op { Add, Sub }
+fun apply(cmd) {
+    return match cmd {
+        [Op.Add, a, b] => a + b,
+        [Op.Sub, a, b] => a - b,
+        [LIMIT, ..._] => "limit",
+        _ => "?",
+    };
+}
+print(apply([Op.Add, 2, 3])); // expect: 5
+print(apply([Op.Sub, 2, 3])); // expect: -1
+print(apply([10, 1]));        // expect: limit
+
+// Elements match without being copied out first when the pair is a key.
+let counts = map({ a: 2, b: 0 });
+for pair in counts.entries() {
+    print(match pair { [k, 0] => "{k}: none", [k, n] => "{k}: {n}" });
+}
+// expect: a: 2
+// expect: b: none
+
+print(match [1, 2] { [1, 2] | [2, 1] => "either way" }); // expect: either way
+
+let add = match [1, 2] { [a, b] => () => a + b };
+print(add()); // expect: 3

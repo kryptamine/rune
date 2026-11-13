@@ -1,0 +1,3 @@
+[line: 1] TypeError: Object properties must be accessed with string keys.
+    1 | print({ [1]: "one" }); // expect runtime error: [line: 1] TypeError: Object properties must be accessed with string keys.
+      |         ^

@@ -1,0 +1,28 @@
+let k = "a";
+print({ [k]: 1 }); // expect: {a: 1}
+print({ x: 0, [k + "b"]: 2, ...{ y: 3 }, ["z"]: 4, w: 5 }); // expect: {x: 0, ab: 2, y: 3, z: 4, w: 5}
+
+// A later key wins, as with spreads, and keeps the first one's place.
+print({ a: 0, b: 1, [k]: 2 }); // expect: {a: 2, b: 1}
+print({ [k]: 1, [k]: 2 });     // expect: {a: 2}
+
+let f = x => { [x]: x.len() };
+print(f("abc")); // expect: {abc: 3}
+print(["a", "b"].map(n => ({ [n]: true }))); // expect: [{a: true}, {b: true}]
+
+let { a } = { [k]: 7 };
+print(a); // expect: 7
+
+fun p(x) { print(x); return x; }
+let o = { [p("k1")]: p(1), [p("k2")]: p(2) };
+// expect: k1
+// expect: 1
+// expect: k2
+// expect: 2
+
+// "{ [" starts a block when the brackets are not a key.
+{ [1, 2]; }
+{
+  let xs = [3];
+  print(xs[0]); // expect: 3
+}

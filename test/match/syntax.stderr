@@ -10,9 +10,9 @@
 [line: 4] Error at '-': Expect '=>' after pattern.
     4 | match 1 { 1 -> 2 }; // [line: 4] Error at '-': Expect '=>' after pattern.
       |             ^
-[line: 5] Error at '[': Expect pattern.
-    5 | match 1 { [] => 1 }; // [line: 5] Error at '[': Expect pattern.
-      |           ^
+[line: 5] Error at ',': Rest element must be last.
+    5 | match 1 { [...a, b] => 1 }; // [line: 5] Error at ',': Rest element must be last.
+      |                ^
 [line: 6] Error at '}': Expect match arm.
     6 | match P {}; // [line: 6] Error at '}': Expect match arm.
       |          ^

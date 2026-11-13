@@ -67,7 +67,9 @@ print("ab".padStart(7, "xy"));         // xyxyxab
 ## format
 
 `format(...)` is printf, the string being the format:
-`%[flags][width][.precision]verb`, flags `-+ 0#`.
+`%[flags][width][.precision]verb`, flags `-+ 0#`. A width or precision
+of `*` takes the next argument, so a column can fit its widest value; a
+negative width pads on the right.
 
 - `%v` and `%s` show a value as `print` does, `%q` as inside an array;
 - `%d %x %X %o %b` take integers, `%f %e %E %g %G` numbers;
@@ -93,6 +95,16 @@ for [name, qty, price] in items {
 }
 // coffee    2 x  3.50
 // bagel     1 x  2.25
+```
+
+```rune
+let rows = [["GET /users", 12], ["POST /orders/batch", 340]];
+let width = rows.reduce((w, [path]) => math.max(w, path.len()), 0);
+for [path, ms] in rows {
+    print("%-*s %4dms".format(width, path, ms));
+}
+// GET /users           12ms
+// POST /orders/batch  340ms
 ```
 
 ```rune

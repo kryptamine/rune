@@ -32,9 +32,11 @@ json.parse("not json"); // ValueError: json.parse() could not parse JSON: invali
 
 ## json.stringify
 
-`json.stringify(v)` encodes `nil`, booleans, numbers, strings, arrays,
+`json.stringify(v[, indent])` encodes `nil`, booleans, numbers, strings, arrays,
 objects (keys in order), structs (fields in order), sets (as arrays) and maps
-of string keys (as objects, in order) compactly. A function is a
+of string keys (as objects, in order), compactly unless `indent`, a number
+of spaces or a string of spaces and tabs, at most 10, puts each element
+on its own line. A function is a
 `TypeError`, a non-finite number or a cycle a `ValueError`.
 
 ```rune
@@ -46,6 +48,16 @@ print(json.stringify(Order { id: 7, total: 19.99 }));
 // {"id":7,"total":19.99,"items":[]}
 print(json.stringify(set(["a", "b"])));   // ["a","b"]
 print(json.stringify("say \"hi\""));      // "say \"hi\""
+```
+
+```rune
+print(json.stringify({ name: "ann", tags: ["admin"] }, 2));
+// {
+//   "name": "ann",
+//   "tags": [
+//     "admin"
+//   ]
+// }
 ```
 
 ```rune

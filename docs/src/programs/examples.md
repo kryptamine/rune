@@ -30,6 +30,22 @@ rune run examples/todo.rn add "pay rent" +home !high due:fri
 rune run examples/todo.rn list +home --overdue
 ```
 
+### [`validate.rn`](https://github.com/kryptamine/rune/blob/master/examples/validate.rn) — config validator
+
+Checks a gateway config against a schema written as data: one struct per
+rule kind (`Str`, `Duration`, `List`, `Tagged`...), matched with struct
+patterns. Every problem is reported with its path (`routes[2].auth.type`),
+unknown keys get a "did you mean", and checks across fields run on the
+normalized config with `?.` and `??`. Old config versions are upgraded
+first by migrations that reshape objects with destructuring and spread.
+
+```sh
+rune run examples/validate.rn                         # a good, a legacy and a broken config
+rune run examples/validate.rn check gateway.json      # exit 1 on any error
+rune run examples/validate.rn migrate gateway.json -w # upgrade the file in place
+rune run examples/validate.rn normalize gateway.json  # defaults filled, durations in ms
+```
+
 ### [`log-report.rn`](https://github.com/kryptamine/rune/blob/master/examples/log-report.rn) — access log report
 
 Per-endpoint latency percentiles, status classes, top clients and slow

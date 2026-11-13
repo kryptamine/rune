@@ -67,6 +67,16 @@ type ObjectPattern struct {
 	Fields []FieldPattern
 }
 
+// ArrayPattern is [p, q], matching an array of exactly as many elements,
+// or, if Open, [p, q, ...rest] or [p, q, ..._], at least as many; Rest
+// binds the others, unless nil.
+type ArrayPattern struct {
+	Bracket Token
+	Elems   []Pattern
+	Open    bool
+	Rest    *BindPattern
+}
+
 func (*WildcardPattern) patternNode() {}
 func (*BindPattern) patternNode()     {}
 func (*LiteralPattern) patternNode()  {}
@@ -75,6 +85,7 @@ func (*StructPattern) patternNode()   {}
 func (*ObjectPattern) patternNode()   {}
 func (*TypePattern) patternNode()     {}
 func (*VariantPattern) patternNode()  {}
+func (*ArrayPattern) patternNode()    {}
 
 // Bindings returns the variables p binds; alternatives bind none.
 func Bindings(p Pattern) []*Binding {
@@ -94,6 +105,14 @@ func Bindings(p Pattern) []*Binding {
 		case *ObjectPattern:
 			for _, f := range n.Fields {
 				walk(f.Pattern)
+			}
+		case *ArrayPattern:
+			for _, e := range n.Elems {
+				walk(e)
+			}
+
+			if n.Rest != nil {
+				out = append(out, &n.Rest.Binding)
 			}
 		}
 	}

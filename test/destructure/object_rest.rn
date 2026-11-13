@@ -38,3 +38,17 @@ print(split({ id: 1, t: "x" })); // expect: [1, {t: "x"}]
 for { key, ...val } in [{ key: "a", v: 1 }] {
   print("{key} {val}"); // expect: a {v: 1}
 }
+
+fun drop(cfg) {
+  let { version: _, name } = cfg;
+  return [name, cfg];
+}
+
+print(drop({ version: 2, name: "a" })); // expect: ["a", {version: 2, name: "a"}]
+
+fun strip(cfg) {
+  let { version: _, ...rest } = cfg;
+  return rest;
+}
+
+print(strip({ name: "b" })); // expect: {name: "b"}

@@ -196,8 +196,25 @@ func mutatingCallError(name, owner string) string {
 	return "Cannot call mutating method " + method + ": the receiver is not a mutable variable, element or property."
 }
 
+// methodHints names the method meant by one other languages call so:
+// has tests a key, contains a value.
+var methodHints = map[string]string{
+	"set.has":         "contains",
+	"array.has":       "contains",
+	"string.has":      "contains",
+	"map.contains":    "has",
+	"object.contains": "has",
+}
+
 func noMethod(tok *ast.Token, owner, name string) error {
-	return errors.NewRuntimeError(errors.TypeError, *tok, fmt.Sprintf("%s has no method '%s'.", owner, name))
+	msg := fmt.Sprintf("%s has no method '%s'", owner, name)
+	if hint, ok := methodHints[owner+"."+name]; ok {
+		msg += fmt.Sprintf("; did you mean '%s'?", hint)
+	} else {
+		msg += "."
+	}
+
+	return errors.NewRuntimeError(errors.TypeError, *tok, msg)
 }
 
 // notMethod is the error of t.name(args) for a function in a field or property.

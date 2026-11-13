@@ -1,0 +1,5 @@
+try { set([1]).has(1); } catch e is TypeError { print(e.message); } // expect: set has no method 'has'; did you mean 'contains'?
+try { [1].has(1); } catch e is TypeError { print(e.message); } // expect: array has no method 'has'; did you mean 'contains'?
+try { map().contains(1); } catch e is TypeError { print(e.message); } // expect: map has no method 'contains'; did you mean 'has'?
+try { ({}).contains("a"); } catch e is TypeError { print(e.message); } // expect: object has no method 'contains'; did you mean 'has'?
+try { [1].nope(); } catch e is TypeError { print(e.message); } // expect: array has no method 'nope'.

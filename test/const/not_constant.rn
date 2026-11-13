@@ -1,6 +1,6 @@
 fun f() { return 1; }
 let x = 1;
-const A = f(); // Error at 'A': Constant 'A' must be a constant expression: literals, other constants, operators on them and arrays of these.
-const B = x; // Error at 'B': Constant 'B' must be a constant expression: literals, other constants, operators on them and arrays of these.
-const D = 1 % 0; // Error at 'D': Constant 'D' must be a constant expression: literals, other constants, operators on them and arrays of these.
+const A = f(); // Error at 'A': Constant 'A' must be a constant: a literal, a const or operators on them, an enum variant, or an array, object, map() or set() of them.
+const B = x; // Error at 'B': Constant 'B' must be a constant: a literal, a const or operators on them, an enum variant, or an array, object, map() or set() of them.
+const D = 1 % 0; // Error at 'D': Constant 'D' must be a constant: a literal, a const or operators on them, an enum variant, or an array, object, map() or set() of them.
 const E = A + 1;

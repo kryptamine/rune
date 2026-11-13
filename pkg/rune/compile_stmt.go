@@ -135,6 +135,9 @@ func (fs *funcState) destructure(s *ast.DestructureStmt) {
 
 	for i := range s.Fields {
 		f := &s.Fields[i]
+		if f.Discards() {
+			continue
+		}
 		fs.initialize(f.Local, func(dst int32) {
 			fs.emit(ins{op: opGetProp, a: dst, b: src, c: fs.constant(value.NewString(f.Key.Lexeme)), x: uint8(boolNum(f.Default != nil))}, &f.Key)
 			fs.orDefault(dst, f.Default)
@@ -163,17 +166,7 @@ func (fs *funcState) unpack(s *ast.ArrayDestructureStmt) {
 	src := fs.exprAny(s.Initializer)
 	n := len(s.Elems)
 	rest := s.Rest != nil
-
-	base := fs.free
-	for range n + int(boolNum(rest)) {
-		fs.alloc()
-	}
-
-	if n > maxUnpack {
-		panic(tooLarge{fs.proto.name})
-	}
-
-	fs.emit(ins{op: opUnpack, a: base, b: src, c: int32(n | s.Required()<<unpackShift), x: uint8(boolNum(rest))}, &s.Bracket)
+	base := fs.unpackTo(src, n, s.Required(), rest, &s.Bracket)
 
 	for i, e := range s.Elems {
 		if e != nil {
@@ -187,6 +180,24 @@ func (fs *funcState) unpack(s *ast.ArrayDestructureStmt) {
 	if rest {
 		fs.initialize(s.Rest.Local, func(dst int32) { fs.move(dst, base+int32(n)) })
 	}
+}
+
+// unpackTo takes the first n elements of the array R[src], of which
+// required must be there, into new temporaries, and with rest the others
+// as an array after them; it returns the first temporary.
+func (fs *funcState) unpackTo(src int32, n, required int, rest bool, tok *ast.Token) int32 {
+	if n > maxUnpack {
+		panic(tooLarge{fs.proto.name})
+	}
+
+	base := fs.free
+	for range n + int(boolNum(rest)) {
+		fs.alloc()
+	}
+
+	fs.emit(ins{op: opUnpack, a: base, b: src, c: int32(n | required<<unpackShift), x: uint8(boolNum(rest))}, tok)
+
+	return base
 }
 
 // orDefault computes def into dst if dst is undefined, for a missing element

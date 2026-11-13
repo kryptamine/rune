@@ -2,6 +2,7 @@ package rune
 
 import (
 	"rune/pkg/ast"
+	"rune/pkg/helpers"
 	"rune/pkg/value"
 )
 
@@ -50,12 +51,12 @@ func (p *Resolver) evalConst(s *ast.VarStmt) bool {
 	state := constFailed
 
 	if p.evalOperands(s.Initializer) {
-		v, ok := constValue(s.Initializer)
+		v, ok := p.constantOf(s.Initializer)
 		l := p.mod.topLevel[s.Name.Lexeme]
 
 		switch {
 		case !ok:
-			p.error(s.Name, "Constant '"+s.Name.Lexeme+"' must be a constant expression: literals, other constants, operators on them and arrays of these.")
+			p.error(s.Name, "Constant '"+s.Name.Lexeme+"' must be a constant: a literal, a const or operators on them, an enum variant, or an array, object, map() or set() of them.")
 		case l != nil && p.constDecls[l] == s:
 			l.Const, l.IsConst = v, true
 			state = constDone
@@ -94,33 +95,22 @@ func (p *Resolver) evalOperands(e ast.Expr) bool {
 		}
 
 		return ok
+	case *ast.ObjectExpr:
+		ok := true
+		for _, pair := range n.Pairs {
+			ok = p.evalOperands(pair.Value) && ok
+		}
+
+		return ok
 	}
 
 	return true
 }
 
-// constValue is literalOf, or an array of such values: one array, which
-// every read of the constant shares.
-func constValue(e ast.Expr) (value.Value, bool) {
-	arr, ok := unwrap(e).(*ast.ArrayExpr)
-	if !ok {
-		return literalOf(e)
-	}
-
-	items := make([]value.Value, len(arr.Items))
-	for i, item := range arr.Items {
-		if items[i], ok = constValue(item); !ok {
-			return value.NilValue, false
-		}
-	}
-
-	return value.NewArray(items), true
-}
-
 // constPattern is the test of the value of the constant l, named by tok.
 func (p *Resolver) constPattern(tok ast.Token, l *ast.Local) ast.Pattern {
-	if l.Const.Kind() == value.Array {
-		p.error(tok, "Constant '"+tok.Lexeme+"' is an array, which a pattern cannot test.")
+	if value.Mutable(l.Const) {
+		p.error(tok, "Constant '"+tok.Lexeme+"' is a mutable "+helpers.TypeName(l.Const)+", which a pattern cannot test.")
 		return &ast.LiteralPattern{Token: tok}
 	}
 
