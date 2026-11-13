@@ -27,7 +27,7 @@ print(total);
 ```
 
 ```sh
-$ printf '10\n20\nabc\n12\n' | ./rune run sum.rn
+$ printf '10\n20\nabc\n12\n' | rune run sum.rn
 skipping 'abc'
 total: 42
 ```
@@ -41,6 +41,6 @@ print("{words.len()} words");
 ```
 
 ```sh
-$ echo "the quick brown fox" | ./rune run count.rn
+$ echo "the quick brown fox" | rune run count.rn
 4 words
 ```

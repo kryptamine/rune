@@ -31,7 +31,7 @@ fun countdown(n) {
 ```
 
 ```sh
-$ ./rune disasm countdown.rn
+$ rune disasm countdown.rn
 <script>: arity 1, 2 registers, 0 upvalues
     0  LOADK         1 0 0
     1  CLOSURE       1 0 0

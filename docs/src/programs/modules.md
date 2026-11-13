@@ -71,7 +71,7 @@ try {
 }
 ```
 
-`./rune run shop/main.rn` runs it from any directory. Two modules may
+`rune run shop/main.rn` runs it from any directory. Two modules may
 declare the same name: `cart.add` and `money.add` do not clash.
 
 ## Import Paths

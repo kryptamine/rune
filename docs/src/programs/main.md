@@ -19,10 +19,10 @@ fun main(args) {
 ```
 
 ```sh
-$ ./rune run greet.rn ann bob
+$ rune run greet.rn ann bob
 hi ann
 hi bob
-$ ./rune run greet.rn
+$ rune run greet.rn
 usage: greet <name>...
 $ echo $?
 2
@@ -38,7 +38,7 @@ fun main([word, times = "1"]) {
 ```
 
 ```sh
-$ ./rune run repeat.rn ab 3
+$ rune run repeat.rn ab 3
 ababab
 ```
 

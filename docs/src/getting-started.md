@@ -2,13 +2,30 @@
 
 ## Installation
 
-Building needs **Go**. Clone the repository and run:
+Download the archive for your platform from the
+[releases page](https://github.com/kryptamine/rune/releases/latest). Builds
+exist for Linux, macOS and Windows, on amd64 and arm64. Each archive holds a
+single `rune` binary; put it somewhere on your `PATH`:
+
+```sh
+# macOS on Apple silicon; swap the version and platform for yours
+curl -LO https://github.com/kryptamine/rune/releases/download/v0.1.0/rune-0.1.0-darwin-arm64.tar.gz
+tar -xzf rune-0.1.0-darwin-arm64.tar.gz
+sudo mv rune-0.1.0-darwin-arm64/rune /usr/local/bin/
+rune version
+```
+
+`checksums.txt` on the same page lists the SHA-256 sum of every archive.
+
+### From source
+
+Building needs **Go** 1.27+. Clone the repository and run:
 
 ```sh
 make build
 ```
 
-This produces a single binary, `rune`, in the project directory.
+This produces the `rune` binary in the project directory.
 
 ## Your First Program
 
@@ -22,7 +39,7 @@ print("hello, {name}!");
 and run it:
 
 ```sh
-$ ./rune run hello.rn
+$ rune run hello.rn
 hello, world!
 ```
 
@@ -36,7 +53,7 @@ fun main(args) {
 ```
 
 ```sh
-$ ./rune run greet.rn ann
+$ rune run greet.rn ann
 hello, ann!
 ```
 
@@ -52,6 +69,6 @@ hello, ann!
 
 ```sh
 $ echo '(2 + 3) * 4' > expr.rn
-$ ./rune evaluate expr.rn
+$ rune evaluate expr.rn
 20
 ```
