@@ -1,8 +1,8 @@
 let ip = "1.1.1.1";
 let hits = 3;
-print({ ip, hits, n: 1 }); // expect: {hits: 3, ip: "1.1.1.1", n: 1}
+print({ ip, hits, n: 1 }); // expect: {ip: "1.1.1.1", hits: 3, n: 1}
 print({ ip }); // expect: {ip: "1.1.1.1"}
-print({ ip, ...{ z: 0 }, "k": 1 }); // expect: {ip: "1.1.1.1", k: 1, z: 0}
+print({ ip, ...{ z: 0 }, "k": 1 }); // expect: {ip: "1.1.1.1", z: 0, k: 1}
 
 let wrap = x => { x };
 print(wrap(2)); // expect: {x: 2}

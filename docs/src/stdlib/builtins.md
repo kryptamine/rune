@@ -1,9 +1,11 @@
 # Built-in Functions
 
-`print`, `type`, `object`, `str`, `number`, `int`, `map` and `set`
-are global; the operations on a value are its methods, as `xs.map(f)` or
-`s.split(",")`; everything else lives in a namespace, used as
-`math.floor(x)`.
+`print`, `type`, `object`, `string`, `bytes`, `number`, `int`, `map` and
+`set` are global; the name of a type converts to it, as `string(v)`,
+`number(v)` or `map(v)` do, and `string` and `bytes` also have members,
+such as `string.fromCharCode` and `bytes.fromHex`. The
+operations on a value are its methods, as `xs.map(f)` or `s.split(",")`;
+everything else lives in a namespace, used as `math.floor(x)`.
 
 ## print
 
@@ -37,19 +39,27 @@ print(type(User));                 // struct
 print(type(math));                 // namespace
 ```
 
-## object and str
+## object and string
 
-`object(s)` is a new object with the fields of the struct `s`; `str(v)` is
-`v` as `print` shows it.
+`object()` makes an empty object and `object(src)` a new one from what
+`map(src)` takes, with string keys: an object, the fields of a struct, a
+map or an array of `[key, value]` pairs. `string(v)` is `v` as
+`print` shows it.
 
 ```rune
 struct User { name, role = "guest" }
 
 let u = User { name: "ann" };
-print(object(u));          // {name: "ann", role: "guest"}
-print(str(u));             // User {name: "ann", role: "guest"}
-print(str([1, "two"]));    // [1, "two"]
-print("items: " + str(3)); // items: 3
+print(object(u));                       // {name: "ann", role: "guest"}
+print(object([["id", 7], ["ok", true]])); // {id: 7, ok: true}
+print(string(u));                       // User {name: "ann", role: "guest"}
+print(string([1, "two"]));              // [1, "two"]
+print("items: " + string(3));           // items: 3
+print([1, 2].map(string));              // ["1", "2"]
+```
+
+```rune
+object(map([[1, "one"]])); // TypeError: object() expects string keys, got 1.
 ```
 
 ## number and int

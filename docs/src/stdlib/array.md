@@ -90,7 +90,7 @@ let users = [
 
 print(users.some(u => u.admin));                // true
 print(users.every(u => u.admin));               // false
-print(users.find(u => !u.admin));               // {admin: false, name: "bob"}
+print(users.find(u => !u.admin));               // {name: "bob", admin: false}
 print(users.find(u => u.name == "eve"));        // nil
 print(users.findIndex(u => u.name == "bob"));   // 1
 print([10, 20, 30].contains(20));               // true

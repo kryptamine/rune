@@ -18,8 +18,9 @@ print(type(x => x * 2));       // function
 ## Type Tests
 
 `v is T` tests that `v` is of type `T`: a struct type, or one of the
-built-in `boolean`, `number`, `string`, `array`, `object`, `function`,
-`map`, `set`, `bytes` and `stream`. It has the precedence of `==`; the
+built-in `nil`, `boolean`, `number`, `string`, `array`, `object`,
+`function`, `map`, `set`, `bytes`, `stream` and `struct`, which is what
+`type` says of a struct type itself. It has the precedence of `==`; the
 same test is `name is T` in [match](pattern-matching.md) and `catch e is T`.
 
 ```rune
@@ -30,6 +31,8 @@ print("42" is number);                // false
 print([1, 2] is array);               // true
 print(User { name: "ann" } is User);  // true
 print(User { name: "ann" } is object); // false
+print(nil is nil);                    // true
+print(User is struct);                // true
 ```
 
 A variable named like a built-in type hides it, and testing against
@@ -97,11 +100,11 @@ print((order => order.qty > 0) == validate);        // false
 
 `print` shows strings inside arrays and objects quoted, so `["1", 1]` and `[1, 1]`
 look different; a string printed on its own is written as is. Objects print
-their keys in sorted order.
+their keys in the order they were added.
 
 ```rune
 print("1");                          // 1
 print(["1", 1]);                     // ["1", 1]
 print([nil, true, 2.5]);             // [nil, true, 2.5]
-print({ name: "ann", age: 31 });     // {age: 31, name: "ann"}
+print({ name: "ann", age: 31 });     // {name: "ann", age: 31}
 ```

@@ -1,11 +1,10 @@
 package stdlib
 
 import (
-	"maps"
+	"iter"
 	"rune/pkg/errors"
 	"rune/pkg/helpers"
 	"rune/pkg/value"
-	"slices"
 )
 
 // method is a built-in method, whose receiver, argument 0, recv checks.
@@ -41,6 +40,51 @@ func (c *call) keyErr(err error) bool {
 	return err == nil
 }
 
+// entries walks argument i, if given, as key/value pairs: those of a map,
+// an object or a struct, or an array of [key, value] pairs.
+func (c *call) entries(i int) iter.Seq2[value.Value, value.Value] {
+	return func(yield func(k, v value.Value) bool) {
+		if !c.has(i) {
+			return
+		}
+
+		switch src := c.args[i]; src.Kind() {
+		case value.Map:
+			src.HashMap().Each(yield)
+		case value.Object:
+			for k, v := range src.Obj().All() {
+				if !yield(value.NewString(k), v) {
+					return
+				}
+			}
+		case value.Struct:
+			for k, v := range src.FieldPairs() {
+				if !yield(value.NewString(k), v) {
+					return
+				}
+			}
+		case value.Array:
+			for _, p := range src.Arr() {
+				k, v, ok := c.pair(p)
+				if !ok || !yield(k, v) {
+					return
+				}
+			}
+		default:
+			c.typeError(i, "a map, an object, a struct or an array of pairs")
+		}
+	}
+}
+
+// result is v, unless the call failed.
+func (c *call) result(v value.Value) value.Value {
+	if !c.ok() {
+		return value.NilValue
+	}
+
+	return v
+}
+
 func (c *call) pair(v value.Value) (k, x value.Value, ok bool) {
 	if v.Kind() == value.Array && len(v.Arr()) == 2 {
 		return v.Arr()[0], v.Arr()[1], true
@@ -53,33 +97,27 @@ func (c *call) pair(v value.Value) (k, x value.Value, ok bool) {
 
 var collectionNatives = []*Native{
 	{"map", 0, 1, func(c *call) value.Value {
-		if !c.has(0) {
-			return value.NewMap(value.NewHashMap(0))
+		m := value.NewHashMap(0)
+		for k, v := range c.entries(0) {
+			if !c.keyErr(m.Set(k, v)) {
+				break
+			}
 		}
 
-		switch src := c.args[0]; src.Kind() {
-		case value.Map:
-			return value.NewMap(src.HashMap().Clone())
-		case value.Object:
-			m := value.NewHashMap(len(src.Obj()))
-			for _, k := range slices.Sorted(maps.Keys(src.Obj())) {
-				m.Set(value.NewString(k), src.Obj()[k])
+		return c.result(value.NewMap(m))
+	}},
+	{"object", 0, 1, func(c *call) value.Value {
+		obj := value.NewObj(0)
+		for k, v := range c.entries(0) {
+			if !k.IsString() {
+				c.fail(errors.TypeError, "expects string keys, got %s.", helpers.Quoted(k))
+				break
 			}
 
-			return value.NewMap(m)
-		case value.Array:
-			m := value.NewHashMap(len(src.Arr()))
-			for _, p := range src.Arr() {
-				k, v, ok := c.pair(p)
-				if !ok || !c.keyErr(m.Set(k, v)) {
-					return value.NilValue
-				}
-			}
-
-			return value.NewMap(m)
+			obj.Set(k.Str(), v)
 		}
 
-		return c.typeError(0, "a map, an object or an array of pairs")
+		return c.result(value.NewObject(obj))
 	}},
 	{"set", 0, 1, func(c *call) value.Value {
 		if !c.has(0) {

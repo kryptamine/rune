@@ -56,7 +56,7 @@ func (c *call) limit(i int) int {
 
 func newMatch(re *regexp.Regexp, s string, loc []int) value.Value {
 	groups := make([]value.Value, re.NumSubexp())
-	named := map[string]value.Value{}
+	named := value.NewObj(0)
 
 	for g := range groups {
 		if start := loc[2*g+2]; start >= 0 {
@@ -64,7 +64,7 @@ func newMatch(re *regexp.Regexp, s string, loc []int) value.Value {
 		}
 
 		if name := re.SubexpNames()[g+1]; name != "" {
-			named[name] = groups[g]
+			named.Set(name, groups[g])
 		}
 	}
 

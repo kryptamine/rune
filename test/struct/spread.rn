@@ -29,6 +29,6 @@ print(order);                      // expect: ["x", "spread", "y"]
 
 try { Task { ...{ id: 1 } }; } catch e is KeyError { print(e.message); } // expect: Missing field 'text' of Task.
 try { Task { ...t, ...{ z: 1 } }; } catch e is KeyError { print(e.message); } // expect: Task has no field 'z'.
-try { Task { ...t, ...{ z: 1, b: 2, y: 3 } }; } catch e is KeyError { print(e.message); } // expect: Task has no field 'b'.
+try { Task { ...t, ...{ z: 1, b: 2, y: 3 } }; } catch e is KeyError { print(e.message); } // expect: Task has no field 'z'.
 try { Task { ...p }; } catch e is TypeError { print(e.message); } // expect: Cannot spread Point into Task.
 Task { ...[1] }; // expect runtime error: [line: 34] TypeError: Cannot spread array into Task.

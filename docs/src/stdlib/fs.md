@@ -14,21 +14,21 @@ fs.write(notes, "buy milk\nwrite docs\n");
 fs.append(notes, "ship v1\n");
 
 print(fs.lines(notes));                 // ["buy milk", "write docs", "ship v1"]
-print(fs.read(notes).len());            // 28
+print(fs.readText(notes).len());        // 28
 print(fs.readBytes(notes).slice(0, 3)); // b"buy"
 fs.removeAll(dir);
 ```
 
 ## Reading and writing
 
-- `read(path)` — the contents as a string; `lines(path)` — its lines without `\n` or `\r\n`; `readBytes(path)` — the contents as bytes.
+- `readText(path)` — the contents as a string; `lines(path)` — its lines without `\n` or `\r\n`; `readBytes(path)` — the contents as bytes.
 - `write(path, data)` (creates or truncates), `append(path, data)`, of a string or bytes.
 - `open(path[, mode])` — a [Stream](streams.md) of the file: `"r"` (default) to read, `"w"` to write (creating or truncating), `"a"` to append.
 
 ```rune
 let path = fs.join(fs.tempDir(), "settings.json");
 fs.write(path, json.stringify({ theme: "dark", fontSize: 14 }));
-let settings = json.parse(fs.read(path));
+let settings = json.parse(fs.readText(path));
 print(settings.theme);   // dark
 fs.removeAll(fs.dir(path));
 ```
@@ -87,11 +87,11 @@ else.
 
 ```rune
 try {
-    fs.read("missing.txt");
+    fs.readText("missing.txt");
 } catch e is IOError {
     print(e.code);     // notFound
     print(e.path);     // missing.txt
-    print(e.message);  // fs.read() missing.txt: no such file or directory.
+    print(e.message);  // fs.readText() missing.txt: no such file or directory.
 }
 ```
 

@@ -1,7 +1,7 @@
 # Bytes
 
 `bytes` are immutable binary data: a `b"..."` literal, which takes
-`\xNN` escapes and no interpolation, or `bytes.from` a string (its UTF-8),
+`\xNN` escapes and no interpolation, or `bytes(v)` of a string (its UTF-8),
 an array of integers from 0 to 255, or bytes. `b[i]` is the integer byte,
 `b.len()` the size; `+` joins and `<` compares bytes, `==` by content, and
 `for i, x in b` walks them. Bytes are hashable, and print as a literal.
@@ -13,10 +13,10 @@ print(header[0]);        // 137
 print(header.len());     // 4
 print(header.hex());     // 89504e47
 
-print(bytes.from("é"));           // b"\xc3\xa9"
-print(bytes.from([104, 105]));    // b"hi"
+print(bytes("é"));                // b"\xc3\xa9"
+print(bytes([104, 105]));         // b"hi"
 print(b"hi" + b"!");              // b"hi!"
-print(b"hi" == bytes.from("hi")); // true
+print(b"hi" == bytes("hi"));      // true
 
 for i, x in b"hi" {
     print("{i}: {x}");
@@ -34,8 +34,8 @@ buf[0] = 120; // TypeError: Bytes are immutable.
 
 ## The bytes namespace
 
-`from(v)`, `alloc(n[, fill])` (`n` bytes of `fill`, default `0`),
-`fromHex(s)` and `fromBase64(s)`:
+Besides `bytes(v)` itself, `alloc(n[, fill])` (`n` bytes of `fill`,
+default `0`), `fromHex(s)` and `fromBase64(s)`:
 
 ```rune
 print(bytes.alloc(3));             // b"\x00\x00\x00"

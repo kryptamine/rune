@@ -11,6 +11,7 @@ import (
 	"rune/pkg/helpers"
 	"rune/pkg/value"
 	"runtime"
+	"slices"
 	"strings"
 )
 
@@ -58,7 +59,7 @@ var ioNatives = []*Native{
 
 		return value.NewString(trimEOL(line))
 	}},
-	{"io.read", 0, 0, func(c *call) value.Value {
+	{"io.readText", 0, 0, func(c *call) value.Value {
 		b, err := io.ReadAll(c.host.Stdio.In())
 		if err != nil {
 			return c.fail(errors.IOError, "could not read stdin: %s.", err)
@@ -94,12 +95,12 @@ var osNatives = []*Native{
 		return value.NilValue
 	}},
 	{"os.environ", 0, 0, func(*call) value.Value {
-		env := os.Environ()
-		obj := make(map[string]value.Value, len(env))
+		env := slices.Sorted(slices.Values(os.Environ()))
+		obj := value.NewObj(len(env))
 
 		for _, kv := range env {
 			k, v, _ := strings.Cut(kv, "=")
-			obj[k] = value.NewString(v)
+			obj.Set(k, value.NewString(v))
 		}
 
 		return value.NewObject(obj)
@@ -202,7 +203,7 @@ func (c *call) execOptions(cmd *exec.Cmd) {
 	if env, ok := c.option(ExecOptions, f, 2, value.Object, "an object"); ok {
 		cmd.Env = os.Environ()
 
-		for name, v := range env.Obj() {
+		for name, v := range env.Obj().All() {
 			if !v.IsString() {
 				c.fail(errors.TypeError, "expects env '%s' to be a string, got %s.", name, helpers.TypeName(v))
 				return

@@ -1,0 +1,20 @@
+struct P { x }
+
+print(nil is nil);                 // expect: true
+print(false is nil);               // expect: false
+print(P is struct);                // expect: true
+print(P { x: 1 } is struct);       // expect: false
+print(math is struct);             // expect: false
+print(nil is nil == true);         // expect: true
+
+let kind = v => match v {
+    _ is nil | struct => "nil or type",
+    _ is string | number => "scalar",
+    _ => "other",
+};
+print([nil, P, "a", 1, []].map(kind)); // expect: ["nil or type", "nil or type", "scalar", "scalar", "other"]
+
+fun fails(f) {
+    try { f(); } catch e is nil | TypeError { print(type(e)); }
+}
+fails(() => nil.x); // expect: TypeError

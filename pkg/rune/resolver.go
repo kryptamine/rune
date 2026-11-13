@@ -367,13 +367,13 @@ func (p *Resolver) constantOf(e ast.Expr) (value.Value, bool) {
 		}
 		return value.NewArray(items), true
 	case *ast.ObjectExpr:
-		fields := make(map[string]value.Value, len(n.Pairs))
+		fields := value.NewObj(len(n.Pairs))
 		for _, pair := range n.Pairs {
 			v, ok := p.constantOf(pair.Value)
 			if !ok {
 				return value.NilValue, false
 			}
-			fields[pair.Key] = v
+			fields.Set(pair.Key, v)
 		}
 		return value.NewObject(fields), true
 	case *ast.CallExpr:

@@ -4,12 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"maps"
+	"iter"
 	"math"
 	"rune/pkg/errors"
 	"rune/pkg/helpers"
 	"rune/pkg/value"
-	"slices"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -43,13 +42,13 @@ var jsonNatives = []*Native{
 }
 
 // parseJSON reads numbers without a fraction or an exponent as integers,
-// when they fit.
+// when they fit, and keeps the order of object keys.
 func parseJSON(s string) (value.Value, error) {
 	d := json.NewDecoder(strings.NewReader(s))
 	d.UseNumber()
 
-	var v any
-	if err := d.Decode(&v); err == io.EOF || err == io.ErrUnexpectedEOF {
+	v, err := readJSON(d)
+	if err == io.EOF || err == io.ErrUnexpectedEOF {
 		return value.NilValue, fmt.Errorf("unexpected end of JSON input")
 	} else if err != nil {
 		return value.NilValue, err
@@ -59,50 +58,70 @@ func parseJSON(s string) (value.Value, error) {
 		return value.NilValue, fmt.Errorf("invalid data after the top-level value")
 	}
 
-	return fromJSON(v)
+	return v, nil
 }
 
-func fromJSON(x any) (value.Value, error) {
-	switch v := x.(type) {
-	case json.Number:
-		if n, err := strconv.ParseInt(string(v), 10, 64); err == nil {
-			return value.NewInt(n), nil
-		}
+func readJSON(d *json.Decoder) (value.Value, error) {
+	t, err := d.Token()
+	if err != nil {
+		return value.NilValue, err
+	}
 
-		f, err := strconv.ParseFloat(string(v), 64)
-		if err != nil {
-			return value.NilValue, fmt.Errorf("number %s is out of range", v)
-		}
+	switch t := t.(type) {
+	case json.Delim:
+		if t == '[' {
+			items := []value.Value{}
+			for d.More() {
+				item, err := readJSON(d)
+				if err != nil {
+					return value.NilValue, err
+				}
 
-		return value.NewNumber(f), nil
-	case []any:
-		items := make([]value.Value, len(v))
-		for i, item := range v {
-			var err error
-			if items[i], err = fromJSON(item); err != nil {
-				return value.NilValue, err
+				items = append(items, item)
 			}
+
+			_, err := d.Token()
+
+			return value.NewArray(items), err
 		}
 
-		return value.NewArray(items), nil
-	case map[string]any:
-		fields := make(map[string]value.Value, len(v))
-		for k, item := range v {
-			f, err := fromJSON(item)
+		obj := value.NewObj(0)
+		for d.More() {
+			k, err := d.Token()
 			if err != nil {
 				return value.NilValue, err
 			}
 
-			fields[k] = f
+			item, err := readJSON(d)
+			if err != nil {
+				return value.NilValue, err
+			}
+
+			obj.Set(k.(string), item)
 		}
 
-		return value.NewObject(fields), nil
+		_, err := d.Token()
+
+		return value.NewObject(obj), err
+	case json.Number:
+		if n, err := strconv.ParseInt(string(t), 10, 64); err == nil {
+			return value.NewInt(n), nil
+		}
+
+		f, err := strconv.ParseFloat(string(t), 64)
+		if err != nil {
+			return value.NilValue, fmt.Errorf("number %s is out of range", t)
+		}
+
+		return value.NewNumber(f), nil
+	case nil:
+		return value.NilValue, nil
 	}
 
-	return value.FromGo(x), nil
+	return value.FromGo(t), nil
 }
 
-// appendJSON encodes objects with sorted keys and structs in field order.
+// appendJSON encodes objects in key order and structs in field order.
 func appendJSON(c *call, buf []byte, v value.Value, depth int) []byte {
 	if depth > maxJSONDepth {
 		c.fail(errors.ValueError, "cannot encode a cyclic or too deeply nested value.")
@@ -136,23 +155,18 @@ func appendJSON(c *call, buf []byte, v value.Value, depth int) []byte {
 
 		return append(buf, ']')
 	case value.Object:
-		obj := v.Obj()
-		keys := slices.Sorted(maps.Keys(obj))
-
-		return appendJSONPairs(c, buf, keys, func(i int) value.Value { return obj[keys[i]] }, depth)
+		return appendJSONPairs(c, buf, v.Obj().All(), depth)
 	case value.Struct:
-		return appendJSONPairs(c, buf, v.Shape().Fields, func(i int) value.Value { return v.Fields()[i] }, depth)
+		return appendJSONPairs(c, buf, v.FieldPairs(), depth)
 	case value.Set:
 		return appendJSON(c, buf, keysOf(v.HashMap()), depth)
 	case value.Map:
-		var keys []string
-
-		var vals []value.Value
+		obj := value.NewObj(v.HashMap().Len())
 
 		ok := true
 		v.HashMap().Each(func(k, x value.Value) bool {
 			if ok = k.IsString(); ok {
-				keys, vals = append(keys, k.Str()), append(vals, x)
+				obj.Set(k.Str(), x)
 			}
 
 			return ok
@@ -163,7 +177,7 @@ func appendJSON(c *call, buf []byte, v value.Value, depth int) []byte {
 			return buf
 		}
 
-		return appendJSONPairs(c, buf, keys, func(i int) value.Value { return vals[i] }, depth)
+		return appendJSONPairs(c, buf, obj.All(), depth)
 	}
 
 	c.fail(errors.TypeError, "cannot encode %s.", helpers.TypeName(v))
@@ -171,16 +185,19 @@ func appendJSON(c *call, buf []byte, v value.Value, depth int) []byte {
 	return buf
 }
 
-func appendJSONPairs(c *call, buf []byte, keys []string, val func(i int) value.Value, depth int) []byte {
+func appendJSONPairs(c *call, buf []byte, pairs iter.Seq2[string, value.Value], depth int) []byte {
 	buf = append(buf, '{')
+	first := true
 
-	for i, k := range keys {
-		if i > 0 {
+	for k, v := range pairs {
+		if !first {
 			buf = append(buf, ',')
 		}
 
+		first = false
+
 		buf = append(appendJSONString(buf, k), ':')
-		if buf = appendJSON(c, buf, val(i), depth+1); !c.ok() {
+		if buf = appendJSON(c, buf, v, depth+1); !c.ok() {
 			return buf
 		}
 	}

@@ -1,6 +1,6 @@
 print(json.parse("\{\"a\": [1, 2.5, null, true], \"b\": \"x\"}")); // expect: {a: [1, 2.5, nil, true], b: "x"}
 print(json.parse("3")); // expect: 3
-print(json.stringify({b: [1, nil, false], a: "q\"\n\t"})); // expect: {"a":"q\"\n\t","b":[1,null,false]}
+print(json.stringify({b: [1, nil, false], a: "q\"\n\t"})); // expect: {"b":[1,null,false],"a":"q\"\n\t"}
 print(json.stringify(1e21) + " " + json.stringify(0.0000001) + " " + json.stringify(-0.5)); // expect: 1e+21 1e-7 -0.5
 
 struct P { x, y = 2 }

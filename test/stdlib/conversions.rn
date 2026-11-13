@@ -1,10 +1,10 @@
-print(str(1.5) + "!"); // expect: 1.5!
-print(str("hi")); // expect: hi
-print(str([1, "a"])); // expect: [1, "a"]
-print(str(nil)); // expect: nil
-print(str(-0)); // expect: 0
-print(str(1e21)); // expect: 1e+21
-print(str(1e20)); // expect: 100000000000000000000
+print(string(1.5) + "!"); // expect: 1.5!
+print(string("hi")); // expect: hi
+print(string([1, "a"])); // expect: [1, "a"]
+print(string(nil)); // expect: nil
+print(string(-0)); // expect: 0
+print(string(1e21)); // expect: 1e+21
+print(string(1e20)); // expect: 100000000000000000000
 print(1e-7);      // expect: 1e-7
 print(math.floor(1e300)); // expect: 1e+300
 print(-math.INF); // expect: -inf
@@ -54,3 +54,21 @@ print(number("1_000")); // expect: 1000
 print(number("0xff")); // expect: 255
 print(number(" -0b101 ")); // expect: -5
 print(number("1_000.5")); // expect: 1000.5
+
+struct User { name, role = "guest" }
+print(object());                               // expect: {}
+print(object(User { name: "ann" }));           // expect: {name: "ann", role: "guest"}
+print(object(map([["b", 1], ["a", 2]])));      // expect: {b: 1, a: 2}
+print(object([["x", 1], ["y", [2]]]));         // expect: {x: 1, y: [2]}
+let src = { a: 1 };
+let mut copy = object(src);
+copy.b = 2;
+print([src, copy]);                            // expect: [{a: 1}, {a: 1, b: 2}]
+try { object(map([[1, 2]])); } catch e is TypeError { print(e.message); } // expect: object() expects string keys, got 1.
+try { object([1]); } catch e is TypeError { print(e.message); }           // expect: object() expects [key, value] pairs, got 1.
+
+print([1, "a", nil].map(string));              // expect: ["1", "a", "nil"]
+print(["hi"].map(bytes));                      // expect: [b"hi"]
+print([{ name: "bob" }].map(User));            // expect: [User {name: "bob", role: "guest"}]
+try { [1].map(math); } catch e is TypeError { print(e.message); } // expect: array.map() expects a function as argument 1, got namespace.
+print(map(User { name: "ann" }));              // expect: map {"name": "ann", "role": "guest"}

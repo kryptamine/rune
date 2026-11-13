@@ -8,7 +8,7 @@ so a large file is never held whole.
 
 - `readLine()` — the next line without `\n` or `\r\n`, or `nil` at the end;
 - `read(n)` — bytes, at most `n` and at least one, or `nil` at the end;
-- `readAll()` — the rest as bytes; `readText()` — the rest as a string.
+- `readBytes()` — the rest as bytes; `readText()` — the rest as a string.
 
 `for line in s` (or `for i, line in s`) reads lines up to the end.
 

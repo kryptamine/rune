@@ -192,8 +192,8 @@ func (s *Parser) equality() (ast.Expr, error) {
 
 	for s.match(ast.BANG_EQUAL, ast.EQUAL_EQUAL, ast.IS) {
 		operator := s.previous()
-		right, err := s.comparison()
 
+		right, err := s.equalityOperand(operator)
 		if err != nil {
 			return nil, err
 		}
@@ -206,6 +206,16 @@ func (s *Parser) equality() (ast.Expr, error) {
 	}
 
 	return expr, nil
+}
+
+// equalityOperand parses what follows ==, != or is; after is, nil and
+// struct name types.
+func (s *Parser) equalityOperand(operator ast.Token) (ast.Expr, error) {
+	if operator.TokenType == ast.IS && isTypeKeyword(s.peek().TokenType) {
+		return s.typeName()
+	}
+
+	return s.comparison()
 }
 
 func (s *Parser) comparison() (ast.Expr, error) {

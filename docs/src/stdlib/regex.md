@@ -33,7 +33,7 @@ let [method, path, status] = m.groups;
 print("{method} {path} -> {status}"); // GET /api/users -> 200
 
 let d = regex.find(r"(?P<year>\d{4})-(?P<month>\d\d)", "released 2026-11");
-print(d.named);          // {month: "11", year: "2026"}
+print(d.named);          // {year: "2026", month: "11"}
 print(d.index);          // 9
 
 print(regex.find(r"\d+", "no digits"));            // nil
@@ -55,7 +55,7 @@ or `${name}` is a group, or a function from a `Match` to a string.
 print(regex.replace(r"\s+", "a  b   c", " "));                // a b c
 print(regex.replace(r"(\w+)@(\w+)", "ann@mail", r"$2: $1"));  // mail: ann
 print(regex.replace(r"(?P<user>\w+)@(?P<host>\w+)", "ann@mail", r"${host}: ${user}")); // mail: ann
-print(regex.replace(r"\d+", "3 apples, 12 pears", m => str(int(m.text) * 2))); // 6 apples, 24 pears
+print(regex.replace(r"\d+", "3 apples, 12 pears", m => string(int(m.text) * 2))); // 6 apples, 24 pears
 ```
 
 ## split and escape

@@ -133,13 +133,13 @@ fun bar(value, max, width = 24) {
 fun table(headers, rows) {
     let mut widths = headers.map(h => h.len());
     for row in rows {
-        for i, cell in row widths[i] = math.max(widths[i], str(cell).len());
+        for i, cell in row widths[i] = math.max(widths[i], string(cell).len());
     }
 
     let fmt = cells => {
         let mut out = [];
         for i, c in cells {
-            let s = str(c);
+            let s = string(c);
             out.push(i == 0 ? s.padEnd(widths[i]) : s.padStart(widths[i]));
         }
         return out.join("  ");
@@ -250,7 +250,7 @@ fun generate(path, n = 400) {
         };
         let spike = rng.int(50) == 0 ? 40 : 1;
         let latency = route.ms * spike * (0.5 + rng.int(1000) / 1000) / 1000;
-        let size = status == 304 ? "-" : str(200 + rng.int(8000));
+        let size = status == 304 ? "-" : string(200 + rng.int(8000));
         let sec = i * 7;
         let time = "12/Nov/2026:%02d:%02d:%02d".format(10 + math.idiv(sec, 3600), math.idiv(sec, 60) % 60, sec % 60);
 

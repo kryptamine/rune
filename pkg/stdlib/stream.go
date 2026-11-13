@@ -220,7 +220,7 @@ var streamMethods = []*Native{
 
 		return value.NewBytes(buf[:got:got])
 	}),
-	readRest("stream.readAll", value.NewBytes),
+	readRest("stream.readBytes", value.NewBytes),
 	readRest("stream.readText", func(b []byte) value.Value { return value.NewString(bytesString(b)) }),
 	streamMethod("stream.write", 2, 2, (*Stream).writable, func(c *call, s *Stream) value.Value {
 		data := c.data(1)

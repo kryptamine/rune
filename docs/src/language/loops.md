@@ -5,9 +5,9 @@ count with a range.
 
 ## for-in
 
-`for x in arr { ... }` visits array elements, string characters or object keys
-(objects are iterated in sorted key order). With two variables you also get
-the index, or the key and the value.
+`for x in arr { ... }` visits array elements, string characters or object keys,
+in the order they were added. With two variables you also get the index, or
+the key and the value.
 
 ```rune
 for i, name in ["ann", "bob"] {
@@ -20,8 +20,8 @@ let stock = { pears: 0, apples: 5 };
 for fruit, count in stock {
     print("{fruit}: {count}");
 }
-// apples: 5
 // pears: 0
+// apples: 5
 
 for ch in "hé!" { print(ch); }
 // h

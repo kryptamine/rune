@@ -10,7 +10,7 @@ JSON is full of `"` and `{`, so write it in a raw string, `r"""..."""`.
 
 ```rune
 let user = json.parse(r"""{"name": "ann", "tags": ["admin"], "age": 31, "manager": null}""");
-print(user);            // {age: 31, manager: nil, name: "ann", tags: ["admin"]}
+print(user);            // {name: "ann", tags: ["admin"], age: 31, manager: nil}
 print(user.tags[0]);    // admin
 print(user.manager);    // nil
 print(json.parse("[1, 2.5]"));  // [1, 2.5]
@@ -33,7 +33,7 @@ json.parse("not json"); // ValueError: json.parse() could not parse JSON: invali
 ## json.stringify
 
 `json.stringify(v)` encodes `nil`, booleans, numbers, strings, arrays,
-objects (keys sorted), structs (fields in order), sets (as arrays) and maps
+objects (keys in order), structs (fields in order), sets (as arrays) and maps
 of string keys (as objects, in order) compactly. A function is a
 `TypeError`, a non-finite number or a cycle a `ValueError`.
 
@@ -41,7 +41,7 @@ of string keys (as objects, in order) compactly. A function is a
 struct Order { id, total, items = [] }
 
 print(json.stringify({ name: "ann", active: true, manager: nil }));
-// {"active":true,"manager":null,"name":"ann"}
+// {"name":"ann","active":true,"manager":null}
 print(json.stringify(Order { id: 7, total: 19.99 }));
 // {"id":7,"total":19.99,"items":[]}
 print(json.stringify(set(["a", "b"])));   // ["a","b"]

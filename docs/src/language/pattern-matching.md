@@ -31,7 +31,7 @@ after an arrow function's `=>`, braces that look like an object are one:
 - a name binds the value (`mut name` mutably); a struct type's name is
   an error, test the type with `is`;
 - `name is T` and `_ is T` test the value is a `T`, a struct type or a
-  built-in one like `string`, `_ is T | U` one of them, the same
+  built-in one like `string` or `nil`, `_ is T | U` one of them, the same
   [test](values.md#type-tests) as `v is T` and `catch e is T`;
 - literals: numbers, strings, `true`, `false`, `nil`, compared as by `==`;
 - `p | q` matches if either does;
@@ -119,8 +119,9 @@ print(label); // 3 items
 print(match 7 { 1 => "a" }); // ValueError: No match arm for 7.
 ```
 
-At the start of a statement it is a statement: values are dropped and no
-arm matching does nothing. An arm may `return` from the enclosing function:
+At the start of a statement it is a statement: values are dropped, and no
+arm matching is a `ValueError` all the same, so add `_ => {}` to ignore the
+rest. An arm may `return` from the enclosing function:
 
 ```rune
 fun handle(cmd) {

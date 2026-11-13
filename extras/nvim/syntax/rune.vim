@@ -12,7 +12,7 @@ syn keyword runeSelf self
 syn match runeAs "\<as\>"
 
 syn keyword runeNamespace string math regex bytes json http time fs io os array module
-syn keyword runeBuiltin print type object str number int map set
+syn keyword runeBuiltin print type object number int map set
 
 syn match runeFuncDecl "\<fun\s\+\zs\h\w*"
 syn match runeFuncCall "\h\w*\ze\s*("

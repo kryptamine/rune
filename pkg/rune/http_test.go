@@ -60,7 +60,7 @@ func TestHTTPRequest(t *testing.T) {
 
 		let raw = http.request("PUT", "URL/x", { body: b"\x01raw", stream: true });
 		print(type(raw.body));
-		print(raw.body.readAll());
+		print(raw.body.readBytes());
 		raw.body.close();
 		for i, line in http.request("GET", "URL/lines", { stream: true }).body { print("{i}: {line}"); }
 		print(http.request("GET", "URL/slowbody", { stream: true, timeout: 0.05 }).body.readText());

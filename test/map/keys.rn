@@ -25,5 +25,5 @@ fails(() => map([[0 / 0, 1]])); // expect: TypeError: map() cannot use NaN as a 
 fails(() => m[Point { x: [1], y: 0 }]); // expect: TypeError: Cannot use a struct holding an array as a key.
 fails(() => m["missing"]);      // expect: KeyError: Key not found: "missing".
 fails(() => map([1]));          // expect: TypeError: map() expects [key, value] pairs, got 1.
-fails(() => map(1));            // expect: TypeError: map() expects a map, an object or an array of pairs as argument 1, got number.
+fails(() => map(1));            // expect: TypeError: map() expects a map, an object, a struct or an array of pairs as argument 1, got number.
 fails(() => m.nope());          // expect: TypeError: map has no method 'nope'.

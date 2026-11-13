@@ -1,12 +1,12 @@
 # Strings
 
 Strings are immutable UTF-8 text. `+` joins two strings; anything else
-must be converted first, with `str` or interpolation. Methods such as
+must be converted first, with `string` or interpolation. Methods such as
 `split` and `upper` are in [String Methods](../stdlib/string.md).
 
 ```rune
 let ticket = 42;
-print("ticket #" + str(ticket));    // ticket #42
+print("ticket #" + string(ticket));    // ticket #42
 print("ticket #" + ticket);         // TypeError: Operands must be two numbers, two strings or two bytes.
 ```
 

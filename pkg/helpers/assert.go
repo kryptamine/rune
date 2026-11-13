@@ -1,8 +1,8 @@
 package helpers
 
 import (
-	"reflect"
 	"rune/pkg/value"
+	"unsafe"
 )
 
 type refPair struct{ l, r uintptr }
@@ -41,7 +41,7 @@ func isEqual(left, right value.Value, seen map[refPair]bool) bool {
 			return false
 		}
 
-		pair := refPair{reflect.ValueOf(l).Pointer(), reflect.ValueOf(r).Pointer()}
+		pair := refPair{uintptr(unsafe.Pointer(l)), uintptr(unsafe.Pointer(r))}
 		if seen[pair] {
 			return true
 		}
@@ -62,11 +62,11 @@ func isEqual(left, right value.Value, seen map[refPair]bool) bool {
 		return true
 	case value.Object:
 		l, r := left.Obj(), right.Obj()
-		if len(l) != len(r) {
+		if l.Len() != r.Len() {
 			return false
 		}
 
-		pair := refPair{reflect.ValueOf(l).Pointer(), reflect.ValueOf(r).Pointer()}
+		pair := refPair{uintptr(unsafe.Pointer(l)), uintptr(unsafe.Pointer(r))}
 		if pair.l == pair.r || seen[pair] {
 			return true
 		}
@@ -78,8 +78,8 @@ func isEqual(left, right value.Value, seen map[refPair]bool) bool {
 		seen[pair] = true
 		defer delete(seen, pair)
 
-		for k, lv := range l {
-			rv, ok := r[k]
+		for k, lv := range l.All() {
+			rv, ok := r.Get(k)
 			if !ok || !isEqual(lv, rv, seen) {
 				return false
 			}

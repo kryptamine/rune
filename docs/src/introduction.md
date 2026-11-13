@@ -72,7 +72,7 @@ Language chapters in order.
 - 64-bit integers and floats, both of type `number`: `7 / 2` is `3.5`, `7 % 2` is `1`, and overflow is an error
 - Number literals with exponents, hex, octal, binary and `_`: `1e3`, `0xff`, `0o17`, `0b1010`, `1_000_000`
 - Bitwise operators on integers: `&`, `|`, `^`, `~`, `<<`, `>>`
-- `map` and `set` with keys of any hashable value, in insertion order
+- Objects, `map` and `set` keep their keys in insertion order; a `map` or `set` key may be any hashable value
 - `bytes`: immutable binary data, with literals `b"\x00\xff"`
 - Streams: files and HTTP bodies read line by line or in chunks, `for line in fs.open(path)`
 - Object property access with `obj.name` as sugar for `obj["name"]`; shorthand `{ ip, hits }` for `{ ip: ip, hits: hits }`
