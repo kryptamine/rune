@@ -40,7 +40,7 @@ var httpNatives = []*Native{
 			return value.NilValue
 		}
 
-		res, body := c.fetch(http.MethodGet, url, httpOpts{timeout: defaultTimeout})
+		res, body := c.fetch(http.MethodGet, url, defaultHTTPOpts())
 		if !c.ok() {
 			return value.NilValue
 		}
@@ -64,9 +64,9 @@ var httpNatives = []*Native{
 			return value.NilValue
 		}
 
-		headers := make(map[string]value.Value, len(res.Header))
-		for k, vs := range res.Header {
-			headers[strings.ToLower(k)] = value.NewString(strings.Join(vs, ", "))
+		headers := value.NewObj(len(res.Header))
+		for _, k := range slices.Sorted(maps.Keys(res.Header)) {
+			headers.Set(strings.ToLower(k), value.NewString(strings.Join(res.Header[k], ", ")))
 		}
 
 		v, fields := value.NewStruct(HttpResponse)
@@ -86,15 +86,19 @@ var httpNatives = []*Native{
 
 // httpOpts is an HttpOptions read for a request.
 type httpOpts struct {
-	headers map[string]value.Value
+	headers *value.Obj
 	body    io.Reader
 	timeout time.Duration
 	stream  bool
 }
 
+func defaultHTTPOpts() httpOpts {
+	return httpOpts{headers: value.NewObj(0), timeout: defaultTimeout}
+}
+
 // httpOptions reads argument i, if given, as an HttpOptions.
 func (c *call) httpOptions(i int) httpOpts {
-	o := httpOpts{timeout: defaultTimeout}
+	o := defaultHTTPOpts()
 	if !c.has(i) || !c.ok() {
 		return o
 	}
@@ -183,8 +187,7 @@ func (c *call) send(ctx context.Context, method, url string, o httpOpts) *http.R
 		return nil
 	}
 
-	for _, k := range slices.Sorted(maps.Keys(o.headers)) {
-		v := o.headers[k]
+	for k, v := range o.headers.All() {
 		if !v.IsString() {
 			c.fail(errors.TypeError, "expects header '%s' to be a string, got %s.", k, helpers.TypeName(v))
 			return nil

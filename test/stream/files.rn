@@ -32,7 +32,7 @@ print(f.read(100));  // expect: b"e\ntwo\r\nthree!\n"
 print(f.read(1));    // expect: nil
 f.close();
 
-print(fs.open(path).readAll());  // expect: b"one\ntwo\r\nthree!\n"
+print(fs.open(path).readBytes());  // expect: b"one\ntwo\r\nthree!\n"
 print(fs.open(path).readText().len()); // expect: 16
 
 fs.write(path, b"\x00\x01");

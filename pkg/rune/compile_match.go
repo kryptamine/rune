@@ -6,7 +6,7 @@ import (
 )
 
 // match compiles m into dst; for a statement (dst noReg) the value is
-// dropped and no arm matching does nothing.
+// dropped. No arm matching is an error either way.
 func (fs *funcState) match(m *ast.MatchExpr, dst int32) {
 	fs.scoped(func() {
 		var guards []ast.Expr
@@ -20,7 +20,7 @@ func (fs *funcState) match(m *ast.MatchExpr, dst int32) {
 		fs.nactive = fs.free
 
 		last := &m.Arms[len(m.Arms)-1]
-		fails := dst != noReg && !reachedAll(last)
+		fails := !reachedAll(last)
 
 		var ends []int
 

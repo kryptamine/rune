@@ -86,7 +86,7 @@ struct Store { path, tasks = [], nextId = 1 }
 impl Store {
     fun load(path) {
         if !fs.exists(path) return Store { path };
-        let data = json.parse(fs.read(path));
+        let data = json.parse(fs.readText(path));
         return Store { path, tasks: data.tasks.map(o => Task(o)), nextId: data.nextId };
     }
 
@@ -280,7 +280,7 @@ fun demo() {
         print("");
     }
     print("stored in {path}:");
-    print(fs.read(path));
+    print(fs.readText(path));
     fs.removeAll(dir);
 }
 

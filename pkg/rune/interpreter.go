@@ -145,7 +145,10 @@ func (p *Interpreter) grow(n int) {
 
 // CallValue calls fn with args from a native; fn does not keep args.
 func (p *Interpreter) CallValue(fn value.Value, args []value.Value, token *ast.Token) (value.Value, error) {
-	if fn.Kind() == value.Function {
+	switch fn.Kind() {
+	case value.Type:
+		return convert(token, fn.TypeShape(), args)
+	case value.Function:
 		switch f := fn.Fn().(type) {
 		case *Closure:
 			top := p.frames[len(p.frames)-1]

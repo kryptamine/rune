@@ -392,7 +392,7 @@ reload:
 				fr.pc = pc
 				dst := &regs[in.a()]
 
-				if v, ok := t.Obj()[consts[in.c()].Str()]; ok {
+				if v, ok := t.Obj().Get(consts[in.c()].Str()); ok {
 					*dst = v
 					fr.pc++
 				}
@@ -421,7 +421,7 @@ reload:
 				fr.pc = pc
 				dst := &regs[in.a()]
 
-				if v, ok := t.Obj()[consts[in.c()].Str()]; ok {
+				if v, ok := t.Obj().Get(consts[in.c()].Str()); ok {
 					*dst = v
 					goto reload
 				}
@@ -433,7 +433,7 @@ reload:
 			t := regs[in.a()]
 			if k := t.Kind(); k == value.Object {
 				fr.pc = pc
-				t.Obj()[consts[in.b()].Str()] = regs[in.c()]
+				t.Obj().Set(consts[in.b()].Str(), regs[in.c()])
 
 				goto reload
 			} else if k != value.Struct || !in.y() {

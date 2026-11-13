@@ -22,7 +22,7 @@ var FileInfo = value.NewShape("FileInfo", []value.Field{
 })
 
 var fsNatives = []*Native{
-	{"fs.read", 1, 1, func(c *call) value.Value {
+	{"fs.readText", 1, 1, func(c *call) value.Value {
 		b, err := os.ReadFile(c.str(0))
 		if c.ok() && err != nil {
 			return c.ioFail(err)

@@ -3,6 +3,9 @@ package value
 
 import (
 	"fmt"
+	"iter"
+	"maps"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"unsafe"
@@ -93,12 +96,8 @@ func NewArray(items []Value) Value {
 	return Value{p: unsafe.Pointer(&items), n: uint64(Array) << kindShift}
 }
 
-func NewObject(fields map[string]Value) Value {
-	if fields == nil {
-		fields = map[string]Value{}
-	}
-
-	return Value{p: *(*unsafe.Pointer)(unsafe.Pointer(&fields)), n: uint64(Object) << kindShift}
+func NewObject(o *Obj) Value {
+	return Value{p: unsafe.Pointer(o), n: uint64(Object) << kindShift}
 }
 
 // Field declares a struct field; Default is unused when Required.
@@ -117,10 +116,11 @@ type Shape struct {
 	Methods []Method
 	// Namespace marks a built-in namespace, whose members are called as ns.f().
 	Namespace bool
-	// Kind, other than Nil, makes a built-in type such as string, which
-	// 'is' tests values of that kind against.
-	Kind  Kind
-	decls []Field
+	// Builtin makes a built-in type such as string, which 'is' tests
+	// values of Kind against.
+	Builtin bool
+	Kind    Kind
+	decls   []Field
 }
 
 // Method is a method of an impl block or a built-in type; ID indexes the
@@ -135,7 +135,7 @@ type Method struct {
 // Has reports whether v is of the type s.
 func (s *Shape) Has(v Value) bool {
 	k := v.Kind()
-	return k == Struct && v.Shape() == s || s.Kind != Nil && k == s.Kind
+	return k == Struct && v.Shape() == s || s.Builtin && k == s.Kind
 }
 
 // FindMethod returns the method of ms named name, or nil.
@@ -179,11 +179,12 @@ func Fresh(v Value) Value {
 		}
 		return NewArray(items)
 	case Object:
-		fields := make(map[string]Value, len(v.Obj()))
-		for k, x := range v.Obj() {
-			fields[k] = Fresh(x)
+		o := v.Obj()
+		c := NewObj(o.Len())
+		for k, x := range o.All() {
+			c.Set(k, Fresh(x))
 		}
-		return NewObject(fields)
+		return NewObject(c)
 	case Map:
 		return NewMap(v.HashMap().Clone())
 	case Set:
@@ -214,30 +215,20 @@ func (s *Shape) Index(name string) int {
 	return -1
 }
 
-// Assign copies into fields the keys of obj that name fields, walking the
-// fields so no map order shows; extra is the least key naming none.
-func (s *Shape) Assign(fields []Value, obj map[string]Value) (extra string, ok bool) {
-	given := 0
+// Assign copies into fields the keys of obj that name fields; extra is
+// the first key naming none.
+func (s *Shape) Assign(fields []Value, obj *Obj) (extra string, ok bool) {
+	ok = true
 
-	for i, name := range s.Fields {
-		if v, found := obj[name]; found {
-			fields[i] = v
-			given++
+	for k, v := range obj.All() {
+		if slot := s.Index(k); slot >= 0 {
+			fields[slot] = v
+		} else if ok {
+			extra, ok = k, false
 		}
 	}
 
-	if given == len(obj) {
-		return "", true
-	}
-
-	first := true
-	for k := range obj {
-		if s.Index(k) < 0 && (first || k < extra) {
-			extra, first = k, false
-		}
-	}
-
-	return extra, false
+	return extra, ok
 }
 
 // Fill gives each undefined field a fresh copy of its default; missing is
@@ -424,7 +415,18 @@ func (v Value) Arr() []Value { return *(*[]Value)(v.p) }
 func (v Value) ArrRef() *[]Value { return (*[]Value)(v.p) }
 
 // Obj returns the object payload; only meaningful when Kind() == Object.
-func (v Value) Obj() map[string]Value { return *(*map[string]Value)(unsafe.Pointer(&v.p)) }
+func (v Value) Obj() *Obj { return (*Obj)(v.p) }
+
+// FieldPairs walks a struct's fields by name, in declaration order.
+func (v Value) FieldPairs() iter.Seq2[string, Value] {
+	return func(yield func(string, Value) bool) {
+		for i, f := range v.Fields() {
+			if !yield(v.Shape().Fields[i], f) {
+				return
+			}
+		}
+	}
+}
 
 // Shape returns a struct's shape; only meaningful when Kind() == Struct.
 func (v Value) Shape() *Shape { return (*Shape)((*Value)(v.p).p) }
@@ -571,11 +573,11 @@ func FromGo(x any) Value {
 		}
 		return NewArray(items)
 	case map[string]any:
-		fields := make(map[string]Value, len(v))
-		for k, item := range v {
-			fields[k] = FromGo(item)
+		o := NewObj(len(v))
+		for _, k := range slices.Sorted(maps.Keys(v)) {
+			o.Set(k, FromGo(v[k]))
 		}
-		return NewObject(fields)
+		return NewObject(o)
 	default:
 		panic(fmt.Sprintf("value.FromGo: unsupported type %T", x))
 	}

@@ -27,7 +27,7 @@ func Convert(token *ast.Token, shape *value.Shape, v value.Value) (value.Value, 
 		"Cannot convert %s to %s.", helpers.TypeName(v), shape.Name))
 }
 
-func structOf(token *ast.Token, shape *value.Shape, obj map[string]value.Value) (value.Value, error) {
+func structOf(token *ast.Token, shape *value.Shape, obj *value.Obj) (value.Value, error) {
 	v, fields := value.NewStruct(shape)
 	for i := range fields {
 		fields[i] = value.UndefinedValue
@@ -46,15 +46,17 @@ func structOf(token *ast.Token, shape *value.Shape, obj map[string]value.Value) 
 	return v, nil
 }
 
+// toString is string(v): v as print shows it.
+var toString = &Native{"string", 1, 1, func(c *call) value.Value {
+	if v := c.args[0]; v.IsString() {
+		return v
+	}
+
+	return value.NewString(string(helpers.AppendValue(nil, c.args[0])))
+}}
+
 // conversionNatives are global, like the struct types, which convert too.
 var conversionNatives = []*Native{
-	{"str", 1, 1, func(c *call) value.Value {
-		if v := c.args[0]; v.IsString() {
-			return v
-		}
-
-		return value.NewString(string(helpers.AppendValue(nil, c.args[0])))
-	}},
 	{"number", 1, 1, func(c *call) value.Value {
 		switch v := c.args[0]; {
 		case v.IsNumber():

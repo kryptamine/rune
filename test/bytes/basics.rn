@@ -10,16 +10,16 @@ print(b + b"!");         // expect: b"hi\x00\xff!"
 print(b"a" < b"b");      // expect: true
 print(b"ab" == b"ab");   // expect: true
 print(b"1" == "1");      // expect: false
-print(str(b"x"));        // expect: b"x"
+print(string(b"x"));        // expect: b"x"
 print([b"q"]);           // expect: [b"q"]
 
 for i, x in b"AB" { print("{i}:{x}"); }
 // expect: 0:65
 // expect: 1:66
 
-print(bytes.from("é"));             // expect: b"\xc3\xa9"
-print(bytes.from([1, 2, 255]));     // expect: b"\x01\x02\xff"
-print(bytes.from(b"z"));            // expect: b"z"
+print(bytes("é"));             // expect: b"\xc3\xa9"
+print(bytes([1, 2, 255]));     // expect: b"\x01\x02\xff"
+print(bytes(b"z"));            // expect: b"z"
 print(bytes.alloc(3));              // expect: b"\x00\x00\x00"
 print(bytes.alloc(2, 65));          // expect: b"AA"
 print(b"hello".text());         // expect: hello
@@ -38,7 +38,7 @@ fun fails(f) {
   try { f(); } catch e { print(type(e) + ": " + e.message); }
 }
 fails(() => b"\xff".text());   // expect: ValueError: bytes.text() got bytes that are not valid UTF-8.
-fails(() => bytes.from([256]));    // expect: ValueError: bytes.from() expects bytes from 0 to 255, got 256.
+fails(() => bytes([256]));    // expect: ValueError: bytes() expects bytes from 0 to 255, got 256.
 fails(() => bytes.fromHex("zz"));  // expect: ValueError: bytes.fromHex() could not decode hex: encoding/hex: invalid byte: U+007A 'z'.
 fails(() => b"a"[5]);              // expect: IndexError: Index out of bounds: 5 of 1
 fails(() => b"a" + "b");           // expect: TypeError: Operands must be two numbers, two strings or two bytes.

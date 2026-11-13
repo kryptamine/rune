@@ -35,11 +35,11 @@ print(time.format(time.parse("12 pm", "%I %p", "UTC"), "%H", "UTC")); // expect:
 for bad, layout in { "2023-02-30": "%Y-%m-%d", "2023-1x-01": "%Y-%m-%d", "2023-11-14 x": "%Y-%m-%d", "25:00": "%H:%M", "13 am": "%I %p" } {
     try { time.parse(bad, layout, "UTC"); } catch e is ValueError { print(e.message); }
 }
-// expect: time.parse() cannot parse "13 am" as "%I %p": hour 13 out of range.
 // expect: time.parse() cannot parse "2023-02-30" as "%Y-%m-%d": 2023-02-30 is not a valid date.
-// expect: time.parse() cannot parse "2023-11-14 x" as "%Y-%m-%d": unexpected " x" at the end.
 // expect: time.parse() cannot parse "2023-1x-01" as "%Y-%m-%d": expected '-' at "x-01".
+// expect: time.parse() cannot parse "2023-11-14 x" as "%Y-%m-%d": unexpected " x" at the end.
 // expect: time.parse() cannot parse "25:00" as "%H:%M": hour 25 out of range.
+// expect: time.parse() cannot parse "13 am" as "%I %p": hour 13 out of range.
 
 try { time.date(0, "Mars/Base"); } catch e is ValueError { print(e.message); } // expect: time.date() unknown time zone "Mars/Base".
 try { time.format(0, "%Q"); } catch e is ValueError { print(e.message); } // expect: time.format() unknown directive %Q in "%Q".

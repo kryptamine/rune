@@ -876,31 +876,47 @@ func (s *Parser) catchClause() (ast.CatchClause, error) {
 	return c, err
 }
 
-// typeList parses the struct types after 'is': T, m.T, joined by '|'.
+// typeList parses the types after 'is': T, m.T, nil or struct, joined by '|'.
 func (s *Parser) typeList() ([]*ast.VarExpr, error) {
 	var types []*ast.VarExpr
 
 	for {
-		t, err := s.consume(ast.IDENTIFIER, "Expect type name after 'is'.")
+		typ, err := s.typeName()
 		if err != nil {
 			return nil, err
 		}
 
-		typ := &ast.VarExpr{Name: t}
-		if s.match(ast.DOT) {
-			if typ.Name, err = s.consume(ast.IDENTIFIER, "Expect type name after '.'."); err != nil {
-				return nil, err
-			}
-
-			typ.Module = &t
-		}
-
 		types = append(types, typ)
 
-		if !(s.check(ast.PIPE) && s.peekAt(1) == ast.IDENTIFIER) {
+		if next := s.peekAt(1); !s.check(ast.PIPE) || next != ast.IDENTIFIER && !isTypeKeyword(next) {
 			return types, nil
 		}
 
 		s.advance()
 	}
+}
+
+// isTypeKeyword reports whether t is a keyword that names a type after 'is'.
+func isTypeKeyword(t ast.TokenType) bool { return t == ast.NIL || t == ast.STRUCT }
+
+func (s *Parser) typeName() (*ast.VarExpr, error) {
+	if isTypeKeyword(s.peek().TokenType) {
+		return &ast.VarExpr{Name: s.advance()}, nil
+	}
+
+	t, err := s.consume(ast.IDENTIFIER, "Expect type name after 'is'.")
+	if err != nil {
+		return nil, err
+	}
+
+	typ := &ast.VarExpr{Name: t}
+	if s.match(ast.DOT) {
+		if typ.Name, err = s.consume(ast.IDENTIFIER, "Expect type name after '.'."); err != nil {
+			return nil, err
+		}
+
+		typ.Module = &t
+	}
+
+	return typ, nil
 }

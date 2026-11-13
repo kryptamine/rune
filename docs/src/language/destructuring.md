@@ -52,8 +52,8 @@ let pages = { "/home": { hits: 10 }, "/about": { hits: 3 } };
 for path, { hits } in pages {
     print("{path}: {hits}");
 }
-// /about: 3
 // /home: 10
+// /about: 3
 ```
 
 A missing property or field is a runtime error, as with `obj.name`:

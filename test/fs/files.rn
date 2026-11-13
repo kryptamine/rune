@@ -5,7 +5,7 @@ print(fs.exists(p)); // expect: false
 fs.write(p, "one\r\ntwo\n");
 fs.append(p, "three\n");
 print(fs.exists(p)); // expect: true
-print(fs.read(p) == "one\r\ntwo\nthree\n"); // expect: true
+print(fs.readText(p) == "one\r\ntwo\nthree\n"); // expect: true
 print(fs.lines(p)); // expect: ["one", "two", "three"]
 
 fs.write(p, "");

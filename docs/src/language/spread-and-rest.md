@@ -23,8 +23,8 @@ last to fill in only what is missing:
 ```rune
 let defaults = { timeout: 30, retries: 3 };
 
-print({ ...defaults, timeout: 5 }); // {retries: 3, timeout: 5}
-print({ timeout: 5, ...defaults }); // {retries: 3, timeout: 30}
+print({ ...defaults, timeout: 5 }); // {timeout: 5, retries: 3}
+print({ timeout: 5, ...defaults }); // {timeout: 30, retries: 3}
 
 struct Point { x, y = 0 }
 let p = Point { x: 1, y: 2 };

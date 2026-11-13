@@ -1,7 +1,7 @@
 # io
 
 - `readLine()` — the next line of stdin without `\n` or `\r\n`, or `nil` at the end.
-- `read()` — the rest of stdin.
+- `readText()` — the rest of stdin.
 - `write(v)` — writes `v` to stdout as `print` does, without a newline.
 - `eprint(v)`, `ewrite(v)` — the same to stderr, with and without a newline.
 
@@ -32,11 +32,11 @@ skipping 'abc'
 total: 42
 ```
 
-`read()` takes all of stdin at once, for input that is not line by line:
+`readText()` takes all of stdin at once, for input that is not line by line:
 
 ```rune
 // count.rn
-let words = regex.split(r"\s+", io.read().trim());
+let words = regex.split(r"\s+", io.readText().trim());
 print("{words.len()} words");
 ```
 

@@ -101,7 +101,7 @@ wherever it is run from:
 
 ```rune
 // main.rn
-let prices = fs.read(fs.join(module.dir, "data", "prices.txt"));
+let prices = fs.readText(fs.join(module.dir, "data", "prices.txt"));
 print(prices.trim()); // book 12.50
 ```
 

@@ -1,8 +1,8 @@
 # Map and Set
 
 A map holds values by key, a set unique values. Unlike an object, whose
-keys are strings, their keys may be any hashable value, and both keep keys
-in the order they were first added.
+keys are strings, their keys may be any hashable value; like an object,
+they keep keys in the order they were first added.
 
 ```rune
 let mut stock = map();
@@ -21,7 +21,7 @@ print(visitors.len());   // 2
 
 ## Making one
 
-`map()` makes an empty map and `map(src)` one from an object, another map
+`map()` makes an empty map and `map(src)` one from an object, a struct, another map
 or an array of `[key, value]` pairs; `set()` and `set(array)` likewise.
 
 ```rune

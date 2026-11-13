@@ -1,5 +1,3 @@
-// As a statement, a value no arm matches does nothing.
-match 3 { 1 => { print("one"); } }
 match 3 { 3 => { print("three"); } } // expect: three
 match 3 { 3 => { print("semicolon"); } }; // expect: semicolon
 
@@ -22,12 +20,14 @@ while true {
 
 for x in [1, 2, 3] match x {
     2 => { print("two"); } // expect: two
+    _ => {}
 }
 
 fun sign(n) {
     match n {
         0 => { return "zero"; }
         n if n < 0 => { return "negative"; }
+        _ => {}
     }
 
     return "positive";
@@ -73,3 +73,6 @@ for i in 0..5 match i {
 }
 // expect: 0
 // expect: 2
+
+// As a statement too, a value no arm matches is an error.
+match 3 { 1 => { print("one"); } } // expect runtime error: [line: 78] ValueError: No match arm for 3.

@@ -2,11 +2,8 @@ package helpers
 
 import (
 	"fmt"
-	"maps"
-	"reflect"
 	"rune/pkg/ast"
 	"rune/pkg/value"
-	"slices"
 	"strconv"
 	"strings"
 	"unsafe"
@@ -120,7 +117,7 @@ func stringify(v value.Value, seen map[uintptr]bool) string {
 		return "[" + strings.Join(items, ", ") + "]"
 	case value.Object:
 		obj := v.Obj()
-		ptr := reflect.ValueOf(obj).Pointer()
+		ptr := uintptr(unsafe.Pointer(obj))
 		if seen[ptr] {
 			return "{...}"
 		}
@@ -132,14 +129,14 @@ func stringify(v value.Value, seen map[uintptr]bool) string {
 		seen[ptr] = true
 		defer delete(seen, ptr)
 
-		pairs := make([]string, 0, len(obj))
-		for _, key := range slices.Sorted(maps.Keys(obj)) {
+		pairs := make([]string, 0, obj.Len())
+		for key, x := range obj.All() {
 			name := key
 			if !isIdentifier(key) {
 				name = quote(key)
 			}
 
-			pairs = append(pairs, name+": "+element(obj[key], seen))
+			pairs = append(pairs, name+": "+element(x, seen))
 		}
 
 		return "{" + strings.Join(pairs, ", ") + "}"

@@ -176,8 +176,9 @@ func (c *call) arr(i int) []value.Value {
 	return c.args[i].Arr()
 }
 
+// fn is argument i, which must be callable: a function or a struct type.
 func (c *call) fn(i int) value.Value {
-	if c.args[i].Kind() != value.Function {
+	if k := c.args[i].Kind(); k != value.Function && k != value.Type {
 		return c.typeError(i, "a function")
 	}
 
@@ -222,29 +223,32 @@ func FieldNames() map[string]string {
 }
 
 // namespace groups built-ins under one global, an immutable struct of them.
-// Its natives are named "<namespace>.<member>".
+// Its natives are named "<namespace>.<member>". With a call, the global is
+// that function instead, as string(v) is; its members, bound when the
+// program is compiled, stay reachable as string.f.
 type namespace struct {
 	name    string
 	natives []*Native
 	consts  []Builtin
+	call    *Native
 }
 
 var namespaces = []namespace{
-	{"string", stringNatives, nil},
+	{"string", stringNatives, nil, toString},
 	{"math", mathNatives, []Builtin{
 		{"PI", value.NewNumber(math.Pi)},
 		{"INF", value.NewNumber(math.Inf(1))},
 		{"MAX_INT", value.NewInt(math.MaxInt64)},
 		{"MIN_INT", value.NewInt(math.MinInt64)},
-	}},
-	{"regex", regexNatives, nil},
-	{"bytes", bytesNatives, nil},
-	{"json", jsonNatives, nil},
-	{"http", httpNatives, nil},
-	{"time", timeNatives, nil},
-	{"fs", fsNatives, nil},
-	{"io", ioNatives, nil},
-	{"os", osNatives, osConsts},
+	}, nil},
+	{"regex", regexNatives, nil, nil},
+	{"bytes", bytesNatives, nil, toBytes},
+	{"json", jsonNatives, nil, nil},
+	{"http", httpNatives, nil, nil},
+	{"time", timeNatives, nil, nil},
+	{"fs", fsNatives, nil, nil},
+	{"io", ioNatives, nil, nil},
+	{"os", osNatives, osConsts, nil},
 }
 
 func (ns namespace) value() value.Value {
@@ -368,7 +372,12 @@ func builtins() []Builtin {
 	}
 
 	for _, ns := range namespaces {
-		out = append(out, Builtin{ns.name, namespaceValues[ns.name]})
+		v := namespaceValues[ns.name]
+		if ns.call != nil {
+			v = value.NewFunction(ns.call)
+		}
+
+		out = append(out, Builtin{ns.name, v})
 	}
 
 	for _, t := range Types {

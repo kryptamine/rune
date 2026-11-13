@@ -23,7 +23,7 @@ print(kind({ x: 0, y: 0 }));               // expect: other
 
 // The built-in error types are structs too.
 try {
-    fs.read("/nonexistent/rune-match");
+    fs.readText("/nonexistent/rune-match");
 } catch e {
     print(match e {
         _ is KeyError => "key",

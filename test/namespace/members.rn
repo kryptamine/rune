@@ -6,7 +6,7 @@ print(math.PI * 2 > 6); // expect: true
 let m = math;
 print(m.abs(-2)); // expect: 2
 
-for k in string { if k == "fromCharCode" print(k); } // expect: fromCharCode
+for k in math { if k == "floor" print(k); } // expect: floor
 
 let key = "ceil";
 print(math[key](1.2)); // expect: 2
@@ -16,3 +16,8 @@ let mut mine = math;
 mine.PI = 3;
 print(mine.PI); // expect: 3
 print(math.PI > 3); // expect: true
+
+// string and bytes are conversions; their members are bound by name.
+print(type(string));                // expect: function
+print(string.fromCharCode(104));    // expect: h
+print(bytes.fromHex("ff"));         // expect: b"\xff"

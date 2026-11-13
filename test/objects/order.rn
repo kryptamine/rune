@@ -1,0 +1,32 @@
+// Keys keep the order they were first added in.
+let mut o = { b: 1, a: 2, c: 3 };
+print(o);                    // expect: {b: 1, a: 2, c: 3}
+o.a = 20;
+print(o.keys());             // expect: ["b", "a", "c"]
+o.delete("b");
+o.b = 4;
+print(o);                    // expect: {a: 20, c: 3, b: 4}
+for k, v in o { print("{k}={v}"); }
+// expect: a=20
+// expect: c=3
+// expect: b=4
+
+// Past eight keys a table is indexed; order and lookups stay the same.
+let mut big = {};
+for i in 0..12 { big["k{11 - i}"] = i; }
+print(big.keys().slice(0, 3)); // expect: ["k11", "k10", "k9"]
+print(big.k3);                 // expect: 8
+big.delete("k10");
+print(big.k9);               // expect: 2
+print(big.len());              // expect: 11
+print(big.has("k10"));         // expect: false
+big["k10"] = 0;
+print(big.keys()[-1]);         // expect: k10
+print(big.k0);                 // expect: 11
+
+let raw = r"""{"z":1,"a":{"y":2,"b":3}}""";
+print(json.parse(raw));                          // expect: {z: 1, a: {y: 2, b: 3}}
+print(json.stringify(json.parse(raw)) == raw);   // expect: true
+
+print({ z: 0, ...{ a: 1, z: 2 } }); // expect: {z: 2, a: 1}
+print({ a: 1, b: 2 } == { b: 2, a: 1 }); // expect: true

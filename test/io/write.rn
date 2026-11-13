@@ -5,4 +5,4 @@ print(""); // expect: a1[1, "b"]
 io.eprint("to stderr");
 io.ewrite("no newline");
 print(io.readLine()); // expect: nil
-print(io.read() == ""); // expect: true
+print(io.readText() == ""); // expect: true

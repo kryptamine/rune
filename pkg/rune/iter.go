@@ -8,7 +8,6 @@ import (
 	"rune/pkg/stdlib"
 	"rune/pkg/value"
 	"slices"
-	"strings"
 )
 
 // cursor walks what a for-in iterates, as (index or key, element) pairs:
@@ -76,7 +75,13 @@ func cursorOf(v value.Value, hasKey bool, keyword *ast.Token) (*cursor, error) {
 			return value.NewInt(int64(b[i])), true
 		})}, nil
 	case value.Object:
-		return pairs(sortedKeys(v.Obj()), hasKey, func(i int, k value.Value) value.Value { return v.Obj()[k.Str()] }), nil
+		o := v.Obj()
+		keys := make([]value.Value, 0, o.Len())
+		for k := range o.All() {
+			keys = append(keys, value.NewString(k))
+		}
+
+		return pairs(keys, hasKey, func(_ int, k value.Value) value.Value { x, _ := o.Get(k.Str()); return x }), nil
 	case value.Struct:
 		// Keys and fields never change, so the cursor shares them.
 		fields := v.Fields()
@@ -148,15 +153,4 @@ func streamCursor(s *stdlib.Stream, keyword ast.Token) *cursor {
 
 		return value.NewInt(int64(n - 1)), value.NewString(line), ok, nil
 	}}
-}
-
-func sortedKeys(obj map[string]value.Value) []value.Value {
-	keys := make([]value.Value, 0, len(obj))
-	for k := range obj {
-		keys = append(keys, value.NewString(k))
-	}
-
-	slices.SortFunc(keys, func(a, b value.Value) int { return strings.Compare(a.Str(), b.Str()) })
-
-	return keys
 }

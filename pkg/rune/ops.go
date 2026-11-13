@@ -110,7 +110,7 @@ func lookup(token *ast.Token, target, index value.Value) (value.Value, bool, err
 			return value.NilValue, false, errors.NewRuntimeError(errors.TypeError, *token, "Object keys must be strings.")
 		}
 
-		v, found := target.Obj()[index.Str()]
+		v, found := target.Obj().Get(index.Str())
 
 		return v, found, nil
 
@@ -156,7 +156,7 @@ func setIndex(token *ast.Token, target, index, v value.Value) error {
 			return errors.NewRuntimeError(errors.TypeError, *token, "Object properties must be accessed with string keys.")
 		}
 
-		target.Obj()[index.Str()] = v
+		target.Obj().Set(index.Str(), v)
 
 		return nil
 

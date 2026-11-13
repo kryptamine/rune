@@ -73,30 +73,33 @@ var bytesMethods = []*Native{
 	}},
 }
 
-var bytesNatives = []*Native{
-	{"bytes.from", 1, 1, func(c *call) value.Value {
-		switch v := c.args[0]; v.Kind() {
-		case value.Bytes:
-			return v
-		case value.String:
-			return value.NewBytes([]byte(v.Str()))
-		case value.Array:
-			out := make([]byte, len(v.Arr()))
+// toBytes is bytes(v): a string's UTF-8, an array of integers from 0 to
+// 255, or bytes as they are.
+var toBytes = &Native{"bytes", 1, 1, func(c *call) value.Value {
+	switch v := c.args[0]; v.Kind() {
+	case value.Bytes:
+		return v
+	case value.String:
+		return value.NewBytes([]byte(v.Str()))
+	case value.Array:
+		out := make([]byte, len(v.Arr()))
 
-			for i, x := range v.Arr() {
-				n, ok := value.ToInt(x)
-				if !ok || n < 0 || n > 255 {
-					return c.fail(errors.ValueError, "expects bytes from 0 to 255, got %s.", helpers.Quoted(x))
-				}
-
-				out[i] = byte(n)
+		for i, x := range v.Arr() {
+			n, ok := value.ToInt(x)
+			if !ok || n < 0 || n > 255 {
+				return c.fail(errors.ValueError, "expects bytes from 0 to 255, got %s.", helpers.Quoted(x))
 			}
 
-			return value.NewBytes(out)
+			out[i] = byte(n)
 		}
 
-		return c.typeError(0, "a string, an array or bytes")
-	}},
+		return value.NewBytes(out)
+	}
+
+	return c.typeError(0, "a string, an array or bytes")
+}}
+
+var bytesNatives = []*Native{
 	{"bytes.alloc", 1, 2, func(c *call) value.Value {
 		n, fill := c.int(0), 0
 		if c.has(1) {

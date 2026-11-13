@@ -4,7 +4,7 @@ let mut p = Point { x: 1 };
 
 try { p.push(1); } catch e { print(e.message); }
 // expect: Point has no method 'push'.
-try { object({x: 1}); } catch e { print(e.message); }
-// expect: object() expects a struct as argument 1, got object.
+try { object(1); } catch e { print(e.message); }
+// expect: object() expects a map, an object, a struct or an array of pairs as argument 1, got number.
 try { p.len(); } catch e { print(e.message); }
 // expect: Point has no method 'len'.

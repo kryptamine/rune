@@ -12,21 +12,6 @@ var preludeNatives = []*Native{
 	{"type", 1, 1, func(c *call) value.Value {
 		return value.NewString(helpers.TypeName(c.args[0]))
 	}},
-	{"object", 1, 1, func(c *call) value.Value {
-		v := c.args[0]
-		if v.Kind() != value.Struct {
-			return c.typeError(0, "a struct")
-		}
-
-		names := v.Shape().Fields
-		obj := make(map[string]value.Value, len(names))
-
-		for i, f := range v.Fields() {
-			obj[names[i]] = f
-		}
-
-		return value.NewObject(obj)
-	}},
 }
 
 func length(c *call) value.Value {
@@ -34,7 +19,7 @@ func length(c *call) value.Value {
 	case value.Array:
 		return count(len(v.Arr()))
 	case value.Object:
-		return count(len(v.Obj()))
+		return count(v.Obj().Len())
 	case value.String:
 		return count(utf8.RuneCountInString(v.Str()))
 	case value.Map, value.Set:

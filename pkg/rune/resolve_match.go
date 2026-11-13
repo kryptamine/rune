@@ -116,8 +116,11 @@ func (p *Resolver) typeNamed(t *ast.VarExpr) *value.Shape {
 var kindTypes = func() map[string]*value.Shape {
 	ts := map[string]*value.Shape{}
 	for name, k := range builtinKinds {
-		ts[name] = &value.Shape{Name: name, Kind: k}
+		ts[name] = &value.Shape{Name: name, Builtin: true, Kind: k}
 	}
+
+	ts["nil"] = &value.Shape{Name: "nil", Builtin: true, Kind: value.Nil}
+	ts["struct"] = &value.Shape{Name: "struct", Builtin: true, Kind: value.Type}
 
 	return ts
 }()

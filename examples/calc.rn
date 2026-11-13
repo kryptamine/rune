@@ -195,7 +195,7 @@ impl Env {
 fun show(v, digits = 6) {
     return match v {
         _ if type(v) == "string" => v,
-        _ if math.isInt(v) => str(v),
+        _ if math.isInt(v) => string(v),
         _ => regex.replace("\\.?0+$", v.fixed(digits), ""),
     };
 }

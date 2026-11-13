@@ -4,9 +4,9 @@ print(o.has("z"));          // expect: false
 print(o.get("a"));          // expect: 2
 print(o.get("z"));          // expect: nil
 print(o.get("z", 0));       // expect: 0
-print(o.keys());            // expect: ["a", "b"]
-print(o.values());          // expect: [2, 1]
-print(o.entries());         // expect: [["a", 2], ["b", 1]]
+print(o.keys());            // expect: ["b", "a"]
+print(o.values());          // expect: [1, 2]
+print(o.entries());         // expect: [["b", 1], ["a", 2]]
 print(o.len());             // expect: 2
 print(o.delete("a"));       // expect: true
 print(o.delete("a"));       // expect: false

@@ -13,5 +13,5 @@ try {
 try {
   object(nil);
 } catch e {
-  print(e.message); // expect: object() expects a struct as argument 1, got nil.
+  print(e.message); // expect: object() expects a map, an object, a struct or an array of pairs as argument 1, got nil.
 }

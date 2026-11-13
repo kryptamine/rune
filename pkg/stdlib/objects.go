@@ -1,12 +1,8 @@
 package stdlib
 
-import (
-	"maps"
-	"rune/pkg/value"
-	"slices"
-)
+import "rune/pkg/value"
 
-func (c *call) obj(i int) map[string]value.Value {
+func (c *call) obj(i int) *value.Obj {
 	if c.args[i].Kind() != value.Object {
 		c.typeError(i, "an object")
 		return nil
@@ -15,28 +11,27 @@ func (c *call) obj(i int) map[string]value.Value {
 	return c.args[i].Obj()
 }
 
-func objectMethod(name string, min, max int, fn func(c *call, o map[string]value.Value) value.Value) *Native {
+func objectMethod(name string, min, max int, fn func(c *call, o *value.Obj) value.Value) *Native {
 	return method(name, min, max, (*call).obj, fn)
 }
 
 // objectEntries is what pick makes of each entry of o, in the order for-in
 // walks them.
-func objectEntries(o map[string]value.Value, pick func(k string, v value.Value) value.Value) value.Value {
-	out := make([]value.Value, 0, len(o))
-	for _, k := range slices.Sorted(maps.Keys(o)) {
-		out = append(out, pick(k, o[k]))
+func objectEntries(o *value.Obj, pick func(k string, v value.Value) value.Value) value.Value {
+	out := make([]value.Value, 0, o.Len())
+	for k, v := range o.All() {
+		out = append(out, pick(k, v))
 	}
 
 	return value.NewArray(out)
 }
 
 var objectMethods = []*Native{
-	objectMethod("object.has", 2, 2, func(c *call, o map[string]value.Value) value.Value {
-		_, found := o[c.str(1)]
-		return value.NewBool(found)
+	objectMethod("object.has", 2, 2, func(c *call, o *value.Obj) value.Value {
+		return value.NewBool(o.Has(c.str(1)))
 	}),
-	objectMethod("object.get", 2, 3, func(c *call, o map[string]value.Value) value.Value {
-		if v, found := o[c.str(1)]; found {
+	objectMethod("object.get", 2, 3, func(c *call, o *value.Obj) value.Value {
+		if v, found := o.Get(c.str(1)); found {
 			return v
 		}
 
@@ -46,13 +41,13 @@ var objectMethods = []*Native{
 
 		return value.NilValue
 	}),
-	objectMethod("object.keys", 1, 1, func(_ *call, o map[string]value.Value) value.Value {
+	objectMethod("object.keys", 1, 1, func(_ *call, o *value.Obj) value.Value {
 		return objectEntries(o, func(k string, _ value.Value) value.Value { return value.NewString(k) })
 	}),
-	objectMethod("object.values", 1, 1, func(_ *call, o map[string]value.Value) value.Value {
+	objectMethod("object.values", 1, 1, func(_ *call, o *value.Obj) value.Value {
 		return objectEntries(o, func(_ string, v value.Value) value.Value { return v })
 	}),
-	objectMethod("object.entries", 1, 1, func(_ *call, o map[string]value.Value) value.Value {
+	objectMethod("object.entries", 1, 1, func(_ *call, o *value.Obj) value.Value {
 		return objectEntries(o, func(k string, v value.Value) value.Value {
 			return value.NewArray([]value.Value{value.NewString(k), v})
 		})
@@ -60,11 +55,7 @@ var objectMethods = []*Native{
 }
 
 var objectInPlace = []*Native{
-	objectMethod("object.delete", 2, 2, func(c *call, o map[string]value.Value) value.Value {
-		k := c.str(1)
-		_, found := o[k]
-		delete(o, k)
-
-		return value.NewBool(found)
+	objectMethod("object.delete", 2, 2, func(c *call, o *value.Obj) value.Value {
+		return value.NewBool(o.Delete(c.str(1)))
 	}),
 }

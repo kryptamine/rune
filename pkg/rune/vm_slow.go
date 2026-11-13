@@ -106,16 +106,16 @@ func (p *Interpreter) slow(in Instr) error {
 	case opObject:
 		keys := f.keys[in.c()]
 
-		var obj map[string]value.Value
+		var obj *value.Obj
 		if in.x() == 0 {
-			obj = make(map[string]value.Value, len(keys))
+			obj = value.NewObj(len(keys))
 			regs[in.a()] = value.NewObject(obj)
 		} else {
 			obj = regs[in.a()].Obj()
 		}
 
 		for i, k := range keys {
-			obj[k] = regs[in.b()+i]
+			obj.Set(k, regs[in.b()+i])
 		}
 
 	case opGetIndex:
@@ -409,12 +409,12 @@ func spread(tok *ast.Token, dst, src value.Value) error {
 
 	switch src.Kind() {
 	case value.Object:
-		for k, v := range src.Obj() {
-			obj[k] = v
+		for k, v := range src.Obj().All() {
+			obj.Set(k, v)
 		}
 	case value.Struct:
-		for i, f := range src.Shape().Fields {
-			obj[f] = src.Fields()[i]
+		for k, v := range src.FieldPairs() {
+			obj.Set(k, v)
 		}
 	default:
 		return spreadError(tok, src, "an object")
