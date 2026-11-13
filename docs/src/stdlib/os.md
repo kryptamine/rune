@@ -67,7 +67,7 @@ io.write(r.stdout);
 ```
 
 ```sh
-$ ./rune run status.rn; echo "exit $?"    # outside a git repository
+$ rune run status.rn; echo "exit $?"    # outside a git repository
 fatal: not a git repository (or any of the parent directories): .git
 exit 128
 ```

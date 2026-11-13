@@ -12,8 +12,8 @@ Markdown posts with front matter to an HTML site. Split into
 renders pages with `"""` templates, parses Markdown with `regex`.
 
 ```sh
-./rune run examples/blog/main.rn                    # build the bundled posts into a temp dir
-./rune run examples/blog/main.rn examples/blog/content site --drafts
+rune run examples/blog/main.rn                    # build the bundled posts into a temp dir
+rune run examples/blog/main.rn examples/blog/content site --drafts
 ```
 
 ### [`todo.rn`](https://github.com/kryptamine/rune/blob/master/examples/todo.rn) — task tracker
@@ -25,9 +25,9 @@ back from JSON by name, `match` on commands,
 Tasks live in `$TODO_FILE`, or `~/.todo.json`.
 
 ```sh
-./rune run examples/todo.rn                                  # demo session against a temp file
-./rune run examples/todo.rn add "pay rent" +home !high due:fri
-./rune run examples/todo.rn list +home --overdue
+rune run examples/todo.rn                                  # demo session against a temp file
+rune run examples/todo.rn add "pay rent" +home !high due:fri
+rune run examples/todo.rn list +home --overdue
 ```
 
 ### [`log-report.rn`](https://github.com/kryptamine/rune/blob/master/examples/log-report.rn) — access log report
@@ -37,8 +37,8 @@ requests. Reads the log line by line with a [stream](../stdlib/streams.md),
 groups with `map`, writes JSON.
 
 ```sh
-./rune run examples/log-report.rn                 # generate a sample log and analyze it
-./rune run examples/log-report.rn access.log -j   # your own log, plus a JSON report
+rune run examples/log-report.rn                 # generate a sample log and analyze it
+rune run examples/log-report.rn access.log -j   # your own log, plus a JSON report
 ```
 
 ### [`chess.rn`](https://github.com/kryptamine/rune/blob/master/examples/chess.rn) — chess engine
@@ -50,10 +50,10 @@ struct changed in place by `mut self` methods `make` and `unmake`; table
 entries record their bound as an enum.
 
 ```sh
-./rune run examples/chess.rn                     # perft check, a mate puzzle, self-play
-./rune run examples/chess.rn perft 4             # leaf nodes per root move
-./rune run examples/chess.rn go -t 3             # best move from the start position
-./rune run examples/chess.rn play black -t 2     # play against the engine
+rune run examples/chess.rn                     # perft check, a mate puzzle, self-play
+rune run examples/chess.rn perft 4             # leaf nodes per root move
+rune run examples/chess.rn go -t 3             # best move from the start position
+rune run examples/chess.rn play black -t 2     # play against the engine
 ```
 
 ### [`calc.rn`](https://github.com/kryptamine/rune/blob/master/examples/calc.rn) — calculator
@@ -63,8 +63,8 @@ read for structs, an enum of token kinds matched inside struct patterns,
 `match` on AST nodes and `throw` for parse errors.
 
 ```sh
-./rune run examples/calc.rn        # demo
-./rune run examples/calc.rn repl   # read lines from stdin
+rune run examples/calc.rn        # demo
+rune run examples/calc.rn repl   # read lines from stdin
 ```
 
 ### [`fetch.rn`](https://github.com/kryptamine/rune/blob/master/examples/fetch.rn) — HTTP and JSON
@@ -72,7 +72,7 @@ read for structs, an enum of token kinds matched inside struct patterns,
 Fetches a URL, parses the JSON and handles network errors with `try`.
 
 ```sh
-./rune run examples/fetch.rn
+rune run examples/fetch.rn
 ```
 
 ## Basics
