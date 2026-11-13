@@ -137,14 +137,23 @@ func selfParam(fn *ast.FunctionStmt) (self, mut bool) {
 	return self, self && fn.Parameters[0].Mutable
 }
 
-// mutators returns the names of the in-place built-in methods and the
-// mut self methods of the program, but those another method shares, so
-// that a call of one through an immutable variable is a compile error.
-func mutators(files []*fileAST) map[string]bool {
-	mut, other := map[string]bool{}, map[string]bool{}
+// methodKind marks what the methods sharing a name do to their receiver.
+type methodKind uint8
+
+const (
+	inPlace methodKind = 1 << iota
+	mutSelf
+	plain
+)
+
+// methodKinds classifies the method names of the built-in types and the
+// program, so that a call known to mutate its receiver is checked at
+// compile time.
+func methodKinds(files []*fileAST) map[string]methodKind {
+	kinds := map[string]methodKind{}
 
 	for _, m := range stdlib.Methods {
-		helpers.If(m.InPlace, mut, other)[m.Name] = true
+		kinds[m.Name] |= helpers.If(m.InPlace, inPlace, plain)
 	}
 
 	for _, f := range files {
@@ -152,15 +161,55 @@ func mutators(files []*fileAST) map[string]bool {
 			if impl, ok := stmt.(*ast.ImplStmt); ok {
 				for _, m := range impl.Methods {
 					_, isMut := selfParam(m.Fn)
-					helpers.If(isMut, mut, other)[m.Fn.Name.Lexeme] = true
+					kinds[m.Fn.Name.Lexeme] |= helpers.If(isMut, mutSelf, plain)
 				}
 			}
 		}
 	}
 
-	for name := range other {
-		delete(mut, name)
+	return kinds
+}
+
+// checkMutation rejects a method call that must change a receiver which
+// cannot be changed: an immutable variable, for a method only mutating
+// ones are named, or a value no variable holds, for a mut self method.
+func (p *Resolver) checkMutation(call *ast.CallExpr, prop *ast.IndexExpr) {
+	call.Writable = p.writable(prop.Array)
+	kind := p.methodKinds[prop.Token.Lexeme]
+
+	if name := p.immutableRoot(prop.Array); name != "" {
+		call.Frozen = true
+
+		if kind != 0 && kind&plain == 0 {
+			p.error(rootVar(prop.Array).Name, "Cannot mutate immutable variable '"+name+"'.")
+		}
+
+		return
 	}
 
-	return mut
+	if call.Writable {
+		return
+	}
+
+	if shape := p.staticShape(prop.Array); shape != nil {
+		if m := value.FindMethod(shape.Methods, prop.Token.Lexeme); m != nil && m.Mut {
+			p.error(prop.Token, mutatingCallError(m.Name, shape.Name))
+		}
+	} else if kind == mutSelf {
+		p.error(prop.Token, mutatingCallError(prop.Token.Lexeme, ""))
+	}
+}
+
+// staticShape is the struct type of a literal or a conversion, or nil.
+func (p *Resolver) staticShape(e ast.Expr) *value.Shape {
+	switch r := e.(type) {
+	case *ast.StructExpr:
+		return r.Shape
+	case *ast.CallExpr:
+		if t, ok := r.Callee.(*ast.VarExpr); ok {
+			return p.structs[t.Local]
+		}
+	}
+
+	return nil
 }

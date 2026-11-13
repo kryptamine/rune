@@ -1,0 +1,1 @@
+let { ...r } = 1; // expect runtime error: [line: 1] TypeError: Cannot destructure number as an object.

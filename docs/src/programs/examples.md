@@ -67,6 +67,20 @@ rune run examples/calc.rn        # demo
 rune run examples/calc.rn repl   # read lines from stdin
 ```
 
+### [`shop.rn`](https://github.com/kryptamine/rune/blob/master/examples/shop.rn) — REST client with auth
+
+A client for the [DummyJSON](https://dummyjson.com) API: logs in, sends a
+Bearer token, refreshes it on a 401 and retries. `http.request` with JSON
+bodies, a `Client` struct whose `mut self` methods keep the tokens, a typed
+`ApiError`, JWT claims decoded with `bytes.fromBase64`, a URL encoder over
+`bytes`, tables with `format`.
+
+```sh
+rune run examples/shop.rn                 # demo user, search "phone"
+rune run examples/shop.rn "apple watch"
+SHOP_USER=michaelw SHOP_PASS=michaelwpass rune run examples/shop.rn
+```
+
 ### [`fetch.rn`](https://github.com/kryptamine/rune/blob/master/examples/fetch.rn) — HTTP and JSON
 
 Fetches a URL, parses the JSON and handles network errors with `try`.

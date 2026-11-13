@@ -114,8 +114,10 @@ print(cart.items);     // ["tea", "milk"]
 ```
 
 The receiver must be a mutable variable, or an element, property or
-field of a value one holds; through an immutable variable the call is a
-compile error.
+field of a value one holds; through an immutable variable, or on a
+struct literal or conversion, the call is a compile error. On another
+value it is a runtime error, or a compile error when no method of that
+name but a mutating one exists.
 
 ```rune
 struct Account { owner, balance = 0 }
@@ -136,6 +138,15 @@ impl Account {
 
 let acc = Account { owner: "ann" };
 acc.deposit(10); // Error at 'acc': Cannot mutate immutable variable 'acc'.
+```
+
+```rune
+struct Account { owner, balance = 0 }
+impl Account {
+  fun deposit(mut self, amount) { self.balance += amount; }
+}
+
+Account { owner: "ann" }.deposit(10); // Error at 'deposit': Cannot call mutating method 'deposit' of Account: the receiver is not a mutable variable, element or property.
 ```
 
 ## Methods as values

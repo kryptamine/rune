@@ -56,6 +56,20 @@ for path, { hits } in pages {
 // /about: 3
 ```
 
+`...name` takes the other properties, or fields, as a new object and must
+come last:
+
+```rune
+struct User { name, role = "member", age = 31 }
+
+let { id, ...data } = { id: 7, title: "Hello", draft: true };
+print(id);   // 7
+print(data); // {title: "Hello", draft: true}
+
+let { name, ...rest } = User { name: "ann" };
+print(rest); // {role: "member", age: 31}
+```
+
 A missing property or field is a runtime error, as with `obj.name`:
 
 ```rune
@@ -129,7 +143,7 @@ print(page({ title: "Docs", root: "/docs" })); // Docs at /docs
 ```
 
 In an array pattern every element after one with a default needs one too;
-`_` and `...rest` take none.
+`_` and `...rest`, in either pattern, take none.
 
 ```rune
 let [a = 1, b] = [1, 2]; // Error at 'b': An element without a default cannot follow one with a default.

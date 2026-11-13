@@ -60,9 +60,12 @@ type DestructureField struct {
 	PatternVar
 }
 
-// DestructureStmt is let { a, mut b = 1, c: d } = value;
+// DestructureStmt is let { a, mut b = 1, c: d, ...rest } = value; Rest,
+// if any, binds an object of the other properties or fields.
 type DestructureStmt struct {
+	Brace       Token
 	Fields      []DestructureField
+	Rest        *PatternVar
 	Initializer Expr
 }
 
@@ -95,6 +98,10 @@ func PatternVars(stmt Stmt) []*PatternVar {
 	case *DestructureStmt:
 		for i := range s.Fields {
 			vs = append(vs, &s.Fields[i].PatternVar)
+		}
+
+		if s.Rest != nil {
+			vs = append(vs, s.Rest)
 		}
 	case *ArrayDestructureStmt:
 		for _, e := range s.Elems {

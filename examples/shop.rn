@@ -1,0 +1,163 @@
+// REST client for DummyJSON: login, Bearer auth, token refresh, JSON in and out
+//
+//   ./rune run examples/shop.rn               log in as the demo user, search "phone"
+//   ./rune run examples/shop.rn laptop        search something else
+//   SHOP_USER=michaelw SHOP_PASS=michaelwpass ./rune run examples/shop.rn
+
+const BASE = "https://dummyjson.com";
+
+struct ApiError { message, status, path }
+
+struct Client { base = BASE, token = nil, refreshToken = nil, refreshes = 0 }
+
+impl Client {
+    fun login(mut self, username, password) {
+        let r = self.send("POST", "/auth/login", { username, password, expiresInMins: 30 });
+        self.token = r.accessToken;
+        self.refreshToken = r.refreshToken;
+        return r;
+    }
+
+    fun refresh(mut self) {
+        let r = self.send("POST", "/auth/refresh", { refreshToken: self.refreshToken });
+        self.token = r.accessToken;
+        self.refreshToken = r.refreshToken;
+        self.refreshes++;
+    }
+
+    fun get(mut self, path) { return self.authed("GET", path); }
+    fun post(mut self, path, body) { return self.authed("POST", path, body); }
+
+    // 401 means the access token expired: refresh once and retry.
+    fun authed(mut self, method, path, body = nil) {
+        try {
+            return self.send(method, "/auth" + path, body);
+        } catch e is ApiError {
+            if e.status != 401 || self.refreshToken == nil throw e;
+            self.refresh();
+            return self.send(method, "/auth" + path, body);
+        }
+    }
+
+    fun send(self, method, path, body = nil) {
+        let mut headers = { Accept: "application/json" };
+        if self.token != nil headers.Authorization = "Bearer " + self.token;
+        if body != nil headers["Content-Type"] = "application/json";
+
+        let r = http.request(method, self.base + path, {
+            headers,
+            body: body == nil ? nil : json.stringify(body),
+            timeout: 10,
+        });
+
+        let data = r.body == "" ? nil : json.parse(r.body);
+        if r.status >= 400 {
+            throw ApiError { message: data?.message ?? "HTTP {r.status}", status: r.status, path };
+        }
+        return data;
+    }
+}
+
+// A JWT is header.payload.signature, each base64url without padding.
+fun jwtClaims(token) {
+    let [_, payload, ..._] = token.split(".");
+    let b64 = payload.replace("-", "+").replace("_", "/");
+    return json.parse(bytes.fromBase64(b64 + "=".repeat((4 - b64.len() % 4) % 4)).text());
+}
+
+fun urlEncode(s) {
+    let mut out = "";
+    for _, b in bytes(s) {
+        let c = string.fromCharCode(b);
+        out += regex.test(r"^[A-Za-z0-9\-_.~]$", c) ? c : "%%%02X".format(b);
+    }
+    return out;
+}
+
+fun money(n) { return "$" + n.fixed(2); }
+
+fun section(title) {
+    print("");
+    print("── {title} " + "─".repeat(math.max(0, 50 - title.len())));
+}
+
+fun showCarts(carts) {
+    if carts.len() == 0 {
+        print("no carts");
+        return;
+    }
+    for cart in carts {
+        print("cart #{cart.id}: {cart.totalQuantity} items, {money(cart.total)} → {money(cart.discountedTotal)}");
+        let mut top = cart.products.slice(0);
+        top.sort((a, b) => b.discountedTotal - a.discountedTotal);
+        for { title, quantity, price, discountPercentage } in top.slice(0, 3) {
+            print("  %-28s %2d × %9s  -%4.1f%%".format(title.slice(0, 28), quantity, money(price), discountPercentage));
+        }
+    }
+}
+
+fun showProducts(query, { products, total }) {
+    print("\"{query}\": {total} found, showing {products.len()}");
+    let mut byRating = products.slice(0);
+    byRating.sort((a, b) => b.rating - a.rating);
+    for { id, title, price, rating, stock } in byRating {
+        let stars = "★".repeat(math.round(rating)) + "☆".repeat(5 - math.round(rating));
+        let low = stock < 10 ? "  low stock: {stock}" : "";
+        print("  #%-4d %-32s %9s  %s{low}".format(id, title.slice(0, 32), money(price), stars));
+    }
+}
+
+fun main([query = "phone"]) {
+    let username = os.env("SHOP_USER") ?? "emilys";
+    let password = os.env("SHOP_PASS") ?? "emilyspass";
+    let mut api = Client {};
+
+    section("login");
+    try {
+        let me = api.login(username, password);
+        let claims = jwtClaims(api.token);
+        let ttl = math.round((claims.exp - time.now()) / 60);
+        print("{me.firstName} {me.lastName} <{me.email}>, user #{me.id}");
+        print("token expires in {ttl} min, at " + time.format(claims.exp, "%H:%M:%S", "UTC") + " UTC");
+    } catch e is ApiError {
+        io.eprint("login failed: {e.message} ({e.status})");
+        return 1;
+    } catch e is IOError {
+        io.eprint("network: {e.message}");
+        return 1;
+    }
+
+    section("profile");
+    let { company, address, ...profile } = api.get("/me");
+    print("{profile.username}, {profile.age}, {profile.role}");
+    print("{company.title} at {company.name}, {address.city}, {address.country}");
+
+    section("carts");
+    showCarts(api.get("/carts/user/{profile.id}").carts);
+
+    section("search");
+    showProducts(query, api.get("/products/search?q={urlEncode(query)}&limit=6&select=title,price,rating,stock"));
+
+    section("create");
+    let created = api.post("/products/add", { title: "Rune Sticker Pack", price: 4.99, category: "stickers" });
+    print("created #{created.id}: " + json.stringify(created));
+
+    section("expired token");
+    api.token = "expired";
+    let again = api.get("/me");
+    print("got {again.username} after {api.refreshes} refresh");
+
+    section("errors");
+    try {
+        api.get("/products/999999");
+    } catch e is ApiError {
+        print("{e.status} on {e.path}: {e.message}");
+    }
+
+    let mut anon = Client {};
+    try {
+        anon.get("/me");
+    } catch e is ApiError {
+        print("{e.status} without a token: {e.message}");
+    }
+}

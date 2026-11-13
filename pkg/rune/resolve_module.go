@@ -57,7 +57,7 @@ func (m *moduleScope) builtinValue(name string) (value.Value, bool) {
 // imports, and returns all errors found.
 func (p *Resolver) ResolveModules(files []*fileAST) []error {
 	p.modules = make([]*moduleScope, len(files))
-	p.mutators = mutators(files)
+	p.methodKinds = methodKinds(files)
 
 	for _, f := range files {
 		p.mod = newModuleScope(newFileNamespace(p.root, f.path))

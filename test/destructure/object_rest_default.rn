@@ -1,0 +1,1 @@
+let { ...r = {} } = {}; // Error at '=': A rest element or _ cannot have a default.

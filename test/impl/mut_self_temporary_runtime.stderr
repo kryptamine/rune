@@ -1,0 +1,3 @@
+[line: 10] TypeError: Cannot call mutating method 'get' of Counter: the receiver is not a mutable variable, element or property.
+   10 | make().get(); // expect runtime error: [line: 10] TypeError: Cannot call mutating method 'get' of Counter: the receiver is not a mutable variable, element or property.
+      |        ^

@@ -2,11 +2,13 @@ package rune
 
 import (
 	"fmt"
+	"iter"
 	"rune/pkg/ast"
 	"rune/pkg/errors"
 	"rune/pkg/helpers"
 	"rune/pkg/stdlib"
 	"rune/pkg/value"
+	"slices"
 )
 
 // slow runs in, the instruction before the top frame's pc, for the cases
@@ -273,6 +275,14 @@ func (p *Interpreter) slow(in Instr) error {
 			regs[in.a()+n] = value.NewArray(append([]value.Value(nil), arr[got:]...))
 		}
 
+	case opOmit:
+		v, err := omit(tok, regs[in.b()], f.keys[in.c()])
+		if err == nil {
+			regs[in.a()] = v
+		}
+
+		return err
+
 	case opThrow:
 		v := regs[in.a()]
 		if v.Kind() != value.Struct {
@@ -474,6 +484,30 @@ func spreadFields(tok *ast.Token, shape *value.Shape, fields []value.Value, src 
 	}
 
 	return nil
+}
+
+// omit is the rest of an object pattern: src, an object or a struct, as
+// an object without keys.
+func omit(tok *ast.Token, src value.Value, keys []string) (value.Value, error) {
+	var all iter.Seq2[string, value.Value]
+
+	switch src.Kind() {
+	case value.Object:
+		all = src.Obj().All()
+	case value.Struct:
+		all = src.FieldPairs()
+	default:
+		return value.Value{}, errors.NewRuntimeError(errors.TypeError, *tok, "Cannot destructure "+helpers.TypeName(src)+" as an object.")
+	}
+
+	obj := value.NewObj(0)
+	for k, v := range all {
+		if !slices.Contains(keys, k) {
+			obj.Set(k, v)
+		}
+	}
+
+	return value.NewObject(obj), nil
 }
 
 func spreadError(tok *ast.Token, v value.Value, into string) error {
