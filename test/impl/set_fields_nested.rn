@@ -16,5 +16,4 @@ impl Line {
 let mut l = Line { from: Point { x: 0, y: 0 }, to: Point { x: 1, y: 1 }, tags: { k: 0, list: [0] } };
 l.stretch(5);
 print(l); // expect: Line {from: Point {x: 0, y: 0}, to: Point {x: 6, y: 1}, tags: {k: 5, list: [5]}}
-l.to.shift(1);
-print(l.to); // expect: Point {x: 7, y: 1}
+l.to.shift(1); // expect runtime error: [line: 19] TypeError: Cannot set field 'to' of Line outside its mut self methods.

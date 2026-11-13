@@ -208,10 +208,8 @@ impl Position {
         }
 
         let epSquare = ep == "-" ? 0 : sq("abcdefgh".indexOf(ep[0]), int(ep[1]) - 1);
-        let mut pos = Position { board, side: side == "w" ? 1 : -1, castle: rights, ep: epSquare, half: int(half), kings };
-        pos.hash = pos.computeHash();
-        pos.score = pos.computeScore();
-        return pos;
+        let pos = Position { board, side: side == "w" ? 1 : -1, castle: rights, ep: epSquare, half: int(half), kings };
+        return Position { ...pos, hash: pos.computeHash(), score: pos.computeScore() };
     }
 
     fun fen(self) {
@@ -500,6 +498,10 @@ struct Search {
 }
 
 impl Search {
+    fun new(pos, seconds, maxDepth) {
+        return Search { pos, deadline: time.now() + seconds, maxDepth, killers: [0].repeat(256) };
+    }
+
     fun think(mut self, report = nil) {
         if self.tt.len() > TT_LIMIT self.tt.clear();
         let start = time.now();
@@ -657,7 +659,7 @@ fun printInfo({ depth, score, nodes, seconds, pv }) {
 }
 
 fun search(pos, seconds = 5, maxDepth = 64, report = printInfo) {
-    let mut s = Search { pos, deadline: time.now() + seconds, maxDepth, killers: [0].repeat(256) };
+    let mut s = Search.new(pos, seconds, maxDepth);
     return s.think(report);
 }
 

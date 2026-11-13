@@ -8,6 +8,7 @@ impl C {
   fun keep(mut self) { kept.push(self); self.n = -1; }
   fun fail(mut self) { self.n = 99; throw Err { message: "x" }; }
   fun noop(mut self) {}
+  fun retag(mut self, tag) { self.tag = tag; }
 }
 
 struct Err { message }
@@ -84,7 +85,7 @@ let mut t = C {};
 t.incr();
 let u = t;
 t.twice();
-t.tag = "t";
+t.retag("t");
 print("{t} {u}"); // expect: C {n: 3, tag: "t"} C {n: 1, tag: "c"}
 
 // Recursion passes copies down.
@@ -101,15 +102,17 @@ print(down(C {}, 3)); // expect: 2
 struct Box { c, label = "b" }
 
 impl Box {
-  fun bump(mut self) { self.c.incr(); self.c.n += 10; }
+  fun bump(mut self) { self.c.incr(); self.c.add(10); }
+  fun incr(mut self) { self.c.incr(); }
+  fun relabel(mut self, label) { self.label = label; }
 }
 
 fun boxed() {
     let mut b = Box { c: C {} };
     let inner = b.c;
     b.bump();
-    b.c.incr();
-    b.label = "x";
+    b.incr();
+    b.relabel("x");
     print("{b.c.n} {inner.n} {b.label}"); // expect: 12 0 x
 }
 
@@ -138,7 +141,7 @@ impl C {
 
 fun traced() {
     let mut c = C {};
-    c.n = 1;
+    c.incr();
     c.bad();
 }
 

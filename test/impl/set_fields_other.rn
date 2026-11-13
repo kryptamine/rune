@@ -9,4 +9,4 @@ impl Point {
 }
 
 let p = Point { x: 1, y: 1 };
-print(p.copyTo(Point { x: 0, y: 0 })); // expect: Point {x: 1, y: 0}
+p.copyTo(Point { x: 0, y: 0 }); // expect runtime error: [line: 6] TypeError: Cannot set field 'x' of Point outside its mut self methods.

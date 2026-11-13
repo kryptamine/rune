@@ -1,0 +1,5 @@
+[line: 4] KeyError: Point has no field 'z'.
+    4 |   fun set(mut self, k, v) { self[k] = v; }
+      |                                   ^
+  at Point.set (line 4)
+  at <script> (line 8)

@@ -1,16 +1,22 @@
 struct Point { x, y }
 
+impl Point {
+  fun moveTo(mut self, x) { self.x = x; }
+}
+
 let mut p = Point { x: 1, y: 2 };
 let before = p;
-p.x = 3;
+p.moveTo(3);
 print(p);      // expect: Point {x: 3, y: 2}
 print(before); // expect: Point {x: 1, y: 2}
 
-fun moveRight() { p.x += 10; }
+fun moveRight() { p.moveTo(p.x + 10); }
 moveRight();
 print(p.x); // expect: 13
 
 let mut q = Point { x: 0, y: 0 };
-let shift = () => { q.y = 5; };
+let shift = () => { q.moveTo(5); };
 shift();
-print(q); // expect: Point {x: 0, y: 5}
+print(q); // expect: Point {x: 5, y: 0}
+
+q.x = 1; // expect runtime error: [line: 22] TypeError: Cannot set field 'x' of Point outside its mut self methods.

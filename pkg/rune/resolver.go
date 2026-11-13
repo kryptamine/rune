@@ -739,7 +739,6 @@ func (p *Resolver) VisitSetIndexExpr(expr *ast.SetIndexExpr) (value.Value, error
 	p.resolveExpr(expr.Value)
 	p.requireMutableRoot(expr.Array)
 	p.useVar(expr.Array, true)
-	p.useSet(expr)
 
 	return value.NilValue, nil
 }

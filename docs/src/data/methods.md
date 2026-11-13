@@ -41,7 +41,9 @@ Money.zero().zero(); // TypeError: 'zero' is a static method of Money; call it a
 
 `mut self` makes a mutating method, which can set the fields of `self`
 (`self.x += 1`, `self["x"] = 1`), or `self` as a whole, as a mutable
-variable can. Without `mut`, `self` is immutable.
+variable can. Without `mut`, `self` is immutable. These methods are the
+only place a struct's fields are set; see
+[Setting fields](structs.md#setting-fields).
 
 ```rune
 struct Account { owner, balance = 0 }
@@ -115,7 +117,10 @@ print(cart.items);     // ["tea", "milk"]
 
 The receiver must be a mutable variable, or an element, property or
 field of a value one holds; through an immutable variable, or on a
-struct literal or conversion, the call is a compile error. On another
+struct literal or conversion, the call is a compile error. A struct in a
+field of another struct is such a receiver only in the outer struct's
+own `mut self` methods, as `self.pos.move(1)`; see
+[Setting fields](structs.md#setting-fields). On another
 value it is a runtime error, or a compile error when no method of that
 name but a mutating one exists.
 

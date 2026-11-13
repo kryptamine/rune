@@ -13,11 +13,11 @@ print(math[key](1.2)); // expect: 2
 
 // A copy of a namespace is a struct like any other.
 let mut mine = math;
-mine.PI = 3;
-print(mine.PI); // expect: 3
-print(math.PI > 3); // expect: true
+print(mine.PI > 3); // expect: true
 
 // string and bytes are conversions; their members are bound by name.
 print(type(string));                // expect: function
 print(string.fromCharCode(104));    // expect: h
 print(bytes.fromHex("ff"));         // expect: b"\xff"
+
+mine.PI = 3; // expect runtime error: [line: 23] TypeError: Cannot set member 'PI' of a namespace.

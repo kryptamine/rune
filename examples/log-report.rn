@@ -46,6 +46,8 @@ fun statusClass(code) {
 struct Stats { count = 0, errors = 0, bytes = 0, latencies = [] }
 
 impl Stats {
+    fun new() { return Stats {}; }
+
     fun add(mut self, { status, bytes, latency }) {
         self.count++;
         self.bytes += bytes;
@@ -76,11 +78,13 @@ struct Report {
 }
 
 impl Report {
+    fun new() { return Report {}; }
+
     fun add(mut self, e) {
         self.total++;
 
         let key = "{e.method} {e.path}";
-        let mut s = self.endpoints.get(key) ?? Stats {};
+        let mut s = self.endpoints.get(key) ?? Stats.new();
         s.add(e);
         self.endpoints.set(key, s);
 
@@ -110,7 +114,7 @@ impl Report {
 }
 
 fun analyze(path) {
-    let mut report = Report {};
+    let mut report = Report.new();
 
     for i, line in fs.open(path) {
         if line.trim() == "" continue;
@@ -213,6 +217,8 @@ fun toJson(r) {
 struct Rng { seed }
 
 impl Rng {
+    fun new(seed) { return Rng { seed }; }
+
     fun next(mut self) {
         self.seed = (self.seed * 1103515245 + 12345) & 0x7fffffff;
         return self.seed >> 8;
@@ -235,7 +241,7 @@ let ROUTES = [
 ];
 
 fun generate(path, n = 400) {
-    let mut rng = Rng { seed: 42 };
+    let mut rng = Rng.new(42);
     let out = fs.open(path, "w");
 
     for i in 0..n {

@@ -56,30 +56,42 @@ print(ann.email); // KeyError: User has no field 'email'.
 
 ## Setting fields
 
-Structs are values: `u.name = ...` through a mutable variable, or an
-element or property one holds, sets the field of a copy that replaces
-the struct there, so nothing else holding the old struct sees it change.
-Through an immutable variable it is a compile error, as for arrays and
-objects.
+Fields are read-only outside the struct's own
+[mutating methods](methods.md#mutating-methods): only `self.x = ...` (or
+`self["x"]`, `+=`, `++`, ...) in a `mut self` method sets one. Anywhere
+else setting a field of a struct, through a variable, an element or
+another struct's field, is a runtime error. To change a struct from
+outside, call one of its `mut self` methods or make an updated copy
+with [spread](#updating-with-spread).
 
 ```rune
 struct User { name, role = "member" }
+impl User {
+  fun promote(mut self, role) { self.role = role; }
+}
+
 let mut ann = User { name: "ann" };
-let before = ann;
-ann.role = "admin";
-print(ann);    // User {name: "ann", role: "admin"}
-print(before); // User {name: "ann", role: "member"}
+ann.promote("admin");
+print(ann); // User {name: "ann", role: "admin"}
 
 let mut team = [User { name: "bob" }];
-team[0].role = "lead";
+team[0].promote("lead");
 print(team[0].role); // lead
 ```
 
 ```rune
 struct User { name, role = "member" }
-let ann = User { name: "ann" };
-ann.role = "admin"; // Error at 'ann': Cannot mutate immutable variable 'ann'.
+let mut ann = User { name: "ann" };
+ann.role = "admin"; // TypeError: Cannot set field 'role' of User outside its mut self methods.
 ```
+
+A struct held in another struct's field is changed by the outer
+struct's methods, calling the inner one's: `self.pos.move(1)` in a
+method of the outer struct; `self.pos.x = 1` there, or `acc.pos.move(1)`
+outside it, is an error.
+
+The rule is shallow: an array, object, map or set in a field is not
+part of the struct, so `ann.tags.push("x")` changes it in place.
 
 ## Updating with spread
 

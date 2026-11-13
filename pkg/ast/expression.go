@@ -65,6 +65,9 @@ type Local struct {
 	// that tracks whether it holds a struct of its own, which it changes
 	// in place.
 	Owned bool
+	// MutSelf is set on the self of a mut self method, the only variable
+	// whose struct can have its fields set.
+	MutSelf bool
 	// Const is the value every read of a constant folds to, if IsConst.
 	Const   value.Value
 	IsConst bool

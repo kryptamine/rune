@@ -76,7 +76,7 @@ Language chapters in order.
 - `bytes`: immutable binary data, with literals `b"\x00\xff"`
 - Streams: files and HTTP bodies read line by line or in chunks, `for line in fs.open(path)`
 - Object property access with `obj.name` as sugar for `obj["name"]`; shorthand `{ ip, hits }` for `{ ip: ip, hits: hits }`
-- Structs with required and default fields, values that copy on write: `struct Point { x, y = 0 }`, `p.x = 1`
+- Structs with required and default fields, values whose fields only their `mut self` methods set: `struct Point { x, y = 0 }`, `Point { ...p, x: 1 }`
 - Methods in `impl` blocks, on structs and built-in types: `p.len()`, `Point.origin()`, `fun move(mut self)`; a function in a property is called as `(o.f)()`
 - Destructuring of objects, structs and arrays, in `let`, parameters and `for`, with defaults: `let { x, y = 0 } = p;`, `let [head, ...tail] = xs;`
 - Nil-safe access and defaults: `resp?.data?.items ?? []`

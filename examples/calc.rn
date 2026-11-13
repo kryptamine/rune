@@ -43,6 +43,8 @@ let RIGHT_ASSOC = set(["^", "**"]);
 struct Parser { tokens, i = 0 }
 
 impl Parser {
+    fun new(src) { return Parser { tokens: tokenize(src) }; }
+
     fun peek(self) { return self.tokens[self.i]; }
 
     fun next(mut self) {
@@ -126,7 +128,7 @@ impl Parser {
 }
 
 fun parse(src) {
-    let mut p = Parser { tokens: tokenize(src) };
+    let mut p = Parser.new(src);
     let ast = p.statement();
     let end = p.peek();
     if end.kind != Kind.Eof throw CalcError { message: "unexpected '{end.text}'", pos: end.pos };

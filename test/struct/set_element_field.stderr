@@ -1,0 +1,3 @@
+[line: 19] TypeError: Cannot set field 'from' of Line outside its mut self methods.
+   19 | l.from.moveBy(-4, 0); // expect runtime error: [line: 19] TypeError: Cannot set field 'from' of Line outside its mut self methods.
+      |   ^
