@@ -1,0 +1,21 @@
+fun area(r) { return PI2 * r + ZERO; }
+fun cmp(x) { return LIMIT > x; }
+
+let ZERO = 0;
+let LIMIT = ZERO + 3;
+let PI2 = 2 * 3;
+let NAMES = ["a", ["b"]];
+let mut count = LIMIT;
+
+print(area(2)); // expect: 12
+print(cmp(2)); // expect: true
+print(cmp(3)); // expect: false
+print(5 + count + 0.5); // expect: 8.5
+print(NAMES); // expect: ["a", ["b"]]
+
+fun late() { return LATE; }
+
+try { late(); } catch e { print(e.message); } // expect: Undefined variable 'LATE'.
+
+let LATE = 1;
+print(late() + LATE); // expect: 2

@@ -3,6 +3,7 @@ package rune
 import (
 	"rune/pkg/ast"
 	"rune/pkg/value"
+	"slices"
 )
 
 // varUses records how a mutable local, or a method's self, is read: each
@@ -16,6 +17,10 @@ type varUses struct {
 	reads  map[*ast.VarExpr]bool
 	props  map[*ast.VarExpr]string
 	calls  map[*ast.VarExpr]string
+	// deep names the methods called on a place below the variable, and
+	// sets is set when a field of it, or below it, is set.
+	deep []string
+	sets bool
 	// assigned is set when a self is assigned a whole new value.
 	assigned bool
 }
@@ -38,10 +43,10 @@ func (p *Resolver) usesOf(e ast.Expr) (*ast.VarExpr, *varUses) {
 	return v, p.locals[v.Local]
 }
 
-// trackLocal records the uses of a mutable local of a function.
-func (p *Resolver) trackLocal(stmt *ast.VarStmt) {
-	if stmt.Mutable && stmt.Local != nil && !stmt.Local.TopLevel {
-		p.locals[stmt.Local] = newVarUses(stmt.Local)
+// trackLocal records the uses of a mutable variable or parameter.
+func (p *Resolver) trackLocal(b ast.Binding, l *ast.Local) {
+	if b.Mutable && l != nil && !b.Discards() {
+		p.locals[l] = newVarUses(l)
 	}
 }
 
@@ -73,6 +78,25 @@ func (p *Resolver) useCall(prop *ast.IndexExpr) {
 		u.reads[v] = true
 		delete(u.props, v)
 		u.calls[v] = prop.Token.Lexeme
+	} else if u := p.rootUses(prop.Array); u != nil {
+		u.deep = append(u.deep, prop.Token.Lexeme)
+	}
+}
+
+// rootUses returns the record of the tracked variable e is a place of.
+func (p *Resolver) rootUses(e ast.Expr) *varUses {
+	if v := rootVar(e); v != nil {
+		_, u := p.usesOf(v)
+		return u
+	}
+
+	return nil
+}
+
+// useSet records the set of a field of a variable, or below it.
+func (p *Resolver) useSet(expr *ast.SetIndexExpr) {
+	if u := p.rootUses(expr.Array); u != nil && expr.Property {
+		u.sets = true
 	}
 }
 
@@ -90,6 +114,11 @@ func (p *Resolver) resolveMethods(stmt *ast.ImplStmt) {
 	for _, m := range stmt.Methods {
 		if shape == nil || shape.Enum || !m.Method.Self {
 			p.resolveFn(m.Fn)
+
+			if m.Method.Self {
+				delete(p.locals, m.Fn.Parameters[0].Local)
+			}
+
 			continue
 		}
 
@@ -100,15 +129,18 @@ func (p *Resolver) resolveMethods(stmt *ast.ImplStmt) {
 		p.self = nil
 
 		u.local = m.Fn.Parameters[0].Local
+		delete(p.locals, u.local)
 		p.selves = append(p.selves, u)
 	}
 }
 
 // ownVars marks the variables that may change a struct in place once
-// they hold a copy of their own: the mutable locals and mut selves that
-// never let it go. Such a variable is only read for its fields, has its
-// fields set, or has methods called on it that keep self too; it is
-// never captured, nor, for a self, assigned.
+// they hold a copy of their own. A mut self must never let it go: it is
+// only read for its fields, has its fields set, or has methods called on
+// it that keep self too; it is never captured or assigned. Another
+// mutable variable, if not captured or exported, gives its copy up on
+// each read that lets the value go, which ownVars marks; it is owned
+// only if that saves a copy, of a field set or a mutating call.
 func (p *Resolver) ownVars() {
 	byName := map[*value.Shape]map[string]*varUses{}
 	escapes := map[*varUses]bool{}
@@ -139,19 +171,43 @@ func (p *Resolver) ownVars() {
 		}
 	}
 
-	// A local's type is unknown: a name it calls must name no method that
-	// lets self go, and one it reads no method at all, which would bind it.
-	methods, leaking := map[string]bool{}, map[string]bool{}
+	// A variable's type is unknown: a name it calls lets it go if any
+	// method of that name lets self go, and one it reads if it names a
+	// method at all, which would bind it.
+	methods, leaking, mutating := map[string]bool{}, map[string]bool{}, map[string]bool{}
 
 	for _, u := range p.selves {
-		name := u.method.Name.Lexeme
+		name, mut := u.method.Name.Lexeme, u.method.Parameters[0].Mutable
 		methods[name] = true
 		leaking[name] = leaking[name] || escapes[u]
-		u.local.Owned = u.method.Parameters[0].Mutable && !escapes[u]
+		mutating[name] = mutating[name] || mut
+		u.local.Owned = mut && !escapes[u]
+	}
+
+	for _, u := range p.selves {
+		for v, name := range u.calls {
+			v.Lends = u.local.Owned && mutating[name]
+		}
+	}
+
+	exported := map[*ast.Local]bool{}
+	for _, m := range p.modules {
+		for _, l := range m.exports {
+			exported[l] = true
+		}
 	}
 
 	for _, u := range p.locals {
-		u.local.Owned = !leaks(u, func(name string) bool { return methods[name] }) && !callsAny(u, leaking)
+		if u.local.Captured || exported[u.local] || !u.sets && !callsAny(u, mutating) {
+			continue
+		}
+
+		u.local.Owned = true
+
+		for v, safe := range u.reads {
+			v.Leaks = !safe || methods[u.props[v]] || leaking[u.calls[v]]
+			v.Lends = mutating[u.calls[v]]
+		}
 	}
 
 	p.selves, p.locals = nil, map[*ast.Local]*varUses{}
@@ -173,6 +229,8 @@ func leaks(u *varUses, bound func(name string) bool) bool {
 	return false
 }
 
+// callsAny reports whether a method named in names is called on u's
+// variable, or on a place below it.
 func callsAny(u *varUses, names map[string]bool) bool {
 	for _, name := range u.calls {
 		if names[name] {
@@ -180,5 +238,5 @@ func callsAny(u *varUses, names map[string]bool) bool {
 		}
 	}
 
-	return false
+	return slices.ContainsFunc(u.deep, func(name string) bool { return names[name] })
 }

@@ -6,6 +6,7 @@ import (
 	"rune/pkg/errors"
 	"rune/pkg/stdlib"
 	"rune/pkg/value"
+	"unsafe"
 )
 
 var closureID = value.TypeIDOf((*Closure)(nil))
@@ -19,12 +20,15 @@ const haltCheckInterval = 1024
 // dispatch loop would pay for on every instruction. So fast paths make no
 // calls, and a path that does saves pc in the frame first and then only
 // jumps to reload or fail, which rebuild the loop state from the frame.
+//
+// Registers, constants and code are read through pointers, unchecked: the
+// compiler keeps every operand within its frame.
 func (p *Interpreter) run(stop int) (value.Value, error) {
 	var (
 		fr     *frame
-		code   []Instr
-		consts []value.Value
-		regs   []value.Value
+		code   unsafe.Pointer
+		consts unsafe.Pointer
+		regs   unsafe.Pointer
 		pc     int
 		err    error
 		ticks  = haltCheckInterval
@@ -32,9 +36,9 @@ func (p *Interpreter) run(stop int) (value.Value, error) {
 
 reload:
 	fr = &p.frames[len(p.frames)-1]
-	code = fr.cl.proto.code
-	consts = fr.cl.proto.consts
-	regs = p.stack[fr.base : fr.base+fr.cl.proto.nregs]
+	code = unsafe.Pointer(unsafe.SliceData(fr.cl.proto.code))
+	consts = unsafe.Pointer(unsafe.SliceData(fr.cl.proto.consts))
+	regs = unsafe.Pointer(at(unsafe.Pointer(unsafe.SliceData(p.stack)), fr.base))
 	pc = fr.pc
 
 	// Counting ticks here as well measured ~10% slower on loops.
@@ -43,29 +47,29 @@ reload:
 	}
 
 	for {
-		in := code[pc]
+		in := *(*Instr)(unsafe.Add(code, pc<<3))
 		pc++
 
 		switch in.op() {
 		case opMove:
-			regs[in.a()] = regs[in.b()]
+			*at(regs, in.a()) = *at(regs, in.b())
 
 		case opLoadK:
-			regs[in.a()] = consts[in.c()]
+			*at(regs, in.a()) = *at(consts, in.c())
 
 		case opLoadFresh:
-			regs[in.a()] = value.Fresh(consts[in.c()])
+			*at(regs, in.a()) = value.Fresh(*at(consts, in.c()))
 
 		case opGetCell:
-			v := (*Cell)(regs[in.b()].Ptr()).v
+			v := (*Cell)(at(regs, in.b()).Ptr()).v
 			if v.IsUndefined() {
 				goto undefined
 			}
 
-			regs[in.a()] = v
+			*at(regs, in.a()) = v
 
 		case opSetCell:
-			(*Cell)(regs[in.a()].Ptr()).v = regs[in.b()]
+			(*Cell)(at(regs, in.a()).Ptr()).v = *at(regs, in.b())
 
 		case opGetUpval:
 			v := fr.cl.cells[in.b()].v
@@ -73,23 +77,23 @@ reload:
 				goto undefined
 			}
 
-			regs[in.a()] = v
+			*at(regs, in.a()) = v
 
 		case opSetUpval:
-			fr.cl.cells[in.b()].v = regs[in.a()]
+			fr.cl.cells[in.b()].v = *at(regs, in.a())
 
 		case opCheckDefined:
-			if regs[in.a()].IsUndefined() {
+			if at(regs, in.a()).IsUndefined() {
 				goto undefined
 			}
 
 		case opSetCellChecked:
-			c := (*Cell)(regs[in.a()].Ptr())
+			c := (*Cell)(at(regs, in.a()).Ptr())
 			if c.v.IsUndefined() {
 				goto undefined
 			}
 
-			c.v = regs[in.b()]
+			c.v = *at(regs, in.b())
 
 		case opSetUpvalChecked:
 			c := fr.cl.cells[in.b()]
@@ -97,67 +101,67 @@ reload:
 				goto undefined
 			}
 
-			c.v = regs[in.a()]
+			c.v = *at(regs, in.a())
 
 		case opUndefined:
 			goto undefined
 
 		case opAdd:
-			if l, r := regs[in.b()], regs[in.c()]; l.IsInt() && r.IsInt() {
+			if l, r := *at(regs, in.b()), *at(regs, in.c()); l.IsInt() && r.IsInt() {
 				if n, ok := value.AddInt(l.Int(), r.Int()); ok {
-					regs[in.a()] = value.NewInt(n)
+					*at(regs, in.a()) = value.NewInt(n)
 					continue
 				}
 			} else if l.IsFloat() && r.IsFloat() {
-				regs[in.a()] = value.NewNumber(l.Float() + r.Float())
+				*at(regs, in.a()) = value.NewNumber(l.Float() + r.Float())
 				continue
 			}
 
 			goto slow
 
 		case opSub:
-			if l, r := regs[in.b()], regs[in.c()]; l.IsInt() && r.IsInt() {
+			if l, r := *at(regs, in.b()), *at(regs, in.c()); l.IsInt() && r.IsInt() {
 				if n, ok := value.SubInt(l.Int(), r.Int()); ok {
-					regs[in.a()] = value.NewInt(n)
+					*at(regs, in.a()) = value.NewInt(n)
 					continue
 				}
 			} else if l.IsFloat() && r.IsFloat() {
-				regs[in.a()] = value.NewNumber(l.Float() - r.Float())
+				*at(regs, in.a()) = value.NewNumber(l.Float() - r.Float())
 				continue
 			}
 
 			goto slow
 
 		case opMul:
-			if l, r := regs[in.b()], regs[in.c()]; l.IsInt() && r.IsInt() {
+			if l, r := *at(regs, in.b()), *at(regs, in.c()); l.IsInt() && r.IsInt() {
 				if n, ok := value.MulInt(l.Int(), r.Int()); ok {
-					regs[in.a()] = value.NewInt(n)
+					*at(regs, in.a()) = value.NewInt(n)
 					continue
 				}
 			} else if l.IsFloat() && r.IsFloat() {
-				regs[in.a()] = value.NewNumber(l.Float() * r.Float())
+				*at(regs, in.a()) = value.NewNumber(l.Float() * r.Float())
 				continue
 			}
 
 			goto slow
 
 		case opDiv:
-			if l, r := regs[in.b()], regs[in.c()]; l.IsNumber() && r.IsNumber() {
-				regs[in.a()] = value.NewNumber(l.Num() / r.Num())
+			if l, r := *at(regs, in.b()), *at(regs, in.c()); l.IsNumber() && r.IsNumber() {
+				*at(regs, in.a()) = value.NewNumber(l.Num() / r.Num())
 				continue
 			}
 
 			goto slow
 
 		case opMod:
-			if l, r := regs[in.b()], regs[in.c()]; l.IsInt() && r.IsInt() {
+			if l, r := *at(regs, in.b()), *at(regs, in.c()); l.IsInt() && r.IsInt() {
 				if d := r.Int(); d != 0 {
-					regs[in.a()] = value.NewInt(l.Int() % d)
+					*at(regs, in.a()) = value.NewInt(l.Int() % d)
 					continue
 				}
 			} else if l.IsFloat() && r.IsFloat() {
 				if m, ok := value.ExactMod(l.Float(), r.Float()); ok {
-					regs[in.a()] = value.NewNumber(m)
+					*at(regs, in.a()) = value.NewNumber(m)
 					continue
 				}
 			}
@@ -165,17 +169,17 @@ reload:
 			goto slow
 
 		case opAddK:
-			if l, k := regs[in.b()], consts[in.c()]; l.IsInt() && k.IsInt() {
+			if l, k := *at(regs, in.b()), *at(consts, in.c()); l.IsInt() && k.IsInt() {
 				if n, ok := value.AddInt(l.Int(), k.Int()); ok {
-					regs[in.a()] = value.NewInt(n)
+					*at(regs, in.a()) = value.NewInt(n)
 					continue
 				}
 			} else if l.IsFloat() && k.IsFloat() {
-				regs[in.a()] = value.NewNumber(l.Float() + k.Float())
+				*at(regs, in.a()) = value.NewNumber(l.Float() + k.Float())
 				continue
 			} else if l.IsString() && k.IsString() {
 				fr.pc = pc
-				dst := &regs[in.a()]
+				dst := at(regs, in.a())
 				*dst = value.Concat(l, k)
 
 				goto reload
@@ -184,48 +188,48 @@ reload:
 			goto slow
 
 		case opSubK:
-			if l, k := regs[in.b()], consts[in.c()]; l.IsInt() && k.IsInt() {
+			if l, k := *at(regs, in.b()), *at(consts, in.c()); l.IsInt() && k.IsInt() {
 				if n, ok := value.SubInt(l.Int(), k.Int()); ok {
-					regs[in.a()] = value.NewInt(n)
+					*at(regs, in.a()) = value.NewInt(n)
 					continue
 				}
 			} else if l.IsFloat() && k.IsFloat() {
-				regs[in.a()] = value.NewNumber(l.Float() - k.Float())
+				*at(regs, in.a()) = value.NewNumber(l.Float() - k.Float())
 				continue
 			}
 
 			goto slow
 
 		case opMulK:
-			if l, k := regs[in.b()], consts[in.c()]; l.IsInt() && k.IsInt() {
+			if l, k := *at(regs, in.b()), *at(consts, in.c()); l.IsInt() && k.IsInt() {
 				if n, ok := value.MulInt(l.Int(), k.Int()); ok {
-					regs[in.a()] = value.NewInt(n)
+					*at(regs, in.a()) = value.NewInt(n)
 					continue
 				}
 			} else if l.IsFloat() && k.IsFloat() {
-				regs[in.a()] = value.NewNumber(l.Float() * k.Float())
+				*at(regs, in.a()) = value.NewNumber(l.Float() * k.Float())
 				continue
 			}
 
 			goto slow
 
 		case opDivK:
-			if l, k := regs[in.b()], consts[in.c()]; l.IsNumber() && k.IsNumber() {
-				regs[in.a()] = value.NewNumber(l.Num() / k.Num())
+			if l, k := *at(regs, in.b()), *at(consts, in.c()); l.IsNumber() && k.IsNumber() {
+				*at(regs, in.a()) = value.NewNumber(l.Num() / k.Num())
 				continue
 			}
 
 			goto slow
 
 		case opModK:
-			if l, k := regs[in.b()], consts[in.c()]; l.IsInt() && k.IsInt() {
+			if l, k := *at(regs, in.b()), *at(consts, in.c()); l.IsInt() && k.IsInt() {
 				if d := k.Int(); d != 0 {
-					regs[in.a()] = value.NewInt(l.Int() % d)
+					*at(regs, in.a()) = value.NewInt(l.Int() % d)
 					continue
 				}
 			} else if l.IsFloat() && k.IsFloat() {
 				if m, ok := value.ExactMod(l.Float(), k.Float()); ok {
-					regs[in.a()] = value.NewNumber(m)
+					*at(regs, in.a()) = value.NewNumber(m)
 					continue
 				}
 			}
@@ -233,31 +237,31 @@ reload:
 			goto slow
 
 		case opCmp:
-			if l, r := regs[in.b()], regs[in.c()]; l.IsInt() && r.IsInt() {
-				regs[in.a()] = value.NewBool(compareNumbers(in.x(), l.Int(), r.Int()))
+			if l, r := *at(regs, in.b()), *at(regs, in.c()); l.IsInt() && r.IsInt() {
+				*at(regs, in.a()) = value.NewBool(compareNumbers(in.x(), l.Int(), r.Int()))
 				continue
 			} else if l.IsFloat() && r.IsFloat() {
-				regs[in.a()] = value.NewBool(compareNumbers(in.x(), l.Float(), r.Float()))
+				*at(regs, in.a()) = value.NewBool(compareNumbers(in.x(), l.Float(), r.Float()))
 				continue
 			}
 
 			goto slow
 
 		case opCmpK:
-			if l, k := regs[in.b()], consts[in.c()]; l.IsInt() && k.IsInt() {
-				regs[in.a()] = value.NewBool(compareNumbers(in.x(), l.Int(), k.Int()))
+			if l, k := *at(regs, in.b()), *at(consts, in.c()); l.IsInt() && k.IsInt() {
+				*at(regs, in.a()) = value.NewBool(compareNumbers(in.x(), l.Int(), k.Int()))
 				continue
 			} else if l.IsFloat() && k.IsFloat() {
-				regs[in.a()] = value.NewBool(compareNumbers(in.x(), l.Float(), k.Float()))
+				*at(regs, in.a()) = value.NewBool(compareNumbers(in.x(), l.Float(), k.Float()))
 				continue
 			}
 
 			goto slow
 
 		case opBitwise:
-			if l, r := regs[in.b()], regs[in.c()]; l.IsInt() && r.IsInt() {
+			if l, r := *at(regs, in.b()), *at(regs, in.c()); l.IsInt() && r.IsInt() {
 				if v, ok := value.Bitwise(value.Bit(in.x()), l.Int(), r.Int()); ok {
-					regs[in.a()] = v
+					*at(regs, in.a()) = v
 					continue
 				}
 			}
@@ -265,43 +269,43 @@ reload:
 			goto slow
 
 		case opBitNot:
-			if v := regs[in.b()]; v.IsInt() {
-				regs[in.a()] = value.NewInt(^v.Int())
+			if v := *at(regs, in.b()); v.IsInt() {
+				*at(regs, in.a()) = value.NewInt(^v.Int())
 				continue
 			}
 
 			goto slow
 
 		case opIs:
-			t := regs[in.c()]
+			t := *at(regs, in.c())
 			if t.Kind() != value.Type {
 				goto slow
 			}
 
-			regs[in.a()] = value.NewBool(t.TypeShape().Has(regs[in.b()]))
+			*at(regs, in.a()) = value.NewBool(t.TypeShape().Has(*at(regs, in.b())))
 
 		case opNeg:
-			if v := regs[in.b()]; v.IsFloat() {
-				regs[in.a()] = value.NewNumber(-v.Float())
+			if v := *at(regs, in.b()); v.IsFloat() {
+				*at(regs, in.a()) = value.NewNumber(-v.Float())
 				continue
 			} else if v.IsInt() && v.Int() != math.MinInt64 {
-				regs[in.a()] = value.NewInt(-v.Int())
+				*at(regs, in.a()) = value.NewInt(-v.Int())
 				continue
 			}
 
 			goto slow
 
 		case opNot:
-			regs[in.a()] = value.NewBool(!regs[in.b()].Truthy())
+			*at(regs, in.a()) = value.NewBool(!at(regs, in.b()).Truthy())
 
 		case opIncr:
-			if v := regs[in.b()]; v.IsInt() {
+			if v := *at(regs, in.b()); v.IsInt() {
 				if n, ok := value.AddInt(v.Int(), 1-2*int64(in.x())); ok {
-					regs[in.a()] = value.NewInt(n)
+					*at(regs, in.a()) = value.NewInt(n)
 					continue
 				}
 			} else if v.IsFloat() {
-				regs[in.a()] = value.NewNumber(v.Float() + float64(1-2*int(in.x())))
+				*at(regs, in.a()) = value.NewNumber(v.Float() + float64(1-2*int(in.x())))
 				continue
 			}
 
@@ -314,7 +318,7 @@ reload:
 			}
 
 		case opJmpIf:
-			if regs[in.a()].Truthy() == in.y() {
+			if at(regs, in.a()).Truthy() == in.y() {
 				pc = in.c()
 				if ticks--; ticks == 0 {
 					goto tick
@@ -322,7 +326,7 @@ reload:
 			}
 
 		case opJmpCmp:
-			l, r := regs[in.a()], regs[in.b()]
+			l, r := *at(regs, in.a()), *at(regs, in.b())
 
 			var b bool
 			if l.IsInt() && r.IsInt() {
@@ -341,7 +345,7 @@ reload:
 			}
 
 		case opJmpCmpK:
-			l, k := regs[in.a()], consts[in.b()]
+			l, k := *at(regs, in.a()), *at(consts, in.b())
 
 			var b bool
 			if l.IsInt() && k.IsInt() {
@@ -367,32 +371,32 @@ reload:
 			}
 
 		case opJmpNotType:
-			if !consts[in.b()].TypeShape().Has(regs[in.a()]) {
+			if !at(consts, in.b()).TypeShape().Has(*at(regs, in.a())) {
 				pc = in.c()
 			}
 
 		case opJmpNil:
-			if regs[in.a()].IsNil() == in.y() {
+			if at(regs, in.a()).IsNil() == in.y() {
 				pc = in.c()
 			}
 
 		case opJmpDefined:
-			if !regs[in.a()].IsUndefined() {
+			if !at(regs, in.a()).IsUndefined() {
 				pc = in.c()
 			}
 
 		case opTestProp:
-			t := regs[in.b()]
+			t := *at(regs, in.b())
 			if k := t.Kind(); k == value.Struct {
-				if v, ok := t.InternedField(consts[in.c()]); ok {
-					regs[in.a()] = v
+				if v, ok := t.InternedField(*at(consts, in.c())); ok {
+					*at(regs, in.a()) = v
 					pc++
 				}
 			} else if k == value.Object {
 				fr.pc = pc
-				dst := &regs[in.a()]
+				dst := at(regs, in.a())
 
-				if v, ok := t.Obj().Get(consts[in.c()].Str()); ok {
+				if v, ok := t.Obj().Get(at(consts, in.c()).Str()); ok {
 					*dst = v
 					fr.pc++
 				}
@@ -401,9 +405,9 @@ reload:
 			}
 
 		case opGetIndex:
-			if t, i := regs[in.b()], regs[in.c()]; t.Kind() == value.Array && i.IsInt() {
+			if t, i := *at(regs, in.b()), *at(regs, in.c()); t.Kind() == value.Array && i.IsInt() {
 				if arr, idx := t.Arr(), i.Int(); uint64(idx) < uint64(len(arr)) {
-					regs[in.a()] = arr[idx]
+					*at(regs, in.a()) = arr[idx]
 					continue
 				}
 			}
@@ -411,17 +415,17 @@ reload:
 			goto slow
 
 		case opGetProp:
-			t := regs[in.b()]
+			t := *at(regs, in.b())
 			if k := t.Kind(); k == value.Struct {
-				if v, ok := t.InternedField(consts[in.c()]); ok {
-					regs[in.a()] = v
+				if v, ok := t.InternedField(*at(consts, in.c())); ok {
+					*at(regs, in.a()) = v
 					continue
 				}
 			} else if k == value.Object {
 				fr.pc = pc
-				dst := &regs[in.a()]
+				dst := at(regs, in.a())
 
-				if v, ok := t.Obj().Get(consts[in.c()].Str()); ok {
+				if v, ok := t.Obj().Get(at(consts, in.c()).Str()); ok {
 					*dst = v
 					goto reload
 				}
@@ -430,20 +434,20 @@ reload:
 			goto slow
 
 		case opSetProp:
-			t := regs[in.a()]
+			t := *at(regs, in.a())
 			if k := t.Kind(); k == value.Object {
 				fr.pc = pc
-				t.Obj().Set(consts[in.b()].Str(), regs[in.c()])
+				t.Obj().Set(at(consts, in.b()).Str(), *at(regs, in.c()))
 
 				goto reload
 			} else if k != value.Struct || !in.y() {
 				goto slow
 			}
 
-			if slot := t.InternedSlot(consts[in.b()]); slot >= 0 {
+			if slot := t.InternedSlot(*at(consts, in.b())); slot >= 0 {
 				fr.pc = pc + int(in.x())
-				dst := &regs[in.a()]
-				*dst = t.With(slot, regs[in.c()])
+				dst := at(regs, in.a())
+				*dst = t.With(slot, *at(regs, in.c()))
 
 				goto reload
 			}
@@ -451,35 +455,35 @@ reload:
 			goto slow
 
 		case opSetOwned:
-			t := regs[in.a()]
+			t := *at(regs, in.a())
 			if k := t.Kind(); k == value.Object {
 				fr.pc = pc
-				t.Obj().Set(consts[in.b()].Str(), regs[in.c()])
+				t.Obj().Set(at(consts, in.b()).Str(), *at(regs, in.c()))
 
 				goto reload
 			} else if k != value.Struct {
 				goto slow
 			}
 
-			slot := t.InternedSlot(consts[in.b()])
+			slot := t.InternedSlot(*at(consts, in.b()))
 			if slot < 0 {
 				goto slow
 			}
 
-			if own := &regs[in.a()+1]; *own != value.True {
+			if own := at(regs, in.a()+1); *own != value.True {
 				t = t.Clone()
-				regs[in.a()] = t
+				*at(regs, in.a()) = t
 				*own = value.True
 			}
 
-			t.Fields()[slot] = regs[in.c()]
+			t.Fields()[slot] = *at(regs, in.c())
 
 		case opCheckProp:
-			t := regs[in.a()]
+			t := *at(regs, in.a())
 			if k := t.Kind(); k == value.Object {
 				continue
 			} else if k == value.Struct && in.y() {
-				if t.InternedSlot(consts[in.b()]) >= 0 {
+				if t.InternedSlot(*at(consts, in.b())) >= 0 {
 					continue
 				}
 			}
@@ -488,13 +492,13 @@ reload:
 
 		case opNewCell:
 			fr.pc = pc
-			dst := &regs[in.a()]
-			*dst = value.NewInternal(&Cell{v: regs[in.b()]})
+			dst := at(regs, in.a())
+			*dst = value.NewInternal(&Cell{v: *at(regs, in.b())})
 
 			goto reload
 
 		case opCall:
-			fn := regs[in.a()]
+			fn := *at(regs, in.a())
 			if fn.Kind() != value.Function || fn.TypeID() != closureID {
 				goto slow
 			}
@@ -519,7 +523,7 @@ reload:
 		case opInvoke:
 			var ms []value.Method
 
-			switch recv := regs[in.a()+1]; recv.Kind() {
+			switch recv := *at(regs, in.a()+1); recv.Kind() {
 			case value.Struct:
 				ms = recv.Shape().Methods
 			case value.Enum:
@@ -530,14 +534,14 @@ reload:
 				ms = p.kinds[recv.Kind()]
 			}
 
-			m := value.InternedMethod(ms, consts[in.c()])
+			m := value.InternedMethod(ms, *at(consts, in.c()))
 			if m == nil || !m.Self || m.Mut && !in.y() {
 				goto slow
 			}
 
 			fn := p.methods[m.ID]
 			if fn.TypeID() != closureID {
-				if m.InPlace && in.x() != 0 {
+				if m.InPlace && in.x()&1 != 0 {
 					goto slow
 				}
 
@@ -555,27 +559,44 @@ reload:
 			}
 
 			// enter, inlined as for opCall; a mutating method resumes past
-			// the jump over its write-back.
+			// the jump over its write-back. An error must not leave the
+			// caller a struct half changed, so the method takes the
+			// caller's own only if no try is open in the caller.
 			fr.pc = pc
+			entry := 0
+
 			if m.Mut {
 				fr.pc++
+
+				if in.x()&2 != 0 {
+					if f.proto.selfReg == 0 {
+						fr.pc++
+					} else if n := len(p.handlers); *at(regs, in.a()) == value.True && (n == 0 || p.handlers[n-1].frame < len(p.frames)-1) {
+						entry = 2
+					}
+				}
 			}
 
-			regs[in.a()] = fn
+			*at(regs, in.a()) = fn
 
 			base := fr.base + in.a() + 1
 			if need := base + f.proto.nregs; need > len(p.stack) {
 				p.grow(need)
 			}
 
-			p.frames = append(p.frames, frame{cl: f, base: base})
+			if entry != 0 {
+				self := base + f.proto.selfReg
+				p.stack[self], p.stack[self+1] = p.stack[base], value.True
+			}
+
+			p.frames = append(p.frames, frame{cl: f, pc: entry, base: base})
 
 			goto reload
 
 		case opReturn, opReturnNil:
 			var v value.Value
 			if in.op() == opReturn {
-				v = regs[in.a()]
+				v = *at(regs, in.a())
 			}
 
 			top := len(p.frames) - 1
@@ -596,7 +617,7 @@ reload:
 			p.handlers = p.handlers[:len(p.handlers)-in.b()]
 
 		case opForRangeNext:
-			s := regs[in.a() : in.a()+6]
+			s := (*[6]value.Value)(unsafe.Pointer(at(regs, in.a())))
 			i := s[3].Int()
 
 			// Integers inline; floats, the rare case, through at.
@@ -623,15 +644,15 @@ reload:
 			}
 
 		case opForIterNext:
-			c := (*cursor)(regs[in.a()].Ptr())
+			c := (*cursor)(at(regs, in.a()).Ptr())
 			if c.next != nil {
 				goto slow
 			}
 
 			if i := c.i; i < len(c.arr) {
 				c.i++
-				regs[in.a()+1] = value.NewInt(int64(i))
-				regs[in.a()+2] = c.arr[i]
+				*at(regs, in.a()+1) = value.NewInt(int64(i))
+				*at(regs, in.a()+2) = c.arr[i]
 				pc = in.c()
 				if ticks--; ticks == 0 {
 					goto tick
@@ -678,6 +699,11 @@ reload:
 
 		goto reload
 	}
+}
+
+// at is the i-th value from p.
+func at(p unsafe.Pointer, i int) *value.Value {
+	return (*value.Value)(unsafe.Add(p, i<<4))
 }
 
 func undefinedVariable(f *Proto, pc int) error {

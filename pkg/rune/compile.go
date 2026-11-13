@@ -234,6 +234,10 @@ func (fs *funcState) declareTopLevelVar(l *ast.Local, name string) {
 	}
 
 	fs.declareAs(l, v)
+
+	if l.Owned {
+		fs.ownership(fs.declare(nil), nil)
+	}
 }
 
 // declareAs binds l to a register holding v, in a cell if l is captured.
@@ -271,6 +275,12 @@ func (fs *funcState) functionNamed(decl *ast.FunctionStmt, name string, mutSelf 
 		regs[i] = f.declare(param.Local)
 	}
 
+	f.selfCell = mutSelf != nil && mutSelf.Captured
+	if mutSelf != nil && mutSelf.Owned {
+		f.selfReg = f.own(mutSelf, 0)
+		f.proto.selfReg = int(f.selfReg)
+	}
+
 	for i, param := range decl.Parameters {
 		if decl.Defaults[i] != nil {
 			skip := f.emit(ins{op: opJmpDefined, a: regs[i]}, nil)
@@ -283,11 +293,10 @@ func (fs *funcState) functionNamed(decl *ast.FunctionStmt, name string, mutSelf 
 		}
 	}
 
-	f.selfCell = mutSelf != nil && mutSelf.Captured
-	if mutSelf != nil && mutSelf.Owned {
-		f.selfReg = f.declare(mutSelf)
-		f.emit(ins{op: opMove, a: f.selfReg, b: 0}, nil)
-		f.ownership(f.declare(nil), nil)
+	for i, param := range decl.Parameters {
+		if param.Local.Owned && param.Local != mutSelf {
+			f.own(param.Local, regs[i])
+		}
 	}
 
 	f.stmts(decl.Body)
@@ -300,13 +309,25 @@ func (fs *funcState) functionNamed(decl *ast.FunctionStmt, name string, mutSelf 
 	return int32(len(fs.proto.protos) - 1)
 }
 
-// returnSelf puts a mut self kept elsewhere back into register 0 before a return.
+// own moves the owned parameter l from register src to one of its own,
+// followed by its flag, and returns it.
+func (fs *funcState) own(l *ast.Local, src int32) int32 {
+	r := fs.declare(l)
+	fs.emit(ins{op: opMove, a: r, b: src}, nil)
+	fs.ownership(fs.declare(nil), nil)
+
+	return r
+}
+
+// returnSelf puts a mut self kept elsewhere back into register 0 before
+// a return, an owned one with its flag in register 1.
 func (fs *funcState) returnSelf() {
 	switch {
 	case fs.selfCell:
 		fs.emit(ins{op: opGetCell, a: 0, b: 0}, nil)
 	case fs.selfReg != 0:
 		fs.move(0, fs.selfReg)
+		fs.move(1, fs.selfReg+1)
 	}
 }
 
