@@ -1,0 +1,3 @@
+[line: 1] Error at '=': A rest element or _ cannot have a default.
+    1 | let { ...r = {} } = {}; // Error at '=': A rest element or _ cannot have a default.
+      |            ^

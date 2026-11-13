@@ -1,0 +1,12 @@
+struct Counter { n = 0 }
+
+impl Counter {
+  fun incr(mut self) { self.n++; }
+  fun get(mut self) { return self.n; }
+}
+
+fun make() { return Counter {}; }
+
+Counter {}.incr(); // Error at 'incr': Cannot call mutating method 'incr' of Counter: the receiver is not a mutable variable, element or property.
+Counter({ n: 1 }).get(); // Error at 'get': Cannot call mutating method 'get' of Counter: the receiver is not a mutable variable, element or property.
+make().incr(); // Error at 'incr': Cannot call mutating method 'incr': the receiver is not a mutable variable, element or property.

@@ -1,0 +1,9 @@
+[line: 10] Error at 'incr': Cannot call mutating method 'incr' of Counter: the receiver is not a mutable variable, element or property.
+   10 | Counter {}.incr(); // Error at 'incr': Cannot call mutating method 'incr' of Counter: the receiver is not a mutable variable, element or property.
+      |            ^
+[line: 11] Error at 'get': Cannot call mutating method 'get' of Counter: the receiver is not a mutable variable, element or property.
+   11 | Counter({ n: 1 }).get(); // Error at 'get': Cannot call mutating method 'get' of Counter: the receiver is not a mutable variable, element or property.
+      |                   ^
+[line: 12] Error at 'incr': Cannot call mutating method 'incr': the receiver is not a mutable variable, element or property.
+   12 | make().incr(); // Error at 'incr': Cannot call mutating method 'incr': the receiver is not a mutable variable, element or property.
+      |        ^

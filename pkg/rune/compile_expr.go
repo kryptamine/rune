@@ -256,9 +256,7 @@ func (fs *funcState) expr(e ast.Expr, dst int32) {
 				keys = append(keys, pair.Key)
 			}
 
-			fs.proto.keys = append(fs.proto.keys, keys)
-
-			return ins{op: opObject, b: base, c: int32(len(fs.proto.keys) - 1)}
+			return ins{op: opObject, b: base, c: fs.keyList(keys)}
 		})
 	case *ast.StructExpr:
 		fs.structLiteral(n, dst)

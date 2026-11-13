@@ -127,8 +127,8 @@ func (fs *funcState) varStmt(s *ast.VarStmt) {
 }
 
 func (fs *funcState) destructure(s *ast.DestructureStmt) {
-	for _, f := range s.Fields {
-		fs.predeclare(f.Local)
+	for _, b := range ast.Declared(s) {
+		fs.predeclare(b.Local)
 	}
 
 	src := fs.exprAny(s.Initializer)
@@ -138,6 +138,18 @@ func (fs *funcState) destructure(s *ast.DestructureStmt) {
 		fs.initialize(f.Local, func(dst int32) {
 			fs.emit(ins{op: opGetProp, a: dst, b: src, c: fs.constant(value.NewString(f.Key.Lexeme)), x: uint8(boolNum(f.Default != nil))}, &f.Key)
 			fs.orDefault(dst, f.Default)
+		})
+	}
+
+	if r := s.Rest; r != nil && !r.Discards() {
+		keys := make([]string, len(s.Fields))
+		for i, f := range s.Fields {
+			keys[i] = f.Key.Lexeme
+		}
+
+		c := fs.keyList(keys)
+		fs.initialize(r.Local, func(dst int32) {
+			fs.emit(ins{op: opOmit, a: dst, b: src, c: c}, &s.Brace)
 		})
 	}
 }

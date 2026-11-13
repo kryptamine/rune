@@ -1,0 +1,40 @@
+struct User { name, role = "member", age = 30 }
+
+let { a, ...rest } = { a: 1, b: 2, c: 3 };
+print(a); // expect: 1
+print(rest); // expect: {b: 2, c: 3}
+
+let { name, ...other } = User { name: "ann" };
+print(name); // expect: ann
+print(other); // expect: {role: "member", age: 30}
+
+let { ...copy } = { x: 1 };
+print(copy); // expect: {x: 1}
+
+let { "x-y": xy, z: _, ...left } = { "x-y": 1, z: 2, w: 3 };
+print(xy); // expect: 1
+print(left); // expect: {w: 3}
+
+let { k, ..._ } = { k: 5, j: 6 };
+print(k); // expect: 5
+
+let { q, ...mut r } = { q: 1, w: 2 };
+r.e = 3;
+print(r); // expect: {w: 2, e: 3}
+
+let src = { s: 1 };
+let { ...dup } = src;
+let mut { ...own } = src;
+own.s = 2;
+print(src.s); // expect: 1
+
+fun split({ id, ...data }) {
+  let f = () => data;
+  return [id, f()];
+}
+
+print(split({ id: 1, t: "x" })); // expect: [1, {t: "x"}]
+
+for { key, ...val } in [{ key: "a", v: 1 }] {
+  print("{key} {val}"); // expect: a {v: 1}
+}

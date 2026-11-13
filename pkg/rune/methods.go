@@ -134,8 +134,7 @@ func (p *Interpreter) invoke(fr *frame, in Instr, tok *ast.Token) error {
 	case !m.Self:
 		return staticMethod(tok, owner, m.Name)
 	case m.Mut && !in.y():
-		return errors.NewRuntimeError(errors.TypeError, *tok, fmt.Sprintf(
-			"Cannot call mutating method '%s' of %s: the receiver is not a mutable variable, element or property.", m.Name, owner))
+		return errors.NewRuntimeError(errors.TypeError, *tok, mutatingCallError(m.Name, owner))
 	case m.InPlace && in.x()&1 != 0:
 		return errors.NewRuntimeError(errors.TypeError, *tok, fmt.Sprintf(
 			"Cannot call in-place method '%s' of %s: its receiver is in an immutable variable.", m.Name, owner))
@@ -184,6 +183,17 @@ func missingMember(tok *ast.Token, t value.Value, name string) error {
 	}
 
 	return propertyError("read", tok, t)
+}
+
+// mutatingCallError is the error of a mut self method called on a value
+// no variable holds; owner is its type, if known.
+func mutatingCallError(name, owner string) string {
+	method := "'" + name + "'"
+	if owner != "" {
+		method += " of " + owner
+	}
+
+	return "Cannot call mutating method " + method + ": the receiver is not a mutable variable, element or property."
 }
 
 func noMethod(tok *ast.Token, owner, name string) error {

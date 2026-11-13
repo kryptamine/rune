@@ -1,0 +1,3 @@
+[line: 1] Error at ',': Rest element must be last.
+    1 | let { ...r, a } = { a: 1 }; // Error at ',': Rest element must be last.
+      |           ^

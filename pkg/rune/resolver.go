@@ -52,9 +52,8 @@ type Resolver struct {
 	kinds    [value.NumKinds][]value.Method
 	nmethods int
 	// impls holds the impl blocks at the top level of a file.
-	impls map[*ast.ImplStmt]bool
-	// mutators holds the method names that always change their receiver.
-	mutators map[string]bool
+	impls       map[*ast.ImplStmt]bool
+	methodKinds map[string]methodKind
 	// self records the uses of the self of the method being resolved,
 	// selves those of every method of the file.
 	self   *varUses
@@ -588,16 +587,7 @@ func (p *Resolver) VisitCallExpr(callExpr *ast.CallExpr) (value.Value, error) {
 
 	if prop, ok := callExpr.Callee.(*ast.IndexExpr); ok && isMethodCall(prop) {
 		p.useCall(prop)
-
-		callExpr.Writable = p.writable(prop.Array)
-
-		if name := p.immutableRoot(prop.Array); name != "" {
-			callExpr.Frozen = true
-
-			if p.mutators[prop.Token.Lexeme] {
-				p.error(rootVar(prop.Array).Name, "Cannot mutate immutable variable '"+name+"'.")
-			}
-		}
+		p.checkMutation(callExpr, prop)
 	}
 
 	return value.NilValue, nil

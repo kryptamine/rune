@@ -369,6 +369,12 @@ func (fs *funcState) declare(l *ast.Local) int32 {
 	return r
 }
 
+// keyList adds the property names of an object literal or pattern.
+func (fs *funcState) keyList(keys []string) int32 {
+	fs.proto.keys = append(fs.proto.keys, keys)
+	return int32(len(fs.proto.keys) - 1)
+}
+
 func (fs *funcState) constant(v value.Value) int32 {
 	key := constKey{kind: v.Kind()}
 

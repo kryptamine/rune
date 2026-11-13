@@ -1,0 +1,10 @@
+struct Counter { n = 0 }
+
+impl Counter {
+  fun get(mut self) { return self.n; }
+}
+
+fun make() { return Counter {}; }
+
+print({ a: 1 }.get("a")); // expect: 1
+make().get(); // expect runtime error: [line: 10] TypeError: Cannot call mutating method 'get' of Counter: the receiver is not a mutable variable, element or property.
