@@ -29,6 +29,7 @@ type ExprVisitor interface {
 	VisitSpreadExpr(spreadExpr *SpreadExpr) (value.Value, error)
 	VisitConditionalExpr(conditionalExpr *ConditionalExpr) (value.Value, error)
 	VisitThrowExpr(throwExpr *ThrowExpr) (value.Value, error)
+	VisitJumpExpr(jumpExpr *JumpExpr) (value.Value, error)
 }
 
 type Expr interface {
@@ -451,4 +452,28 @@ func (n *ThrowExpr) Accept(v ExprVisitor) (value.Value, error) {
 
 func (n *ThrowExpr) String() string {
 	return fmt.Sprintf("(throw %v)", n.Value)
+}
+
+// JumpExpr is return, break or continue in an expression; it has no value.
+type JumpExpr struct {
+	Stmt Stmt
+}
+
+func (n *JumpExpr) Accept(v ExprVisitor) (value.Value, error) {
+	return v.VisitJumpExpr(n)
+}
+
+func (n *JumpExpr) String() string {
+	switch s := n.Stmt.(type) {
+	case *ReturnStmt:
+		if s.Value == nil {
+			return "(return)"
+		}
+
+		return fmt.Sprintf("(return %v)", s.Value)
+	case *BreakStmt:
+		return "(break)"
+	}
+
+	return "(continue)"
 }

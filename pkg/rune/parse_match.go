@@ -74,10 +74,10 @@ func (s *Parser) matchArm() (ast.MatchArm, error) {
 	return arm, err
 }
 
-// armBody parses a statement starting with a keyword, a block, or an
+// armBody parses an if, while, for or try statement, a block, or an
 // expression, which the arm's comma ends.
 func (s *Parser) armBody() (ast.Stmt, error) {
-	if t := s.peek().TokenType; stmtKeyword(t) && t != ast.THROW {
+	if blockKeyword(s.peek().TokenType) {
 		return s.statement()
 	}
 
