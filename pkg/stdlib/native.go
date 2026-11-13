@@ -17,6 +17,8 @@ import (
 // Caller lets a native call back into a Rune function value.
 type Caller interface {
 	CallValue(fn value.Value, args []value.Value, token *ast.Token) (value.Value, error)
+	// Required is the number of arguments fn cannot do without.
+	Required(fn value.Value) int
 }
 
 // Native is a built-in taking between min and max arguments (max -1: no limit).
@@ -104,6 +106,9 @@ func (n *Native) arityText(self int) string {
 		return fmt.Sprintf("%d to %s", lo, helpers.Plural(hi, "argument"))
 	}
 }
+
+// Min is the number of arguments n requires.
+func (n *Native) Min() int { return n.min }
 
 func (n *Native) String() string { return "<native fn " + n.name + ">" }
 

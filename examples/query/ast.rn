@@ -1,0 +1,163 @@
+// The syntax tree of a query, its SQL text and walks over it
+
+export struct SqlError { message, pos = nil }
+
+export struct Lit { value }
+export struct Col { table, name, pos = nil }
+export struct Unary { op, expr }
+export struct Binary { op, left, right }
+export struct Call { name, args, distinct = false, star = false, pos }
+export struct IsNull { expr, not }
+export struct InList { expr, list, not }
+export struct Between { expr, lo, hi, not }
+export struct Like { expr, pattern, not }
+export struct Case { whens, otherwise }
+
+export struct Star { table = nil }
+export struct Item { expr, alias = nil }
+export struct TableRef { name, alias, pos }
+export struct Join { left, table, on }
+export struct Order { expr, desc }
+export struct Select {
+    explain = false,
+    distinct = false,
+    items,
+    from,
+    joins = [],
+    where = nil,
+    groupBy = [],
+    having = nil,
+    orderBy = [],
+    limit = nil,
+    offset = 0,
+}
+
+export let AGGREGATES = set(["COUNT", "SUM", "AVG", "MIN", "MAX"]);
+
+export fun isAggregate(e) {
+    return e is Call && AGGREGATES.contains(e.name);
+}
+
+export fun sql(e) {
+    return match e {
+        Lit { value: nil } => "NULL",
+        Lit { value: true } => "TRUE",
+        Lit { value: false } => "FALSE",
+        Lit { value: v is string } => "'" + v.replace("'", "''") + "'",
+        Lit { value } => string(value),
+        Col { table: nil, name } => name,
+        Col { table, name } => "{table}.{name}",
+        Unary { op: "NOT", expr } => "NOT {sql(expr)}",
+        Unary { op, expr } => op + sql(expr),
+        Binary { op, left, right } => "{wrap(left)} {op} {wrap(right)}",
+        Call { name, star: true } => "{name}(*)",
+        Call { name, args, distinct } => "{name}({distinct ? "DISTINCT " : ""}{args.map(sql).join(", ")})",
+        IsNull { expr, not } => "{wrap(expr)} IS {not ? "NOT " : ""}NULL",
+        InList { expr, list, not } => "{wrap(expr)} {not ? "NOT " : ""}IN ({list.map(sql).join(", ")})",
+        Between { expr, lo, hi, not } => "{wrap(expr)} {not ? "NOT " : ""}BETWEEN {wrap(lo)} AND {wrap(hi)}",
+        Like { expr, pattern, not } => "{wrap(expr)} {not ? "NOT " : ""}LIKE {sql(pattern)}",
+        Case { whens, otherwise } => "CASE " + whens.map(([c, v]) => "WHEN {sql(c)} THEN {sql(v)} ").join("")
+            + (otherwise == nil ? "" : "ELSE {sql(otherwise)} ") + "END",
+    };
+}
+
+fun wrap(e) {
+    return match e {
+        _ is Binary | IsNull | InList | Between | Like => "({sql(e)})",
+        _ => sql(e),
+    };
+}
+
+fun children(e) {
+    return match e {
+        Unary { expr } => [expr],
+        IsNull { expr } => [expr],
+        Like { expr, pattern } => [expr, pattern],
+        Binary { left, right } => [left, right],
+        Call { args } => args,
+        InList { expr, list } => [expr, ...list],
+        Between { expr, lo, hi } => [expr, lo, hi],
+        Case { whens, otherwise } => {
+            let mut xs = [];
+            for [c, v] in whens xs.push(c, v);
+            if otherwise != nil xs.push(otherwise);
+            return xs;
+        }
+        _ => [],
+    };
+}
+
+export fun walk(e, f) {
+    f(e);
+    for c in children(e) walk(c, f);
+}
+
+// rewrite is e with each node replaced by f of it, its children rewritten first.
+export fun rewrite(e, f) {
+    let r = x => rewrite(x, f);
+    return f(match e {
+        _ is Unary => Unary { ...e, expr: r(e.expr) },
+        _ is IsNull => IsNull { ...e, expr: r(e.expr) },
+        _ is Like => Like { ...e, expr: r(e.expr), pattern: r(e.pattern) },
+        _ is Binary => Binary { ...e, left: r(e.left), right: r(e.right) },
+        _ is Call => Call { ...e, args: e.args.map(r) },
+        _ is InList => InList { ...e, expr: r(e.expr), list: e.list.map(r) },
+        _ is Between => Between { ...e, expr: r(e.expr), lo: r(e.lo), hi: r(e.hi) },
+        _ is Case => Case {
+            whens: e.whens.map(([c, v]) => [r(c), r(v)]),
+            otherwise: e.otherwise == nil ? nil : r(e.otherwise),
+        },
+        _ => e,
+    });
+}
+
+export fun columnsOf(e) {
+    let mut out = [];
+    walk(e, n => { if n is Col out.push(n); });
+    return out;
+}
+
+export fun aggregatesIn(e) {
+    let mut out = [];
+    walk(e, n => { if isAggregate(n) out.push(n); });
+    return out;
+}
+
+export fun conjuncts(e) {
+    return match e {
+        nil => [],
+        Binary { op: "AND", left, right } => [...conjuncts(left), ...conjuncts(right)],
+        _ => [e],
+    };
+}
+
+export fun allOf(preds) {
+    return preds.reduce((a, b) => Binary { op: "AND", left: a, right: b });
+}
+
+export fun suggest(word, options) {
+    let w = word.lower();
+    let mut best = nil;
+    let mut bestD = 3;
+    for o in options {
+        let d = distance(w, o.lower());
+        if d < bestD {
+            best = o;
+            bestD = d;
+        }
+    }
+    return best == nil ? "" : ", did you mean '{best}'?";
+}
+
+fun distance(a, b) {
+    let mut prev = [...0..b.len() + 1];
+    for i in 1..a.len() + 1 {
+        let mut cur = [i];
+        for j in 1..b.len() + 1 {
+            let cost = a[i - 1] == b[j - 1] ? 0 : 1;
+            cur.push(math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost));
+        }
+        prev = cur;
+    }
+    return prev[b.len()];
+}

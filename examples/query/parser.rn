@@ -1,0 +1,276 @@
+// Tokenizer and recursive-descent parser: query text to an ast.Select
+
+import .ast;
+
+enum Kind { Num, Str, Id, Op, Eof }
+
+struct Token { kind, text, pos, word = nil }
+
+const TOKEN_RE = r"(?P<num>\d+(?:\.\d+)?)|(?P<str>'(?:[^']|'')*')|(?P<id>[A-Za-z_][A-Za-z0-9_]*)|(?P<op><=|>=|<>|!=|\|\||[-+*/%(),.=<>;])|(?P<bad>\S)";
+
+const KEYWORDS = [
+    "SELECT", "DISTINCT", "FROM", "WHERE", "GROUP", "BY", "HAVING", "ORDER", "ASC", "DESC",
+    "LIMIT", "OFFSET", "JOIN", "LEFT", "INNER", "ON", "AS", "AND", "OR", "NOT", "IS", "NULL",
+    "LIKE", "IN", "BETWEEN", "CASE", "WHEN", "THEN", "ELSE", "END", "TRUE", "FALSE", "EXPLAIN",
+];
+
+let RESERVED = set(KEYWORDS);
+
+let PRECEDENCE = map({
+    "OR": 1, "AND": 2,
+    "=": 4, "<>": 4, "!=": 4, "<": 4, "<=": 4, ">": 4, ">=": 4,
+    "IS": 4, "IN": 4, "BETWEEN": 4, "LIKE": 4, "NOT": 4,
+    "||": 5, "+": 6, "-": 6, "*": 7, "/": 7, "%": 7,
+});
+
+fun tokenize(src) {
+    let mut tokens = [];
+
+    for m in regex.findAll(TOKEN_RE, src) {
+        let pos = m.index;
+        tokens.push(match m.named {
+            { num } if num != nil => Token { kind: Kind.Num, text: num, pos },
+            { str } if str != nil => Token { kind: Kind.Str, text: str.slice(1, -1).replace("''", "'"), pos },
+            { id } if id != nil => Token { kind: Kind.Id, text: id, pos, word: id.upper() },
+            { op } if op != nil => Token { kind: Kind.Op, text: op, pos },
+            { bad } => throw ast.SqlError { message: "unexpected character '{bad}'", pos },
+        });
+    }
+
+    tokens.push(Token { kind: Kind.Eof, text: "end of query", pos: src.len() });
+    return tokens;
+}
+
+export fun parse(src) {
+    let mut p = Parser { tokens: tokenize(src) };
+    return p.select();
+}
+
+struct Parser { tokens, i = 0 }
+
+impl Parser {
+    fun peek(self, ahead = 0) { return self.tokens[math.min(self.i + ahead, self.tokens.len() - 1)]; }
+
+    fun next(mut self) {
+        let t = self.tokens[self.i];
+        if t.kind != Kind.Eof self.i++;
+        return t;
+    }
+
+    fun at(self, word) {
+        let t = self.peek();
+        return t.word == word || (t.kind == Kind.Op && t.text == word);
+    }
+
+    fun accept(mut self, word) {
+        if !self.at(word) return false;
+        self.next();
+        return true;
+    }
+
+    fun expect(mut self, word) {
+        if !self.accept(word) self.fail("expected {word}");
+    }
+
+    fun fail(self, message) {
+        let t = self.peek();
+        throw ast.SqlError { message: "{message}, got {t.kind == Kind.Eof ? t.text : "'{t.text}'"}", pos: t.pos };
+    }
+
+    fun atName(self) {
+        let t = self.peek();
+        return t.kind == Kind.Id && !RESERVED.contains(t.word);
+    }
+
+    fun name(mut self, what) {
+        if !self.atName() self.fail("expected {what}");
+        return self.next().text;
+    }
+
+    fun exprs(mut self) {
+        let mut xs = [self.expr(0)];
+        while self.accept(",") xs.push(self.expr(0));
+        return xs;
+    }
+
+    fun select(mut self) {
+        let explain = self.accept("EXPLAIN");
+        self.expect("SELECT");
+        let distinct = self.accept("DISTINCT");
+        let mut items = [self.item()];
+        while self.accept(",") items.push(self.item());
+
+        self.expect("FROM");
+        let from = self.table();
+
+        let mut joins = [];
+        while self.at("JOIN") || self.at("LEFT") || self.at("INNER") {
+            let left = self.accept("LEFT");
+            self.accept("INNER");
+            self.expect("JOIN");
+            let table = self.table();
+            self.expect("ON");
+            joins.push(ast.Join { left, table, on: self.expr(0) });
+        }
+
+        let where = self.accept("WHERE") ? self.expr(0) : nil;
+
+        let mut groupBy = [];
+        if self.accept("GROUP") {
+            self.expect("BY");
+            groupBy = self.exprs();
+        }
+
+        let having = self.accept("HAVING") ? self.expr(0) : nil;
+
+        let mut orderBy = [];
+        if self.accept("ORDER") {
+            self.expect("BY");
+            orderBy = [self.order()];
+            while self.accept(",") orderBy.push(self.order());
+        }
+
+        let limit = self.accept("LIMIT") ? self.count("LIMIT") : nil;
+        let offset = self.accept("OFFSET") ? self.count("OFFSET") : 0;
+
+        self.accept(";");
+        if self.peek().kind != Kind.Eof self.fail("expected end of query");
+
+        return ast.Select { explain, distinct, items, from, joins, where, groupBy, having, orderBy, limit, offset };
+    }
+
+    fun count(mut self, what) {
+        let t = self.next();
+        if t.kind != Kind.Num || t.text.contains(".") throw ast.SqlError { message: "{what} takes a whole number", pos: t.pos };
+        return int(t.text);
+    }
+
+    fun order(mut self) {
+        let expr = self.expr(0);
+        let desc = self.accept("DESC");
+        if !desc self.accept("ASC");
+        return ast.Order { expr, desc };
+    }
+
+    fun item(mut self) {
+        if self.accept("*") return ast.Star {};
+        if self.peek().kind == Kind.Id && self.peek(1).text == "." && self.peek(2).text == "*" {
+            let table = self.next().text;
+            self.i += 2;
+            return ast.Star { table };
+        }
+
+        let expr = self.expr(0);
+        if self.accept("AS") return ast.Item { expr, alias: self.name("a column alias") };
+        return ast.Item { expr, alias: self.atName() ? self.next().text : nil };
+    }
+
+    fun table(mut self) {
+        let pos = self.peek().pos;
+        let name = self.name("a table name");
+        self.accept("AS");
+        return ast.TableRef { name, alias: self.atName() ? self.next().text : name, pos };
+    }
+
+    fun expr(mut self, minPrec) {
+        let mut left = self.prefix();
+
+        while true {
+            let t = self.peek();
+            let op = t.word ?? t.text;
+            let prec = t.kind == Kind.Op || t.kind == Kind.Id ? PRECEDENCE.get(op, -1) : -1;
+            if prec < minPrec || prec < 0 break;
+
+            self.next();
+            left = match op {
+                "IS" => self.isNull(left),
+                "NOT" => self.postfix(left, self.next().word, true),
+                "IN" | "BETWEEN" | "LIKE" => self.postfix(left, op, false),
+                _ => ast.Binary { op: op == "!=" ? "<>" : op, left, right: self.expr(prec + 1) },
+            };
+        }
+
+        return left;
+    }
+
+    fun isNull(mut self, expr) {
+        let not = self.accept("NOT");
+        self.expect("NULL");
+        return ast.IsNull { expr, not };
+    }
+
+    fun postfix(mut self, expr, word, not) {
+        if word == "IN" {
+            self.expect("(");
+            let list = self.exprs();
+            self.expect(")");
+            return ast.InList { expr, list, not };
+        }
+        if word == "BETWEEN" {
+            let lo = self.expr(5);
+            self.expect("AND");
+            return ast.Between { expr, lo, hi: self.expr(5), not };
+        }
+        if word == "LIKE" return ast.Like { expr, pattern: self.expr(5), not };
+        self.i--;
+        self.fail("expected IN, BETWEEN or LIKE after NOT");
+    }
+
+    fun prefix(mut self) {
+        let t = self.next();
+
+        return match t {
+            Token { kind: Kind.Num, text } => ast.Lit { value: number(text) },
+            Token { kind: Kind.Str, text } => ast.Lit { value: text },
+            Token { kind: Kind.Op, text: "(" } => self.closed(self.expr(0)),
+            Token { kind: Kind.Op, text: "-" } => ast.Unary { op: "-", expr: self.expr(8) },
+            Token { word: "NOT" } => ast.Unary { op: "NOT", expr: self.expr(3) },
+            Token { word: "NULL" } => ast.Lit { value: nil },
+            Token { word: "TRUE" } => ast.Lit { value: true },
+            Token { word: "FALSE" } => ast.Lit { value: false },
+            Token { word: "CASE" } => self.caseExpr(),
+            Token { kind: Kind.Id, text, word, pos } if !RESERVED.contains(word) => self.reference(text, word, pos),
+            _ => {
+                if t.kind != Kind.Eof self.i--;
+                self.fail("expected an expression");
+            }
+        };
+    }
+
+    fun closed(mut self, e) {
+        self.expect(")");
+        return e;
+    }
+
+    fun reference(mut self, text, word, pos) {
+        if self.accept("(") return self.call(word, pos);
+        if self.accept(".") return ast.Col { table: text, name: self.name("a column name"), pos };
+        return ast.Col { table: nil, name: text, pos };
+    }
+
+    fun call(mut self, name, pos) {
+        if self.accept("*") {
+            if name != "COUNT" throw ast.SqlError { message: "only COUNT takes *", pos };
+            self.expect(")");
+            return ast.Call { name, args: [], star: true, pos };
+        }
+        let distinct = self.accept("DISTINCT");
+        let args = self.at(")") ? [] : self.exprs();
+        self.expect(")");
+        if distinct && !ast.AGGREGATES.contains(name) throw ast.SqlError { message: "DISTINCT only goes in an aggregate", pos };
+        return ast.Call { name, args, distinct, pos };
+    }
+
+    fun caseExpr(mut self) {
+        let mut whens = [];
+        while self.accept("WHEN") {
+            let cond = self.expr(0);
+            self.expect("THEN");
+            whens.push([cond, self.expr(0)]);
+        }
+        if whens.len() == 0 self.fail("expected WHEN");
+        let otherwise = self.accept("ELSE") ? self.expr(0) : nil;
+        self.expect("END");
+        return ast.Case { whens, otherwise };
+    }
+}

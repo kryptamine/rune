@@ -669,6 +669,8 @@ func (fs *funcState) invoke(n *ast.CallExpr, prop *ast.IndexExpr, dst int32) {
 		lv = fs.ref(prop.Array, n.Args...)
 	}
 
+	g := fs.guard(lv)
+
 	base := dst
 	if dst < fs.nactive || dst+1 != fs.free {
 		base = fs.alloc()
@@ -682,6 +684,8 @@ func (fs *funcState) invoke(n *ast.CallExpr, prop *ast.IndexExpr, dst int32) {
 	} else {
 		fs.expr(prop.Array, self)
 	}
+
+	g.keep(self)
 
 	if prop.Optional {
 		fs.nilJump(self)
@@ -713,6 +717,7 @@ func (fs *funcState) invoke(n *ast.CallExpr, prop *ast.IndexExpr, dst int32) {
 			fs.emit(ins{op: opMove, a: fs.locals[lv.v.Local] + 1, b: self + 1}, &prop.Token)
 		}
 
+		g.check(&prop.Token)
 		lv.writeBack()
 		fs.patch([]int{skip})
 	}

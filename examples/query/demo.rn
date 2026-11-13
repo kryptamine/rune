@@ -1,0 +1,88 @@
+// Demo data: a shop's customers, products and orders, the same on every run
+
+import .table;
+
+struct Rng { state }
+
+impl Rng {
+    fun next(mut self) {
+        self.state ^= self.state << 13;
+        self.state ^= self.state >>> 7;
+        self.state ^= self.state << 17;
+        return (self.state >>> 11) / 9007199254740992;
+    }
+
+    fun int(mut self, n) { return math.floor(self.next() * n); }
+
+    fun pick(mut self, xs) { return xs[self.int(xs.len())]; }
+}
+
+const FIRST = ["Ann", "Bob", "Chen", "Dana", "Emil", "Fatima", "Goran", "Hana", "Ivan", "Jo", "Kemal", "Lena", "Mia", "Nils", "Olga", "Priya"];
+const LAST = ["Smith", "Novak", "Garcia", "Kim", "Okafor", "Rossi", "Ivanova", "Larsen", "Silva", "Weber"];
+const COUNTRIES = ["DE", "FR", "US", "UA", "PL", "BR", "JP", "IN", "NG", "SE"];
+const CATEGORIES = ["audio", "laptops", "phones", "cameras", "wearables", "accessories"];
+const MODELS = ["Air", "Pro", "Max", "Mini", "Lite", "Ultra", "One", "Go"];
+const STATUSES = ["paid", "paid", "paid", "shipped", "shipped", "pending", "refunded"];
+
+export const TABLES = ["orders", "customers", "products"];
+
+export fun generate(dir, orders) {
+    let mut rng = Rng { state: 20261113 };
+
+    let customers = 5000;
+    let mut out = fs.open(fs.join(dir, "customers.csv"), "w");
+    out.write("id,name,country,signup\n");
+    for id in 1..customers + 1 {
+        let suffix = rng.int(40) == 0 ? ", Jr." : "";
+        let name = "{rng.pick(FIRST)} {rng.pick(LAST)}{suffix}";
+        let signup = "2025-%02d-%02d".format(rng.int(12) + 1, rng.int(28) + 1);
+        out.write([id, name, rng.pick(COUNTRIES), signup].map(table.quoteCsv).join(",") + "\n");
+    }
+    out.close();
+
+    let products = 300;
+    out = fs.open(fs.join(dir, "products.csv"), "w");
+    out.write("id,name,category,price\n");
+    for id in 1..products + 1 {
+        let category = rng.pick(CATEGORIES);
+        let price = (rng.int(150000) + 999) / 100;
+        out.write("{id},{category.slice(0, 1).upper()}{category.slice(1)} {rng.pick(MODELS)} {rng.int(9) + 1},{category},{price}\n");
+    }
+    out.close();
+
+    out = fs.open(fs.join(dir, "orders.csv"), "w");
+    out.write("id,customer_id,product_id,qty,status,created,coupon\n");
+    for id in 1..orders + 1 {
+        // a few customers never order: ids above 4900 are skipped
+        let customer = rng.int(customers - 100) + 1;
+        let created = "2026-%02d-%02d".format(rng.int(10) + 1, rng.int(28) + 1);
+        let coupon = rng.int(5) == 0 ? rng.pick(["WELCOME10", "BLACKFRIDAY", "VIP"]) : "";
+        out.write("{id},{customer},{rng.int(products) + 1},{rng.int(4) + 1},{rng.pick(STATUSES)},{created},{coupon}\n");
+    }
+    out.close();
+}
+
+export const QUERIES = [
+    "SELECT c.country, COUNT(*) AS orders, SUM(o.qty * p.price) AS revenue, AVG(o.qty) AS avg_qty
+     FROM orders o JOIN customers c ON o.customer_id = c.id JOIN products p ON p.id = o.product_id
+     WHERE o.status IN ('paid', 'shipped') AND p.category <> 'accessories'
+     GROUP BY c.country ORDER BY revenue DESC LIMIT 5",
+    "SELECT substr(created, 1, 7) AS month, COUNT(*) AS orders,
+            SUM(CASE WHEN status = 'refunded' THEN 1 ELSE 0 END) AS refunds,
+            ROUND(100.0 * SUM(CASE WHEN coupon IS NOT NULL THEN 1 ELSE 0 END) / COUNT(*), 1) AS coupon_pct
+     FROM orders GROUP BY month ORDER BY month",
+    "SELECT p.category, COUNT(DISTINCT o.customer_id) AS buyers, MAX(p.price) AS top_price
+     FROM orders o JOIN products p ON p.id = o.product_id
+     WHERE p.name LIKE '%pro%' AND o.created BETWEEN '2026-03-01' AND '2026-06-30'
+     GROUP BY 1 HAVING buyers > 300 ORDER BY buyers DESC",
+    "SELECT c.id, c.name, c.country FROM customers c LEFT JOIN orders o ON o.customer_id = c.id
+     WHERE o.id IS NULL AND c.name LIKE '%, Jr.' ORDER BY c.id LIMIT 5",
+    "SELECT DISTINCT country, coupon FROM orders o JOIN customers c ON c.id = o.customer_id
+     WHERE coupon = 'VIP' AND country IN ('UA', 'PL') ORDER BY 1",
+    "EXPLAIN SELECT c.country, SUM(o.qty * p.price) AS revenue
+     FROM orders o JOIN customers c ON o.customer_id = c.id JOIN products p ON p.id = o.product_id
+     WHERE o.status = 'paid' AND c.signup >= '2025-06-01' AND o.qty * p.price > 1000
+     GROUP BY c.country",
+    "SELECT naem, country FROM customers",
+    "SELECT country, COUNT(*) FROM customers c JOIN orders o ON o.customer_id = c.id GROUP BY country HAVING COUNT(*) >",
+];

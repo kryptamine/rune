@@ -46,6 +46,24 @@ rune run examples/validate.rn migrate gateway.json -w # upgrade the file in plac
 rune run examples/validate.rn normalize gateway.json  # defaults filled, durations in ms
 ```
 
+### [`query/`](https://github.com/kryptamine/rune/tree/master/examples/query) — SQL over CSV
+
+`SELECT` with joins, `WHERE`, `GROUP BY`, `HAVING`, `ORDER BY`, `LIMIT` and
+`EXPLAIN` over the CSV files of a directory, split into
+[modules](modules.md): `parser`, `ast`, `expr`, `plan`, `aggregate`,
+`table`, `output`. The parser builds a tree of structs; the planner compiles
+every expression to a closure over a row array, runs each `WHERE` conjunct
+as soon as its tables are there, turns `ON a = b` into a hash join on a
+`map`, and groups with aggregates kept in slots. Errors point at the query
+with a caret and a "did you mean". The demo generates 100k orders and times
+each query.
+
+```sh
+rune run examples/query/main.rn                              # generate a dataset, run and time queries
+rune run examples/query/main.rn "SELECT * FROM users LIMIT 5" -d data -f json
+rune run examples/query/main.rn repl -d data                 # one query per line from stdin
+```
+
 ### [`log-report.rn`](https://github.com/kryptamine/rune/blob/master/examples/log-report.rn) — access log report
 
 Per-endpoint latency percentiles, status classes, top clients and slow

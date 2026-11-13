@@ -1,0 +1,5 @@
+[line: 8] ValueError: 'self' changed while its mut method 'list' ran; that change would be lost.
+    8 |   fun nested(mut self) { return self.list(() => self.item()); }
+      |                                      ^
+  at P.nested (line 8)
+  at <script> (line 36)

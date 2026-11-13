@@ -1,0 +1,36 @@
+// A variable changed while a mut method of its value runs would lose the
+// change at the write-back, so that is an error.
+struct P { i = 0 }
+
+impl P {
+  fun list(mut self, f) { let a = f(); self.i += 10; return a; }
+  fun item(mut self) { self.i++; return self.i; }
+  fun nested(mut self) { return self.list(() => self.item()); }
+  fun apart(mut self) {
+    let add = () => self.item();
+    add();
+    self.item();
+    return self.list(() => 0);
+  }
+}
+
+let mut ok = P {};
+print([ok.apart(), ok.i]); // expect: [0, 12]
+
+let mut g = P {};
+fun bump() { g.item(); }
+impl P {
+  fun viaGlobal(mut self) { bump(); self.i += 100; }
+}
+try { g.viaGlobal(); } catch e { print(e.message); } // expect: 'g' changed while its mut method 'viaGlobal' ran; that change would be lost.
+print(g.i); // expect: 1
+
+struct Box { p }
+impl Box {
+  fun go(mut self) { self.p.list(() => self.p.item()); }
+}
+let mut b = Box { p: P {} };
+try { b.go(); } catch e { print(e.message); } // expect: 'self' changed while its mut method 'list' ran; that change would be lost.
+
+let mut p = P {};
+p.nested(); // expect runtime error: [line: 8] ValueError: 'self' changed while its mut method 'list' ran; that change would be lost.

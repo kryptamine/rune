@@ -474,6 +474,11 @@ reload:
 
 			t.Fields()[slot] = *at(regs, in.c())
 
+		case opSame:
+			if *at(regs, in.a()) != *at(regs, in.b()) {
+				goto slow
+			}
+
 		case opCheckProp:
 			t := *at(regs, in.a())
 			if k := t.Kind(); k == value.Object {

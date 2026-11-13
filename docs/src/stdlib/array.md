@@ -34,6 +34,10 @@ empty.pop(); // ValueError: array.pop() got an empty array.
 any function, built-ins included. Without `init`, `reduce` starts from the
 first element.
 
+`map`, `filter`, `every`, `some`, `find` and `findIndex` also pass the
+index when `f` requires two arguments, so `map(int)`, whose base is
+optional, takes the element alone.
+
 ```rune
 let orders = [
     { id: 1, total: 30 },
@@ -46,6 +50,8 @@ print(orders.filter(o => o.total > 50).map(o => o.id));  // [2, 3]
 print(orders.reduce((sum, o) => sum + o.total, 0));      // 225
 print([3, 1, 2].reduce((a, b) => a + b));                // 6
 print(["10", "2"].map(int));                             // [10, 2]
+print(["a", "b"].map((x, i) => "{i}:{x}"));              // ["0:a", "1:b"]
+print([5, 6, 7].filter((_, i) => i % 2 == 0));           // [5, 7]
 ```
 
 ## Sorting

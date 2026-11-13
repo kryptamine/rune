@@ -112,6 +112,7 @@ const (
 	opThrow     // throw R[A]
 	opRethrow   // throw the caught error in R[A] again
 	opNoMatch   // fail: no match arm matches R[A]
+	opSame      // fail unless R[A] is still R[B]: variable K[C] changed while a mut method of its value ran
 	opTry       // catch errors at C, into R[A] if Y, and the error into R[A+1] if X
 	opEndTry    // drop B handlers
 
@@ -259,7 +260,7 @@ var opNames = [...]string{
 	"ADD", "SUB", "MUL", "DIV", "MOD", "ADDK", "SUBK", "MULK", "DIVK", "MODK", "CMP", "CMPK", "IS", "NEG", "NOT", "INCR", "BITWISE", "BITNOT",
 	"JMP", "JMPIF", "JMPCMP", "JMPCMPK", "JMPNOTTYPE", "JMPNIL", "JMPDEFINED", "JMPNOTLEN",
 	"ARRAY", "CONCAT", "OBJECT", "STRUCT", "UNDEF", "STRUCTSPREAD", "STRUCTFILL", "GETINDEX", "GETPROP", "GETINDEX?", "GETPROP?", "SETINDEX", "SETPROP", "SETOWNED", "CHECKPROP", "TESTPROP", "RANGE", "SPREAD", "UNPACK", "OMIT",
-	"CLOSURE", "CALL", "CALLARRAY", "INVOKE", "METHOD", "RETURN", "RETURNNIL", "THROW", "RETHROW", "NOMATCH", "TRY", "ENDTRY",
+	"CLOSURE", "CALL", "CALLARRAY", "INVOKE", "METHOD", "RETURN", "RETURNNIL", "THROW", "RETHROW", "NOMATCH", "SAME", "TRY", "ENDTRY",
 	"FORRANGE", "FORRANGENEXT", "FORITER", "FORITERNEXT",
 }
 

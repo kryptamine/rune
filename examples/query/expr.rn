@@ -1,0 +1,242 @@
+// Expressions compiled to closures over a row, an array of values
+
+import .ast;
+
+struct Field { table, name }
+
+// Scope names the columns of a row.
+export struct Scope { fields = [] }
+
+impl Scope {
+    fun of(alias, columns) { return Scope { fields: columns.map(name => Field { table: alias, name }) }; }
+
+    fun plus(self, other) { return Scope { fields: [...self.fields, ...other.fields] }; }
+
+    fun find(self, col) {
+        let mut found = -1;
+        for i, f in self.fields {
+            if f.name != col.name || (col.table != nil && f.table != col.table) continue;
+            if found >= 0 throw ast.SqlError { message: "column '{col.name}' is ambiguous, say which table: {self.fields[found].table}.{col.name} or {f.table}.{col.name}", pos: col.pos };
+            found = i;
+        }
+        return found;
+    }
+
+    fun resolve(self, col) {
+        let i = self.find(col);
+        if i >= 0 return i;
+        if col.table != nil && !self.fields.some(f => f.table == col.table) {
+            throw ast.SqlError { message: "unknown table '{col.table}'", pos: col.pos };
+        }
+        let names = self.fields.filter(f => col.table == nil || f.table == col.table).map(f => f.name);
+        throw ast.SqlError { message: "unknown column '{ast.sql(col)}'" + ast.suggest(col.name, names), pos: col.pos };
+    }
+
+    fun covers(self, e) {
+        return ast.columnsOf(e).every(c => self.find(c) >= 0);
+    }
+
+    // check fails on the first column of e it has not.
+    fun check(self, e) {
+        for c in ast.columnsOf(e) self.resolve(c);
+    }
+}
+
+// Ctx is what a compiled expression reads: the columns of scope, or in a
+// grouped query a row of the expressions group lists as SQL, the keys
+// then the aggregates.
+export struct Ctx { scope, group = nil }
+
+export fun compile(e, ctx) {
+    if ctx.group != nil {
+        let k = ctx.group.indexOf(ast.sql(e));
+        if k >= 0 return row => row[k];
+        if e is ast.Col throw ast.SqlError { message: "'{ast.sql(e)}' must be in GROUP BY or inside an aggregate", pos: e.pos };
+    } else if ast.isAggregate(e) {
+        throw ast.SqlError { message: "{e.name} is an aggregate and cannot be used here", pos: e.pos };
+    }
+
+    let c = x => compile(x, ctx);
+
+    return match e {
+        ast.Lit { value } => _ => value,
+        _ is ast.Col => {
+            let i = ctx.scope.resolve(e);
+            return row => row[i];
+        }
+        ast.Unary { op: "-", expr } => {
+            let f = c(expr);
+            return row => {
+                let v = f(row);
+                return v == nil ? nil : -v;
+            };
+        }
+        ast.Unary { op: "NOT", expr } => {
+            let f = c(expr);
+            return row => {
+                let v = f(row);
+                return v == nil ? nil : !v;
+            };
+        }
+        ast.Binary { op: "AND", left, right } => {
+            let [l, r] = [c(left), c(right)];
+            return row => {
+                let a = l(row);
+                if a == false return false;
+                let b = r(row);
+                if b == false return false;
+                return a == nil || b == nil ? nil : true;
+            };
+        }
+        ast.Binary { op: "OR", left, right } => {
+            let [l, r] = [c(left), c(right)];
+            return row => {
+                let a = l(row);
+                if a == true return true;
+                let b = r(row);
+                if b == true return true;
+                return a == nil || b == nil ? nil : false;
+            };
+        }
+        ast.Binary { op, left, right } => binary(op, c(left), c(right)),
+        ast.IsNull { expr, not } => {
+            let f = c(expr);
+            return row => (f(row) == nil) != not;
+        }
+        ast.InList { expr, list, not } => {
+            let f = c(expr);
+            if list.every(x => x is ast.Lit) {
+                let values = set(list.map(x => x.value));
+                return row => {
+                    let v = f(row);
+                    return v == nil ? nil : values.contains(v) != not;
+                };
+            }
+            let fs = list.map(c);
+            return row => {
+                let v = f(row);
+                return v == nil ? nil : fs.some(g => g(row) == v) != not;
+            };
+        }
+        ast.Between { expr, lo, hi, not } => {
+            let [f, l, h] = [c(expr), c(lo), c(hi)];
+            return row => {
+                let v = f(row);
+                if v == nil return nil;
+                return (v >= l(row) && v <= h(row)) != not;
+            };
+        }
+        ast.Like { expr, pattern: ast.Lit { value: p is string }, not } => {
+            let f = c(expr);
+            let re = likeRegex(p);
+            return row => {
+                let v = f(row);
+                return v == nil ? nil : regex.test(re, string(v)) != not;
+            };
+        }
+        ast.Like { pattern } => throw ast.SqlError { message: "LIKE takes a string literal", pos: ast.columnsOf(pattern)?.[0]?.pos },
+        ast.Case { whens, otherwise } => {
+            let arms = whens.map(([cond, v]) => [c(cond), c(v)]);
+            let other = otherwise == nil ? (_ => nil) : c(otherwise);
+            return row => {
+                for [cond, v] in arms {
+                    if cond(row) == true return v(row);
+                }
+                return other(row);
+            };
+        }
+        ast.Call { name: "COALESCE", args, pos } => {
+            if args.len() == 0 throw ast.SqlError { message: "COALESCE takes at least one argument", pos };
+            let fs = args.map(c);
+            return row => {
+                for g in fs {
+                    let v = g(row);
+                    if v != nil return v;
+                }
+                return nil;
+            };
+        }
+        ast.Call { name, args, pos } => scalar(name, args.map(c), pos),
+    };
+}
+
+fun binary(op, l, r) {
+    let strict = f => row => {
+        let a = l(row);
+        let b = r(row);
+        return a == nil || b == nil ? nil : f(a, b);
+    };
+    return match op {
+        "+" => strict((a, b) => a + b),
+        "-" => strict((a, b) => a - b),
+        "*" => strict((a, b) => a * b),
+        "/" => strict((a, b) => b == 0 ? nil : a / b),
+        "%" => strict((a, b) => b == 0 ? nil : a % b),
+        "||" => strict((a, b) => string(a) + string(b)),
+        "=" => strict((a, b) => a == b),
+        "<>" => strict((a, b) => a != b),
+        "<" => strict((a, b) => compare(a, b) < 0),
+        "<=" => strict((a, b) => compare(a, b) <= 0),
+        ">" => strict((a, b) => compare(a, b) > 0),
+        ">=" => strict((a, b) => compare(a, b) >= 0),
+    };
+}
+
+// A scalar function gives NULL if any argument is NULL.
+struct Scalar { f, min = 1, max = 1 }
+
+let SCALARS = {
+    LOWER: Scalar { f: s => string(s).lower() },
+    UPPER: Scalar { f: s => string(s).upper() },
+    LENGTH: Scalar { f: s => string(s).len() },
+    ABS: Scalar { f: math.abs },
+    ROUND: Scalar { f: (x, d = 0) => math.round(x * math.pow(10, d)) / math.pow(10, d), max: 2 },
+    SUBSTR: Scalar {
+        f: (s, start, n = nil) => {
+            let from = math.max(start - 1, 0);
+            return n == nil ? string(s).slice(from) : string(s).slice(from, from + n);
+        },
+        min: 2,
+        max: 3,
+    },
+};
+
+fun scalar(name, fs, pos) {
+    let { f, min, max } = SCALARS?.[name] ?? throw ast.SqlError {
+        message: "unknown function {name}" + ast.suggest(name, [...object(SCALARS).keys(), "COALESCE", ...ast.AGGREGATES]),
+        pos,
+    };
+    if fs.len() < min || fs.len() > max {
+        throw ast.SqlError { message: "{name} takes {min == max ? min : "{min} to {max}"} arguments, got {fs.len()}", pos };
+    }
+
+    return match fs {
+        [a] => row => {
+            let x = a(row);
+            return x == nil ? nil : f(x);
+        },
+        _ => row => {
+            let xs = fs.map(g => g(row));
+            return xs.contains(nil) ? nil : f(...xs);
+        },
+    };
+}
+
+fun likeRegex(p) {
+    let mut out = ["(?is)^"];
+    for ch in p.split("") {
+        out.push(match ch { "%" => ".*", "_" => ".", _ => regex.escape(ch) });
+    }
+    out.push("$");
+    return out.join("");
+}
+
+// NULLs first, then numbers, then strings.
+export fun compare(a, b) {
+    if a == b return 0;
+    if a == nil return -1;
+    if b == nil return 1;
+    let [ta, tb] = [type(a), type(b)];
+    if ta != tb return ta == "number" ? -1 : 1;
+    return a < b ? -1 : 1;
+}
