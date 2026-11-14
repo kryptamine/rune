@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>Rune</h1>
+  <img src="assets/banner.png" alt="Rune" width="100%">
   <p>A small, dynamically typed scripting language with a bytecode VM, shipped as a single static binary.</p>
   <p>
     <a href="https://github.com/kryptamine/rune/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/kryptamine/rune/ci.yml?branch=master&style=for-the-badge&logo=githubactions&logoColor=white&label=CI&labelColor=000000" alt="CI status"></a>
@@ -14,11 +14,10 @@
   </p>
 </div>
 
-Inspired by [Lox](https://github.com/munificent/craftinginterpreters) from
-[Crafting Interpreters](https://craftinginterpreters.com/). Written in Go: the
-AST is compiled to register bytecode and run by a VM.
+Inspired by JavaScript, Python, Rust and Swift. Written in Go: the AST is
+compiled to register bytecode and run by a VM.
 
-```js
+```rust
 struct Point { x, y = 0 }
 
 impl Point {
