@@ -398,6 +398,13 @@ reload:
 					pc++
 				}
 			} else if k == value.Object {
+				if v, ok := t.Obj().Interned(*at(consts, in.c())); ok {
+					*at(regs, in.a()) = v
+					pc++
+
+					continue
+				}
+
 				fr.pc = pc
 				dst := at(regs, in.a())
 
@@ -415,6 +422,25 @@ reload:
 					*at(regs, in.a()) = arr[idx]
 					continue
 				}
+			} else if t.Kind() == value.Object && i.IsString() {
+				if v, ok := t.Obj().Interned(i); ok {
+					*at(regs, in.a()) = v
+					continue
+				}
+			}
+
+			goto slow
+
+		case opSetIndex:
+			if t, i := *at(regs, in.a()), *at(regs, in.b()); t.Kind() == value.Array && i.IsInt() {
+				if arr, idx := t.Arr(), i.Int(); uint64(idx) < uint64(len(arr)) {
+					arr[idx] = *at(regs, in.c())
+					continue
+				}
+			} else if t.Kind() == value.Object && i.IsString() {
+				if t.Obj().SetInterned(i, *at(regs, in.c())) {
+					continue
+				}
 			}
 
 			goto slow
@@ -427,6 +453,11 @@ reload:
 					continue
 				}
 			} else if k == value.Object {
+				if v, ok := t.Obj().Interned(*at(consts, in.c())); ok {
+					*at(regs, in.a()) = v
+					continue
+				}
+
 				fr.pc = pc
 				dst := at(regs, in.a())
 
@@ -441,6 +472,10 @@ reload:
 		case opSetProp:
 			t := *at(regs, in.a())
 			if k := t.Kind(); k == value.Object {
+				if t.Obj().SetInterned(*at(consts, in.b()), *at(regs, in.c())) {
+					continue
+				}
+
 				fr.pc = pc
 				t.Obj().Set(at(consts, in.b()).Str(), *at(regs, in.c()))
 
@@ -547,6 +582,15 @@ reload:
 				}
 
 				fr.pc = pc
+
+				if m.ID < len(p.fast) && p.fast[m.ID] != nil {
+					dst, recv := at(regs, in.a()), fr.base+in.a()+1
+					if v, ok := p.fast[m.ID](p.stack[recv : recv+1+in.b()]); ok {
+						*dst = v
+						goto reload
+					}
+				}
+
 				if err = p.callNativeMethod(fr.base+in.a(), in.b(), fn.Fn().(*stdlib.Native), fr.cl.proto.toks[pc-1]); err != nil {
 					goto fail
 				}

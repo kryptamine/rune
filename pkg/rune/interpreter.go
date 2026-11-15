@@ -48,12 +48,17 @@ type Interpreter struct {
 	// methods holds the closure of each method; kinds the built-in types'.
 	methods []value.Value
 	kinds   *[value.NumKinds][]value.Method
+	// fast holds the built-in methods that need no call, by method ID.
+	fast []stdlib.Fast
 	// cursors holds array cursors of finished loops, for reuse.
 	cursors []*cursor
 }
 
 func NewInterpreter(stdio *stdlib.Stdio) *Interpreter {
-	return &Interpreter{maxRecursion: maxRecursionDepth, host: stdlib.NewHost(stdio)}
+	p := &Interpreter{maxRecursion: maxRecursionDepth, fast: stdlib.FastMethods}
+	p.host = stdlib.NewHost(stdio, p)
+
+	return p
 }
 
 // Interrupt stops Run at the next call or loop iteration, from any
@@ -147,6 +152,21 @@ func (p *Interpreter) grow(n int) {
 
 // CallValue calls fn with args from a native; fn does not keep args.
 func (p *Interpreter) CallValue(fn value.Value, args []value.Value, token *ast.Token) (value.Value, error) {
+	// A closure taking just args, as for opCall.
+	if fn.Kind() == value.Function && fn.TypeID() == closureID {
+		if f := (*Closure)(fn.Ptr()); len(args) == f.proto.exact && len(p.frames) <= p.maxRecursion {
+			top := &p.frames[len(p.frames)-1]
+			at := top.base + top.cl.proto.nregs
+
+			p.grow(at + 1 + f.proto.nregs)
+			p.stack[at] = fn
+			copy(p.stack[at+1:], args)
+			p.frames = append(p.frames, frame{cl: f, base: at + 1})
+
+			return p.run(len(p.frames) - 1)
+		}
+	}
+
 	switch fn.Kind() {
 	case value.Type:
 		return convert(token, fn.TypeShape(), args)
@@ -168,9 +188,9 @@ func (p *Interpreter) CallValue(fn value.Value, args []value.Value, token *ast.T
 		case *BoundMethod:
 			return p.CallValue(value.NewFunction(f.fn), append([]value.Value{f.recv}, args...), token)
 		case *BoundNative:
-			return p.host.CallMethod(f.fn, p, append([]value.Value{f.recv}, args...), token)
+			return p.host.CallMethod(f.fn, append([]value.Value{f.recv}, args...), token)
 		case *stdlib.Native:
-			return p.host.Call(f, p, args, token)
+			return p.host.Call(f, args, token)
 		}
 	}
 

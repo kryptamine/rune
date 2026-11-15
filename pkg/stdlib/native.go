@@ -28,21 +28,38 @@ type Native struct {
 	fn       func(c *call) value.Value
 }
 
-// Host is what natives run with; each interpreter owns one. It holds the
-// program's stdio and a context Cancel ends, and reuses call frames.
+// Host is what natives run with; each interpreter owns one, and is its
+// caller. It holds the program's stdio and a context Cancel ends, and
+// reuses call frames.
 type Host struct {
 	Stdio  *Stdio
+	caller Caller
 	ctx    context.Context
 	cancel context.CancelFunc
 	free   []*call
 	// regexes caches the patterns compiled so far.
 	regexes map[string]*regexp.Regexp
 	streams map[*Stream]struct{}
+	// buf and tmp are scratch for print and format, which box their
+	// arguments for fmt in the fields after.
+	buf, tmp []byte
+	fmtInt   int64
+	fmtFloat float64
+	fmtStr   string
 }
 
-func NewHost(stdio *Stdio) *Host {
+// maxScratch is the largest scratch buffer a host keeps.
+const maxScratch = 64 << 10
+
+func (f *Host) keep(buf []byte) {
+	if cap(buf) <= maxScratch {
+		f.buf = buf[:0]
+	}
+}
+
+func NewHost(stdio *Stdio, caller Caller) *Host {
 	ctx, cancel := context.WithCancel(context.Background())
-	return &Host{Stdio: stdio, ctx: ctx, cancel: cancel}
+	return &Host{Stdio: stdio, caller: caller, ctx: ctx, cancel: cancel}
 }
 
 // Cancel stops what natives are waiting on, such as a running command;
@@ -50,19 +67,19 @@ func NewHost(stdio *Stdio) *Host {
 func (f *Host) Cancel() { f.cancel() }
 
 // Call runs n; it must not keep args.
-func (f *Host) Call(n *Native, caller Caller, args []value.Value, token *ast.Token) (value.Value, error) {
-	return f.call(n, caller, args, token, 0)
+func (f *Host) Call(n *Native, args []value.Value, token *ast.Token) (value.Value, error) {
+	return f.call(n, args, token, 0)
 }
 
 // CallMethod runs the method n with its receiver as args[0]; errors count
 // the arguments after it.
-func (f *Host) CallMethod(n *Native, caller Caller, args []value.Value, token *ast.Token) (value.Value, error) {
-	return f.call(n, caller, args, token, 1)
+func (f *Host) CallMethod(n *Native, args []value.Value, token *ast.Token) (value.Value, error) {
+	return f.call(n, args, token, 1)
 }
 
-func (f *Host) call(n *Native, caller Caller, args []value.Value, token *ast.Token, self int) (value.Value, error) {
+func (f *Host) call(n *Native, args []value.Value, token *ast.Token, self int) (value.Value, error) {
 	c := f.get()
-	*c = call{caller: caller, host: f, args: args, token: token, name: n.name, self: self}
+	c.args, c.token, c.n, c.self = args, token, n, self
 
 	var v value.Value
 
@@ -72,11 +89,12 @@ func (f *Host) call(n *Native, caller Caller, args []value.Value, token *ast.Tok
 		v = n.fn(c)
 	}
 
-	// Not zeroed: get overwrites it, and it only points at long-lived state.
+	// Not zeroed: call overwrites it, and it only points at long-lived state.
 	f.free = append(f.free, c)
 
-	if c.err != nil {
-		return value.NilValue, errors.WithFrame(c.err, errors.Frame{Name: n.name, File: token.File, Line: token.Line, Native: true})
+	if err := c.err; err != nil {
+		c.err = nil
+		return value.NilValue, errors.WithFrame(err, errors.Frame{Name: n.name, File: token.File, Line: token.Line, Native: true})
 	}
 
 	return v, nil
@@ -85,7 +103,7 @@ func (f *Host) call(n *Native, caller Caller, args []value.Value, token *ast.Tok
 func (f *Host) get() *call {
 	n := len(f.free)
 	if n == 0 {
-		return &call{}
+		return &call{host: f}
 	}
 
 	c := f.free[n-1]
@@ -115,11 +133,10 @@ func (n *Native) String() string { return "<native fn " + n.name + ">" }
 // call is one invocation of a native. The first failure sticks: later
 // accessors return zero values and the native's result is discarded.
 type call struct {
-	caller Caller
-	host   *Host
-	args   []value.Value
-	token  *ast.Token
-	name   string
+	host  *Host
+	args  []value.Value
+	token *ast.Token
+	n     *Native
 	// self is 1 for a method, whose receiver is args[0].
 	self int
 	err  error
@@ -131,7 +148,7 @@ func (c *call) has(i int) bool { return i < len(c.args) }
 
 func (c *call) fail(kind *value.Shape, format string, a ...any) value.Value {
 	if c.err == nil {
-		c.err = errors.NewRuntimeError(kind, *c.token, c.name+"() "+fmt.Sprintf(format, a...))
+		c.err = errors.NewRuntimeError(kind, *c.token, c.n.name+"() "+fmt.Sprintf(format, a...))
 	}
 
 	return value.NilValue
@@ -196,7 +213,7 @@ func (c *call) invoke(fn value.Value, args []value.Value) value.Value {
 		return value.NilValue
 	}
 
-	v, err := c.caller.CallValue(fn, args, c.token)
+	v, err := c.host.caller.CallValue(fn, args, c.token)
 	if err != nil {
 		c.err = err
 	}
@@ -341,6 +358,26 @@ type Method struct {
 	Fn      value.Value
 	InPlace bool
 }
+
+// Fast is a method that needs no call frame: it neither fails nor calls
+// back. args[0] is the receiver; false sends the call the usual way.
+type Fast func(args []value.Value) (value.Value, bool)
+
+// FastMethods holds the Fast of each of Methods that has one.
+var FastMethods = func() []Fast {
+	out := make([]Fast, len(Methods))
+
+	for i, m := range Methods {
+		switch {
+		case m.Name == "len":
+			out[i] = lengthFast
+		case m.Kind == value.Array && m.Name == "push":
+			out[i] = pushFast
+		}
+	}
+
+	return out
+}()
 
 // Methods are the methods of the built-in types.
 var Methods = func() (out []Method) {

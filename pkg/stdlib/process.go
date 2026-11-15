@@ -35,12 +35,13 @@ var ExecResult = value.NewShape("ExecResult", []value.Field{
 
 func writer(name string, newline bool, write func(*Stdio, []byte)) *Native {
 	return &Native{name, 1, 1, func(c *call) value.Value {
-		b := helpers.AppendValue(nil, c.args[0])
+		b := helpers.AppendValue(c.host.buf[:0], c.args[0])
 		if newline {
 			b = append(b, '\n')
 		}
 
 		write(c.host.Stdio, b)
+		c.host.keep(b)
 
 		return value.NilValue
 	}}
@@ -157,7 +158,7 @@ var osNatives = []*Native{
 		case stderrors.As(err, &ee):
 			code = ee.ExitCode()
 		case stderrors.Is(err, exec.ErrNotFound):
-			c.err = errors.NewIOError(*c.token, c.name+"() "+err.Error()+".", cmd.Path, "notFound")
+			c.err = errors.NewIOError(*c.token, c.n.name+"() "+err.Error()+".", cmd.Path, "notFound")
 			return value.NilValue
 		default:
 			return c.ioFail(err)

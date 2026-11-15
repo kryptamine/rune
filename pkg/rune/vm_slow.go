@@ -373,7 +373,7 @@ func (p *Interpreter) callAt(at, n int, tok *ast.Token) error {
 		return p.callNativeMethod(at, n, f.fn, tok)
 	}
 
-	v, err := p.host.Call(fn.Fn().(*stdlib.Native), p, p.stack[at+1:at+1+n], tok)
+	v, err := p.host.Call(fn.Fn().(*stdlib.Native), p.stack[at+1:at+1+n], tok)
 	if err == nil {
 		// The call may have grown the stack.
 		p.stack[at] = v
@@ -385,7 +385,7 @@ func (p *Interpreter) callAt(at, n int, tok *ast.Token) error {
 // callNativeMethod calls nat on the receiver at stack[at+1] with the n
 // arguments after it, leaving the result at stack[at].
 func (p *Interpreter) callNativeMethod(at, n int, nat *stdlib.Native, tok *ast.Token) error {
-	v, err := p.host.CallMethod(nat, p, p.stack[at+1:at+2+n], tok)
+	v, err := p.host.CallMethod(nat, p.stack[at+1:at+2+n], tok)
 	if err == nil {
 		p.stack[at] = v
 	}

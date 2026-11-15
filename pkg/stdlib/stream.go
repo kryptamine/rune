@@ -169,7 +169,7 @@ func (c *call) stream(i int) *Stream {
 // streamFail reports err of stream s as an IOError naming it.
 func (c *call) streamFail(s *Stream, err error) value.Value {
 	if c.err == nil {
-		c.err = errors.NewIOError(*c.token, c.name+"() "+s.name+": "+err.Error()+".", s.name, ioCode(err))
+		c.err = errors.NewIOError(*c.token, c.n.name+"() "+s.name+": "+err.Error()+".", s.name, ioCode(err))
 	}
 
 	return value.NilValue
