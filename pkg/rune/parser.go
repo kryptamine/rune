@@ -34,11 +34,6 @@ const (
 	structsNone
 )
 
-// ParseExpr parses a single expression and stops at the first error.
-func ParseExpr(tokens []ast.Token) (ast.Expr, error) {
-	return newParser(tokens).expression()
-}
-
 // importDecl is `import a.b;` or `import a.b as m;`; tok is its first
 // segment, as the name it binds: its last segment or alias. A name with
 // leading dots is relative: `.a` is next to the importing file, `..a` in

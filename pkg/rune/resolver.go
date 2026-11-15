@@ -145,13 +145,6 @@ func (p *Resolver) declareMain(name ast.Token, fn *ast.FunctionStmt) {
 	}
 }
 
-// ResolveExpr resolves a lone expression.
-func (p *Resolver) ResolveExpr(expr ast.Expr) []error {
-	p.resolveExpr(expr)
-
-	return p.errors
-}
-
 func (p *Resolver) VisitExprStmt(exprStmt *ast.ExprStmt) error {
 	p.resolveExpr(exprStmt.Expr)
 	return nil

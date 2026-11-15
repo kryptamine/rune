@@ -62,14 +62,6 @@ hello, ann!
 ## Interpreter Commands
 
 - `run` — runs the program in the file.
-- `evaluate` — evaluates a single expression in the file and prints its value.
-- `tokenize` — prints the tokens of the file.
 - `disasm` — prints the bytecode the file compiles to.
 - `fmt` — prints the file formatted; `fmt -w <path>...` rewrites files and directories in place, `fmt --check <path>...` lists the unformatted ones and exits 1.
 - `version` — prints the interpreter's version.
-
-```sh
-$ echo '(2 + 3) * 4' > expr.rn
-$ rune evaluate expr.rn
-20
-```

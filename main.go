@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"rune/pkg/errors"
-	"rune/pkg/helpers"
 	"rune/pkg/rune"
 	"rune/pkg/stdlib"
 	"runtime/debug"
@@ -42,8 +41,6 @@ func printUsage() {
 	fmt.Fprintf(os.Stderr, "A simple interpreter for processing and evaluating scripts.\n\n")
 	fmt.Fprintf(os.Stderr, "Usage: rune <command> <filename> [args...]\n")
 	fmt.Fprintf(os.Stderr, "Commands:\n")
-	fmt.Fprintf(os.Stderr, "  tokenize  - Tokenizes the input file\n")
-	fmt.Fprintf(os.Stderr, "  evaluate  - Evaluates a single expression from the input file\n")
 	fmt.Fprintf(os.Stderr, "  run       - Runs the program from the input file\n")
 	fmt.Fprintf(os.Stderr, "  disasm    - Prints the bytecode of the program in the input file\n")
 	fmt.Fprintf(os.Stderr, "  fmt       - Formats the input files; -w rewrites them, --check lists unformatted ones\n")
@@ -52,56 +49,14 @@ func printUsage() {
 }
 
 var commands = map[string]func(stdout, stderr io.Writer, path string, src []byte, args []string) int{
-	"tokenize": tokenize,
-	"evaluate": evaluate,
-	"run":      run,
-	"disasm":   disasm,
-	"fmt":      formatFile,
+	"run":    run,
+	"disasm": disasm,
+	"fmt":    formatFile,
 }
 
 // soleFile is src as the one file of a program.
 func soleFile(path string, src []byte) []errors.File {
 	return []errors.File{{Path: filepath.Base(path), Source: string(src)}}
-}
-
-func tokenize(stdout, stderr io.Writer, path string, src []byte, _ []string) int {
-	tokens, errs := rune.Scan(src)
-	for _, token := range tokens {
-		fmt.Fprintln(stdout, token)
-	}
-
-	if len(errs) == 0 {
-		return exitCodeOk
-	}
-
-	printErrors(stderr, errs, soleFile(path, src))
-
-	return exitCodeParseError
-}
-
-func evaluate(stdout, stderr io.Writer, path string, src []byte, _ []string) int {
-	files := soleFile(path, src)
-
-	tokens, errs := rune.Scan(src)
-	if len(errs) > 0 {
-		printErrors(stderr, errs, files)
-		return exitCodeParseError
-	}
-
-	expr, err := rune.ParseExpr(tokens)
-	if err != nil {
-		printError(stderr, err, files)
-		return exitCodeParseError
-	}
-
-	result, err := rune.NewInterpreter(stdio(stdout, stderr)).Evaluate(expr)
-	if err != nil {
-		return exitStatus(stderr, err, files)
-	}
-
-	fmt.Fprintln(stdout, helpers.Stringify(result))
-
-	return exitCodeOk
 }
 
 func printErrors(w io.Writer, errs []error, files []errors.File) {
