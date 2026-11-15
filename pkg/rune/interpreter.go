@@ -77,23 +77,6 @@ var builtinValues = sync.OnceValue(func() map[string]value.Value {
 	return m
 })
 
-func (p *Interpreter) Evaluate(expr ast.Expr) (value.Value, error) {
-	r := NewResolver()
-	if errs := r.ResolveExpr(expr); len(errs) > 0 {
-		return value.NilValue, errs[0]
-	}
-
-	prog, err := compileExpr(expr, r.builtinLocals(), r.methodTable())
-	if err != nil {
-		return value.NilValue, err
-	}
-
-	defer p.host.Stdio.Flush()
-	defer p.host.CloseStreams()
-
-	return p.exec(prog, nil)
-}
-
 // Run runs prog with args. A program that exits with a code, by os.exit
 // or main returning one, returns a stdlib.Exit.
 func (p *Interpreter) Run(prog *Program, args []string) error {

@@ -17,38 +17,7 @@
 Inspired by JavaScript, Python, Rust and Swift. Written in Go: the AST is
 compiled to register bytecode and run by a VM.
 
-```rust
-enum Shape {
-    Circle { r },
-    Rect { w, h },
-}
-
-impl Shape {
-    fun area(self) => match self {
-        Shape.Circle { r } => 3.14 * r * r,
-        Shape.Rect { w, h } => w * h,
-    };
-}
-
-fun parse(line) {
-    let [kind, ...dims] = line.split(" ");
-    let [a, b = a] = dims.map(int);
-    return match kind {
-        "circle" => Shape.Circle { r: a },
-        "rect" | "square" => Shape.Rect { w: a, h: b },
-        _ => throw ValueError { message: "unknown shape '{kind}'" },
-    };
-}
-
-let input = ["circle 2", "rect 3 4", "square 5", "hexagon 1", "rect x"];
-let parsed = input.map(line => try parse(line) catch e => e);
-
-for e in parsed.filter(p => p is ValueError) { print("skip: {e.message}"); }
-
-let mut shapes = parsed.filter(p => p is Shape);
-shapes.sort((a, b) => b.area() - a.area());
-for s in shapes { print("{s.area()}\t{s}"); }
-```
+<img src="assets/example.png" alt="Rune example" width="100%">
 
 ```
 skip: unknown shape 'hexagon'

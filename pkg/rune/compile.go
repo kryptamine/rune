@@ -97,18 +97,6 @@ func compile(stmts []ast.Stmt, builtins []namedLocal, main *ast.FunctionStmt, me
 	})
 }
 
-// compileExpr compiles a lone expression into a program returning it.
-func compileExpr(expr ast.Expr, builtins []namedLocal, methods methodTable) (*Program, error) {
-	return compileScript(methods, func(fs *funcState, _ *ast.Local) *ast.Token {
-		fs.declareTopLevel(nil, builtins)
-		r := fs.alloc()
-		fs.expr(expr, r)
-		fs.emit(ins{op: opReturn, a: r}, nil)
-
-		return nil
-	})
-}
-
 // compileScript compiles the top level, whose one parameter is args; body
 // returns the name of main, if it calls one. A call names a method of a
 // built-in type by the string the method has.
