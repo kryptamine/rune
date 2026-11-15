@@ -3,6 +3,7 @@ package rune
 import (
 	stderrors "errors"
 	"fmt"
+	"math/bits"
 	"rune/pkg/ast"
 	"rune/pkg/errors"
 	"rune/pkg/helpers"
@@ -20,10 +21,13 @@ const maxRecursionDepth = 10_000
 
 // frame is a running call: its registers start at stack[base], and the
 // callee itself sits just below them, where its result goes.
+// inout has the bits of the arguments the frame's last call writes
+// back that are yet to go back.
 type frame struct {
-	cl   *Closure
-	pc   int
-	base int
+	cl    *Closure
+	pc    int
+	base  int
+	inout uint32
 }
 
 // handler is an active try: an error in frames[frame] or above resumes at
@@ -139,7 +143,7 @@ func (p *Interpreter) grow(n int) {
 func (p *Interpreter) CallValue(fn value.Value, args []value.Value, token *ast.Token) (value.Value, error) {
 	// A closure taking just args, as for opCall.
 	if fn.Kind() == value.Function && fn.TypeID() == closureID {
-		if f := (*Closure)(fn.Ptr()); len(args) == f.proto.exact && len(p.frames) <= p.maxRecursion {
+		if f := (*Closure)(fn.Ptr()); len(args) == f.proto.exact && f.proto.inout == 0 && len(p.frames) <= p.maxRecursion {
 			top := &p.frames[len(p.frames)-1]
 			at := top.base + top.cl.proto.nregs
 
@@ -165,7 +169,7 @@ func (p *Interpreter) CallValue(fn value.Value, args []value.Value, token *ast.T
 			p.stack[at] = fn
 			copy(p.stack[at+1:], args)
 
-			if err := p.enter(f, at+1, len(args), token); err != nil {
+			if err := p.enter(f, at+1, len(args), token, 0); err != nil {
 				return value.NilValue, err
 			}
 
@@ -199,11 +203,19 @@ func (p *Interpreter) Required(fn value.Value) int {
 	return 1
 }
 
-// enter pushes a frame calling cl with the nargs arguments at stack[base:].
-func (p *Interpreter) enter(cl *Closure, base, nargs int, tok *ast.Token) error {
+// enter pushes a frame calling cl with the nargs arguments at stack[base:],
+// of which the call writes back those inout has bits for.
+func (p *Interpreter) enter(cl *Closure, base, nargs int, tok *ast.Token, inout uint32) error {
 	f := cl.proto
 	if !f.accepts(nargs) || len(p.frames) > p.maxRecursion {
 		return p.callError(cl, nargs, tok)
+	}
+
+	if f.inout != 0 {
+		if lost := f.inout & (1<<nargs - 1) &^ inout; lost != 0 {
+			return errors.NewRuntimeError(errors.TypeError, *tok, fmt.Sprintf(
+				"Mut parameter '%s' of %s takes a mutable variable, element or property.", f.params[bits.TrailingZeros32(lost)], f.displayName()))
+		}
 	}
 
 	if need := base + f.nregs; need > len(p.stack) {
@@ -268,6 +280,10 @@ func (p *Interpreter) unwind(err error, stop int) error {
 			p.stack[f.base+h.reg] = rt.Value()
 		}
 
+		for i := len(p.frames) - 1; i > h.frame; i-- {
+			p.restore(&p.frames[i])
+		}
+
 		p.frames = p.frames[:h.frame+1]
 		f.pc = h.pc
 
@@ -282,6 +298,36 @@ func (p *Interpreter) unwind(err error, stop int) error {
 	p.dropHandlers(stop)
 
 	return err
+}
+
+// restore puts the mut parameters of fr, which an error leaves, back
+// into their registers for the caller's write-back, once fr has set them up.
+func (p *Interpreter) restore(fr *frame) {
+	f := fr.cl.proto
+	if len(f.restore) == 0 || fr.pc <= f.prologue {
+		return
+	}
+
+	for _, r := range f.restore {
+		reg := &p.stack[fr.base+r.reg]
+		if r.cell {
+			*reg = (*Cell)(reg.Ptr()).v
+			value.Share(*reg)
+		} else {
+			*reg = p.stack[fr.base+r.from]
+		}
+	}
+}
+
+// resume makes the caller at frames[caller] write back, at off past the
+// call, the arguments of the inout site that cl, entered by the call,
+// has mut parameters for.
+func (p *Interpreter) resume(caller int, cl *Closure, inout uint32, off int) {
+	if m := cl.proto.inout & inout; m != 0 && len(p.frames) == caller+2 && p.frames[caller+1].cl == cl {
+		fr := &p.frames[caller]
+		fr.inout = m
+		fr.pc += off
+	}
 }
 
 // trace records in rt the frames from the top down to frames[from].

@@ -719,6 +719,8 @@ func (fs *funcState) call(n *ast.CallExpr, dst int32) {
 		return
 	}
 
+	places := fs.inouts(n)
+
 	// The callee goes in dst when nothing above it is in use.
 	base := dst
 	if dst < fs.nactive || dst+1 != fs.free {
@@ -732,11 +734,24 @@ func (fs *funcState) call(n *ast.CallExpr, dst int32) {
 	}
 
 	if !spread {
-		for _, arg := range n.Args {
-			fs.arg(arg, fs.alloc())
+		for i, arg := range n.Args {
+			if places != nil && places[i] != nil {
+				fs.inoutArg(n, nil, places, i, fs.alloc())
+			} else {
+				fs.arg(arg, fs.alloc())
+			}
 		}
 
-		fs.emit(ins{op: opCall, a: base, b: int32(len(n.Args))}, &n.Token)
+		fs.shareInouts(places)
+		fs.protect(places, base+1, 0, &n.Token, func() {
+			fs.emit(ins{op: opCall, a: base, b: int32(len(n.Args)), x: uint8(boolNum(places != nil) * inoutSite)}, &n.Token)
+
+			if places != nil {
+				skip := fs.emit(ins{op: opJmp, a: inoutMask(places, 0)}, &n.Token)
+				fs.writeBacks(places, base+1, 0, &n.Token)
+				fs.patch([]int{skip})
+			}
+		})
 		fs.move(dst, base)
 
 		return
@@ -764,6 +779,7 @@ func (fs *funcState) invoke(n *ast.CallExpr, prop *ast.IndexExpr, dst int32) {
 	}
 
 	g := fs.guard(lv)
+	places := fs.inouts(n)
 
 	base := dst
 	if dst < fs.nactive || dst+1 != fs.free {
@@ -785,10 +801,13 @@ func (fs *funcState) invoke(n *ast.CallExpr, prop *ast.IndexExpr, dst int32) {
 		fs.nilJump(self)
 	}
 
-	for _, arg := range n.Args {
-		if sameRoot(arg, prop.Array) {
+	for i, arg := range n.Args {
+		switch {
+		case places != nil && places[i] != nil:
+			fs.inoutArg(n, prop.Array, places, i, fs.alloc())
+		case sameRoot(arg, prop.Array):
 			fs.copyExpr(arg, fs.alloc())
-		} else {
+		default:
 			fs.arg(arg, fs.alloc())
 		}
 	}
@@ -804,21 +823,39 @@ func (fs *funcState) invoke(n *ast.CallExpr, prop *ast.IndexExpr, dst int32) {
 		fs.emit(ins{op: opMove, a: base, b: fs.locals[lv.v.Local] + 1}, nil)
 	}
 
-	name := fs.constant(value.NewString(prop.Token.Lexeme))
-	x := uint8(boolNum(n.Frozen)) | uint8(boolNum(owned))<<1
-	fs.emit(ins{op: opInvoke, a: base, b: int32(len(n.Args)), c: name, x: x, y: uint8(boolNum(n.Writable))}, &prop.Token)
-
 	if lv != nil {
-		skip := fs.emit(ins{op: opJmp}, &prop.Token)
+		lv.shareDown()
+	}
 
-		if owned {
-			fs.emit(ins{op: opMove, a: fs.locals[lv.v.Local] + 1, b: self + 1}, &prop.Token)
+	fs.shareInouts(places)
+
+	name := fs.constant(value.NewString(prop.Token.Lexeme))
+	x := uint8(boolNum(n.Frozen)) | uint8(boolNum(owned))<<1 | uint8(boolNum(places != nil)*inoutSite)
+
+	fs.protect(places, self+1, 1, &prop.Token, func() {
+		fs.emit(ins{op: opInvoke, a: base, b: int32(len(n.Args)), c: name, x: x, y: uint8(boolNum(n.Writable))}, &prop.Token)
+
+		if lv == nil && places == nil {
+			return
 		}
 
-		g.check(&prop.Token)
-		lv.writeBack(n.InPlace)
+		skip := fs.emit(ins{op: opJmp, a: inoutMask(places, 1)}, &prop.Token)
+
+		if lv != nil {
+			if owned {
+				fs.emit(ins{op: opMove, a: fs.locals[lv.v.Local] + 1, b: self + 1}, &prop.Token)
+			}
+
+			g.check(&prop.Token)
+			lv.writeBack(n.InPlace)
+		}
+
+		if places != nil {
+			fs.code[skip].b = fs.here() - int32(skip)
+			fs.writeBacks(places, self+1, 1, &prop.Token)
+		}
 		fs.patch([]int{skip})
-	}
+	})
 
 	fs.move(dst, base)
 }

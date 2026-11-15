@@ -239,6 +239,10 @@ func (p *Interpreter) slow(in Instr) error {
 
 		return err
 
+	case opUnshare:
+		regs[in.a()] = value.Unshare(regs[in.a()])
+		fr.pc += int(in.x())
+
 	case opSlice:
 		v, err := slice(tok, regs[in.b()], regs[in.c()], regs[in.c()+1], in.x())
 		if err == nil {
@@ -270,7 +274,23 @@ func (p *Interpreter) slow(in Instr) error {
 		regs[in.a()] = value.NewFunction(cl)
 
 	case opCall:
-		return p.callAt(fr.base+in.a(), in.b(), tok)
+		at := fr.base + in.a()
+		if in.x()&inoutSite == 0 {
+			return p.callAt(at, in.b(), tok, 0)
+		}
+
+		inout, caller := uint32(f.code[fr.pc].a()), len(p.frames)-1
+		if err := p.callAt(at, in.b(), tok, inout); err != nil {
+			return err
+		}
+
+		if fn := p.stack[at]; fn.Kind() == value.Function {
+			if cl, ok := fn.Fn().(*Closure); ok {
+				p.resume(caller, cl, inout, 1)
+			}
+		}
+
+		return nil
 
 	case opInvoke:
 		return p.invoke(fr, in, tok)
@@ -289,7 +309,7 @@ func (p *Interpreter) slow(in Instr) error {
 		p.grow(at + 1 + len(items))
 		copy(p.stack[at+1:], items)
 
-		return p.callAt(at, len(items), tok)
+		return p.callAt(at, len(items), tok, 0)
 
 	case opSpread:
 		return spread(tok, regs[in.a()], regs[in.b()])
@@ -353,9 +373,20 @@ func (p *Interpreter) slow(in Instr) error {
 		regs[in.a()+3] = value.NewInt(0)
 
 	case opForIter:
-		// The loop walks the array as it was: a write in the body copies it.
-		value.Share(regs[in.a()])
-		c, err := p.cursorOf(regs[in.a()], in.x() != 0, tok)
+		v := regs[in.a()]
+		if in.x()&forMut != 0 {
+			if k := v.Kind(); k != value.Array && k != value.Object && k != value.Map {
+				return errors.NewRuntimeError(errors.TypeError, *tok, "A 'for mut' loop writes back into an array, object or map, not "+helpers.TypeName(v)+".")
+			}
+		}
+
+		// The loop walks the array as it was: a write in the body copies
+		// it. A for mut has it to itself, if nothing else can read it.
+		if !in.y() {
+			value.Share(v)
+		}
+
+		c, err := p.cursorOf(v, in.x()&1 != 0, tok)
 		if err == nil {
 			regs[in.a()] = value.NewInternal(c)
 		}
@@ -380,8 +411,9 @@ func (p *Interpreter) slow(in Instr) error {
 }
 
 // callAt calls the function at stack[at] with the n arguments after it,
-// leaving the result there unless it pushes a frame.
-func (p *Interpreter) callAt(at, n int, tok *ast.Token) error {
+// leaving the result there unless it pushes a frame; a closure called
+// directly writes back the arguments inout has bits for.
+func (p *Interpreter) callAt(at, n int, tok *ast.Token, inout uint32) error {
 	fn := p.stack[at]
 	if fn.Kind() == value.Type {
 		v, err := convert(tok, fn.TypeShape(), p.stack[at+1:at+1+n])
@@ -398,7 +430,7 @@ func (p *Interpreter) callAt(at, n int, tok *ast.Token) error {
 
 	switch f := fn.Fn().(type) {
 	case *Closure:
-		return p.enter(f, at+1, n, tok)
+		return p.enter(f, at+1, n, tok, inout)
 	case *BoundMethod:
 		if !f.fn.proto.accepts(n + 1) {
 			return argumentError(f.fn.proto, n+1, 1, tok)
@@ -408,7 +440,7 @@ func (p *Interpreter) callAt(at, n int, tok *ast.Token) error {
 		copy(p.stack[at+2:], p.stack[at+1:at+1+n])
 		p.stack[at], p.stack[at+1] = value.NewFunction(f.fn), f.recv
 
-		return p.enter(f.fn, at+1, n+1, tok)
+		return p.enter(f.fn, at+1, n+1, tok, 0)
 	case *BoundNative:
 		p.grow(at + 2 + n)
 		copy(p.stack[at+2:], p.stack[at+1:at+1+n])

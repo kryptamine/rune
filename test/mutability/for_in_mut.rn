@@ -1,16 +1,16 @@
-let grid = [[0, 0], [0, 0]];
+let mut grid = [[0, 0], [0, 0]];
 for mut row in grid { row[0] = 1; }
 print(grid); // expect: [[1, 0], [1, 0]]
-for mut i, x in [5, 6] {
-  i *= 10;
-  print(i); // expect: 0
-  // expect: 10
+let mut nums = [5, 6];
+for i, mut x in nums {
+  x *= 10;
+  print(x); // expect: 50
+  // expect: 60
 }
-for k, mut v in {a: 1} {
+print(nums); // expect: [50, 60]
+let mut o = {a: 1};
+for k, mut v in o {
   v++;
   print(v); // expect: 2
 }
-for mut k, mut v in ["x"] {
-  k = v = "y";
-  print(k + v); // expect: yy
-}
+print(o); // expect: {a: 2}

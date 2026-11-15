@@ -65,6 +65,16 @@ reload:
 		case opShare:
 			value.Share(*at(regs, in.a()))
 
+		case opShareIf:
+			if at(regs, in.b()).Shared() {
+				value.Share(*at(regs, in.a()))
+			}
+
+		case opUnshare:
+			if at(regs, in.a()).Shared() {
+				goto slow
+			}
+
 		case opLoadFresh:
 			*at(regs, in.a()) = value.Fresh(*at(consts, in.c()))
 
@@ -325,6 +335,13 @@ reload:
 				goto tick
 			}
 
+		case opJmpNoInout:
+			if bit := uint32(1) << in.b(); fr.inout&bit != 0 {
+				fr.inout &^= bit
+			} else {
+				pc = in.c()
+			}
+
 		case opJmpIf:
 			if at(regs, in.a()).Truthy() == in.y() {
 				pc = in.c()
@@ -571,6 +588,17 @@ reload:
 
 			fr.pc = pc
 
+			// It takes every argument, so its mut parameters write back
+			// all their bits, after the jump that follows.
+			if m := f.proto.inout; m != 0 {
+				if in.x()&inoutSite == 0 || m&^uint32((*(*Instr)(unsafe.Add(code, pc<<3))).a()) != 0 {
+					goto slow
+				}
+
+				fr.inout = m
+				fr.pc++
+			}
+
 			base := fr.base + in.a() + 1
 			if need := base + f.proto.nregs; need > len(p.stack) {
 				p.grow(need)
@@ -623,7 +651,7 @@ reload:
 			}
 
 			f := (*Closure)(fn.Ptr())
-			if in.b()+1 != f.proto.exact || len(p.frames) > p.maxRecursion {
+			if in.b()+1 != f.proto.exact || f.proto.inout != 0 || len(p.frames) > p.maxRecursion {
 				goto slow
 			}
 

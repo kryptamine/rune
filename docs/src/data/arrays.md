@@ -93,6 +93,23 @@ print(a);       // [1, 2]
 A copy costs nothing until it is written: the array is copied on its first
 change, and only if something else still holds it.
 
+A write along a path, as in `grid[0][1] = 9` or `grid[0].push(9)`, changes
+only the array at the end of it: a copy taken earlier of any array on the
+way keeps its value.
+
+```rune
+let mut grid = [[0, 0], [0, 0]];
+let row = grid[0];
+let before = grid;
+grid[0][1] = 9;
+print(row);    // [0, 0]
+print(before); // [[0, 0], [0, 0]]
+print(grid);   // [[0, 9], [0, 0]]
+```
+
+A function changes the caller's array only through a
+[`mut` parameter](../language/functions.md#mut-parameters).
+
 `map`, `filter`, `sort`, `join` and the rest are
 [array methods](../stdlib/array.md).
 

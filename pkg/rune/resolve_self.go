@@ -148,7 +148,9 @@ func (p *Resolver) ownVars() {
 		}
 
 		byName[u.shape][u.method.Name.Lexeme] = u
-		escapes[u] = u.assigned || leaks(u, func(name string) bool { return u.shape.Index(name) < 0 })
+		// The flag of an owned self goes back where the first argument's
+		// write-back would.
+		escapes[u] = u.assigned || u.method.Inout()&2 != 0 || leaks(u, func(name string) bool { return u.shape.Index(name) < 0 })
 	}
 
 	for changed := true; changed; {

@@ -39,7 +39,7 @@ fun aliased() {
 
 aliased();
 
-// A parameter starts as a copy of the argument.
+// A mut parameter goes back to the argument.
 fun bump(mut c, times) {
     for i in 0..times { c.incr(); }
     return c.n;
@@ -47,9 +47,10 @@ fun bump(mut c, times) {
 
 fun params() {
     let mut c = C { n: 10 };
-    print("{bump(c, 3)} {c.n}"); // expect: 13 10
+    let d = c;
+    print("{bump(c, 3)} {c.n}"); // expect: 13 13
     c.incr();
-    print("{bump(c, 1)} {c.n}"); // expect: 12 11
+    print("{bump(c, 1)} {c.n} {d.n}"); // expect: 15 15 10
 }
 
 params();
@@ -89,7 +90,8 @@ t.retag("t");
 print("{t} {u}"); // expect: C {n: 3, tag: "t"} C {n: 1, tag: "c"}
 
 // Recursion passes copies down.
-fun down(mut c, depth) {
+fun down(from, depth) {
+    let mut c = from;
     c.incr();
     if depth > 0 { down(c, depth - 1); }
     c.incr();

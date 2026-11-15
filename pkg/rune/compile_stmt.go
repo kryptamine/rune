@@ -76,12 +76,23 @@ func (fs *funcState) runDefers(depth int) (handlers int) {
 			continue
 		}
 
+		if wb, ok := body.(*writeBack); ok && !wb.handled {
+			wb.put()
+			continue
+		}
+
 		fs.emit(ins{op: opEndTry, b: int32(handlers + 1)}, nil)
 		handlers = 0
 
 		unwinds := fs.unwinds
 		fs.unwinds = unwinds[:i:i]
-		fs.runDefer(body)
+
+		if wb, ok := body.(*writeBack); ok {
+			wb.put()
+		} else {
+			fs.runDefer(body)
+		}
+
 		fs.unwinds = unwinds
 	}
 
@@ -427,6 +438,8 @@ func (fs *funcState) forIn(s *ast.ForInStmt) {
 	fs.scoped(func() {
 		var base int32
 
+		var coll *lval
+
 		var key, val int32
 
 		next := ins{op: opForIterNext}
@@ -440,6 +453,14 @@ func (fs *funcState) forIn(s *ast.ForInStmt) {
 
 			key, val = fs.declare(nil), fs.declare(nil)
 			next = ins{op: opForRangeNext, a: base, x: uint8(boolNum(r.Inclusive))}
+		} else if s.Value.Mutable {
+			coll = fs.collection(s)
+			base = fs.declare(nil)
+			fs.move(base, coll.reg)
+			fs.emit(ins{op: opForIter, a: base, x: 1 | forMut, y: uint8(boolNum(fs.alone(s, coll)))}, &s.Keyword)
+
+			key, val = fs.declare(nil), fs.declare(nil)
+			next.a = base
 		} else {
 			base = fs.declare(nil)
 			fs.expr(s.Iterable, base)
@@ -458,10 +479,20 @@ func (fs *funcState) forIn(s *ast.ForInStmt) {
 		bind(s.Key, key)
 		bind(&s.Value, val)
 
+		// A for mut's key is the cursor's, which a cell may take over.
+		at := key
+		if coll != nil && s.Key != nil && s.Key.Local.Captured {
+			at = fs.declare(nil)
+		}
+
 		enter := fs.emit(ins{op: opJmp}, nil)
 		body := fs.here()
 
+		var wb *writeBack
+
 		l := fs.loop(func() {
+			fs.move(at, key)
+
 			for _, b := range []*ast.Binding{s.Key, &s.Value} {
 				if b != nil && b.Local.Captured {
 					r := fs.locals[b.Local]
@@ -469,7 +500,12 @@ func (fs *funcState) forIn(s *ast.ForInStmt) {
 				}
 			}
 
-			fs.stmt(s.Body)
+			if coll == nil {
+				fs.stmt(s.Body)
+				return
+			}
+
+			wb = fs.writeBackLoop(s, coll, at, val)
 		})
 
 		fs.patch([]int{enter})
@@ -478,6 +514,7 @@ func (fs *funcState) forIn(s *ast.ForInStmt) {
 		next.c = body
 		fs.emit(next, &s.Keyword)
 		fs.patch(l.breaks)
+		wb.handler(fs)
 	})
 }
 

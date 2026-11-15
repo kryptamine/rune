@@ -17,6 +17,9 @@ type Parser struct {
 	// 0 at the top level. They tell synchronize where a statement ends.
 	depth      []int
 	blockDepth int
+	// inout has a bit for each argument a mut parameter of some function
+	// parsed takes.
+	inout uint32
 }
 
 func newParser(tokens []ast.Token) *Parser {
@@ -53,6 +56,7 @@ type fileAST struct {
 	imports []importDecl
 	stmts   []ast.Stmt
 	exports []ast.Stmt
+	inout   uint32
 }
 
 // parseFile parses a file: its imports, then its statements, which in a
@@ -103,6 +107,8 @@ func parseFile(tokens []ast.Token, module bool) (*fileAST, []error) {
 	if len(parser.errors) > 0 {
 		return nil, parser.errors
 	}
+
+	file.inout = parser.inout
 
 	return file, nil
 }

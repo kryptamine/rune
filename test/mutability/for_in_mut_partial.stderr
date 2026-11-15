@@ -1,8 +1,8 @@
 error: Cannot mutate immutable variable 'x'.
  --> for_in_mut_partial.rn:3:3
   |
-2 |   i = 1;
+2 | for i, x in rows {
 3 |   x[0] = 2; // [line: 3] Error at 'x': Cannot mutate immutable variable 'x'.
   |   ^
   |
-  = hint: declare it as 'mut x' on line 1
+  = hint: declare it as 'mut x' on line 2

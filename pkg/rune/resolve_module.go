@@ -49,6 +49,10 @@ func newModuleScope(file stdlib.Namespace) *moduleScope {
 func (p *Resolver) ResolveModules(files []*fileAST) []error {
 	p.modules = make([]*moduleScope, len(files))
 	p.methodKinds = methodKinds(files)
+	p.methodInout = methodInout(files)
+	for _, f := range files {
+		p.anyInout |= f.inout
+	}
 
 	for _, f := range files {
 		p.mod = newModuleScope(newFileNamespace(p.root, f.path))

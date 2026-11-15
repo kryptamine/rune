@@ -55,7 +55,10 @@ print(scores);                  // [70, 95, 80]
 ## Parameters and Loop Variables
 
 Function parameters, `for`-`in` variables, `catch` variables and functions are
-immutable too. Parameters and `for`-`in` variables are made mutable with `mut`:
+immutable too. A `mut` parameter or `for`-`in` variable writes its value back
+where it came from: the caller's argument (see
+[Functions](functions.md#mut-parameters)) or the element of the collection
+(see [Loops](loops.md#for-mut)).
 
 ```rune
 fun addTag(mut tags, tag) {

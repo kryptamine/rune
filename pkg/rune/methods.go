@@ -140,22 +140,33 @@ func (p *Interpreter) invoke(fr *frame, in Instr, tok *ast.Token) error {
 		if m.InPlace && t.Shared() {
 			p.stack[at+1] = value.Unshare(t)
 			if in.y() {
-				fr.pc += 1 + int(in.x()>>1)
+				fr.pc += 1 + int(in.x()>>1&1)
 			}
 		}
 
 		return p.callNativeMethod(at, n, nat, tok)
 	}
 
-	f := (*Closure)(fn.Ptr()).proto
+	cl := (*Closure)(fn.Ptr())
+	f := cl.proto
 	if !f.accepts(n + 1) {
 		return argumentError(f, n+1, 1, tok)
 	}
 
+	// The write-back of the arguments starts B past the jump after it.
+	var inout uint32
+	off := 0
+	if in.x()&inoutSite != 0 {
+		jmp := fr.cl.proto.code[fr.pc]
+		inout, off = uint32(jmp.a()), jmp.b()
+	}
+
 	// A mutating method resumes past the jump over its write-back, and
-	// one without an owned self past the instruction taking its flag.
+	// one without an owned self past the instruction taking its flag;
+	// its write-back goes on to the arguments'.
 	if m.Mut {
 		fr.pc++
+		off = 0
 
 		if in.x()&2 != 0 && f.selfReg == 0 {
 			fr.pc++
@@ -164,14 +175,21 @@ func (p *Interpreter) invoke(fr *frame, in Instr, tok *ast.Token) error {
 
 	p.stack[at] = fn
 
-	return p.callAt(at, n+1, tok)
+	caller := len(p.frames) - 1
+	if err := p.callAt(at, n+1, tok, inout); err != nil {
+		return err
+	}
+
+	p.resume(caller, cl, inout, off)
+
+	return nil
 }
 
 // callWithout calls the function at stack[at] with the n arguments after
 // the receiver.
 func (p *Interpreter) callWithout(at, n int, tok *ast.Token) error {
 	copy(p.stack[at+1:], p.stack[at+2:at+2+n])
-	return p.callAt(at, n, tok)
+	return p.callAt(at, n, tok, 0)
 }
 
 func missingMember(tok *ast.Token, t value.Value, name string, ms []value.Method) error {

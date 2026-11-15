@@ -3,6 +3,7 @@ package rune
 import (
 	"rune/pkg/ast"
 	"rune/pkg/value"
+	"slices"
 )
 
 // place is the target of a write: t[i], or for a property t.K[i].
@@ -61,6 +62,10 @@ func (pl *place) set(v int32, back bool) {
 	if pl.prop && t.isSelf() && t.v.Local.Owned && t.inPlace() {
 		fs.emit(ins{op: opSetOwned, a: t.reg, b: pl.i, c: v}, pl.tok)
 		return
+	}
+
+	if !back {
+		t.shareDown()
 	}
 
 	set := fs.emit(ins{op: pick(pl.prop, opSetProp, opSetIndex), a: t.reg, b: pl.i, c: v, y: uint8(boolNum(self))}, pl.tok)
@@ -237,6 +242,20 @@ func (g *guard) check(tok *ast.Token) {
 	cur := g.fs.alloc()
 	g.fs.varExpr(g.v, cur)
 	g.fs.emit(ins{op: opSame, a: cur, b: g.read, c: g.fs.constant(value.NewString(g.v.Name.Lexeme))}, tok)
+}
+
+// shareDown shares each level of the path reg was read along whose
+// holder is shared, from the top: a write then copies every level that
+// another holder has too, each copy going back into the level above.
+func (lv *lval) shareDown() {
+	var path []*lval
+	for l := lv; l.at != nil; l = l.at.t {
+		path = append(path, l)
+	}
+
+	for _, l := range slices.Backward(path) {
+		lv.fs.emit(ins{op: opShareIf, a: l.reg, b: l.at.t.reg}, nil)
+	}
 }
 
 // held reports whether reg was read from somewhere it must go back to.

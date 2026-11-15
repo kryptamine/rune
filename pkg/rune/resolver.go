@@ -62,6 +62,16 @@ type Resolver struct {
 	// impls holds the impl blocks at the top level of a file.
 	impls       map[*ast.ImplStmt]bool
 	methodKinds map[string]methodKind
+	// methodInout has, for each method name, a bit for each argument a
+	// mut parameter of a method of that name takes.
+	methodInout map[string]uint32
+	// anyInout has a bit for each argument a mut parameter of some
+	// function of the program takes.
+	anyInout uint32
+	// fns holds the function each fun, or let of an arrow function, binds.
+	fns map[*ast.Local]*ast.FunctionStmt
+	// uses counts the references to each variable so far.
+	uses map[*ast.Local]int
 	// self records the uses of the self of the method being resolved,
 	// selves those of every method of the file.
 	self   *varUses
@@ -87,6 +97,8 @@ func NewResolver() *Resolver {
 		fieldNames: stdlib.FieldNames(),
 		impls:      map[*ast.ImplStmt]bool{},
 		locals:     map[*ast.Local]*varUses{},
+		fns:        map[*ast.Local]*ast.FunctionStmt{},
+		uses:       map[*ast.Local]int{},
 		nmethods:   len(stdlib.Methods),
 		hints:      map[ast.Token]string{},
 	}
@@ -108,6 +120,10 @@ func (p *Resolver) resolveTopLevel(stmts []ast.Stmt) {
 			p.mod.globalMutable[b.Name.Lexeme] = b.Mutable
 			p.mod.topLevel[b.Name.Lexeme] = &ast.Local{TopLevel: true}
 			p.declareMain(b.Name, fn)
+
+			if fn != nil {
+				p.fns[p.mod.topLevel[b.Name.Lexeme]] = fn
+			}
 		}
 
 		if s, ok := stmt.(*ast.StructStmt); ok {
@@ -171,6 +187,10 @@ func (p *Resolver) VisitVarStmt(stmt *ast.VarStmt) error {
 
 	stmt.Local = p.declare(stmt.Binding)
 	p.trackLocal(stmt.Binding, stmt.Local)
+
+	if f, ok := stmt.Initializer.(*ast.FunctionExpr); ok && !stmt.Mutable {
+		p.fns[stmt.Local] = f.Decl
+	}
 
 	p.resolveExpr(stmt.Initializer)
 
@@ -295,9 +315,25 @@ func (p *Resolver) VisitWhileStmt(whileStmt *ast.WhileStmt) error {
 func (p *Resolver) VisitForInStmt(stmt *ast.ForInStmt) error {
 	p.resolveExpr(stmt.Iterable)
 
+	var root *ast.Local
+	if stmt.Value.Mutable {
+		p.requirePlace(stmt)
+
+		if v := rootVar(stmt.Iterable); v != nil {
+			root = v.Local
+		}
+	}
+
+	uses := p.uses[root]
+
 	p.beginScope()
 
 	if stmt.Key != nil {
+		if stmt.Key.Mutable {
+			err := errors.NewSyntaxError(stmt.Key.Name, "A for-in key cannot be mut.")
+			p.errors = append(p.errors, errors.WithHint(err, "copy it into a 'let mut' variable in the body"))
+		}
+
 		stmt.Key.Local = p.declare(*stmt.Key)
 		p.define(stmt.Key.Name)
 	}
@@ -307,6 +343,8 @@ func (p *Resolver) VisitForInStmt(stmt *ast.ForInStmt) error {
 
 	p.resolveLoopBody(stmt.Body)
 	p.endScope()
+
+	stmt.Alone = root != nil && p.uses[root] == uses
 
 	return nil
 }
@@ -353,6 +391,7 @@ func (p *Resolver) VisitFunctionExpr(expr *ast.FunctionExpr) (value.Value, error
 
 func (p *Resolver) VisitFunctionStmt(fnStmt *ast.FunctionStmt) error {
 	fnStmt.Local = p.declare(fnStmt.Binding)
+	p.fns[fnStmt.Local] = fnStmt
 	p.fix(fnStmt.Name)
 	p.define(fnStmt.Name)
 	p.resolveFn(fnStmt)
@@ -472,6 +511,8 @@ func (p *Resolver) VisitCallExpr(callExpr *ast.CallExpr) (value.Value, error) {
 		p.useCall(prop)
 		p.checkMutation(callExpr, prop)
 	}
+
+	p.inout(callExpr)
 
 	return value.NilValue, nil
 }
@@ -799,6 +840,8 @@ func (p *Resolver) resolveLocal(name ast.Token) *ast.Local {
 				l.local.Captured = true
 			}
 
+			p.uses[l.local]++
+
 			return l.local
 		}
 	}
@@ -811,6 +854,8 @@ func (p *Resolver) resolveLocal(name ast.Token) *ast.Local {
 	if l != nil && p.fnDepth > 0 {
 		l.Captured = true
 	}
+
+	p.uses[l]++
 
 	return l
 }

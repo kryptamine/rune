@@ -2,6 +2,6 @@ fun fill(mut arr, n) {
   for i in 0..n { arr.push(i * i); }
 }
 
-let squares = [];
+let mut squares = [];
 fill(squares, 5);
 print(squares); // expect: [0, 1, 4, 9, 16]

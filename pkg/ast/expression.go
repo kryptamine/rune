@@ -159,6 +159,9 @@ type CallExpr struct {
 	Frozen   bool
 	// InPlace is set when only built-in in-place methods have its name.
 	InPlace bool
+	// Inout has a bit for each argument that a mut parameter of the
+	// function called may write back to.
+	Inout uint32
 }
 
 type ArrayExpr struct {

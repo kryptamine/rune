@@ -126,6 +126,29 @@ func TestMovesDoNotCopy(t *testing.T) {
 	}
 }
 
+// A grid of 100 rows of 100 takes some 170KB; writes along paths no
+// other holder shares take none.
+func TestPathWritesInPlace(t *testing.T) {
+	src := `let mut g = []; for i in 0..100 { g.push([0].repeat(100)); }
+		let mut o = { g };
+		for k in 0..%d { for i in 0..100 { g[i][k %% 100] = k; g[i][0] += 1; g[i][1]++; o.g[i][0] = k; } g[0].push(k); g[0].pop(); }`
+
+	if one, many := allocated(t, src, 1), allocated(t, src, 101); many > one+50<<10 {
+		t.Fatalf("path writes copy: %d bytes for 1 pass, %d for 101", one, many)
+	}
+}
+
+// So do the write-backs of mut parameters and of for mut.
+func TestInoutWritesInPlace(t *testing.T) {
+	src := `fun bump(mut row, k) { row[0] = k; row[1] += 1; }
+		let mut g = []; for i in 0..100 { g.push([0].repeat(100)); }
+		for k in 0..%d { for i, mut row in g { row[k %% 100] = k; bump(row, k); } bump(g[k %% 100], k); }`
+
+	if one, many := allocated(t, src, 1), allocated(t, src, 101); many > one+50<<10 {
+		t.Fatalf("inout writes copy: %d bytes for 1 pass, %d for 101", one, many)
+	}
+}
+
 // allocated is how many bytes src, with its %d for the passes, takes.
 func allocated(t *testing.T, src string, passes int) uint64 {
 	prog, errs := loadSource([]byte(fmt.Sprintf(src, passes)))

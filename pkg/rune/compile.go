@@ -305,6 +305,21 @@ func (fs *funcState) functionNamed(decl *ast.FunctionStmt, name string, mutSelf 
 		}
 	}
 
+	f.proto.inout = decl.Inout()
+	for i, param := range decl.Parameters {
+		f.proto.params = append(f.proto.params, param.Name.Lexeme)
+
+		switch {
+		case f.proto.inout&(1<<i) == 0:
+		case param.Local.Captured:
+			f.proto.restore = append(f.proto.restore, restore{reg: int(regs[i]), cell: true})
+		case param.Local.Owned:
+			f.proto.restore = append(f.proto.restore, restore{reg: int(regs[i]), from: int(f.locals[param.Local])})
+		}
+	}
+
+	f.proto.prologue = len(f.code)
+
 	markMoves(decl.Body)
 	f.stmts(decl.Body)
 	f.returnSelf()
@@ -327,7 +342,9 @@ func (fs *funcState) own(l *ast.Local, src int32) int32 {
 }
 
 // returnSelf puts a mut self kept elsewhere back into register 0 before
-// a return, an owned one with its flag in register 1.
+// a return, an owned one with its flag in register 1, and the mut
+// parameters kept elsewhere into theirs. One in a cell a closure may keep
+// is shared.
 func (fs *funcState) returnSelf() {
 	switch {
 	case fs.selfCell:
@@ -335,6 +352,15 @@ func (fs *funcState) returnSelf() {
 	case fs.selfReg != 0:
 		fs.move(0, fs.selfReg)
 		fs.move(1, fs.selfReg+1)
+	}
+
+	for _, r := range fs.proto.restore {
+		if r.cell {
+			fs.emit(ins{op: opGetCell, a: int32(r.reg), b: int32(r.reg)}, nil)
+			fs.emit(ins{op: opShare, a: int32(r.reg)}, nil)
+		} else {
+			fs.move(int32(r.reg), int32(r.from))
+		}
 	}
 }
 

@@ -190,6 +190,9 @@ type ForInStmt struct {
 	Value    Binding
 	Iterable Expr
 	Body     Stmt
+	// Alone is set on a for mut whose body never names the variable the
+	// collection is read from.
+	Alone bool
 }
 
 func NewForInStmt(keyword Token, key *Binding, val Binding, iterable Expr, body Stmt) Stmt {
@@ -231,6 +234,18 @@ type FunctionStmt struct {
 	Defaults   []Expr
 	Rest       bool
 	Body       []Stmt
+}
+
+// Inout has a bit for each mut parameter, self and a rest one aside.
+func (n *FunctionStmt) Inout() uint32 {
+	var mask uint32
+	for i, p := range n.Parameters {
+		if p.Mutable && !(i == 0 && p.Name.Lexeme == "self") && !(n.Rest && i == len(n.Parameters)-1) && i < 16 {
+			mask |= 1 << i
+		}
+	}
+
+	return mask
 }
 
 // Required counts the parameters before the first with a default, a rest

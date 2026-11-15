@@ -294,7 +294,8 @@ fun usage() {
 }
 
 fun exec(path, args, now) {
-    run(Store.load(path), args, now)?.save();
+    let mut store = Store.load(path);
+    run(store, args, now)?.save();
 }
 
 fun demo() {
