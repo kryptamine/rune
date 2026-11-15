@@ -8,10 +8,86 @@ import (
 )
 
 func (fs *funcState) stmts(stmts []ast.Stmt) {
-	for _, s := range stmts {
+	for i, s := range stmts {
+		if d, ok := s.(*ast.DeferStmt); ok {
+			fs.deferStmt(d, stmts[i+1:])
+			return
+		}
+
 		fs.stmt(s)
 		fs.free = fs.nactive
 	}
+}
+
+// deferStmt compiles rest, the statements after d, then d's body: on
+// the way out of rest, and if rest fails, before the error goes on up.
+func (fs *funcState) deferStmt(d *ast.DeferStmt, rest []ast.Stmt) {
+	at := fs.nactive
+	try := fs.handled(ins{op: opTry, a: at, x: 1}, d.Body, func() { fs.stmts(rest) })
+	fs.runDefer(d.Body)
+	end := fs.emit(ins{op: opJmp}, nil)
+
+	fs.onError(try, at, func() {
+		fs.declare(nil)
+		fs.declare(nil) // the error
+		fs.runDefer(d.Body)
+		fs.emit(ins{op: opRethrow, a: at + 1}, nil)
+	})
+	fs.patch([]int{end})
+}
+
+// handled emits try and compiles body under its handler, with entry on
+// unwinds; it returns try's index, for onError.
+func (fs *funcState) handled(try ins, entry ast.Stmt, body func()) int {
+	at := fs.emit(try, nil)
+
+	fs.unwinds = append(fs.unwinds, entry)
+	fs.scoped(body)
+	fs.unwinds = fs.unwinds[:len(fs.unwinds)-1]
+
+	fs.emit(ins{op: opEndTry, b: 1}, nil)
+
+	return at
+}
+
+// onError compiles handle where the try at index try resumes, with the
+// registers from at, which the error is put in, free.
+func (fs *funcState) onError(try int, at int32, handle func()) {
+	fs.patch([]int{try})
+
+	nactive, free := fs.nactive, fs.free
+	fs.nactive, fs.free = at, at
+	fs.scoped(handle)
+	fs.nactive, fs.free = nactive, free
+}
+
+func (fs *funcState) runDefer(body ast.Stmt) { fs.scoped(func() { fs.stmt(body) }) }
+
+// runDefers runs the bodies of the defers above unwinds[depth], each after
+// dropping the handlers above it; it returns how many handlers are left.
+func (fs *funcState) runDefers(depth int) (handlers int) {
+	nactive, free := fs.nactive, fs.free
+	fs.nactive = free
+
+	for i := len(fs.unwinds) - 1; i >= depth; i-- {
+		body := fs.unwinds[i]
+		if body == nil {
+			handlers++
+			continue
+		}
+
+		fs.emit(ins{op: opEndTry, b: int32(handlers + 1)}, nil)
+		handlers = 0
+
+		unwinds := fs.unwinds
+		fs.unwinds = unwinds[:i:i]
+		fs.runDefer(body)
+		fs.unwinds = unwinds
+	}
+
+	fs.nactive, fs.free = nactive, free
+
+	return handlers
 }
 
 // scoped runs body and then frees the locals it declared.
@@ -42,23 +118,11 @@ func (fs *funcState) stmt(stmt ast.Stmt) {
 	case *ast.FunctionStmt:
 		fs.functionStmt(s)
 	case *ast.ReturnStmt:
-		if s.Value == nil {
-			fs.returnSelf()
-			fs.emit(ins{op: opReturnNil}, nil)
-		} else {
-			v := fs.exprAny(s.Value)
-
-			// Register 1 takes the flag of an owned self.
-			if fs.selfReg != 0 && v == 1 {
-				v = fs.alloc()
-				fs.move(v, 1)
-			}
-
-			fs.returnSelf()
-			fs.emit(ins{op: opReturn, a: v}, nil)
-		}
+		fs.returnStmt(s)
 	case *ast.TryStmt:
 		fs.tryStmt(s)
+	case *ast.DeferStmt:
+		fs.deferStmt(s, nil)
 	case *ast.MatchStmt:
 		fs.match(s.Match, noReg)
 	case *ast.StructStmt, *ast.ImplStmt:
@@ -71,6 +135,37 @@ func (fs *funcState) stmt(stmt ast.Stmt) {
 	default:
 		panic(fmt.Sprintf("compile: unknown statement %T", stmt))
 	}
+}
+
+// returnStmt runs the defers after computing the value, which they may
+// not change, and leaves the handlers to the return to drop.
+func (fs *funcState) returnStmt(s *ast.ReturnStmt) {
+	if s.Value == nil {
+		fs.runDefers(0)
+		fs.returnSelf()
+		fs.emit(ins{op: opReturnNil}, nil)
+
+		return
+	}
+
+	v := fs.exprAny(s.Value)
+
+	if v < fs.nactive && slices.ContainsFunc(fs.unwinds, func(s ast.Stmt) bool { return s != nil }) {
+		t := fs.alloc()
+		fs.move(t, v)
+		v = t
+	}
+
+	fs.runDefers(0)
+
+	// Register 1 takes the flag of an owned self.
+	if fs.selfReg != 0 && v == 1 {
+		v = fs.alloc()
+		fs.move(v, 1)
+	}
+
+	fs.returnSelf()
+	fs.emit(ins{op: opReturn, a: v}, nil)
 }
 
 // exprStmt drops the value, so x++ needs no copy of the old x.
@@ -86,10 +181,10 @@ func (fs *funcState) exprStmt(e ast.Expr) {
 	fs.exprAny(e)
 }
 
-// leaveLoop drops the handlers of the trys a break or continue jumps out of.
+// leaveLoop leaves the trys and defers a break or continue jumps out of.
 func (fs *funcState) leaveLoop() *loop {
 	l := fs.loops[len(fs.loops)-1]
-	if n := fs.tries - l.tries; n > 0 {
+	if n := fs.runDefers(l.unwinds); n > 0 {
 		fs.emit(ins{op: opEndTry, b: int32(n)}, nil)
 	}
 
@@ -314,7 +409,7 @@ func (fs *funcState) whileStmt(s *ast.WhileStmt) {
 }
 
 func (fs *funcState) loop(body func()) *loop {
-	l := &loop{tries: fs.tries}
+	l := &loop{unwinds: len(fs.unwinds)}
 	fs.loops = append(fs.loops, l)
 	fs.scoped(body)
 	fs.loops = fs.loops[:len(fs.loops)-1]
@@ -399,20 +494,29 @@ func (fs *funcState) rangeParts(r *ast.RangeExpr) int32 {
 }
 
 func (fs *funcState) tryStmt(s *ast.TryStmt) {
-	rethrows := len(s.Catches[len(s.Catches)-1].Types) > 0
-	bind := slices.ContainsFunc(s.Catches, func(c ast.CatchClause) bool { return c.Param != nil || len(c.Types) > 0 })
-	try := fs.emit(ins{op: opTry, a: fs.nactive, x: uint8(boolNum(rethrows)), y: uint8(boolNum(bind))}, nil)
+	fs.tryCatch(s.Catches, fs.nactive, func() { fs.stmt(s.Body) }, func(c *ast.CatchClause, r int32) {
+		fs.bindCatch(c, r)
+		fs.stmts(c.Body)
+	})
+}
 
-	fs.tries++
-	fs.scoped(func() { fs.stmt(s.Body) })
-	fs.tries--
+// tryExpr puts the error above every live register, dst included.
+func (fs *funcState) tryExpr(t *ast.TryExpr, dst int32) {
+	fs.tryCatch(t.Catches, max(fs.free, dst+1), func() { fs.expr(t.Value, dst) }, func(c *ast.CatchClause, r int32) {
+		fs.bindCatch(c, r)
+		fs.expr(c.Value, dst)
+	})
+}
 
-	fs.emit(ins{op: opEndTry, b: 1}, nil)
+// tryCatch compiles body under a handler that puts the error in
+// registers from at, then the catch clauses, each by handle.
+func (fs *funcState) tryCatch(catches []ast.CatchClause, at int32, body func(), handle func(c *ast.CatchClause, r int32)) {
+	rethrows := len(catches[len(catches)-1].Types) > 0
+	bind := slices.ContainsFunc(catches, func(c ast.CatchClause) bool { return c.Param != nil || len(c.Types) > 0 })
+	try := fs.handled(ins{op: opTry, a: at, x: uint8(boolNum(rethrows)), y: uint8(boolNum(bind))}, nil, body)
 	ends := []int{fs.emit(ins{op: opJmp}, nil)}
-	fs.patch([]int{try})
 
-	fs.scoped(func() {
-		r := fs.nactive
+	fs.onError(try, at, func() {
 		if bind {
 			fs.declare(nil)
 		}
@@ -421,35 +525,32 @@ func (fs *funcState) tryStmt(s *ast.TryStmt) {
 			fs.declare(nil) // the caught error
 		}
 
-		for i := range s.Catches {
-			c := &s.Catches[i]
+		for i := range catches {
+			c := &catches[i]
 			if len(c.Types) == 0 {
-				fs.scoped(func() { fs.catchBody(c, r) })
+				fs.scoped(func() { handle(c, at) })
 				break
 			}
 
-			miss := fs.isOneOf(r, c.Shapes)
-			fs.scoped(func() { fs.catchBody(c, r) })
+			miss := fs.isOneOf(at, c.Shapes)
+			fs.scoped(func() { handle(c, at) })
 			ends = append(ends, fs.emit(ins{op: opJmp}, nil))
 			fs.patch(miss)
 		}
 
 		if rethrows {
-			fs.emit(ins{op: opRethrow, a: r + 1}, nil)
+			fs.emit(ins{op: opRethrow, a: at + 1}, nil)
 		}
 	})
-
 	fs.patch(ends)
 }
 
-// catchBody compiles c with the caught value in register r.
-func (fs *funcState) catchBody(c *ast.CatchClause, r int32) {
+// bindCatch binds the catch variable of c, if any, to register r.
+func (fs *funcState) bindCatch(c *ast.CatchClause, r int32) {
 	if c.Param != nil {
 		fs.locals[c.ParamLocal] = r
 		if c.ParamLocal.Captured {
 			fs.emit(ins{op: opNewCell, a: r, b: r}, nil)
 		}
 	}
-
-	fs.stmts(c.Body)
 }

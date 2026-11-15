@@ -29,13 +29,11 @@ fun printTable(columns, rows) {
     for row in cells io.write(line(row));
 }
 
-fun cell(v) {
-    return match v {
-        nil => "NULL",
-        _ is number if !math.isInt(v) => string(math.round(v * 100) / 100),
-        _ => string(v),
-    };
-}
+fun cell(v) => match v {
+    nil => "NULL",
+    _ is number if !math.isInt(v) => string(math.round(v * 100) / 100),
+    _ => string(v),
+};
 
 export fun error(src, e) {
     io.eprint("error: {e.message}");

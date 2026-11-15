@@ -49,7 +49,7 @@ export fun parse(src) {
 struct Parser { tokens, i = 0 }
 
 impl Parser {
-    fun peek(self, ahead = 0) { return self.tokens[math.min(self.i + ahead, self.tokens.len() - 1)]; }
+    fun peek(self, ahead = 0) => self.tokens[math.min(self.i + ahead, self.tokens.len() - 1)];
 
     fun next(mut self) {
         let t = self.tokens[self.i];

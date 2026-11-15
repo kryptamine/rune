@@ -45,9 +45,9 @@ let RIGHT_ASSOC = set(["^", "**"]);
 struct Parser { tokens, i = 0 }
 
 impl Parser {
-    fun new(src) { return Parser { tokens: tokenize(src) }; }
+    fun new(src) => Parser { tokens: tokenize(src) };
 
-    fun peek(self) { return self.tokens[self.i]; }
+    fun peek(self) => self.tokens[self.i];
 
     fun next(mut self) {
         let t = self.tokens[self.i];
@@ -149,9 +149,7 @@ let BUILTINS = {
 struct Env { vars, funs }
 
 impl Env {
-    fun new() {
-        return Env { vars: map({ pi: math.PI }), funs: map() };
-    }
+    fun new() => Env { vars: map({ pi: math.PI }), funs: map() };
 
     fun eval(mut self, node, locals = {}) {
         let ev = n => self.eval(n, locals);
@@ -198,13 +196,11 @@ impl Env {
     }
 }
 
-fun show(v, digits = 6) {
-    return match v {
-        _ if type(v) == "string" => v,
-        _ if math.isInt(v) => string(v),
-        _ => regex.replace("\\.?0+$", v.fixed(digits), ""),
-    };
-}
+fun show(v, digits = 6) => match v {
+    _ if type(v) == "string" => v,
+    _ if math.isInt(v) => string(v),
+    _ => regex.replace("\\.?0+$", v.fixed(digits), ""),
+};
 
 fun run(mut env, line) {
     try {
@@ -253,10 +249,8 @@ fun main(args) {
 
     let mut stats = map();
     for line in DEMO {
-        try {
-            let kind = type(parse(line));
-            stats.set(kind, stats.get(kind, 0) + 1);
-        } catch {}
+        let kind = try type(parse(line)) catch => continue;
+        stats.set(kind, stats.get(kind, 0) + 1);
     }
     print("\nparsed node kinds: {stats}");
 }

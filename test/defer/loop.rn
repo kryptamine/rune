@@ -1,0 +1,23 @@
+for i in 0..4 {
+  defer print("end {i}");
+  if i == 1 continue;
+  if i == 3 break;
+  print("body {i}");
+}
+// expect: body 0
+// expect: end 0
+// expect: end 1
+// expect: body 2
+// expect: end 2
+// expect: end 3
+
+for i in 0..3 {
+  try {
+    defer print("try {i}");
+    if i == 1 break;
+  } catch {
+    print("unreachable");
+  }
+}
+// expect: try 0
+// expect: try 1

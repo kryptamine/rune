@@ -1,0 +1,1 @@
+let x = try [].pop() catch e is KeyError => 0; // expect runtime error: [line: 1] ValueError: array.pop() got an empty array.

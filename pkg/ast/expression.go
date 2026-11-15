@@ -30,6 +30,7 @@ type ExprVisitor interface {
 	VisitComputedExpr(computedExpr *ComputedExpr) (value.Value, error)
 	VisitConditionalExpr(conditionalExpr *ConditionalExpr) (value.Value, error)
 	VisitThrowExpr(throwExpr *ThrowExpr) (value.Value, error)
+	VisitTryExpr(tryExpr *TryExpr) (value.Value, error)
 	VisitJumpExpr(jumpExpr *JumpExpr) (value.Value, error)
 }
 
@@ -481,6 +482,22 @@ func (n *ThrowExpr) Accept(v ExprVisitor) (value.Value, error) {
 
 func (n *ThrowExpr) String() string {
 	return fmt.Sprintf("(throw %v)", n.Value)
+}
+
+// TryExpr is try in an expression: the value of Value or, if it fails, of
+// the first catch clause that matches.
+type TryExpr struct {
+	Value   Expr
+	Catches []CatchClause
+	Keyword Token
+}
+
+func (n *TryExpr) Accept(v ExprVisitor) (value.Value, error) {
+	return v.VisitTryExpr(n)
+}
+
+func (n *TryExpr) String() string {
+	return fmt.Sprintf("(try %v)", n.Value)
 }
 
 // JumpExpr is return, break or continue in an expression; it has no value.

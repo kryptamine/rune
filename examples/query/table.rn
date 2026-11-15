@@ -7,7 +7,7 @@ export struct Table { name, columns, rows }
 export struct Catalog { dir, tables = map() }
 
 impl Catalog {
-    fun new(dir) { return Catalog { dir }; }
+    fun new(dir) => Catalog { dir };
 
     fun load(mut self, name, pos = nil) {
         let cached = self.tables.get(name);
@@ -27,6 +27,7 @@ impl Catalog {
 // Columns whose cells all parse as numbers become numbers; an empty cell is NULL.
 fun loadCsv(path) {
     let src = fs.open(path);
+    defer src.close();
     let header = src.readLine() ?? throw ast.SqlError { message: "{path} is empty" };
     let columns = splitCsv(header).map(c => c.trim());
 
@@ -39,7 +40,6 @@ fun loadCsv(path) {
         }
         rows.push(cells);
     }
-    src.close();
 
     for c in 0..columns.len() {
         let mut numeric = true;

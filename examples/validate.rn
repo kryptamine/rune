@@ -173,9 +173,7 @@ fun checkAddr(v, path, mut out) {
     return validPort(port) ? v : fail(out, path, "port {port} is out of range 1-65535");
 }
 
-fun validPort(p) {
-    return p >= 1 && p <= 65535;
-}
+fun validPort(p) => p >= 1 && p <= 65535;
 
 fun checkList({ of, min, max, unique }, v, path, mut out) {
     if !want("array", v, path, out) return nil;
@@ -336,17 +334,13 @@ fun upgrade(raw, mut notes) {
 
     while true {
         let v = cfg.get("version", 1);
-        try {
-            cfg = match v {
-                1 => v1to2(cfg, notes),
-                2 => v2to3(cfg, notes),
-                LATEST => return cfg,
-                _ if v is number && v > LATEST => throw MigrationError { message: "version {v} is newer than this tool knows ({LATEST})" },
-                _ => throw MigrationError { message: "unknown version {show(v)}" },
-            };
-        } catch e is KeyError | TypeError {
-            throw MigrationError { message: "cannot migrate v{v} to v{v + 1}: {e.message}" };
-        }
+        cfg = try match v {
+            1 => v1to2(cfg, notes),
+            2 => v2to3(cfg, notes),
+            LATEST => return cfg,
+            _ if v is number && v > LATEST => throw MigrationError { message: "version {v} is newer than this tool knows ({LATEST})" },
+            _ => throw MigrationError { message: "unknown version {show(v)}" },
+        } catch e is KeyError | TypeError => throw MigrationError { message: "cannot migrate v{v} to v{v + 1}: {e.message}" };
     }
 }
 
@@ -417,8 +411,8 @@ fun inUnits(n, units) {
     return string(n);
 }
 
-fun duration(ms) { return inUnits(ms, UNITS); }
-fun size(n) { return inUnits(n, SIZES); }
+fun duration(ms) => inUnits(ms, UNITS);
+fun size(n) => inUnits(n, SIZES);
 
 fun report(issues) {
     let errors = issues.filter(i => i.level == Level.Error).len();
@@ -437,7 +431,7 @@ fun report(issues) {
     return errors;
 }
 
-fun plural(n) { return n == 1 ? "" : "s"; }
+fun plural(n) => n == 1 ? "" : "s";
 
 // --- commands ---
 
@@ -445,11 +439,7 @@ struct UsageError { message }
 
 fun load(path) {
     let text = fs.readText(path);
-    try {
-        return json.parse(text);
-    } catch e is ValueError {
-        throw ValueError { message: "{path} is not valid JSON: {e.message}", cause: e };
-    }
+    return try json.parse(text) catch e is ValueError => throw ValueError { message: "{path} is not valid JSON: {e.message}", cause: e };
 }
 
 fun run([cmd = "help", path = nil, ...flags]) {
@@ -568,6 +558,7 @@ let BROKEN = r"""
 
 fun demo() {
     let dir = fs.tempDir();
+    defer fs.removeAll(dir);
     let files = { "edge.json": EDGE, "billing.json": BILLING_V1, "broken.json": BROKEN };
     for file, text in files fs.write(fs.join(dir, file), text);
 
@@ -584,7 +575,6 @@ fun demo() {
         let code = run([cmd, fs.join(dir, file)]);
         print(code == 0 ? "" : "(exit {code})\n");
     }
-    fs.removeAll(dir);
 }
 
 fun main(args) {

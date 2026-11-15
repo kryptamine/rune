@@ -34,6 +34,27 @@ fun area(w, h) { return w * h; }
 area(3); // ArgumentError: Expected 2 arguments but got 1.
 ```
 
+## Expression Bodies
+
+`fun name(params) => expression;` returns the expression, as an arrow
+function does; the declaration ends with `;`. Methods take this form too.
+
+```rune
+fun square(x) => x * x;
+fun origin() => { x: 0, y: 0 };
+
+struct Money { cents }
+
+impl Money {
+    fun of(amount) => Money { cents: math.round(amount * 100) };
+    fun format(self) => "$%.2f".format(self.cents / 100);
+}
+
+print(square(7));                // 49
+print(origin());                 // {x: 0, y: 0}
+print(Money.of(4.99).format());  // $4.99
+```
+
 ## Anonymous Functions
 
 `fun` without a name is an expression, so functions can be passed around inline.

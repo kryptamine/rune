@@ -33,8 +33,11 @@ type Resolver struct {
 	// loopDepth counts the loops enclosing the current statement within
 	// the current function; break and continue need it to be positive.
 	loopDepth int
-	fnDepth   int
-	errors    []error
+	// inDefer is set in a defer body, which return, break and continue
+	// cannot leave.
+	inDefer bool
+	fnDepth int
+	errors  []error
 	// mod is the top level of the file being resolved; modules holds
 	// every file's, by file index.
 	mod     *moduleScope
@@ -312,17 +315,29 @@ func (p *Resolver) resolveLoopBody(body ast.Stmt) {
 }
 
 func (p *Resolver) VisitBreakStmt(stmt *ast.BreakStmt) error {
-	if p.loopDepth == 0 {
-		p.error(stmt.Keyword, "Cannot use 'break' outside of a loop.")
-	}
-
+	p.checkJump(stmt.Keyword)
 	return nil
 }
 
 func (p *Resolver) VisitContinueStmt(stmt *ast.ContinueStmt) error {
-	if p.loopDepth == 0 {
-		p.error(stmt.Keyword, "Cannot use 'continue' outside of a loop.")
+	p.checkJump(stmt.Keyword)
+	return nil
+}
+
+func (p *Resolver) checkJump(keyword ast.Token) {
+	switch {
+	case p.loopDepth == 0 && p.inDefer:
+		p.error(keyword, "Cannot use '"+keyword.Lexeme+"' to leave a 'defer' body.")
+	case p.loopDepth == 0:
+		p.error(keyword, "Cannot use '"+keyword.Lexeme+"' outside of a loop.")
 	}
+}
+
+func (p *Resolver) VisitDeferStmt(stmt *ast.DeferStmt) error {
+	inDefer, loopDepth := p.inDefer, p.loopDepth
+	p.inDefer, p.loopDepth = true, 0
+	p.resolveStmt(stmt.Body)
+	p.inDefer, p.loopDepth = inDefer, loopDepth
 
 	return nil
 }
@@ -354,7 +369,10 @@ func (p *Resolver) VisitIsExpr(expr *ast.IsExpr) (value.Value, error) {
 }
 
 func (p *Resolver) VisitReturnStmt(returnStmt *ast.ReturnStmt) error {
-	if !p.isFunction {
+	switch {
+	case p.inDefer:
+		p.error(returnStmt.Keyword, "Cannot return from a 'defer' body.")
+	case !p.isFunction:
 		p.error(returnStmt.Keyword, "Cannot return from top-level code.")
 	}
 
@@ -367,13 +385,25 @@ func (p *Resolver) VisitReturnStmt(returnStmt *ast.ReturnStmt) error {
 
 func (p *Resolver) VisitTryStmt(tryStmt *ast.TryStmt) error {
 	p.resolveStmt(tryStmt.Body)
+	p.resolveCatches(tryStmt.Catches)
 
+	return nil
+}
+
+func (p *Resolver) VisitTryExpr(expr *ast.TryExpr) (value.Value, error) {
+	p.resolveExpr(expr.Value)
+	p.resolveCatches(expr.Catches)
+
+	return value.NilValue, nil
+}
+
+func (p *Resolver) resolveCatches(catches []ast.CatchClause) {
 	caught := map[*value.Shape]bool{}
 
-	for i := range tryStmt.Catches {
-		c := &tryStmt.Catches[i]
+	for i := range catches {
+		c := &catches[i]
 
-		if len(c.Types) == 0 && i < len(tryStmt.Catches)-1 {
+		if len(c.Types) == 0 && i < len(catches)-1 {
 			p.error(c.Keyword, "Catch-all must be the last catch clause.")
 		}
 
@@ -390,17 +420,14 @@ func (p *Resolver) VisitTryStmt(tryStmt *ast.TryStmt) error {
 
 		p.resolveCatch(c)
 	}
-
-	return nil
 }
 
 func (p *Resolver) resolveCatch(c *ast.CatchClause) {
-	if c.Param == nil && !declaresLocals(c.Body) {
-		p.resolveStmts(c.Body)
-		return
+	scoped := c.Param != nil || declaresLocals(c.Body)
+	if scoped {
+		p.beginScope()
+		defer p.endScope()
 	}
-
-	p.beginScope()
 
 	if c.Param != nil {
 		c.ParamLocal = p.declare(ast.Binding{Name: *c.Param})
@@ -408,7 +435,10 @@ func (p *Resolver) resolveCatch(c *ast.CatchClause) {
 	}
 
 	p.resolveStmts(c.Body)
-	p.endScope()
+
+	if c.Value != nil {
+		p.resolveExpr(c.Value)
+	}
 }
 
 func (p *Resolver) VisitAssignExpr(expr *ast.AssignExpr) (value.Value, error) {
@@ -795,10 +825,13 @@ func (p *Resolver) endScope() {
 }
 
 func (p *Resolver) resolveFn(fn *ast.FunctionStmt) {
-	enclosingIsFunction, enclosingLoopDepth := p.isFunction, p.loopDepth
-	p.isFunction, p.loopDepth = true, 0
+	enclosingIsFunction, enclosingLoopDepth, enclosingInDefer := p.isFunction, p.loopDepth, p.inDefer
+	p.isFunction, p.loopDepth, p.inDefer = true, 0, false
 	p.fnDepth++
-	defer func() { p.isFunction, p.loopDepth = enclosingIsFunction, enclosingLoopDepth; p.fnDepth-- }()
+	defer func() {
+		p.isFunction, p.loopDepth, p.inDefer = enclosingIsFunction, enclosingLoopDepth, enclosingInDefer
+		p.fnDepth--
+	}()
 
 	p.beginScope()
 

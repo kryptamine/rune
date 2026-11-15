@@ -295,6 +295,10 @@ func (s *Parser) unary() (ast.Expr, error) {
 		return &ast.ThrowExpr{Value: v, Keyword: keyword}, nil
 	}
 
+	if s.match(ast.TRY) {
+		return s.tryExpr()
+	}
+
 	if s.match(ast.RETURN, ast.BREAK, ast.CONTINUE) {
 		j, err := s.jumpExpr()
 		if err != nil {
@@ -327,6 +331,44 @@ func (s *Parser) unary() (ast.Expr, error) {
 	}
 
 	return s.postfix()
+}
+
+// tryExpr parses `try value catch [name [is T | U]] => value ...`; "try"
+// has already been consumed.
+func (s *Parser) tryExpr() (ast.Expr, error) {
+	t := &ast.TryExpr{Keyword: s.previous()}
+
+	v, err := s.assignment()
+	if err != nil {
+		return nil, err
+	}
+
+	t.Value = v
+
+	if _, err := s.consume(ast.CATCH, "Expect 'catch' after try expression."); err != nil {
+		return nil, err
+	}
+
+	for {
+		c, err := s.catchHead()
+		if err != nil {
+			return nil, err
+		}
+
+		if _, err := s.consume(ast.ARROW, "Expect '=>' after 'catch'."); err != nil {
+			return nil, err
+		}
+
+		if c.Value, err = s.assignment(); err != nil {
+			return nil, err
+		}
+
+		t.Catches = append(t.Catches, c)
+
+		if !s.match(ast.CATCH) {
+			return t, nil
+		}
+	}
 }
 
 // jumpExpr parses return, break or continue in an expression (the keyword
@@ -805,14 +847,15 @@ func (s *Parser) arrayLiteral() (ast.Expr, error) {
 	return ast.NewArrayExpr(ast.ARRAY, items), nil
 }
 
-// functionExpr parses an anonymous function: fun (params) { body }.
+// functionExpr parses an anonymous function: fun (params) { body } or
+// fun (params) => expression.
 func (s *Parser) functionExpr() (ast.Expr, error) {
 	defer s.allowStructs(structsAll)()
 
 	name := anonName(s.advance())
 	s.advance()
 
-	decl, err := s.functionRest(name)
+	decl, _, err := s.functionRest(name)
 	if err != nil {
 		return nil, err
 	}
@@ -832,7 +875,7 @@ func (s *Parser) arrowFunction() (fn ast.Expr, ok bool, err error) {
 		return nil, false, nil
 	}
 
-	body, err := s.arrowBody(s.advance())
+	body, _, err := s.arrowBody(s.advance())
 	if err != nil {
 		return nil, true, err
 	}
@@ -856,14 +899,14 @@ func (s *Parser) arrowParams() (params, bool) {
 }
 
 // arrowBody parses a block, or an expression whose value is returned.
-func (s *Parser) arrowBody(arrow ast.Token) ([]ast.Stmt, error) {
+func (s *Parser) arrowBody(arrow ast.Token) (body []ast.Stmt, expr bool, err error) {
 	if body, ok, err := s.braceBody(); ok {
-		return body, err
+		return body, false, err
 	}
 
 	e, err := s.assignment()
 
-	return []ast.Stmt{ast.NewReturnStmt(e, arrow)}, err
+	return []ast.Stmt{ast.NewReturnStmt(e, arrow)}, true, err
 }
 
 func anonName(at ast.Token) ast.Token {

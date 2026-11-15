@@ -31,17 +31,17 @@ const INF = 1000000;
 
 struct FenError { message }
 
-fun sq(file, rank) { return 21 + file + rank * 10; }
-fun fileOf(s) { return s % 10 - 1; }
-fun rankOf(s) { return math.idiv(s, 10) - 2; }
-fun squareName(s) { return "abcdefgh"[fileOf(s)] + string(rankOf(s) + 1); }
-fun color(side) { return (1 - side) >> 1; }
+fun sq(file, rank) => 21 + file + rank * 10;
+fun fileOf(s) => s % 10 - 1;
+fun rankOf(s) => math.idiv(s, 10) - 2;
+fun squareName(s) => "abcdefgh"[fileOf(s)] + string(rankOf(s) + 1);
+fun color(side) => (1 - side) >> 1;
 
-fun encode(from, to, promo = 0, flag = 0) { return from | to << 7 | promo << 14 | flag << 17; }
-fun moveFrom(m) { return m & 127; }
-fun moveTo(m) { return m >> 7 & 127; }
-fun movePromo(m) { return m >> 14 & 7; }
-fun moveFlag(m) { return m >> 17; }
+fun encode(from, to, promo = 0, flag = 0) => from | to << 7 | promo << 14 | flag << 17;
+fun moveFrom(m) => m & 127;
+fun moveTo(m) => m >> 7 & 127;
+fun movePromo(m) => m >> 14 & 7;
+fun moveFlag(m) => m >> 17;
 
 fun moveName(m) {
     let promo = movePromo(m);
@@ -114,7 +114,7 @@ const PST = [
     ],
 ];
 
-fun pieceIndex(p, s) { return (p + 6) * 120 + s; }
+fun pieceIndex(p, s) => (p + 6) * 120 + s;
 
 fun buildSquareScores() {
     let mut out = [0].repeat(13 * 120);
@@ -279,8 +279,8 @@ impl Position {
         return false;
     }
 
-    fun inCheck(self) { return self.attacked(self.kings[color(self.side)], -self.side); }
-    fun leftInCheck(self) { return self.attacked(self.kings[color(-self.side)], self.side); }
+    fun inCheck(self) => self.attacked(self.kings[color(self.side)], -self.side);
+    fun leftInCheck(self) => self.attacked(self.kings[color(-self.side)], self.side);
 
     fun moves(self, quiet = true) {
         let b = self.board;

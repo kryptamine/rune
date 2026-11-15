@@ -43,6 +43,7 @@ fun tryRun(src, mut catalog, format = "table") {
 
 fun showDemo() {
     let dir = fs.tempDir();
+    defer fs.removeAll(dir);
     let n = int(os.env("ORDERS") ?? "100000");
 
     let mut started = time.now();
@@ -61,8 +62,6 @@ fun showDemo() {
         print("\n> {text}\n");
         tryRun(text, catalog);
     }
-
-    fs.removeAll(dir);
 }
 
 fun main(args) {

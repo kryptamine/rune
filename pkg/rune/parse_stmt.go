@@ -198,9 +198,15 @@ func (s *Parser) function(kind string) (ast.Stmt, error) {
 		return nil, err
 	}
 
-	fn, err := s.functionRest(name)
+	fn, expr, err := s.functionRest(name)
 	if err != nil {
 		return nil, err
+	}
+
+	if expr {
+		if _, err := s.consume(ast.SEMICOLON, "Expect ';' after function body."); err != nil {
+			return nil, err
+		}
 	}
 
 	return fn, nil
@@ -208,25 +214,28 @@ func (s *Parser) function(kind string) (ast.Stmt, error) {
 
 const maxArity = 8
 
-// functionRest parses a function's parameter list and body; the opening
-// "(" has already been consumed.
-func (s *Parser) functionRest(name ast.Token) (*ast.FunctionStmt, error) {
+// functionRest parses a function's parameter list and body, a block or
+// "=> body" as an arrow function's; expr reports an expression body. The
+// opening "(" has already been consumed.
+func (s *Parser) functionRest(name ast.Token) (fn *ast.FunctionStmt, expr bool, err error) {
 	params, err := s.parameters()
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
-	_, err = s.consume(ast.LEFT_BRACE, "Expect '{' before function body.")
+	var body []ast.Stmt
+
+	if s.check(ast.ARROW) {
+		body, expr, err = s.arrowBody(s.advance())
+	} else if _, err = s.consume(ast.LEFT_BRACE, "Expect '{' or '=>' before function body."); err == nil {
+		body, err = s.block()
+	}
+
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
-	body, err := s.block()
-	if err != nil {
-		return nil, err
-	}
-
-	return params.function(name, body), nil
+	return params.function(name, body), expr, nil
 }
 
 // params is a parameter list; patterns destructure pattern parameters
@@ -413,7 +422,19 @@ func (s *Parser) statement() (ast.Stmt, error) {
 		return s.whileStatement()
 	}
 
-	if s.match(ast.TRY) {
+	if s.match(ast.DEFER) {
+		keyword := s.previous()
+
+		body, err := s.body("'defer'")
+		if err != nil {
+			return nil, err
+		}
+
+		return &ast.DeferStmt{Keyword: keyword, Body: body}, nil
+	}
+
+	if s.atTryStatement() {
+		s.advance()
 		return s.tryStatement()
 	}
 
@@ -553,6 +574,9 @@ func stmtKeyword(t ast.TokenType) bool {
 
 	return blockKeyword(t)
 }
+
+// atTryStatement reports whether "try {" is ahead; any other try is an expression.
+func (s *Parser) atTryStatement() bool { return s.check(ast.TRY) && s.peekAt(1) == ast.LEFT_BRACE }
 
 // blockKeyword reports whether t starts a statement that is no expression.
 func blockKeyword(t ast.TokenType) bool {
@@ -717,6 +741,23 @@ func (s *Parser) tryStatement() (ast.Stmt, error) {
 }
 
 func (s *Parser) catchClause() (ast.CatchClause, error) {
+	c, err := s.catchHead()
+	if err != nil {
+		return c, err
+	}
+
+	if _, err := s.consume(ast.LEFT_BRACE, "Expect '{' after 'catch'."); err != nil {
+		return c, err
+	}
+
+	handler, err := s.block()
+	c.Body = handler
+
+	return c, err
+}
+
+// catchHead parses what follows "catch": [name [is T | U]].
+func (s *Parser) catchHead() (ast.CatchClause, error) {
 	c := ast.CatchClause{Keyword: s.previous()}
 
 	if s.match(ast.IDENTIFIER) {
@@ -733,14 +774,7 @@ func (s *Parser) catchClause() (ast.CatchClause, error) {
 		}
 	}
 
-	if _, err := s.consume(ast.LEFT_BRACE, "Expect '{' after 'catch'."); err != nil {
-		return c, err
-	}
-
-	handler, err := s.block()
-	c.Body = handler
-
-	return c, err
+	return c, nil
 }
 
 // typeList parses the types after 'is': T, m.T, nil, struct or enum, joined by '|'.

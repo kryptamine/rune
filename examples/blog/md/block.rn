@@ -9,17 +9,13 @@ struct Doc { html = [], headings = [] }
 enum ListKind { Bullet, Numbered }
 
 impl ListKind {
-    fun tag(self) {
-        return match self {
-            ListKind.Bullet => "ul",
-            ListKind.Numbered => "ol",
-        };
-    }
+    fun tag(self) => match self {
+        ListKind.Bullet => "ul",
+        ListKind.Numbered => "ol",
+    };
 }
 
-export fun slug(s) {
-    return regex.replace(r"[^a-z0-9]+", s.lower(), "-").trim("-");
-}
+export fun slug(s) => regex.replace(r"[^a-z0-9]+", s.lower(), "-").trim("-");
 
 export fun render(src) {
     let lines = src.split("\n");
