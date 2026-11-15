@@ -1,0 +1,271 @@
+// Bitcask-style store: values are appended to segment files, an in-memory
+// keydir maps each key to where its latest value lies. Opening replays the
+// segments (or their hint files), dropping a torn tail; compaction copies
+// live records into fresh segments and removes the old ones. A LOCK file
+// keeps a second process out.
+
+import .codec;
+
+export struct KvError { message }
+
+struct Segment { log, hint, size = 0, live = 0, reader = nil }
+
+impl Segment {
+    fun at(dir, id) => Segment { log: fs.join(dir, "%06d.log".format(id)), hint: fs.join(dir, "%06d.hint".format(id)) };
+
+    fun name(self) => fs.base(self.log);
+
+    fun added(mut self, n, alive) {
+        self.size += n;
+        if alive self.live += n;
+    }
+
+    fun dropped(mut self, n) {
+        self.live -= n;
+    }
+
+    fun read(mut self, at, n) {
+        if self.reader == nil self.reader = fs.open(self.log);
+        return self.reader.readAt(at, n);
+    }
+
+    fun close(self) {
+        self.reader?.close();
+    }
+
+    fun remove(self) {
+        self.close();
+        fs.remove(self.log);
+        if fs.exists(self.hint) fs.remove(self.hint);
+    }
+}
+
+// Writes data to path through a temporary file, synced before it takes
+// the name, so path is either whole or missing
+fun writeDurably(path, data) {
+    let out = fs.open(path + ".tmp", "w");
+    out.write(data);
+    out.sync();
+    out.close();
+    fs.rename(path + ".tmp", path);
+}
+
+// Splits [key, loc] entries into runs of at most max record bytes
+fun chunks(entries, max) {
+    let mut out = [];
+    let mut size = 0;
+    for [key, loc] in entries {
+        if out.len() == 0 || size + loc.recLen > max {
+            out.push([]);
+            size = 0;
+        }
+        out[-1].push([key, loc]);
+        size += loc.recLen;
+    }
+    return out;
+}
+
+export struct Store {
+    dir,
+    maxSegment,
+    sync,
+    lock,
+    keydir = map(),
+    segs = map(),
+    active = 0,
+    out = nil,
+    recovery = nil,
+    writes = 0,
+}
+
+impl Store {
+    // sync: fsync after every write, not only flush it to the system
+    fun open(dir, { maxSegment = 4 << 20, sync = false } = {}) {
+        fs.mkdir(dir);
+        let lock = try fs.lock(fs.join(dir, "LOCK")) catch e is IOError => throw e.code == "locked" ? KvError { message: "{dir} is open elsewhere" } : e;
+        let mut db = Store { dir, maxSegment, sync, lock };
+        try {
+            db.boot();
+        } catch e {
+            lock.close();
+            throw e;
+        }
+        return db;
+    }
+
+    fun boot(mut self) {
+        let started = time.now();
+        let mut rec = { segments: 0, records: 0, hinted: 0, truncated: [], ms: 0 };
+
+        for f in fs.list(self.dir) {
+            if f.name.endsWith(".tmp") fs.remove(fs.join(self.dir, f.name));
+        }
+        let ids = fs.list(self.dir).filter(f => f.name.endsWith(".log")).map(f => int(fs.stem(f.name)));
+
+        for i, id in ids {
+            self.segs[id] = Segment.at(self.dir, id);
+            if fs.exists(self.segs[id].hint) {
+                self.loadHint(id, rec);
+            } else {
+                self.replay(id, i == ids.len() - 1, rec);
+            }
+            rec.segments++;
+        }
+
+        // A compacted segment, the one with a hint, is never appended to
+        let last = ids.len() > 0 ? ids[-1] : 0;
+        self.active = last > 0 && !fs.exists(self.segs[last].hint) ? last : last + 1;
+        self.openActive();
+        rec.ms = (time.now() - started) * 1000;
+        self.recovery = rec;
+    }
+
+    fun openActive(mut self) {
+        if !self.segs.has(self.active) self.segs[self.active] = Segment.at(self.dir, self.active);
+        self.out = fs.open(self.segs[self.active].log, "a");
+    }
+
+    fun apply(mut self, key, loc, kind) {
+        let old = self.keydir?.[key];
+        if old self.segs[old.seg].dropped(old.recLen);
+        if kind == codec.PUT {
+            self.keydir[key] = loc;
+        } else {
+            self.keydir.delete(key);
+        }
+        self.segs[loc.seg].added(loc.recLen, kind == codec.PUT);
+    }
+
+    fun replay(mut self, id, last, mut rec) {
+        let seg = self.segs[id];
+        let data = fs.readBytes(seg.log);
+
+        let mut at = 0;
+        while at < data.len() {
+            let r = codec.decode(data, at);
+            if r is codec.Bad {
+                if !last throw KvError { message: "{seg.name()}: {r.name.lower()} record at byte {at}" };
+                fs.truncate(seg.log, at);
+                rec.truncated.push({ file: seg.name(), at, dropped: data.len() - at, reason: r.name.lower() });
+                break;
+            }
+            self.apply(r.key, codec.Loc { seg: id, start: r.start, recLen: r.recLen, size: r.size }, r.kind);
+            rec.records++;
+            at += r.recLen;
+        }
+    }
+
+    fun loadHint(mut self, id, mut rec) {
+        let data = fs.readBytes(self.segs[id].hint);
+        let mut at = 0;
+        while at < data.len() {
+            let h = codec.decodeHint(data, at, id) ?? throw KvError { message: "{fs.base(self.segs[id].hint)}: bad entry at byte {at}" };
+            self.apply(h.key, h.loc, codec.PUT);
+            rec.hinted++;
+            at = h.next;
+        }
+    }
+
+    fun write(mut self, kind, key, value) {
+        if type(key) != "string" || key == "" throw KvError { message: "keys are non-empty strings, got {key}" };
+        let rec = codec.encode(kind, key, value);
+        let used = self.segs[self.active].size;
+        if used > 0 && used + rec.len() > self.maxSegment self.rotate();
+
+        let loc = codec.Loc { seg: self.active, start: self.segs[self.active].size, recLen: rec.len(), size: value.len() };
+        self.out.write(rec);
+        if self.sync {
+            self.out.sync();
+        } else {
+            self.out.flush();
+        }
+        self.writes++;
+        self.apply(key, loc, kind);
+    }
+
+    fun rotate(mut self) {
+        self.out.close();
+        self.active++;
+        self.openActive();
+    }
+
+    fun put(mut self, key, value) {
+        self.write(codec.PUT, key, bytes(json.stringify(value)));
+    }
+
+    fun delete(mut self, key) {
+        if !self.keydir.has(key) return false;
+        self.write(codec.DEL, key, b"");
+        return true;
+    }
+
+    fun has(self, key) => self.keydir.has(key);
+
+    fun get(mut self, key, fallback = nil) {
+        let loc = self.keydir?.[key] ?? return fallback;
+        return json.parse(self.segs[loc.seg].read(loc.valueAt(), loc.size).text());
+    }
+
+    fun keys(self, prefix = "") {
+        let mut ks = self.keydir.keys().filter(k => k.startsWith(prefix));
+        ks.sort();
+        return ks;
+    }
+
+    fun scan(mut self, prefix = "") => self.keys(prefix).map(k => [k, self.get(k)]);
+
+    fun len(self) => self.keydir.len();
+
+    fun info(self) {
+        let mut size = 0;
+        let mut live = 0;
+        for _, s in self.segs {
+            size += s.size;
+            live += s.live;
+        }
+        return { keys: self.keydir.len(), segments: self.segs.len(), size, live, dead: size - live, writes: self.writes };
+    }
+
+    // Copies every live record into new segments numbered after the old
+    // ones, each with a hint file, then removes the old segments. A crash
+    // midway leaves the old segments in place, which the new ones (with
+    // higher numbers) override on replay.
+    fun compact(mut self) {
+        let before = self.info();
+        self.out.close();
+        let old = self.segs.values();
+        let mut data = map();
+        let mut segs = map();
+        let mut keydir = map();
+
+        for chunk in chunks(self.keydir.entries(), self.maxSegment) {
+            self.active++;
+            let mut log = bytes.buffer();
+            let mut hints = bytes.buffer();
+            for [key, loc] in chunk {
+                if !data.has(loc.seg) data[loc.seg] = fs.readBytes(self.segs[loc.seg].log);
+                let moved = codec.Loc { ...loc, seg: self.active, start: log.len() };
+                log.write(data[loc.seg].slice(loc.start, loc.start + loc.recLen));
+                codec.writeHint(hints, key, moved);
+                keydir[key] = moved;
+            }
+            let seg = Segment.at(self.dir, self.active);
+            writeDurably(seg.log, log);
+            writeDurably(seg.hint, hints);
+            segs[self.active] = Segment { ...seg, size: log.len(), live: log.len() };
+        }
+
+        for s in old s.remove();
+        self.segs = segs;
+        self.keydir = keydir;
+        self.active++;
+        self.openActive();
+        return { before, after: self.info() };
+    }
+
+    fun close(self) {
+        self.out.close();
+        for _, s in self.segs s.close();
+        self.lock.close();
+    }
+}

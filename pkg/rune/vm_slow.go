@@ -452,8 +452,9 @@ func spreadItems(items []value.Value, src value.Value) ([]value.Value, bool) {
 			items = append(items, value.NewArray([]value.Value{k, v}))
 			return true
 		})
-	case value.Bytes:
-		for _, b := range src.Bytes() {
+	case value.Bytes, value.Buffer:
+		data, _ := src.Binary()
+		for _, b := range data {
 			items = append(items, value.NewInt(int64(b)))
 		}
 	default:

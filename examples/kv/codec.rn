@@ -1,0 +1,75 @@
+// Record layout, little-endian:
+//
+//   crc32 u32 | kind u8 | keyLen uvarint | valLen uvarint | key | value
+//
+// The checksum covers everything after itself.
+
+export const PUT = 0;
+export const DEL = 1;
+
+// A record's place in its segment: it starts at `start`, takes `recLen`
+// bytes and ends with its value, `size` bytes
+export struct Loc { seg, start, recLen, size }
+
+impl Loc {
+    fun valueAt(self) => self.start + self.recLen - self.size;
+}
+
+export struct Record { kind, key, start, recLen, size }
+
+export fun encode(kind, key, value) {
+    let k = bytes(key);
+    let mut body = bytes.buffer();
+    body.writeUint(kind, 1);
+    body.writeUvarint(k.len());
+    body.writeUvarint(value.len());
+    body.write(k);
+    body.write(value);
+
+    let mut rec = bytes.buffer();
+    rec.writeUint(body.crc32(), 4);
+    rec.write(body);
+    return rec.bytes();
+}
+
+// Torn and Corrupt end a scan: a torn record runs past the end of the data
+// (a write cut short), a corrupt one fails its checksum
+export enum Bad { Torn, Corrupt }
+
+// The record at `at`, or a Bad
+export fun decode(b, at) {
+    if at + 5 > b.len() return Bad.Torn;
+    let [klen, kat] = b.uvarint(at + 5) ?? return Bad.Torn;
+    let [vlen, vat] = b.uvarint(kat) ?? return Bad.Torn;
+    let end = vat + klen + vlen;
+    if end > b.len() return Bad.Torn;
+    if b.slice(at + 4, end).crc32() != b.uint(at, 4) return Bad.Corrupt;
+
+    let kind = b[at + 4];
+    if kind != PUT && kind != DEL return Bad.Corrupt;
+    return Record { kind, key: b.slice(vat, vat + klen).text(), start: at, recLen: end - at, size: vlen };
+}
+
+// Hint entry, one per live record of a compacted segment:
+//
+//   keyLen uvarint | start uvarint | recLen uvarint | valLen uvarint | key
+export fun writeHint(mut out, key, loc) {
+    let k = bytes(key);
+    out.writeUvarint(k.len());
+    out.writeUvarint(loc.start);
+    out.writeUvarint(loc.recLen);
+    out.writeUvarint(loc.size);
+    out.write(k);
+}
+
+export struct Hint { key, loc, next }
+
+export fun decodeHint(b, at, seg) {
+    let [klen, i] = b.uvarint(at) ?? return nil;
+    let [start, j] = b.uvarint(i) ?? return nil;
+    let [recLen, k] = b.uvarint(j) ?? return nil;
+    let [size, kat] = b.uvarint(k) ?? return nil;
+    let next = kat + klen;
+    if next > b.len() return nil;
+    return Hint { key: b.slice(kat, next).text(), loc: Loc { seg, start, recLen, size }, next };
+}

@@ -52,19 +52,7 @@ var bytesMethods = []*Native{
 	{"bytes.indexOf", 2, 2, func(c *call) value.Value {
 		return count(bytes.Index(c.bytes(0), c.bytes(1)))
 	}},
-	{"bytes.concat", 1, -1, func(c *call) value.Value {
-		n := 0
-		for i := range c.args {
-			n += len(c.bytes(i))
-		}
-
-		out := make([]byte, 0, n)
-		for i := range c.args {
-			out = append(out, c.bytes(i)...)
-		}
-
-		return value.NewBytes(out)
-	}},
+	{"bytes.concat", 1, -1, concatBytes},
 	{"bytes.hex", 1, 1, func(c *call) value.Value {
 		return value.NewString(hex.EncodeToString(c.bytes(0)))
 	}},
@@ -99,7 +87,23 @@ var toBytes = &Native{"bytes", 1, 1, func(c *call) value.Value {
 	return c.typeError(0, "a string, an array or bytes")
 }}
 
+func concatBytes(c *call) value.Value {
+	n := 0
+	for i := range c.args {
+		n += len(c.bytes(i))
+	}
+
+	out := make([]byte, 0, n)
+	for i := range c.args {
+		out = append(out, c.bytes(i)...)
+	}
+
+	return value.NewBytes(out)
+}
+
 var bytesNatives = []*Native{
+	{"bytes.concat", 0, -1, concatBytes},
+	{"bytes.buffer", 0, 1, newBuffer},
 	{"bytes.alloc", 1, 2, func(c *call) value.Value {
 		n, fill := c.int(0), 0
 		if c.has(1) {

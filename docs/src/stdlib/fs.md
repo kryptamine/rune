@@ -22,7 +22,8 @@ fs.removeAll(dir);
 ## Reading and writing
 
 - `readText(path)` — the contents as a string; `lines(path)` — its lines without `\n` or `\r\n`; `readBytes(path)` — the contents as bytes.
-- `write(path, data)` (creates or truncates), `append(path, data)`, of a string or bytes.
+- `write(path, data)` (creates or truncates), `append(path, data)`, of a string, bytes or a [buffer](../data/bytes.md#buffers).
+- `truncate(path, size)` — cuts the file to `size` bytes, or pads it with zero bytes.
 - `open(path[, mode])` — a [Stream](streams.md) of the file: `"r"` (default) to read, `"w"` to write (creating or truncating), `"a"` to append.
 
 ```rune
@@ -63,6 +64,26 @@ fs.removeAll(dir);
 print(fs.exists(dir));                      // false
 ```
 
+## Locks
+
+`lock(path)` opens `path` for writing (creating it, keeping what it holds)
+and takes an exclusive lock on it, which closing the stream, or the program
+ending, releases. While another stream or process holds it, `lock` fails
+at once with the `IOError` code `"locked"`.
+
+```rune
+let path = fs.join(fs.tempDir(), "LOCK");
+let held = fs.lock(path);
+try {
+    fs.lock(path);
+} catch e is IOError {
+    print(e.code);   // locked
+}
+held.close();
+fs.lock(path).close();
+fs.removeAll(fs.dir(path));
+```
+
 ## Paths
 
 `join(a, ...)`, `base(p)`, `dir(p)`, `ext(p)` and `stem(p)`, the base
@@ -82,7 +103,7 @@ print(fs.join("a", "../b", "./c"));             // b/c
 ## Errors
 
 A failure is an `IOError` with `path` and `code`: `"notFound"`, `"exists"`,
-`"permission"`, `"isDir"`, `"notDir"`, `"notEmpty"`, or `nil` for anything
+`"permission"`, `"isDir"`, `"notDir"`, `"notEmpty"`, `"locked"`, or `nil` for anything
 else.
 
 ```rune

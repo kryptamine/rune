@@ -1,0 +1,54 @@
+let dir = fs.tempDir();
+let path = fs.join(dir, "seg.log");
+fs.write(path, "hello world");
+
+let r = fs.open(path);
+print(r.readAt(6, 5));    // expect: b"world"
+print(r.readAt(6, 100));  // expect: b"world"
+print(r.readAt(6, 1 << 20)); // expect: b"world"
+print(r.readAt(99, 1 << 20)); // expect: nil
+print(r.readAt(11, 1));   // expect: nil
+print(r.read(5));         // expect: b"hello"
+r.seek(0);
+print(r.readLine());      // expect: hello world
+
+let w = fs.open(path, "a");
+w.write("!");
+w.sync();
+print(r.readAt(11, 1));   // expect: b"!"
+w.close();
+
+let o = fs.open(path, "w");
+o.write("abc");
+o.seek(1);
+o.write("X");
+o.close();
+print(fs.readText(path)); // expect: aXc
+
+fs.truncate(path, 1);
+print(fs.readText(path)); // expect: a
+fs.truncate(path, 3);
+print(fs.readBytes(path)); // expect: b"a\x00\x00"
+
+let lockPath = fs.join(dir, "LOCK");
+let lock = fs.lock(lockPath);
+try { fs.lock(lockPath); } catch e is IOError { print(e.code); } // expect: locked
+lock.write("pid 1");
+lock.close();
+let again = fs.lock(lockPath);
+print(type(again));       // expect: stream
+again.close();
+print(fs.readText(lockPath)); // expect: pid 1
+
+fun fails(f) {
+  try { f(); } catch e { print(type(e) + ": " + e.message); }
+}
+fails(() => fs.open(path).readAt(-1, 1));  // expect: ValueError: stream.readAt() expects an offset of at least 0, got -1.
+fails(() => fs.open(path).readAt(0, 0));   // expect: ValueError: stream.readAt() expects a size from 1 to 1073741824, got 0.
+fails(() => fs.truncate(path, -1));        // expect: ValueError: fs.truncate() expects a size of at least 0, got -1.
+try { fs.truncate(fs.join(dir, "nope"), 0); } catch e is IOError { print(e.code); } // expect: notFound
+let closed = fs.open(path);
+closed.close();
+try { closed.readAt(0, 1); } catch e is IOError { print(e.message.endsWith("stream is closed.")); } // expect: true
+
+fs.removeAll(dir);

@@ -57,6 +57,30 @@ print(fs.lines(dst));   // ["ALPHA", "BETA", "GAMMA"]
 log.close();
 ```
 
+## Files
+
+A stream of a file can also jump around it:
+
+- `readAt(offset, n)` — up to `n` bytes at `offset` from the start, or `nil` at or past the end. It reads the file itself, so it sees what other streams wrote and flushed, and leaves this stream's position alone;
+- `seek(offset)` — moves to `offset` from the start, flushing writes first; a stream opened with `"a"` still appends;
+- `sync()` — flushes, then has the system write the file to disk (`fsync`), so it survives a power loss.
+
+```rune
+let path = fs.join(fs.tempDir(), "data.log");
+let log = fs.open(path, "a");
+log.write("hello world");
+log.sync();
+
+let r = fs.open(path);
+print(r.readAt(6, 5));   // b"world"
+print(r.read(5));        // b"hello"
+r.seek(0);
+print(r.readLine());     // hello world
+r.close();
+log.close();
+fs.removeAll(fs.dir(path));
+```
+
 ## Errors
 
 A failure, reading a closed stream included, is an `IOError`.

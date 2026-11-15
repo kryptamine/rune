@@ -64,6 +64,25 @@ rune run examples/query/main.rn "SELECT * FROM users LIMIT 5" -d data -f json
 rune run examples/query/main.rn repl -d data                 # one query per line from stdin
 ```
 
+### [`kv/`](https://github.com/kryptamine/rune/tree/master/examples/kv) — key-value store
+
+A Bitcask-style store: every write appends a CRC-checked record to a
+segment file, and an in-memory `map` keeps where each key's latest value
+lies, which `get` reads with a stream's `readAt`. Records are built in a
+[buffer](../data/bytes.md#buffers) with varints and read back with
+`uvarint` and `crc32`. Opening takes an `fs.lock`, replays the segments
+and `fs.truncate`s a torn tail left by a crash; compaction copies the live
+records into fresh segments, `sync`s them and writes hint files, so the
+next open skips the replay. The demo simulates a crash, a corrupted
+segment and a second writer, then times puts, gets, replay and compaction.
+
+```sh
+rune run examples/kv/main.rn                     # writes, a crash, recovery, compaction, timings
+rune run examples/kv/main.rn db put user:1 '{"name": "ann"}'
+rune run examples/kv/main.rn db scan user:
+rune run examples/kv/main.rn bench 100000
+```
+
 ### [`log-report.rn`](https://github.com/kryptamine/rune/blob/master/examples/log-report.rn) — access log report
 
 Per-endpoint latency percentiles, status classes, top clients and slow
