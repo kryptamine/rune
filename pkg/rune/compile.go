@@ -22,7 +22,9 @@ type funcState struct {
 	free    int32
 	code    []ins
 	loops   []*loop
-	tries   int
+	// unwinds holds what leaving the code being compiled passes: nil for
+	// the handler of a try, a defer's body for a defer.
+	unwinds []ast.Stmt
 	// chain holds the jumps of the ?. of the optional chain being compiled.
 	chain []int
 	// defined holds the top-level variables whose declaration the script
@@ -45,7 +47,7 @@ type unit struct {
 
 type loop struct {
 	breaks, continues []int
-	tries             int
+	unwinds           int
 }
 
 type constKey struct {

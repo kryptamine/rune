@@ -96,13 +96,9 @@ fun filter(conds, ctx) {
     return rows => rows.filter(r => ok(r) == true);
 }
 
-fun whereText(conds) {
-    return conds.len() == 0 ? "" : " where {ast.sql(ast.allOf(conds))}";
-}
+fun whereText(conds) => conds.len() == 0 ? "" : " where {ast.sql(ast.allOf(conds))}";
 
-fun describe(ref) {
-    return ref.alias == ref.name ? ref.name : "{ref.name} {ref.alias}";
-}
+fun describe(ref) => ref.alias == ref.name ? ref.name : "{ref.name} {ref.alias}";
 
 // An ON with a conjunct a = b, each side on one table, is a hash join on
 // it, the rest checked on each match; anything else is a nested loop.
@@ -145,13 +141,11 @@ fun joinStep(s, pushed) {
     } };
 }
 
-fun sides(e, left, right) {
-    return match e {
-        ast.Binary { op: "=", left: a, right: b } if left.covers(a) && right.covers(b) => [a, b],
-        ast.Binary { op: "=", left: a, right: b } if left.covers(b) && right.covers(a) => [b, a],
-        _ => nil,
-    };
-}
+fun sides(e, left, right) => match e {
+    ast.Binary { op: "=", left: a, right: b } if left.covers(a) && right.covers(b) => [a, b],
+    ast.Binary { op: "=", left: a, right: b } if left.covers(b) && right.covers(a) => [b, a],
+    _ => nil,
+};
 
 // joinRows pairs each row with the candidates check passes, or with pad if
 // none does and the join is outer.
@@ -289,6 +283,4 @@ fun expandStars(items, scope) {
     return out;
 }
 
-fun columnName(it) {
-    return it.alias ?? (it.expr is ast.Col ? it.expr.name : ast.sql(it.expr));
-}
+fun columnName(it) => it.alias ?? (it.expr is ast.Col ? it.expr.name : ast.sql(it.expr));

@@ -1,0 +1,6 @@
+fun inner() { [].pop(); } // expect runtime error: [line: 1] ValueError: array.pop() got an empty array.
+fun outer() {
+  defer print("cleanup"); // expect: cleanup
+  inner();
+}
+outer();

@@ -11,7 +11,7 @@ struct ApiError { message, status, path }
 struct Client { base = BASE, token = nil, refreshToken = nil, refreshes = 0 }
 
 impl Client {
-    fun new() { return Client {}; }
+    fun new() => Client {};
 
     fun login(mut self, username, password) {
         let r = self.send("POST", "/auth/login", { username, password, expiresInMins: 30 });
@@ -29,8 +29,8 @@ impl Client {
 
     fun expire(mut self) { self.token = "expired"; }
 
-    fun get(mut self, path) { return self.authed("GET", path); }
-    fun post(mut self, path, body) { return self.authed("POST", path, body); }
+    fun get(mut self, path) => self.authed("GET", path);
+    fun post(mut self, path, body) => self.authed("POST", path, body);
 
     // 401 means the access token expired: refresh once and retry.
     fun authed(mut self, method, path, body = nil) {
@@ -78,7 +78,7 @@ fun urlEncode(s) {
     return out;
 }
 
-fun money(n) { return "$" + n.fixed(2); }
+fun money(n) => "$" + n.fixed(2);
 
 fun section(title) {
     print("");

@@ -1,0 +1,1 @@
+let a = try 1; // Error at ';': Expect 'catch' after try expression.

@@ -86,6 +86,8 @@ func assigns(e ast.Expr) bool {
 		return assigns(n.Cond) || assigns(n.Then) || assigns(n.Else)
 	case *ast.ThrowExpr:
 		return assigns(n.Value)
+	case *ast.TryExpr:
+		return assigns(n.Value) || slices.ContainsFunc(n.Catches, func(c ast.CatchClause) bool { return assigns(c.Value) })
 	case *ast.JumpExpr:
 		r, ok := n.Stmt.(*ast.ReturnStmt)
 		return ok && r.Value != nil && assigns(r.Value)
@@ -293,6 +295,8 @@ func (fs *funcState) expr(e ast.Expr, dst int32) {
 	case *ast.ThrowExpr:
 		fs.expr(n.Value, dst)
 		fs.emit(ins{op: opThrow, a: dst}, &n.Keyword)
+	case *ast.TryExpr:
+		fs.tryExpr(n, dst)
 	case *ast.JumpExpr:
 		fs.stmt(n.Stmt)
 	default:
@@ -441,7 +445,7 @@ func (fs *funcState) spreadStruct(n *ast.StructExpr, base, dst int32) {
 // before e is fully evaluated, so it must not target a live variable.
 func writesEarly(e ast.Expr) bool {
 	switch n := unwrap(e).(type) {
-	case *ast.LogicalExpr, *ast.AssignExpr, *ast.SetIndexExpr, *ast.ThrowExpr:
+	case *ast.LogicalExpr, *ast.AssignExpr, *ast.SetIndexExpr, *ast.ThrowExpr, *ast.TryExpr:
 		return true
 	case *ast.UpdateExpr:
 		return !n.Prefix

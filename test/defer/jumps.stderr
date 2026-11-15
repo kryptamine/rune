@@ -1,0 +1,9 @@
+[line: 2] Error at 'return': Cannot return from a 'defer' body.
+    2 |   defer return 1; // Error at 'return': Cannot return from a 'defer' body.
+      |         ^
+[line: 5] Error at 'break': Cannot use 'break' to leave a 'defer' body.
+    5 |   defer break; // Error at 'break': Cannot use 'break' to leave a 'defer' body.
+      |         ^
+[line: 8] Error at 'continue': Cannot use 'continue' to leave a 'defer' body.
+    8 |     continue; // Error at 'continue': Cannot use 'continue' to leave a 'defer' body.
+      |     ^

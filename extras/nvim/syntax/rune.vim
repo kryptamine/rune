@@ -5,7 +5,7 @@ endif
 syn keyword runeKeyword let const mut fun return struct enum impl import export match is in
 syn keyword runeConditional if else
 syn keyword runeRepeat for while break continue
-syn keyword runeException try catch throw
+syn keyword runeException try catch throw defer
 syn keyword runeBoolean true false
 syn keyword runeNil nil
 syn keyword runeSelf self

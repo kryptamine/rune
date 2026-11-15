@@ -1,0 +1,3 @@
+[line: 2] Error at 'print': Expect ';' after function body.
+    2 | print(f()); // [line: 2] Error at 'print': Expect ';' after function body.
+      | ^

@@ -22,6 +22,7 @@ type StmtVisitor interface {
 	VisitStructStmt(structStmt *StructStmt) error
 	VisitMatchStmt(matchStmt *MatchStmt) error
 	VisitImplStmt(implStmt *ImplStmt) error
+	VisitDeferStmt(deferStmt *DeferStmt) error
 }
 
 // Binding is a declared name; Mutable is set for names declared with "mut".
@@ -195,6 +196,16 @@ func NewForInStmt(keyword Token, key *Binding, val Binding, iterable Expr, body 
 	return &ForInStmt{Keyword: keyword, Key: key, Value: val, Iterable: iterable, Body: body}
 }
 
+// DeferStmt runs Body when the block it is in is left, however it is.
+type DeferStmt struct {
+	Keyword Token
+	Body    Stmt
+}
+
+func (n *DeferStmt) Accept(v StmtVisitor) error {
+	return v.VisitDeferStmt(n)
+}
+
 type BreakStmt struct {
 	Keyword Token
 }
@@ -249,10 +260,9 @@ type TryStmt struct {
 	Catches []CatchClause
 }
 
-// CatchClause catches errors that are one of Types, or any without Types.
-// Param is the optional catch variable (nil without one).
-// CatchClause is catch [name [is T | U]] { body }; the resolver sets
-// Shapes, one per type.
+// CatchClause is catch [name [is T | U]] { body }, or in a TryExpr
+// catch [name [is T | U]] => value; without Types it catches any error.
+// The resolver sets Shapes, one per type.
 type CatchClause struct {
 	Keyword    Token
 	Param      *Token
@@ -260,6 +270,7 @@ type CatchClause struct {
 	Types      []*VarExpr
 	Shapes     []*value.Shape
 	Body       []Stmt
+	Value      Expr
 }
 
 func NewTryStmt(body Stmt, catches []CatchClause) Stmt {

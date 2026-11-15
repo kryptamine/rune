@@ -35,7 +35,8 @@ for i, p in points {
 - immutable by default (`let` / `let mut`), compile-time `const`
 - structs and enums (variants may carry fields) with `impl` methods
 - pattern matching, destructuring, spread, nil-safe chains `a?.b ?? c`
-- `try`/`catch` with typed errors, `return` / `break` / `continue` as expressions
+- `try`/`catch` with typed errors, as a statement or an expression; `defer`
+- `return` / `break` / `continue` as expressions
 - modules with `export` / `import`
 - standard library: `string`, `regex`, `math`, `json`, `http`, `time`, `fs`, `io`, `os`
 

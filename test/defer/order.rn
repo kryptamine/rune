@@ -1,0 +1,18 @@
+fun run() {
+  defer print("first registered");
+  defer { print("second registered"); }
+  print("body");
+}
+run();
+// expect: body
+// expect: second registered
+// expect: first registered
+
+{
+  defer print("inner block");
+  print("in block");
+}
+print("after block");
+// expect: in block
+// expect: inner block
+// expect: after block

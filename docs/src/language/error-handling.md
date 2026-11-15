@@ -96,6 +96,40 @@ print(load("not json"));            // invalid JSON
 print(load(r"""{"port": "80"}""")); // TypeError
 ```
 
+## try as an Expression
+
+`try value catch => fallback` is `value`, or `fallback` if computing it
+fails. A clause may name the error and the types it catches, as a `catch`
+of the statement does, `catch e is T | U => fallback`, and several follow
+one another; an error none of them catches goes on up. `value` and each
+fallback extend as far as they can.
+
+```rune
+let port = try int("http") catch => 80;
+print(port); // 80
+
+fun field(o, key) => try o[key] catch e is KeyError => nil catch e is TypeError => "not an object";
+
+print(field({ id: 7 }, "id"));    // 7
+print(field({ id: 7 }, "name"));  // nil
+print(field(5, "id"));            // not an object
+
+print(try json.parse("[1,") catch e => type(e)); // ValueError
+```
+
+A fallback may `return`, `break`, `continue` or `throw`:
+
+```rune
+let mut ports = [];
+for s in ["80", "x", "443"] {
+    ports.push(try int(s) catch => continue);
+}
+print(ports); // [80, 443]
+```
+
+At the start of a statement, `try {` begins a `try` statement; any other
+`try` is an expression.
+
 ## throw
 
 `throw` raises a struct instance, built-in or your own; `catch` receives it
@@ -168,4 +202,51 @@ Throwing anything but a struct is a `TypeError`:
 
 ```rune
 throw "oops"; // TypeError: Can only throw struct instances.
+```
+
+## defer
+
+`defer statement` runs the statement when the block it is in is left: at
+its end, by `return`, `break` or `continue`, or by an error, which then
+goes on up. The statement is a block or a bare statement starting with a
+name or keyword. Defers run last first.
+
+```rune
+fun save(path, lines) {
+    let out = fs.open(path, "w");
+    defer out.close();
+
+    for line in lines out.write(line + "\n");
+}
+
+let dir = fs.tempDir();
+defer fs.removeAll(dir);
+
+let path = fs.join(dir, "todo.txt");
+save(path, ["milk", "tea"]);
+print(fs.lines(path)); // ["milk", "tea"]
+```
+
+```rune
+fun step(n) {
+    defer print("step {n} done");
+    if n == 0 throw ValueError { message: "zero" };
+    print("step {n}");
+}
+
+step(1);
+try { step(0); } catch e { print(e.message); }
+// step 1
+// step 1 done
+// step 0 done
+// zero
+```
+
+A `return` computes its value before the defers run. A defer's body
+cannot `return`, nor `break` or `continue` out of itself:
+
+```rune
+fun f() {
+    defer return 1; // Error at 'return': Cannot return from a 'defer' body.
+}
 ```

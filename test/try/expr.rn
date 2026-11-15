@@ -1,0 +1,33 @@
+print(try int("12") catch => 0); // expect: 12
+print(try int("x") catch => -1); // expect: -1
+print(try int("x") catch e => type(e)); // expect: ValueError
+
+fun read(o) => try o.k catch e is TypeError => "type" catch e is KeyError => "key";
+print([read({}), read(1), read({ k: 2 })]); // expect: ["key", "type", 2]
+
+print([1, try [].pop() catch => 9, 3]); // expect: [1, 9, 3]
+print(try int("5") + 1 catch => 0); // expect: 6
+print(try (try int("a") catch e is KeyError => 1) catch => 2); // expect: 2
+
+let mut sum = 0;
+for s in ["1", "a", "3"] sum += try int(s) catch => continue;
+print(sum); // expect: 4
+
+fun double(s) {
+  let v = try int(s) catch => return "bad";
+  return v * 2;
+}
+print([double("4"), double("z")]); // expect: [8, "bad"]
+
+try int("q") catch => print("as a statement"); // expect: as a statement
+print(match 1 { 1 => try int("w") catch => "arm", _ => 0 }); // expect: arm
+
+let mut y = 5;
+y = try y + int("q") catch => y * 2;
+print(y); // expect: 10
+
+let f = try int("z") catch e => () => e.message;
+print(f()); // expect: int() cannot parse "z" as an integer in base 10.
+
+fun pick(a, b, c) => [a, b, c];
+print(pick(1, try [][0] catch e => e.message, 3)); // expect: [1, "Index out of bounds: 0 of 0", 3]

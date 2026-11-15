@@ -1,0 +1,3 @@
+[line: 1] Error at 'catch': Catch-all must be the last catch clause.
+    1 | let a = try 1 catch => 1 catch e is KeyError => 2; // Error at 'catch': Catch-all must be the last catch clause.
+      |               ^

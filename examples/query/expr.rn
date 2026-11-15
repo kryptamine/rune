@@ -8,9 +8,9 @@ struct Field { table, name }
 export struct Scope { fields = [] }
 
 impl Scope {
-    fun of(alias, columns) { return Scope { fields: columns.map(name => Field { table: alias, name }) }; }
+    fun of(alias, columns) => Scope { fields: columns.map(name => Field { table: alias, name }) };
 
-    fun plus(self, other) { return Scope { fields: [...self.fields, ...other.fields] }; }
+    fun plus(self, other) => Scope { fields: [...self.fields, ...other.fields] };
 
     fun find(self, col) {
         let mut found = -1;
@@ -32,9 +32,7 @@ impl Scope {
         throw ast.SqlError { message: "unknown column '{ast.sql(col)}'" + ast.suggest(col.name, names), pos: col.pos };
     }
 
-    fun covers(self, e) {
-        return ast.columnsOf(e).every(c => self.find(c) >= 0);
-    }
+    fun covers(self, e) => ast.columnsOf(e).every(c => self.find(c) >= 0);
 
     // check fails on the first column of e it has not.
     fun check(self, e) {

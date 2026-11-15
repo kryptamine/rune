@@ -12,9 +12,9 @@ impl Rng {
         return (self.state >>> 11) / 9007199254740992;
     }
 
-    fun int(mut self, n) { return math.floor(self.next() * n); }
+    fun int(mut self, n) => math.floor(self.next() * n);
 
-    fun pick(mut self, xs) { return xs[self.int(xs.len())]; }
+    fun pick(mut self, xs) => xs[self.int(xs.len())];
 }
 
 const FIRST = ["Ann", "Bob", "Chen", "Dana", "Emil", "Fatima", "Goran", "Hana", "Ivan", "Jo", "Kemal", "Lena", "Mia", "Nils", "Olga", "Priya"];

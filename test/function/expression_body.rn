@@ -1,0 +1,21 @@
+fun sq(x) => x * x;
+print(sq(4)); // expect: 16
+
+fun origin() => { x: 0, y: 0 };
+print(origin()); // expect: {x: 0, y: 0}
+
+fun log(m) => { print("log " + m); }
+log("hi"); // expect: log hi
+
+fun sign(n) => n < 0 ? throw ValueError { message: "negative" } : n;
+print(sign(2)); // expect: 2
+
+struct P { x }
+impl P {
+  fun of(x) => P { x };
+  fun double(self) => self.x * 2;
+}
+print(P.of(3).double()); // expect: 6
+
+let add = fun (a, b = 2) => a + b;
+print(add(1)); // expect: 3

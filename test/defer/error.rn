@@ -1,0 +1,22 @@
+fun fails() {
+  defer print("cleanup");
+  throw ValueError { message: "boom" };
+}
+try { fails(); } catch e { print("caught " + e.message); }
+// expect: cleanup
+// expect: caught boom
+
+try {
+  defer print("inner");
+  [][0];
+} catch e is IndexError {
+  print("after");
+}
+// expect: inner
+// expect: after
+
+fun replaced() {
+  defer throw ValueError { message: "from defer" };
+  return 1;
+}
+try { replaced(); } catch e { print(e.message); } // expect: from defer

@@ -30,23 +30,21 @@ fun normalize(path) {
     return base.split("/").map(seg => regex.test(r"^(\d+|[0-9a-f]{8,})$", seg) ? ":id" : seg).join("/");
 }
 
-fun statusClass(code) {
-    return match code {
-        _ if code < 200 => "1xx",
-        _ if code < 300 => "2xx",
-        304 => "304",
-        _ if code < 400 => "3xx",
-        404 => "404",
-        429 => "429",
-        _ if code < 500 => "4xx",
-        _ => "5xx",
-    };
-}
+fun statusClass(code) => match code {
+    _ if code < 200 => "1xx",
+    _ if code < 300 => "2xx",
+    304 => "304",
+    _ if code < 400 => "3xx",
+    404 => "404",
+    429 => "429",
+    _ if code < 500 => "4xx",
+    _ => "5xx",
+};
 
 struct Stats { count = 0, errors = 0, bytes = 0, latencies = [] }
 
 impl Stats {
-    fun new() { return Stats {}; }
+    fun new() => Stats {};
 
     fun add(mut self, { status, bytes, latency }) {
         self.count++;
@@ -61,9 +59,7 @@ impl Stats {
         return ps.map(p => xs[math.min(xs.len() - 1, math.floor(xs.len() * p / 100))]);
     }
 
-    fun errorRate(self) {
-        return self.count == 0 ? 0 : self.errors / self.count * 100;
-    }
+    fun errorRate(self) => self.count == 0 ? 0 : self.errors / self.count * 100;
 }
 
 const TOP_SLOW = 5;
@@ -78,7 +74,7 @@ struct Report {
 }
 
 impl Report {
-    fun new() { return Report {}; }
+    fun new() => Report {};
 
     fun add(mut self, e) {
         self.total++;
@@ -217,16 +213,16 @@ fun toJson(r) {
 struct Rng { seed }
 
 impl Rng {
-    fun new(seed) { return Rng { seed }; }
+    fun new(seed) => Rng { seed };
 
     fun next(mut self) {
         self.seed = (self.seed * 1103515245 + 12345) & 0x7fffffff;
         return self.seed >> 8;
     }
 
-    fun int(mut self, n) { return self.next() % n; }
+    fun int(mut self, n) => self.next() % n;
 
-    fun pick(mut self, xs) { return xs[self.int(xs.len())]; }
+    fun pick(mut self, xs) => xs[self.int(xs.len())];
 }
 
 const IPS = ["203.0.113.7", "198.51.100.23", "192.0.2.44", "203.0.113.90", "198.51.100.5"];
@@ -243,6 +239,7 @@ let ROUTES = [
 fun generate(path, n = 400) {
     let mut rng = Rng.new(42);
     let out = fs.open(path, "w");
+    defer out.close();
 
     for i in 0..n {
         let route = rng.pick(ROUTES);
@@ -263,8 +260,6 @@ fun generate(path, n = 400) {
         out.write("{rng.pick(IPS)} - - [{time}] \"{route.method} {(route.path)(rng.next())} HTTP/1.1\" {status} {size} {latency.fixed(4)}\n");
         if i == 100 || i == 250 out.write("garbage line from a misconfigured proxy\n");
     }
-
-    out.close();
 }
 
 fun run(path, flags) {
@@ -287,20 +282,15 @@ fun run(path, flags) {
 
 fun main(args) {
     let started = time.now();
+    defer print("\ndone in %.1f ms".format((time.now() - started) * 1000));
+
     let [path, ...flags] = args.len() > 0 ? args : [nil];
-    let mut code = nil;
+    if path != nil return run(path, flags);
 
-    if path == nil {
-        let tmp = fs.tempDir();
-        let sample = fs.join(tmp, "access.log");
-        generate(sample);
-        print("(sample log: {fs.stat(sample).size} bytes)\n");
-        code = run(sample, flags);
-        fs.removeAll(tmp);
-    } else {
-        code = run(path, flags);
-    }
-
-    print("\ndone in %.1f ms".format((time.now() - started) * 1000));
-    return code;
+    let tmp = fs.tempDir();
+    defer fs.removeAll(tmp);
+    let sample = fs.join(tmp, "access.log");
+    generate(sample);
+    print("(sample log: {fs.stat(sample).size} bytes)\n");
+    return run(sample, flags);
 }

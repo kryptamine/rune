@@ -23,17 +23,13 @@ struct UsageError { message }
 
 enum Priority { Low, Normal, High }
 
-fun priorityNamed(word) {
-    return Priority.values().find(p => p.name.lower() == word);
-}
+fun priorityNamed(word) => Priority.values().find(p => p.name.lower() == word);
 const WEEKDAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 const DAY = "%Y-%m-%d";
 
 // --- dates: local calendar days, as YYYY-MM-DD ---
 
-fun today() {
-    return time.format(time.now(), DAY);
-}
+fun today() => time.format(time.now(), DAY);
 
 fun addDays(day, n) {
     let d = time.date(time.parse(day, DAY));
@@ -46,12 +42,8 @@ fun daysBetween(from, to) {
 
 fun parseDate(s, now) {
     if regex.test(r"^\d{4}-\d{2}-\d{2}$", s) {
-        try {
-            time.parse(s, DAY);
-            return s;
-        } catch e is ValueError {
-            throw UsageError { message: "bad date '{s}'" };
-        }
+        try time.parse(s, DAY) catch e is ValueError => throw UsageError { message: "bad date '{s}'" };
+        return s;
     }
     let rel = regex.find(r"^\+(\d+)d$", s);
     if rel return addDays(now, int(rel.groups[0]));
@@ -81,9 +73,7 @@ fun relative(day, now) {
 
 // --- storage ---
 
-fun defaultPath() {
-    return os.env("TODO_FILE") ?? fs.join(os.env("HOME") ?? ".", ".todo.json");
-}
+fun defaultPath() => os.env("TODO_FILE") ?? fs.join(os.env("HOME") ?? ".", ".todo.json");
 
 struct Store { path, tasks = [], nextId = 1 }
 
@@ -118,9 +108,7 @@ impl Store {
         return self.tasks[i];
     }
 
-    fun remove(mut self, id) {
-        return self.tasks.remove(self.find(id));
-    }
+    fun remove(mut self, id) => self.tasks.remove(self.find(id));
 }
 
 // --- commands ---
@@ -261,6 +249,7 @@ fun exec(path, args, now) {
 
 fun demo() {
     let dir = fs.tempDir();
+    defer fs.removeAll(dir);
     let path = fs.join(dir, "todo.json");
     let now = today();
     let session = [
@@ -285,7 +274,6 @@ fun demo() {
     }
     print("stored in {path}:");
     print(fs.readText(path));
-    fs.removeAll(dir);
 }
 
 fun main(args) {
