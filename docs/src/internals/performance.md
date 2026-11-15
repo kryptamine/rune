@@ -62,4 +62,5 @@ between; `left -= 1` is a single `SUBK` with a constant operand, and
 
 ```sh
 make bench
+make bench filter=Containers count=6   # arrays, maps, sets, nested writes
 ```

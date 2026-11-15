@@ -52,4 +52,4 @@ clean:
 
 .PHONY: bench
 bench:
-	go test ./pkg/rune -run ^$$ -bench . -benchmem
+	go test ./pkg/rune -run ^$$ -bench '$(or $(filter),.)' -benchmem -count $(or $(count),1)
