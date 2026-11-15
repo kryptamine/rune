@@ -31,10 +31,11 @@ var objectMethods = []*Native{
 		return objectEntries(o, func(k string, _ value.Value) value.Value { return value.NewString(k) })
 	}),
 	objectMethod("object.values", 1, 1, func(_ *call, o *value.Obj) value.Value {
-		return objectEntries(o, func(_ string, v value.Value) value.Value { return v })
+		return objectEntries(o, func(_ string, v value.Value) value.Value { value.Share(v); return v })
 	}),
 	objectMethod("object.entries", 1, 1, func(_ *call, o *value.Obj) value.Value {
 		return objectEntries(o, func(k string, v value.Value) value.Value {
+			value.Share(v)
 			return value.NewArray([]value.Value{value.NewString(k), v})
 		})
 	}),

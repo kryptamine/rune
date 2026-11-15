@@ -119,11 +119,11 @@ func (p *Resolver) writable(recv ast.Expr) bool {
 	case *ast.VarExpr:
 		return r.Module == nil && r.Local != nil && p.isMutable(r.Name.Lexeme)
 	case *ast.IndexExpr:
-		if r.Optional || r.Member != nil || r.Export != nil {
+		if r.Member != nil {
 			return false
 		}
 
-		root := rootVar(r.Array)
+		root := rootVar(r)
 
 		switch {
 		case root == nil:
@@ -184,6 +184,7 @@ func methodKinds(files []*fileAST) map[string]methodKind {
 func (p *Resolver) checkMutation(call *ast.CallExpr, prop *ast.IndexExpr) {
 	call.Writable = p.writable(prop.Array)
 	kind := p.methodKinds[prop.Token.Lexeme]
+	call.InPlace = kind == inPlace
 
 	if name := p.immutableRoot(prop.Array); name != "" {
 		call.Frozen = true

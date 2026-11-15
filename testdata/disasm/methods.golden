@@ -28,7 +28,7 @@ exit: 0
 
 C.get: arity 1, 2 registers, 0 upvalues
     0  GETPROP       1 0 0
-    1  RETURN        1 0 0
+    1  RETURN        1 0 0  x=1 y=false
     2  RETURNNIL     0 0 0
 
 C.incr: arity 1, 4 registers, 0 upvalues

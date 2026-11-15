@@ -152,6 +152,8 @@ type CallExpr struct {
 	Optional bool
 	Writable bool
 	Frozen   bool
+	// InPlace is set when only built-in in-place methods have its name.
+	InPlace bool
 }
 
 type ArrayExpr struct {

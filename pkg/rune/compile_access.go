@@ -109,6 +109,7 @@ func (fs *funcState) setIndex(n *ast.SetIndexExpr) int32 {
 
 	if n.Op == nil {
 		v := fs.exprAny(n.Value)
+		fs.share(n.Value, v)
 		pl.store(v)
 
 		return v

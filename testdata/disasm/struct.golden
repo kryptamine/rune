@@ -12,7 +12,7 @@ exit: 0
     8  GETPROP       6 2 5
     9  CALL          5 1 0
    10  LOADK         5 0 3
-   11  GETPROP       6 2 6
+   11  GETPROP       6 2 6  x=0 y=true
    12  STRUCT        3 5 0
    13  MOVE          5 4 0
    14  LOADK         7 0 0

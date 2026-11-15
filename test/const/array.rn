@@ -17,11 +17,12 @@ print(BISHOP.map(d => d + 1)); // expect: [-10, -8, 10, 12]
 print(BISHOP.append(0)); // expect: [-11, -9, 9, 11, 0]
 print(BISHOP); // expect: [-11, -9, 9, 11]
 
-// Every read is the same array.
+// A constant never changes: a copy of it takes the writes.
 fun bishop() { return BISHOP; }
-let mut alias = bishop();
-alias.push(0);
-print(SLIDES[1]); // expect: [-11, -9, 9, 11, 0]
+let mut copy = bishop();
+copy.push(0);
+print(SLIDES[1]); // expect: [-11, -9, 9, 11]
+print(copy); // expect: [-11, -9, 9, 11, 0]
 
 struct Piece { dirs = ROOK, reach = N * 2 }
 let mut p = Piece {};

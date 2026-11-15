@@ -99,6 +99,7 @@ var collectionNatives = []*Native{
 	{"map", 0, 1, func(c *call) value.Value {
 		m := value.NewHashMap(0)
 		for k, v := range c.entries(0) {
+			value.Share(v)
 			if !c.keyErr(m.Set(k, v)) {
 				break
 			}
@@ -118,6 +119,7 @@ var collectionNatives = []*Native{
 				break
 			}
 
+			value.Share(v)
 			obj.Set(k.Str(), v)
 		}
 
@@ -185,10 +187,10 @@ func setMethod(name string, min, max int, fn func(c *call, m *value.HashMap) val
 var mapMethods = []*Native{
 	mapMethod("map.keys", 1, 1, func(_ *call, m *value.HashMap) value.Value { return keysOf(m) }),
 	mapMethod("map.values", 1, 1, func(_ *call, m *value.HashMap) value.Value {
-		return collect(m, func(_, v value.Value) value.Value { return v })
+		return collect(m, func(_, v value.Value) value.Value { value.Share(v); return v })
 	}),
 	mapMethod("map.entries", 1, 1, func(_ *call, m *value.HashMap) value.Value {
-		return collect(m, func(k, v value.Value) value.Value { return value.NewArray([]value.Value{k, v}) })
+		return collect(m, func(k, v value.Value) value.Value { value.Share(v); return value.NewArray([]value.Value{k, v}) })
 	}),
 }
 

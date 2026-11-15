@@ -77,15 +77,14 @@ fun retry(attempts) {
 }
 ```
 
-The check is static and follows the variable, not the value: an array held by
-an immutable variable still changes when it is mutated through another,
-mutable reference (`let mut b = a;` or a `mut` parameter).
+An array is a value, so `let mut b = a;` gives `b` a copy of its own:
+changing `b` leaves `a` as it was.
 
 ```rune
 let scores = [70, 95];
-let mut alias = scores;
-alias.push(80);
-print(scores);    // [70, 95, 80]
+let mut copy = scores;
+copy.push(80);
+print(scores);    // [70, 95]
 ```
 
 ## Constants
@@ -120,10 +119,9 @@ const LIMIT = 10;
 LIMIT = 20;    // Error at 'LIMIT': Cannot assign to constant 'LIMIT'.
 ```
 
-A constant array or object is one value, shared by every read. Like
-one held by a `let` it cannot be changed through its name, but still
-changes through a mutable reference to it. Spreads and computed keys
-are not constant.
+A constant array never changes: each read is a copy of it. A constant
+object is one object, shared by every read. Spreads and computed keys are
+not constant.
 
 In a [pattern](pattern-matching.md#patterns) a constant's name tests for
 its value; an array or object constant cannot be one.

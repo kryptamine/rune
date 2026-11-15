@@ -124,6 +124,9 @@ func (p *Interpreter) slow(in Instr) error {
 		v, err := getIndex(tok, regs[in.b()], regs[in.c()])
 		if err == nil {
 			regs[in.a()] = v
+			if in.y() {
+				value.Share(v)
+			}
 		}
 
 		return err
@@ -140,6 +143,9 @@ func (p *Interpreter) slow(in Instr) error {
 		v, err := p.property(tok, regs[in.b()], consts[in.c()], missingProp(in))
 		if err == nil {
 			regs[in.a()] = v
+			if in.y() {
+				value.Share(v)
+			}
 		}
 
 		return err
@@ -181,6 +187,12 @@ func (p *Interpreter) slow(in Instr) error {
 
 			return err
 		case in.op() == opSetIndex:
+			if t.Shared() {
+				t = value.Unshare(t)
+				regs[in.a()] = t
+				fr.pc += int(in.x())
+			}
+
 			return setIndex(tok, t, key, regs[in.c()])
 		default:
 			// SetProp gets here only for a target that is not an object.
@@ -230,6 +242,10 @@ func (p *Interpreter) slow(in Instr) error {
 	case opSlice:
 		v, err := slice(tok, regs[in.b()], regs[in.c()], regs[in.c()+1], in.x())
 		if err == nil {
+			if v.Kind() == value.Array {
+				value.ShareAll(v.Arr())
+			}
+
 			regs[in.a()] = v
 		}
 
@@ -285,6 +301,7 @@ func (p *Interpreter) slow(in Instr) error {
 		}
 
 		arr, n, req := src.Arr(), in.c()&maxUnpack, in.c()>>unpackShift
+		value.ShareAll(arr)
 
 		rest := in.x() != 0
 		if len(arr) < req || !rest && !in.y() && len(arr) > n {
@@ -336,6 +353,8 @@ func (p *Interpreter) slow(in Instr) error {
 		regs[in.a()+3] = value.NewInt(0)
 
 	case opForIter:
+		// The loop walks the array as it was: a write in the body copies it.
+		value.Share(regs[in.a()])
 		c, err := p.cursorOf(regs[in.a()], in.x() != 0, tok)
 		if err == nil {
 			regs[in.a()] = value.NewInternal(c)
@@ -448,10 +467,12 @@ func spread(tok *ast.Token, dst, src value.Value) error {
 	switch src.Kind() {
 	case value.Object:
 		for k, v := range src.Obj().All() {
+			value.Share(v)
 			obj.Set(k, v)
 		}
 	case value.Struct:
 		for k, v := range src.FieldPairs() {
+			value.Share(v)
 			obj.Set(k, v)
 		}
 	default:
@@ -466,6 +487,7 @@ func spread(tok *ast.Token, dst, src value.Value) error {
 func spreadItems(items []value.Value, src value.Value) ([]value.Value, bool) {
 	switch src.Kind() {
 	case value.Array:
+		value.ShareAll(src.Arr())
 		return append(items, src.Arr()...), true
 	case value.Set:
 		src.HashMap().Each(func(k, _ value.Value) bool {
@@ -500,6 +522,7 @@ func spreadFields(tok *ast.Token, shape *value.Shape, fields []value.Value, src 
 		return spreadError(tok, src, shape.Name)
 	}
 
+	value.ShareAll(src.Fields())
 	copy(fields, src.Fields())
 
 	return nil
@@ -522,6 +545,7 @@ func omit(tok *ast.Token, src value.Value, keys []string) (value.Value, error) {
 	obj := value.NewObj(0)
 	for k, v := range all {
 		if !slices.Contains(keys, k) {
+			value.Share(v)
 			obj.Set(k, v)
 		}
 	}

@@ -289,6 +289,11 @@ func (fs *funcState) functionNamed(decl *ast.FunctionStmt, name string, mutSelf 
 		}
 
 		if param.Local.Captured {
+			// A closure may keep it past the call.
+			if !param.Mutable {
+				f.emit(ins{op: opShare, a: regs[i]}, nil)
+			}
+
 			f.emit(ins{op: opNewCell, a: regs[i], b: regs[i]}, nil)
 		}
 	}
@@ -402,6 +407,9 @@ func (fs *funcState) constant(v value.Value) int32 {
 	if k, ok := fs.consts[key]; ok {
 		return k
 	}
+
+	// A constant is every read of it, so a write copies it first.
+	value.ShareDeep(v)
 
 	k := int32(len(fs.proto.consts))
 	fs.proto.consts = append(fs.proto.consts, v.Detach())

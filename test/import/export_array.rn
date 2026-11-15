@@ -1,0 +1,9 @@
+import _lib.items;
+
+// A write to an exported array through a copy goes back to the export.
+items.items.push(2);
+let copy = items.items;
+items.items.push(3);
+items.items[0] = 0;
+print(items.items); // expect: [0, 2, 3]
+print(copy); // expect: [1, 2]

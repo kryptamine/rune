@@ -210,6 +210,74 @@ func literalOf(e ast.Expr) (value.Value, bool) {
 // noReg is the destination of a value nobody reads.
 const noReg = -1
 
+// copyExpr is expr for a value that goes on to be held: one another
+// holder may have is shared.
+func (fs *funcState) copyExpr(e ast.Expr, dst int32) {
+	fs.expr(e, dst)
+	fs.share(e, dst)
+}
+
+// share marks the value of e in r as held twice, unless e made it. The
+// read of a local or an element that e compiled to does it, if last.
+func (fs *funcState) share(e ast.Expr, r int32) {
+	if fresh(e) {
+		return
+	}
+
+	if n := len(fs.code); n > 0 {
+		last := &fs.code[n-1]
+
+		switch e := unwrap(e).(type) {
+		case *ast.VarExpr:
+			if kind, v := fs.lookup(e.Local); kind == varLocal && last.op == opMove && last.a == r && last.b == v {
+				last.op = opCopy
+				return
+			}
+		case *ast.IndexExpr:
+			if (last.op == opGetProp || last.op == opGetIndex) && last.a == r && !e.Optional && e.Export == nil && e.Member == nil {
+				last.y = 1
+				return
+			}
+		}
+	}
+
+	fs.emit(ins{op: opShare, a: r}, nil)
+}
+
+// fresh reports whether e makes its value, so nothing else holds it: a
+// constant is shared for good, and a function returns what it holds as
+// shared.
+func fresh(e ast.Expr) bool {
+	if e == nil {
+		return true
+	}
+
+	switch n := unwrap(e).(type) {
+	case *ast.VarExpr:
+		return isConst(n)
+	case *ast.LiteralExpr, *ast.ArrayExpr, *ast.ObjectExpr, *ast.StructExpr, *ast.CallExpr,
+		*ast.BinaryExpr, *ast.UnaryExpr, *ast.InterpolationExpr, *ast.RangeExpr, *ast.FunctionExpr,
+		*ast.SliceExpr, *ast.IsExpr, *ast.UpdateExpr:
+		return true
+	case *ast.LogicalExpr:
+		return fresh(n.Left) && fresh(n.Right)
+	case *ast.ConditionalExpr:
+		return fresh(n.Then) && fresh(n.Else)
+	}
+
+	return false
+}
+
+// arg compiles an argument: a parameter keeps it unshared, unless read
+// from a cell, which the call can change while the parameter holds it.
+func (fs *funcState) arg(e ast.Expr, dst int32) {
+	if fs.inCell(e) {
+		fs.copyExpr(e, dst)
+	} else {
+		fs.expr(e, dst)
+	}
+}
+
 func (fs *funcState) move(dst, src int32) {
 	if dst != src && dst != noReg {
 		fs.emit(ins{op: opMove, a: dst, b: src}, nil)
@@ -252,13 +320,13 @@ func (fs *funcState) expr(e ast.Expr, dst int32) {
 	case *ast.CallExpr:
 		fs.call(n, dst)
 	case *ast.ArrayExpr:
-		fs.literal(dst, len(n.Items), func(i int) ast.Expr { return n.Items[i] }, arrayChunk)
+		fs.literal(dst, len(n.Items), true, func(i int) ast.Expr { return n.Items[i] }, arrayChunk)
 	case *ast.InterpolationExpr:
-		fs.literal(dst, len(n.Parts), func(i int) ast.Expr { return n.Parts[i] }, func(from, to int, base int32) ins {
+		fs.literal(dst, len(n.Parts), false, func(i int) ast.Expr { return n.Parts[i] }, func(from, to int, base int32) ins {
 			return ins{op: opConcat, b: base, c: int32(to - from)}
 		})
 	case *ast.ObjectExpr:
-		fs.literal(dst, len(n.Pairs), func(i int) ast.Expr { return n.Pairs[i].Value }, func(from, to int, base int32) ins {
+		fs.literal(dst, len(n.Pairs), true, func(i int) ast.Expr { return n.Pairs[i].Value }, func(from, to int, base int32) ins {
 			keys := make([]string, 0, to-from)
 			for _, pair := range n.Pairs[from:to] {
 				keys = append(keys, pair.Key)
@@ -318,7 +386,7 @@ func arrayChunk(from, to int, base int32) ins {
 // longer one is built a chunk at a time, each adding to the first (X).
 const literalChunk = 256
 
-func (fs *funcState) literal(dst int32, n int, item func(i int) ast.Expr, build func(from, to int, base int32) ins) {
+func (fs *funcState) literal(dst int32, n int, copies bool, item func(i int) ast.Expr, build func(from, to int, base int32) ins) {
 	for i := range n {
 		if ast.Standalone(item(i)) {
 			fs.piecewiseLiteral(dst, n, item, build)
@@ -336,7 +404,11 @@ func (fs *funcState) literal(dst int32, n int, item func(i int) ast.Expr, build 
 		base := fs.free
 
 		for i := from; i < to; i++ {
-			fs.expr(item(i), fs.alloc())
+			if copies {
+				fs.copyExpr(item(i), fs.alloc())
+			} else {
+				fs.expr(item(i), fs.alloc())
+			}
 		}
 
 		in := build(from, to, base)
@@ -371,13 +443,13 @@ func (fs *funcState) piecewiseLiteral(dst int32, n int, item func(i int) ast.Exp
 		case *ast.ComputedExpr:
 			k, v := fs.alloc(), fs.alloc()
 			fs.expr(it.Key, k)
-			fs.expr(it.Value, v)
+			fs.copyExpr(it.Value, v)
 			fs.emit(ins{op: opSetIndex, a: target, b: k, c: v}, &it.Bracket)
 			from++
 		default:
 			to := from
 			for to < n && to-from < literalChunk && !ast.Standalone(item(to)) {
-				fs.expr(item(to), fs.alloc())
+				fs.copyExpr(item(to), fs.alloc())
 				to++
 			}
 
@@ -412,7 +484,7 @@ func (fs *funcState) structLiteral(n *ast.StructExpr, dst int32) {
 
 	for _, pair := range n.Pairs {
 		given[pair.Slot] = true
-		fs.expr(pair.Value, base+int32(pair.Slot))
+		fs.copyExpr(pair.Value, base+int32(pair.Slot))
 	}
 
 	for i := range shape.Fields {
@@ -435,7 +507,7 @@ func (fs *funcState) spreadStruct(n *ast.StructExpr, base, dst int32) {
 	for _, pair := range n.Pairs {
 		sp, ok := pair.Value.(*ast.SpreadExpr)
 		if !ok {
-			fs.expr(pair.Value, base+int32(pair.Slot))
+			fs.copyExpr(pair.Value, base+int32(pair.Slot))
 			continue
 		}
 
@@ -516,12 +588,12 @@ func (fs *funcState) store(kind varKind, r, v int32, checked bool, name *ast.Tok
 
 func (fs *funcState) assignLocal(n *ast.AssignExpr, r int32) {
 	if !writesEarly(n.Value) {
-		fs.expr(n.Value, r)
+		fs.copyExpr(n.Value, r)
 		return
 	}
 
 	t := fs.alloc()
-	fs.expr(n.Value, t)
+	fs.copyExpr(n.Value, t)
 	fs.move(r, t)
 }
 
@@ -541,6 +613,7 @@ func (fs *funcState) assign(n *ast.AssignExpr) int32 {
 	}
 
 	v := fs.exprAny(n.Value)
+	fs.share(n.Value, v)
 	fs.store(kind, r, v, checked, &n.Name)
 
 	if kind == varLocal {
@@ -654,7 +727,7 @@ func (fs *funcState) call(n *ast.CallExpr, dst int32) {
 
 	if !spread {
 		for _, arg := range n.Args {
-			fs.expr(arg, fs.alloc())
+			fs.arg(arg, fs.alloc())
 		}
 
 		fs.emit(ins{op: opCall, a: base, b: int32(len(n.Args))}, &n.Token)
@@ -668,7 +741,7 @@ func (fs *funcState) call(n *ast.CallExpr, dst int32) {
 	if sp, ok := n.Args[0].(*ast.SpreadExpr); ok && len(n.Args) == 1 {
 		fs.expr(sp.Expr, args)
 	} else {
-		fs.literal(args, len(n.Args), func(i int) ast.Expr { return n.Args[i] }, arrayChunk)
+		fs.literal(args, len(n.Args), false, func(i int) ast.Expr { return n.Args[i] }, arrayChunk)
 	}
 
 	fs.emit(ins{op: opCallArray, a: base}, &n.Token)
@@ -707,7 +780,7 @@ func (fs *funcState) invoke(n *ast.CallExpr, prop *ast.IndexExpr, dst int32) {
 	}
 
 	for _, arg := range n.Args {
-		fs.expr(arg, fs.alloc())
+		fs.arg(arg, fs.alloc())
 	}
 
 	// An owned variable passes its flag and takes it back from the
@@ -733,7 +806,7 @@ func (fs *funcState) invoke(n *ast.CallExpr, prop *ast.IndexExpr, dst int32) {
 		}
 
 		g.check(&prop.Token)
-		lv.writeBack()
+		lv.writeBack(n.InPlace)
 		fs.patch([]int{skip})
 	}
 

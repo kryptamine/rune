@@ -1,7 +1,9 @@
 package rune
 
 import (
+	"fmt"
 	"io"
+	"runtime"
 	"testing"
 )
 
@@ -89,5 +91,33 @@ func runBenchSources(b *testing.B, sources map[string]string) {
 				}
 			}
 		})
+	}
+}
+
+// A copy of the array takes 16KB; reads of it take none.
+func TestReadsDoNotCopy(t *testing.T) {
+	run := func(n int) uint64 {
+		src := fmt.Sprintf(`fun sum(xs) { let mut s = 0; for x in xs { s += x; } return s; }
+			let mut a = []; for i in 0..1000 { a.push(i); }
+			let o = {a};
+			for k in 0..%d { let b = a; sum(b); let c = o.a; let [h, ...t] = c[..1]; a.len(); a.filter(x => false); }
+			a.push(0);`, n)
+		prog, errs := loadSource([]byte(src))
+		if len(errs) > 0 {
+			t.Fatal(errs)
+		}
+
+		var before, after runtime.MemStats
+		runtime.ReadMemStats(&before)
+		if err := NewInterpreter(testStdio(io.Discard)).Run(prog, nil); err != nil {
+			t.Fatal(err)
+		}
+		runtime.ReadMemStats(&after)
+
+		return after.TotalAlloc - before.TotalAlloc
+	}
+
+	if one, many := run(1), run(101); many-one > 100<<10 {
+		t.Fatalf("reads copy: %d bytes for 1 pass, %d for 101", one, many)
 	}
 }

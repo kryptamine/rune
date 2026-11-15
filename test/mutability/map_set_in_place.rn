@@ -14,4 +14,4 @@ try { let f = a.push; } catch e is TypeError { print(e.message); } // expect: Ca
 print([3, 1, 2].sort()); // expect: nil
 let mut b = a;
 b.push(0);
-print(a); // expect: [2, 1, 0]
+print(a); // expect: [2, 1]

@@ -7,7 +7,6 @@ import (
 	"rune/pkg/helpers"
 	"rune/pkg/stdlib"
 	"rune/pkg/value"
-	"slices"
 )
 
 // cursor walks what a for-in iterates, as (index or key, element) pairs:
@@ -24,16 +23,17 @@ type cursor struct {
 // maxCursors bounds the cursors kept for reuse.
 const maxCursors = 64
 
-// arrayCursor walks a snapshot of items, in a cursor a finished loop left.
+// arrayCursor walks items, of an array the loop shares so that a write
+// copies it, in a cursor a finished loop left.
 func (p *Interpreter) arrayCursor(items []value.Value) *cursor {
 	n := len(p.cursors)
 	if n == 0 {
-		return &cursor{arr: slices.Clone(items), own: true}
+		return &cursor{arr: items, own: true}
 	}
 
 	c := p.cursors[n-1]
 	p.cursors = p.cursors[:n-1]
-	c.arr, c.i = append(c.arr[:0], items...), 0
+	c.arr, c.i = items, 0
 
 	return c
 }

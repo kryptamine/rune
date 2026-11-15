@@ -11,7 +11,7 @@ import (
 var arrayMethods = []*Native{
 	// append copies, so the result never shares a backing array with the input.
 	{"array.append", 2, -1, func(c *call) value.Value {
-		return value.NewArray(slices.Concat(c.arr(0), c.args[1:]))
+		return sharedArray(slices.Concat(c.arr(0), c.args[1:]))
 	}},
 	{"array.join", 2, 2, func(c *call) value.Value {
 		items, sep := c.arr(0), c.str(1)
@@ -48,7 +48,7 @@ var arrayMethods = []*Native{
 			return true
 		})
 
-		return value.NewArray(out)
+		return sharedArray(out)
 	}},
 	{"array.every", 2, 2, func(c *call) value.Value {
 		return value.NewBool(firstWhere(c, false) < 0)
@@ -58,6 +58,7 @@ var arrayMethods = []*Native{
 	}},
 	{"array.find", 2, 2, func(c *call) value.Value {
 		if i := firstWhere(c, true); i >= 0 {
+			value.Share(c.arr(0)[i])
 			return c.arr(0)[i]
 		}
 
@@ -68,6 +69,7 @@ var arrayMethods = []*Native{
 	}},
 	{"array.reduce", 2, 3, func(c *call) value.Value {
 		items, f := c.arr(0), c.fn(1)
+		value.Share(c.args[0])
 
 		var acc value.Value
 
@@ -87,8 +89,16 @@ var arrayMethods = []*Native{
 			acc = c.invoke(f, buf)
 		}
 
+		value.Share(acc)
+
 		return acc
 	}},
+}
+
+// sharedArray is an array of items another holder has too.
+func sharedArray(items []value.Value) value.Value {
+	value.ShareAll(items)
+	return value.NewArray(items)
 }
 
 // each calls args[1] on the elements of args[0] in order, passing the
@@ -99,6 +109,9 @@ func (c *call) each(visit func(i int, item, r value.Value) bool) {
 	if !c.ok() {
 		return
 	}
+
+	// f may change the array; this walks it as it was.
+	value.Share(c.args[0])
 
 	buf := make([]value.Value, 1, 2)
 	if c.host.caller.Required(f) >= 2 {
@@ -139,6 +152,7 @@ func pushFast(args []value.Value) (value.Value, bool) {
 	}
 
 	arr := args[0].ArrRef()
+	value.ShareAll(args[1:])
 	*arr = append(*arr, args[1:]...)
 
 	return value.NilValue, true
@@ -152,6 +166,7 @@ var arrayInPlace = []*Native{
 		}
 
 		arr := c.args[0].ArrRef()
+		value.ShareAll(c.args[1:])
 		*arr = append(*arr, c.args[1:]...)
 
 		return value.NilValue
@@ -186,6 +201,7 @@ var arrayInPlace = []*Native{
 			return value.NilValue
 		}
 
+		value.Share(c.args[2])
 		*arr = slices.Insert(*arr, i, c.args[2])
 
 		return value.NilValue

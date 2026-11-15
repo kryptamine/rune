@@ -9,7 +9,7 @@ print(xs);                 // expect: [1, 2, 9, 3]
 
 let ys = xs;
 xs.remove(2);
-print(ys);                 // expect: [1, 2, 3]
+print(ys);                 // expect: [1, 2, 9, 3]
 
 try { xs.remove(3); } catch e is IndexError { print(e.message); } // expect: array.remove() index 3 out of bounds of 3 elements.
 try { xs.insert(5, 0); } catch e is IndexError { print(e.message); } // expect: array.insert() index 5 out of bounds of 3 elements.

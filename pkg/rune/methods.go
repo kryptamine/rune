@@ -135,6 +135,15 @@ func (p *Interpreter) invoke(fr *frame, in Instr, tok *ast.Token) error {
 
 	fn := p.methods[m.ID]
 	if nat, ok := fn.Fn().(*stdlib.Native); ok {
+		// An in-place method on a shared receiver changes a copy of its
+		// own, which then goes back where the receiver was read from.
+		if m.InPlace && t.Shared() {
+			p.stack[at+1] = value.Unshare(t)
+			if in.y() {
+				fr.pc += 1 + int(in.x()>>1)
+			}
+		}
+
 		return p.callNativeMethod(at, n, nat, tok)
 	}
 

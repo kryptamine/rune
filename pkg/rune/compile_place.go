@@ -7,11 +7,12 @@ import (
 
 // place is the target of a write: t[i], or for a property t.K[i].
 type place struct {
-	fs   *funcState
-	t    *lval
-	i    int32
-	prop bool
-	tok  *ast.Token
+	fs       *funcState
+	t        *lval
+	i        int32
+	prop     bool
+	optional bool
+	tok      *ast.Token
 }
 
 // place evaluates the target (and for t[i] the index) of a write that
@@ -39,30 +40,70 @@ func (pl *place) check() {
 }
 
 func (pl *place) load(dst int32) {
+	if pl.optional {
+		pl.fs.nilJump(pl.t.reg)
+	}
+
 	pl.fs.emit(ins{op: pick(pl.prop, opGetProp, opGetIndex), a: dst, b: pl.t.reg, c: pl.i}, pl.tok)
 }
 
 // store writes v. Only a mut self takes a field set, as a copy that goes
-// back to self unless self is changed in place or is no struct.
-func (pl *place) store(v int32) {
-	fs, t := pl.fs, pl.t
-	self := t.isSelf()
+// back to self unless self is changed in place or is no struct. An
+// element set on a shared array copies it, and the copy goes back too.
+func (pl *place) store(v int32) { pl.set(v, false) }
 
-	if pl.prop && self && t.v.Local.Owned && t.inPlace() {
+// set is store; back puts a copy made by a write below into a struct's
+// field, a copy of the struct then going back in its turn.
+func (pl *place) set(v int32, back bool) {
+	fs, t := pl.fs, pl.t
+	self := t.isSelf() || back && pl.prop
+
+	if pl.prop && t.isSelf() && t.v.Local.Owned && t.inPlace() {
 		fs.emit(ins{op: opSetOwned, a: t.reg, b: pl.i, c: v}, pl.tok)
 		return
 	}
 
 	set := fs.emit(ins{op: pick(pl.prop, opSetProp, opSetIndex), a: t.reg, b: pl.i, c: v, y: uint8(boolNum(self))}, pl.tok)
 
-	if !self || t.inPlace() {
+	if !self && pl.prop || !t.held() {
+		return
+	}
+
+	// A call on the right can change a variable in a cell, so what was
+	// read from one always goes back, whether copied or not.
+	if fs.inCell(t.e) {
+		t.writeBack(true)
 		return
 	}
 
 	fs.code[set].x = 1
 	skip := fs.emit(ins{op: opJmp}, pl.tok)
-	t.writeBack()
+	t.writeBack(true)
 	fs.patch([]int{skip})
+}
+
+// inCell reports whether e is read from a variable in a cell or an
+// upvalue, which a call can change behind the reader.
+func (fs *funcState) inCell(e ast.Expr) bool {
+	for {
+		switch n := unwrap(e).(type) {
+		case *ast.IndexExpr:
+			if n.Export != nil {
+				return true
+			}
+
+			e = n.Array
+		case *ast.VarExpr:
+			if n.Local == nil || n.Local.IsConst {
+				return false
+			}
+
+			kind, _ := fs.lookup(n.Local)
+			return kind == varCell || kind == varUpval
+		default:
+			return false
+		}
+	}
 }
 
 // lval is a value in reg read from a variable or a place, where a new
@@ -86,8 +127,14 @@ func (fs *funcState) ref(e ast.Expr, later ...ast.Expr) *lval {
 			lv.v = n
 		}
 	case *ast.IndexExpr:
-		if n.Member == nil && n.Export == nil && !n.Optional {
+		switch {
+		case n.Export != nil:
+			if !n.Export.Local.IsConst {
+				lv.v = n.Export
+			}
+		case n.Member == nil:
 			lv.at = fs.place(n.Array, n.Index, n.Property, &n.Token, later...)
+			lv.at.optional = n.Optional
 		}
 	}
 
@@ -125,12 +172,13 @@ func (lv *lval) check() {
 }
 
 // writeBack puts reg back where it was read from.
-func (lv *lval) writeBack() {
+// back is as for place.set: what goes back is a copy made of an element.
+func (lv *lval) writeBack(back bool) {
 	fs := lv.fs
 
 	switch {
 	case lv.at != nil:
-		lv.at.store(lv.reg)
+		lv.at.set(lv.reg, back)
 	case lv.v != nil && !lv.inPlace():
 		kind, r := fs.lookup(lv.v.Local)
 		fs.store(kind, r, lv.reg, fs.checked(lv.v.Local), &lv.v.Name)
@@ -190,6 +238,9 @@ func (g *guard) check(tok *ast.Token) {
 	g.fs.varExpr(g.v, cur)
 	g.fs.emit(ins{op: opSame, a: cur, b: g.read, c: g.fs.constant(value.NewString(g.v.Name.Lexeme))}, tok)
 }
+
+// held reports whether reg was read from somewhere it must go back to.
+func (lv *lval) held() bool { return lv.at != nil || lv.v != nil && !lv.inPlace() }
 
 // isSelf reports whether reg is read from the self of a mut self method.
 func (lv *lval) isSelf() bool { return lv.v != nil && lv.v.Local.MutSelf }

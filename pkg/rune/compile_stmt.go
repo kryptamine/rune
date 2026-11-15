@@ -165,7 +165,7 @@ func (fs *funcState) returnStmt(s *ast.ReturnStmt) {
 	}
 
 	fs.returnSelf()
-	fs.emit(ins{op: opReturn, a: v}, nil)
+	fs.emit(ins{op: opReturn, a: v, x: uint8(boolNum(!fresh(s.Value)))}, nil)
 }
 
 // exprStmt drops the value, so x++ needs no copy of the old x.
@@ -203,6 +203,7 @@ func (fs *funcState) varStmt(s *ast.VarStmt) {
 	if !l.TopLevel && !l.Captured {
 		r := fs.alloc()
 		fs.exprOrNil(s.Initializer, r)
+		fs.share(s.Initializer, r)
 		fs.free = r
 		fs.declare(l)
 
@@ -214,7 +215,10 @@ func (fs *funcState) varStmt(s *ast.VarStmt) {
 	}
 
 	fs.predeclare(l)
-	fs.initialize(l, func(dst int32) { fs.exprOrNil(s.Initializer, dst) })
+	fs.initialize(l, func(dst int32) {
+		fs.exprOrNil(s.Initializer, dst)
+		fs.share(s.Initializer, dst)
+	})
 
 	if l.Owned {
 		fs.ownership(fs.locals[l]+1, s.Initializer)
@@ -236,6 +240,7 @@ func (fs *funcState) destructure(s *ast.DestructureStmt) {
 		fs.initialize(f.Local, func(dst int32) {
 			fs.emit(ins{op: opGetProp, a: dst, b: src, c: fs.constant(value.NewString(f.Key.Lexeme)), x: uint8(boolNum(f.Default != nil))}, &f.Key)
 			fs.orDefault(dst, f.Default)
+			fs.emit(ins{op: opShare, a: dst}, nil)
 		})
 	}
 

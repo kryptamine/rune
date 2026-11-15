@@ -14,8 +14,10 @@ type Op uint8
 // A and B take up to 16 bits, C up to 20.
 const (
 	opMove      Op = iota // R[A] = R[B]
+	opCopy                // R[A] = R[B], shared
 	opLoadK               // R[A] = K[C]
 	opLoadFresh           // R[A] = a deep copy of K[C]
+	opShare               // mark R[A] as held twice, so a write copies it first
 	opNewCell             // R[A] = cell(R[B])
 	opGetCell             // R[A] = cell R[B], which must be defined
 	opSetCell             // cell R[A] = R[B]
@@ -67,8 +69,9 @@ const (
 	opUndef        // R[A..A+B-1] = undefined
 	opStructSpread // R[A...] = the fields of R[B], a struct of type K[C] or an object of some of its fields
 	opStructFill   // R[A] = struct of type K[C] with fields R[B...], defaults for the undefined
-	opGetIndex     // R[A] = R[B][R[C]]
-	opGetProp      // R[A] = R[B].K[C]; with X one missing from an object or struct is undefined
+	// The gets share what they read with Y.
+	opGetIndex // R[A] = R[B][R[C]]
+	opGetProp  // R[A] = R[B].K[C]; with X one missing from an object or struct is undefined
 	// The optional forms give nil for a missing element, property or field.
 	opGetIndexOpt
 	opGetPropOpt
@@ -110,7 +113,7 @@ const (
 	// methods resume past.
 	opInvoke
 	opMethod    // methods[C] = R[A]
-	opReturn    // return R[A]
+	opReturn    // return R[A], shared with X
 	opReturnNil // return nil
 	opThrow     // throw R[A]
 	opRethrow   // throw the caught error in R[A] again
@@ -261,7 +264,7 @@ type methodTable struct {
 }
 
 var opNames = [...]string{
-	"MOVE", "LOADK", "LOADFRESH", "NEWCELL", "GETCELL", "SETCELL", "GETUPVAL", "SETUPVAL",
+	"MOVE", "COPY", "LOADK", "LOADFRESH", "SHARE", "NEWCELL", "GETCELL", "SETCELL", "GETUPVAL", "SETUPVAL",
 	"CHECKDEFINED", "SETCELL!", "SETUPVAL!", "UNDEFINED",
 	"ADD", "SUB", "MUL", "DIV", "MOD", "ADDK", "SUBK", "MULK", "DIVK", "MODK", "CMP", "CMPK", "IS", "NEG", "NOT", "INCR", "BITWISE", "BITNOT",
 	"JMP", "JMPIF", "JMPCMP", "JMPCMPK", "JMPNOTTYPE", "JMPNIL", "JMPDEFINED", "JMPNOTLEN",

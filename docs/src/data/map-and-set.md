@@ -135,7 +135,7 @@ print(counts); // map {"a": 1, "b": 2, "a!": 0, "b!": 0}
 
 `==` compares entries in any order. `[...s]` spreads a set into an array;
 `json.stringify` writes a set as an array and a map of string keys as an
-object, in order. Both are references, like arrays.
+object, in order. Both are references, unlike arrays.
 
 ```rune
 print(map({ a: 1, b: 2 }) == map({ b: 2, a: 1 })); // true

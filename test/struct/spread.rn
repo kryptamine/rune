@@ -6,14 +6,14 @@ print(Task { ...t, done: true });  // expect: Task {id: 1, text: "a", tags: [], 
 print(Task { done: true, ...t });  // expect: Task {id: 1, text: "a", tags: [], done: false}
 print(t);                          // expect: Task {id: 1, text: "a", tags: [], done: false}
 
-// Defaults a spread leaves out are fresh; fields it copies are shared.
+// Defaults a spread leaves out are fresh; fields it copies are copies.
 let mut a = Task { ...Task { id: 4, text: "d" } };
 let b = Task { ...Task { id: 5, text: "e" } };
 a.tags.push(1);
 print(b.tags);                     // expect: []
 let c = Task { ...a };
 a.tags.push(2);
-print(c.tags);                     // expect: [1, 2]
+print(c.tags);                     // expect: [1]
 
 let p = Point { x: 1 };
 print([Point { ...p, y: 5 }, Point { ...p }]); // expect: [Point {x: 1, y: 5}, Point {x: 1, y: 0}]

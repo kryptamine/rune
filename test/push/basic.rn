@@ -3,12 +3,13 @@ print(a.push(2)); // expect: nil
 a.push(3, 4);
 print(a); // expect: [1, 2, 3, 4]
 
-// Arrays are references: push is visible through every alias.
+// A copy takes its own pushes.
 let mut b = a;
 b.push(5);
-print(a); // expect: [1, 2, 3, 4, 5]
+print(a); // expect: [1, 2, 3, 4]
+print(b); // expect: [1, 2, 3, 4, 5]
 
-// append still returns a new array and leaves the input alone.
+// append returns a new array and leaves the input alone.
 let c = a.append(6);
-print(a.len()); // expect: 5
-print(c.len()); // expect: 6
+print(a.len()); // expect: 4
+print(c.len()); // expect: 5

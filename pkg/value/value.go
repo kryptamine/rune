@@ -96,8 +96,67 @@ func NewString(s string) Value {
 	return Value{p: p, n: uint64(String)<<kindShift | uint64(len(s))}
 }
 
+// array is the heap object of an array. items comes first, so a pointer
+// to it is one to the slice. A shared array has another holder; it is
+// cloned before a write.
+type array struct {
+	items  []Value
+	shared bool
+}
+
 func NewArray(items []Value) Value {
-	return Value{p: unsafe.Pointer(&items), n: uint64(Array) << kindShift}
+	return Value{p: unsafe.Pointer(&array{items: items}), n: uint64(Array) << kindShift}
+}
+
+// Share marks v as held twice, if an array.
+func Share(v Value) {
+	if v.isArray() {
+		(*array)(v.p).shared = true
+	}
+}
+
+// isArray is Kind() == Array: only an array's n is its kind alone, which
+// rules out all but numbers with that payload.
+func (v Value) isArray() bool {
+	return v.n == uint64(Array)<<kindShift && v.p != intTag() && v.p != numTag()
+}
+
+// ShareAll shares each of vs.
+func ShareAll(vs []Value) {
+	for _, v := range vs {
+		Share(v)
+	}
+}
+
+// ShareDeep shares v and every array it holds, for a constant.
+func ShareDeep(v Value) {
+	switch v.Kind() {
+	case Array:
+		Share(v)
+		for _, x := range v.Arr() {
+			ShareDeep(x)
+		}
+	case Object:
+		for _, x := range v.Obj().All() {
+			ShareDeep(x)
+		}
+	}
+}
+
+// Shared reports whether v is an array with another holder.
+func (v Value) Shared() bool { return v.isArray() && (*array)(v.p).shared }
+
+// Unshare returns v as an array of its own: v unless shared, else a
+// copy, whose elements are then held twice.
+func Unshare(v Value) Value {
+	if !v.Shared() {
+		return v
+	}
+
+	items := slices.Clone(v.Arr())
+	ShareAll(items)
+
+	return NewArray(items)
 }
 
 func NewObject(o *Obj) Value {
@@ -313,6 +372,7 @@ func (s *Shape) Assign(fields []Value, obj *Obj) (extra string, ok bool) {
 
 	for k, v := range obj.All() {
 		if slot := s.Index(k); slot >= 0 {
+			Share(v)
 			fields[slot] = v
 		} else if ok {
 			extra, ok = k, false

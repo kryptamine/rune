@@ -54,8 +54,16 @@ reload:
 		case opMove:
 			*at(regs, in.a()) = *at(regs, in.b())
 
+		case opCopy:
+			v := *at(regs, in.b())
+			*at(regs, in.a()) = v
+			value.Share(v)
+
 		case opLoadK:
 			*at(regs, in.a()) = *at(consts, in.c())
+
+		case opShare:
+			value.Share(*at(regs, in.a()))
 
 		case opLoadFresh:
 			*at(regs, in.a()) = value.Fresh(*at(consts, in.c()))
@@ -419,12 +427,19 @@ reload:
 		case opGetIndex:
 			if t, i := *at(regs, in.b()), *at(regs, in.c()); t.Kind() == value.Array && i.IsInt() {
 				if arr, idx := t.Arr(), i.Int(); uint64(idx) < uint64(len(arr)) {
-					*at(regs, in.a()) = arr[idx]
+					v := arr[idx]
+					*at(regs, in.a()) = v
+					if in.y() {
+						value.Share(v)
+					}
 					continue
 				}
 			} else if t.Kind() == value.Object && i.IsString() {
 				if v, ok := t.Obj().Interned(i); ok {
 					*at(regs, in.a()) = v
+					if in.y() {
+						value.Share(v)
+					}
 					continue
 				}
 			}
@@ -432,7 +447,7 @@ reload:
 			goto slow
 
 		case opSetIndex:
-			if t, i := *at(regs, in.a()), *at(regs, in.b()); t.Kind() == value.Array && i.IsInt() {
+			if t, i := *at(regs, in.a()), *at(regs, in.b()); t.Kind() == value.Array && i.IsInt() && !t.Shared() {
 				if arr, idx := t.Arr(), i.Int(); uint64(idx) < uint64(len(arr)) {
 					arr[idx] = *at(regs, in.c())
 					continue
@@ -450,11 +465,17 @@ reload:
 			if k := t.Kind(); k == value.Struct {
 				if v, ok := t.InternedField(*at(consts, in.c())); ok {
 					*at(regs, in.a()) = v
+					if in.y() {
+						value.Share(v)
+					}
 					continue
 				}
 			} else if k == value.Object {
 				if v, ok := t.Obj().Interned(*at(consts, in.c())); ok {
 					*at(regs, in.a()) = v
+					if in.y() {
+						value.Share(v)
+					}
 					continue
 				}
 
@@ -463,6 +484,9 @@ reload:
 
 				if v, ok := t.Obj().Get(at(consts, in.c()).Str()); ok {
 					*dst = v
+					if in.y() {
+						value.Share(v)
+					}
 					goto reload
 				}
 			}
@@ -577,7 +601,7 @@ reload:
 
 			fn := p.methods[m.ID]
 			if fn.TypeID() != closureID {
-				if m.InPlace && in.x()&1 != 0 {
+				if m.InPlace && (in.x()&1 != 0 || at(regs, in.a()+1).Shared()) {
 					goto slow
 				}
 
@@ -642,6 +666,9 @@ reload:
 			var v value.Value
 			if in.op() == opReturn {
 				v = *at(regs, in.a())
+				if in.x() != 0 {
+					value.Share(v)
+				}
 			}
 
 			top := len(p.frames) - 1
