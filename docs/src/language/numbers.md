@@ -43,11 +43,14 @@ print(math.ceil(items / perPage));      // 4
 ```
 
 `%` takes the sign of its left operand, and an integer `% 0` is a
-`ValueError`. A float divided by zero is `inf`, `-inf` or `nan`.
+`ValueError`. A float divided by zero is `inf`, `-inf` or `nan`, which are
+`math.INF`, `-math.INF` and `math.NAN`.
 
 ```rune
 print(-7 % 3);     // -1
 print(7 / 0);      // inf
+print(0 / 0 == math.NAN);  // false
+print(0 / 0 ? "truthy" : "falsy"); // falsy
 ```
 
 ```rune

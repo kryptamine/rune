@@ -19,9 +19,10 @@ print(type(x => x * 2));       // function
 
 `v is T` tests that `v` is of type `T`: a struct or enum type, or one of
 the built-in `nil`, `boolean`, `number`, `string`, `array`, `object`,
-`function`, `map`, `set`, `bytes`, `stream`, `struct` and `enum`, which
-are what `type` says of a struct type and an enum type themselves. It has the precedence of `==`; the
-same test is `name is T` in [match](pattern-matching.md) and `catch e is T`.
+`function`, `map`, `set`, `bytes`, `buffer`, `stream`, `struct` and `enum`,
+which are what `type` says of a struct type and an enum type themselves.
+`v !is T` is its negation. Both have the precedence of `==`; the same test
+is `name is T` in [match](pattern-matching.md) and `catch e is T`.
 
 ```rune
 struct User { name }
@@ -32,6 +33,7 @@ print([1, 2] is array);               // true
 print(User { name: "ann" } is User);  // true
 print(User { name: "ann" } is object); // false
 print(nil is nil);                    // true
+print("42" !is number);               // true
 print(User is struct);                // true
 ```
 
@@ -45,8 +47,8 @@ print("a" is string); // TypeError: Right operand of 'is' must be a type, got st
 
 ## Truthiness
 
-Falsy values are `nil`, `false`, `0` and anything empty: `""`, `[]`, `{}`,
-an empty map, set, bytes or buffer. Everything else is truthy.
+Falsy values are `nil`, `false`, `0`, `NaN` and anything empty: `""`,
+`[]`, `{}`, an empty map, set, bytes or buffer. Everything else is truthy.
 
 ```rune
 for v in [nil, false, 0, "", [], {}, map(), "0", [0], { a: nil }] {
@@ -117,6 +119,7 @@ print(1 in "123"); // TypeError: Left operand of 'in' must be a string for strin
 `==` compares numbers (an integer with a float too), strings, bytes, booleans and `nil` by value, functions and streams by identity,
 and arrays, objects, maps and sets structurally (element by element, cycles included), so
 `[1, 2] == [1, 2]` is `true`. `in` and `indexOf` use the same equality.
+`NaN` equals nothing, itself included.
 Values of different types are never equal: `1 == "1"` is `false`.
 
 ```rune

@@ -29,7 +29,7 @@ let limit;       // Error at 'limit': Immutable variable must be initialized.
 Through an immutable variable the array, object or struct it holds cannot
 be changed either: index and property assignment (`a[0] = 1`, `o.x += 1`,
 `a[0]++`, also nested like `o.xs[0] = 1`) and calls of the in-place
-methods (`push`, `pop`, `sort`, `map.set`, `set.add`, `delete`, `clear`,
+methods (`push`, `pop`, `sort`, `reverse`, `set.add`, `delete`, `clear`,
 ...) and of `mut self` methods are compile errors. Taking an in-place
 method as a value is a runtime `TypeError`. Methods that return a new value
 (`append`, `map`, ...) work as usual.
@@ -92,7 +92,8 @@ print(scores);    // [70, 95, 80]
 
 `const` names a value known before the program runs: a number, string,
 `true`, `false` or `nil`, written as a literal or computed from other
-constants with operators, or an array or object of such values. A constant costs
+constants with operators, an enum variant, `map()` or `set()`, or an array
+or object of such values. A constant costs
 nothing to read: each use is the value itself. Constants are declared at
 the top level only, can be used before their declaration, as a struct
 field's default, and [exported](../programs/modules.md).

@@ -40,7 +40,7 @@
 - [Built-in Functions](stdlib/builtins.md)
 - [Array Methods](stdlib/array.md)
 - [Object Methods](stdlib/object.md)
-- [String and Number Methods](stdlib/string.md)
+- [String Methods](stdlib/string.md)
 - [regex](stdlib/regex.md)
 - [math](stdlib/math.md)
 - [json and http](stdlib/json-http.md)

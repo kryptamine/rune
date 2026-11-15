@@ -179,6 +179,9 @@ func (s *Scanner) scanToken() {
 		case s.peek() == 'i' && s.peekNext() == 'n' && !s.isAlphaNumeric(s.charAt(s.current+2)):
 			s.current += 2
 			s.addToken(ast.BANG_IN)
+		case s.peek() == 'i' && s.peekNext() == 's' && !s.isAlphaNumeric(s.charAt(s.current+2)):
+			s.current += 2
+			s.addToken(ast.BANG_IS)
 		default:
 			s.addToken(ast.BANG)
 		}
@@ -348,6 +351,9 @@ func (s *Scanner) string(isBytes, triple bool) {
 		} else if b, ok := hexByte(s.source[s.current:]); ok && r == 'x' && isBytes {
 			value = append(value, b)
 			s.current += 2
+		} else if c, n := codePoint(s.source[s.current:]); n > 0 && r == 'u' && !isBytes {
+			value = utf8.AppendRune(value, c)
+			s.current += n
 		} else if badEscape == "" {
 			badEscape = fmt.Sprintf("Invalid escape sequence '\\%c'.", r)
 		}
@@ -573,4 +579,20 @@ func (s *Scanner) match(expected rune) bool {
 	s.current++
 
 	return true
+}
+
+// codePoint reads the {hex} of a \u escape: the code point and the length
+// of the braces, or 0 if they hold no valid one.
+func codePoint(s string) (rune, int) {
+	end := strings.IndexByte(s, '}')
+	if len(s) == 0 || s[0] != '{' || end < 2 || end > 7 {
+		return 0, 0
+	}
+
+	n, err := strconv.ParseUint(s[1:end], 16, 32)
+	if err != nil || !utf8.ValidRune(rune(n)) {
+		return 0, 0
+	}
+
+	return rune(n), end + 1
 }

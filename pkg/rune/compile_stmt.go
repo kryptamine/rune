@@ -261,7 +261,7 @@ func (fs *funcState) unpack(s *ast.ArrayDestructureStmt) {
 	src := fs.exprAny(s.Initializer)
 	n := len(s.Elems)
 	rest := s.Rest != nil
-	base := fs.unpackTo(src, n, s.Required(), rest, &s.Bracket)
+	base := fs.unpackTo(src, n, s.Required(), rest, false, &s.Bracket)
 
 	for i, e := range s.Elems {
 		if e != nil {
@@ -279,8 +279,9 @@ func (fs *funcState) unpack(s *ast.ArrayDestructureStmt) {
 
 // unpackTo takes the first n elements of the array R[src], of which
 // required must be there, into new temporaries, and with rest the others
-// as an array after them; it returns the first temporary.
-func (fs *funcState) unpackTo(src int32, n, required int, rest bool, tok *ast.Token) int32 {
+// as an array after them; it returns the first temporary. Without rest
+// there may be no others, unless open.
+func (fs *funcState) unpackTo(src int32, n, required int, rest, open bool, tok *ast.Token) int32 {
 	if n > maxUnpack {
 		panic(tooLarge{fs.proto.name})
 	}
@@ -290,7 +291,7 @@ func (fs *funcState) unpackTo(src int32, n, required int, rest bool, tok *ast.To
 		fs.alloc()
 	}
 
-	fs.emit(ins{op: opUnpack, a: base, b: src, c: int32(n | required<<unpackShift), x: uint8(boolNum(rest))}, tok)
+	fs.emit(ins{op: opUnpack, a: base, b: src, c: int32(n | required<<unpackShift), x: uint8(boolNum(rest)), y: uint8(boolNum(open))}, tok)
 
 	return base
 }

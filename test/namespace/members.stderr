@@ -1,3 +1,0 @@
-[line: 23] TypeError: Cannot set member 'PI' of a namespace.
-   23 | mine.PI = 3; // expect runtime error: [line: 23] TypeError: Cannot set member 'PI' of a namespace.
-      |      ^

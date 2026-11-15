@@ -26,7 +26,7 @@ log.close();
 
 let mut errors = 0;
 for line in fs.open(path) {
-    if !line.endsWith(" 200") errors++;
+    if !line.endsWith(" 200") { errors++; }
 }
 print(errors);           // 2
 ```

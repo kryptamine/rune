@@ -132,7 +132,8 @@ func (fs *funcState) arrayTest(s int32, n *ast.ArrayPattern) []int {
 	free := fs.free
 	defer func() { fs.free = free }()
 
-	base := fs.unpackTo(s, count, count, n.Rest != nil, &n.Bracket)
+	// The length is tested already.
+	base := fs.unpackTo(s, count, count, n.Rest != nil, true, &n.Bracket)
 
 	for i, e := range n.Elems {
 		miss = append(miss, fs.pattern(e, base+int32(i))...)

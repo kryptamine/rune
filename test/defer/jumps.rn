@@ -1,8 +1,8 @@
 fun f() {
-  defer return 1; // Error at 'return': Cannot return from a 'defer' body.
+  defer { return 1; } // Error at 'return': Cannot return from a 'defer' body.
 }
 for x in [1] {
-  defer break; // Error at 'break': Cannot use 'break' to leave a 'defer' body.
+  defer { break; } // Error at 'break': Cannot use 'break' to leave a 'defer' body.
   defer {
     for y in [1] { break; }
     continue; // Error at 'continue': Cannot use 'continue' to leave a 'defer' body.

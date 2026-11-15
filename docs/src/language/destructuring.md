@@ -79,8 +79,9 @@ let { email } = { name: "ann" }; // KeyError: Undefined property 'email'.
 ## Arrays
 
 An array pattern takes elements by position: `_` skips one, `...name`
-takes the rest as a new array and must come last. The array may be longer
-than the pattern.
+takes the rest as a new array and must come last, `..._` drops it. The
+array must have as many elements as the pattern, as in
+[match](pattern-matching.md); only a rest takes more.
 
 ```rune
 let [first, _, third, ...rest] = ["mon", "tue", "wed", "thu", "fri"];
@@ -88,6 +89,9 @@ let [first, _, third, ...rest] = ["mon", "tue", "wed", "thu", "fri"];
 print(first); // mon
 print(third); // wed
 print(rest);  // ["thu", "fri"]
+
+let [day, ..._] = ["sat", "sun"];
+print(day);   // sat
 ```
 
 It shines in parameters, for pairs and tuples:
@@ -104,10 +108,15 @@ lo = 2;
 print([lo, hi]); // [2, 9]
 ```
 
-A shorter array is an `IndexError`, anything but an array a `TypeError`:
+An array of another length is an `IndexError`, anything but an array a
+`TypeError`:
 
 ```rune
-let [host, port] = ["localhost"]; // IndexError: Expected at least 2 elements but got 1.
+let [host, port] = ["localhost"]; // IndexError: Expected 2 elements but got 1.
+```
+
+```rune
+let [host, port] = ["localhost", 80, "tls"]; // IndexError: Expected 2 elements but got 3.
 ```
 
 ```rune

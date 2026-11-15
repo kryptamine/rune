@@ -2,7 +2,7 @@
 
 An enum is a type with a fixed set of named values, its variants, which
 may [have fields](#variants-with-fields). A variant is not a number or a string: it equals only itself, prints as
-`Type.Variant` and is tested with `is`. Enums are declared at the top
+`Type.Variant`, which `type` says of it too, and is tested with `is`. Enums are declared at the top
 level only and can be used before their declaration.
 
 ```rune
@@ -12,7 +12,7 @@ let c = Color.White;
 print(c);                // Color.White
 print(c is Color);       // true
 print(c == Color.Black); // false
-print(type(c));          // Color
+print(type(c));          // Color.White
 print(type(Color));      // enum
 print(Color is enum);    // true
 ```

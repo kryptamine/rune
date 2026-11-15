@@ -30,7 +30,7 @@ func TypeName(v value.Value) string {
 	case value.Type:
 		return If(v.TypeShape().Enum, "enum", "struct")
 	case value.Enum:
-		return v.Variant().Shape.Name
+		return v.Variant().String()
 	case value.Map:
 		return "map"
 	case value.Set:
@@ -167,7 +167,7 @@ func stringify(v value.Value, seen map[uintptr]bool) string {
 	case value.Type:
 		return "<" + TypeName(v) + " " + v.TypeShape().Name + ">"
 	case value.Enum:
-		return v.Variant().Shape.Name + "." + v.Variant().Name
+		return v.Variant().String()
 	case value.Map, value.Set:
 		return stringifyTable(v, seen)
 	case value.Bytes:

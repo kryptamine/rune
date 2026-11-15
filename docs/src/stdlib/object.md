@@ -15,7 +15,6 @@ print({ [1]: "one" }); // TypeError: Object properties must be accessed with str
 ```
 
 
-- `get(k[, default])` — the value of `k`, or `default` (`nil` if not given) when missing; `obj[k]` and `obj.k` are a `KeyError` instead.
 - `keys()`, `values()`, `entries()` — new arrays of the keys, the values, or `[key, value]` pairs, in the order the keys were added, as `for` walks them.
 - `delete(k)` — removes `k` **in place** and returns whether it was there.
 
@@ -23,8 +22,7 @@ print({ [1]: "one" }); // TypeError: Object properties must be accessed with str
 let mut config = { port: 8080, host: "localhost", debug: false };
 
 print("port" in config);             // true
-print(config.get("user"));             // nil
-print(config.get("user", "admin"));    // admin
+print(config?.user ?? "admin");        // admin
 print(config.keys());                  // ["port", "host", "debug"]
 print(config.values());                // [8080, "localhost", false]
 print(config.entries());               // [["port", 8080], ["host", "localhost"], ["debug", false]]
@@ -43,6 +41,9 @@ for [fruit, price] in prices.entries() {
 // apple: 1.2
 // pear: 0.8
 ```
+
+A missing key is a `KeyError` for `o[k]` and `o.k`, and `nil` for
+`o?.[k]` and `o?.k`, so `o?.k ?? fallback` reads with a default.
 
 Reading `o.k` gives an own property of that name first; a call `o.k()`
 always calls the method:

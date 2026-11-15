@@ -10,8 +10,8 @@ impl Catalog {
     fun new(dir) => Catalog { dir };
 
     fun load(mut self, name, pos = nil) {
-        let cached = self.tables.get(name);
-        if cached != nil return cached;
+        let cached = self.tables?.[name];
+        if cached != nil { return cached; }
 
         let path = fs.join(self.dir, name + ".csv");
         if !fs.exists(path) {
@@ -19,7 +19,7 @@ impl Catalog {
             throw ast.SqlError { message: "no table '{name}' in {self.dir}" + ast.suggest(name, names), pos };
         }
         let t = loadCsv(path);
-        self.tables.set(name, t);
+        self.tables[name] = t;
         return t;
     }
 }
@@ -27,13 +27,13 @@ impl Catalog {
 // Columns whose cells all parse as numbers become numbers; an empty cell is NULL.
 fun loadCsv(path) {
     let src = fs.open(path);
-    defer src.close();
+    defer { src.close(); }
     let header = src.readLine() ?? throw ast.SqlError { message: "{path} is empty" };
     let columns = splitCsv(header).map(c => c.trim());
 
     let mut rows = [];
     for i, line in src {
-        if line == "" continue;
+        if line == "" { continue; }
         let cells = splitCsv(line);
         if cells.len() != columns.len() {
             throw ast.SqlError { message: "{fs.base(path)} line {i + 2}: {cells.len()} cells, expected {columns.len()}" };
@@ -57,7 +57,7 @@ fun loadCsv(path) {
         }
         if !numeric {
             for mut row in rows {
-                if row[c] is number row[c] = string(row[c]);
+                if row[c] is number { row[c] = string(row[c]); }
             }
         }
     }
@@ -66,7 +66,7 @@ fun loadCsv(path) {
 }
 
 fun splitCsv(line) {
-    if "\"" !in line return line.split(",");
+    if "\"" !in line { return line.split(","); }
 
     let mut cells = [];
     let mut cell = [];

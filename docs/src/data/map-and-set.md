@@ -43,7 +43,7 @@ struct Pos { x, y }
 let mut grid = map();
 grid[Pos { x: 0, y: 1 }] = "wall";
 print(grid[Pos { x: 0, y: 1 }]);                // wall
-print(grid.get(Pos { x: 9, y: 9 }, "floor"));   // floor
+print(grid?.[Pos { x: 9, y: 9 }] ?? "floor");   // floor
 ```
 
 An array, object, map or set is not hashable, as it can change:
@@ -56,28 +56,26 @@ seen[[1, 2]] = true; // TypeError: Cannot use an array as a key.
 ## Reading and writing
 
 `m[k]` reads a key and a missing one is a `KeyError`; `m?.[k]` gives `nil`
-instead. `m[k] = v` sets one, like an array element, so `m` must be
-mutable.
+instead, so `m?.[k] ?? fallback` reads with a default. `m[k] = v` sets
+one, like an array element, so `m` must be mutable.
 
 ```rune
 let mut prices = map({ apple: 1.5 });
-print(prices?.["kiwi"]); // nil
-print(prices["kiwi"]);   // KeyError: Key not found: "kiwi".
+print(prices?.["kiwi"]);      // nil
+print(prices?.["kiwi"] ?? 0); // 0
+print(prices["kiwi"]);        // KeyError: Key not found: "kiwi".
 ```
 
-Map methods: `get(k[, default])`, `set(k, v)`, `delete(k)`
-(whether it was there), `clear()`, and `keys()`, `values()`, `entries()`,
-new arrays. Like an array's in-place methods, `set` and `clear` return
-`nil`.
+Map methods: `delete(k)` (whether it was there), `clear()`, and `keys()`,
+`values()`, `entries()`, new arrays. Like an array's in-place methods,
+`clear` returns `nil`.
 
 ```rune
 let mut stock = map();
-stock.set("apple", 3);
-stock.set("pear", 0);
-stock.set("plum", 7);
+stock["apple"] = 3;
+stock["pear"] = 0;
+stock["plum"] = 7;
 
-print(stock.get("kiwi"));     // nil
-print(stock.get("kiwi", 0));  // 0
 print("pear" in stock);       // true
 print(stock.delete("pear"));  // true
 print(stock.delete("pear"));  // false
@@ -86,8 +84,8 @@ print(stock.values());        // [3, 7]
 print(stock.entries());       // [["apple", 3], ["plum", 7]]
 ```
 
-A set has `add(x)`, `delete`, `clear`, `values()`, and
-`union(s)`, `intersection(s)`, `difference(s)`, new sets. `k in m` tests
+A set has `add(x)`, `delete`, `clear`, and `union(s)`, `intersection(s)`,
+`difference(s)`, new sets; `[...s]` is its elements as an array. `k in m` tests
 a key of a map and `x in s` an element of a set.
 
 ```rune

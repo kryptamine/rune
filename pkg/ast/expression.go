@@ -262,10 +262,12 @@ type IsExpr struct {
 	Type  Expr
 	Token Token
 	Shape *value.Shape
+	// Negate makes it value !is Type.
+	Negate bool
 }
 
-func NewIsExpr(v, typ Expr, token Token) Expr {
-	return &IsExpr{Value: v, Type: typ, Token: token}
+func NewIsExpr(v, typ Expr, token Token, negate bool) Expr {
+	return &IsExpr{Value: v, Type: typ, Token: token, Negate: negate}
 }
 
 func (n *IsExpr) Accept(v ExprVisitor) (value.Value, error) {

@@ -1,3 +1,2 @@
-let m = module;
-print(type(m)); // expect: namespace
-print(m.dir == module.dir); // expect: true
+print(module.dir != ""); // expect: true
+print(module.file.endsWith("module_namespace.rn")); // expect: true

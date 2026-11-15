@@ -43,16 +43,16 @@ fun parse(line) {
 let input = ["circle 2", "rect 3 4", "square 5", "hexagon 1", "rect x"];
 let parsed = input.map(line => try parse(line) catch e => e);
 
-for e in parsed.filter(p => p is ValueError) print("skip: {e.message}");
+for e in parsed.filter(p => p is ValueError) { print("skip: {e.message}"); }
 
 let mut shapes = parsed.filter(p => p is Shape);
 shapes.sort((a, b) => b.area() - a.area());
-for s in shapes print("{s.area()}\t{s}");
+for s in shapes { print("{s.area()}\t{s}"); }
 ```
 
 ```
 skip: unknown shape 'hexagon'
-skip: int() cannot parse "x" as an integer in base 10.
+skip: int() cannot parse "x" as an integer.
 25      Shape.Rect {w: 5, h: 5}
 12.56   Shape.Circle {r: 2}
 12      Shape.Rect {w: 3, h: 4}

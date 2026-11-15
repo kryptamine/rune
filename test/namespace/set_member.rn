@@ -1,3 +1,3 @@
-math.PI = 3; // Error at 'math': Cannot mutate immutable variable 'math'.
-math.PI++; // Error at 'math': Cannot mutate immutable variable 'math'.
-module.dir = "x"; // Error at 'module': Cannot mutate immutable variable 'module'.
+math.PI = 3; // Error at 'PI': Cannot assign to a member of namespace 'math'.
+math.PI++; // Error at 'PI': Cannot assign to a member of namespace 'math'.
+module.dir = "x"; // Error at 'dir': Cannot assign to a member of namespace 'module'.

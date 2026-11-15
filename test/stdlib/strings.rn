@@ -14,4 +14,3 @@ print("héllo".indexOf("llo")); // expect: 2
 print("abc".indexOf("z")); // expect: -1
 print("héllo"[1..3]); // expect: él
 print("héllo"[-3..]); // expect: llo
-print("héj".reverse()); // expect: jéh

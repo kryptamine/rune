@@ -1,6 +1,6 @@
 fun sign(x) {
-  defer print("deferred {x}");
-  if x > 0 return "positive";
+  defer { print("deferred {x}"); }
+  if x > 0 { return "positive"; }
   return "other";
 }
 print(sign(1));
@@ -9,13 +9,13 @@ print(sign(1));
 
 fun value() {
   let mut n = 1;
-  defer n = 100;
+  defer { n = 100; }
   return n;
 }
 print(value()); // expect: 1
 
 fun early() {
-  defer print("cleanup");
+  defer { print("cleanup"); }
   let v = try int("x") catch => return 0;
   return v;
 }
@@ -26,7 +26,7 @@ print(early());
 struct Counter { n = 0 }
 impl Counter {
   fun bump(mut self) {
-    defer self.n += 10;
+    defer { self.n += 10; }
     self.n++;
     return self.n;
   }

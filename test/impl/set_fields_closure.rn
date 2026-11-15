@@ -3,7 +3,7 @@ struct Counter { n }
 impl Counter {
   fun bump(mut self, times) {
     let add = k => { self.n += k; };
-    for i in 0..times add(i);
+    for i in 0..times { add(i); }
     return self.n;
   }
 }

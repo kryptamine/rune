@@ -12,7 +12,7 @@ export fun load(dir, drafts = false) {
     let mut site = Site {};
 
     for f in fs.list(dir) {
-        if f.isDir || fs.ext(f.name) != ".md" continue;
+        if f.isDir || fs.ext(f.name) != ".md" { continue; }
         let path = fs.join(dir, f.name);
         let { meta, body } = fm.parse(fs.readText(path), path);
 
@@ -74,9 +74,9 @@ fun byTag(posts) {
     let mut tags = map();
     for p in posts {
         for t in p.tags {
-            let mut list = tags.get(t) ?? [];
+            let mut list = tags?.[t] ?? [];
             list.push(p);
-            tags.set(t, list);
+            tags[t] = list;
         }
     }
     return tags;

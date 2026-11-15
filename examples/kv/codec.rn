@@ -38,15 +38,15 @@ export enum Bad { Torn, Corrupt }
 
 // The record at `at`, or a Bad
 export fun decode(b, at) {
-    if at + 5 > b.len() return Bad.Torn;
+    if at + 5 > b.len() { return Bad.Torn; }
     let [klen, kat] = b.uvarint(at + 5) ?? return Bad.Torn;
     let [vlen, vat] = b.uvarint(kat) ?? return Bad.Torn;
     let end = vat + klen + vlen;
-    if end > b.len() return Bad.Torn;
-    if b[at + 4..end].crc32() != b.uint(at, 4) return Bad.Corrupt;
+    if end > b.len() { return Bad.Torn; }
+    if b[at + 4..end].crc32() != b.uint(at, 4) { return Bad.Corrupt; }
 
     let kind = b[at + 4];
-    if kind != PUT && kind != DEL return Bad.Corrupt;
+    if kind != PUT && kind != DEL { return Bad.Corrupt; }
     return Record { kind, key: b[vat..vat + klen].text(), start: at, recLen: end - at, size: vlen };
 }
 
@@ -70,6 +70,6 @@ export fun decodeHint(b, at, seg) {
     let [recLen, k] = b.uvarint(j) ?? return nil;
     let [size, kat] = b.uvarint(k) ?? return nil;
     let next = kat + klen;
-    if next > b.len() return nil;
+    if next > b.len() { return nil; }
     return Hint { key: b[kat..next].text(), loc: Loc { seg, start, recLen, size }, next };
 }

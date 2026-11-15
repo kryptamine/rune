@@ -3,8 +3,10 @@ package rune
 import (
 	"rune/pkg/ast"
 	"rune/pkg/errors"
+	"rune/pkg/stdlib"
 	"rune/pkg/value"
 	"slices"
+	"strings"
 )
 
 // moduleScope is the top level of one file.
@@ -27,10 +29,10 @@ type moduleScope struct {
 	imports map[string]*moduleScope
 	exports map[string]*ast.Local
 	// file is the file's namespace, module.
-	file value.Value
+	file stdlib.Namespace
 }
 
-func newModuleScope(file value.Value) *moduleScope {
+func newModuleScope(file stdlib.Namespace) *moduleScope {
 	return &moduleScope{
 		file:          file,
 		globals:       map[string]*localVar{},
@@ -40,17 +42,6 @@ func newModuleScope(file value.Value) *moduleScope {
 		imports:       map[string]*moduleScope{},
 		exports:       map[string]*ast.Local{},
 	}
-}
-
-// builtinValue is the built-in called name in the file.
-func (m *moduleScope) builtinValue(name string) (value.Value, bool) {
-	if name == fileNamespace {
-		return m.file, true
-	}
-
-	v, ok := builtinValues()[name]
-
-	return v, ok
 }
 
 // ResolveModules resolves a program's files, each after the ones it
@@ -127,7 +118,7 @@ func (p *Resolver) builtinLocals() []namedLocal {
 		slices.Sort(names)
 
 		for _, name := range names {
-			v, _ := m.builtinValue(name)
+			v := builtinValues()[name]
 			out = append(out, namedLocal{name, m.builtins[name], v})
 		}
 	}
@@ -140,6 +131,33 @@ func (p *Resolver) isModule(e ast.Expr) bool {
 	v, ok := e.(*ast.VarExpr)
 
 	return ok && v.Module == nil && p.lookupScopes(v.Name.Lexeme) == nil && p.mod.imports[v.Name.Lexeme] != nil
+}
+
+// The qualifiers, names that are no values: only their members are.
+const (
+	moduleQualifier    = "Module"
+	namespaceQualifier = "Namespace"
+)
+
+// qualifier is what e names when it is a bare name of a module imported
+// here or of a built-in namespace that is no function, or "".
+func (p *Resolver) qualifier(e ast.Expr) string {
+	v, ok := e.(*ast.VarExpr)
+
+	switch {
+	case !ok || v.Module != nil:
+		return ""
+	case p.isModule(e):
+		return moduleQualifier
+	case !p.isBuiltin(v.Name.Lexeme) || p.namespace(v.Name.Lexeme) == nil:
+		return ""
+	}
+
+	if _, callable := builtinValues()[v.Name.Lexeme]; callable {
+		return ""
+	}
+
+	return namespaceQualifier
 }
 
 // member returns the variable module.name names, reporting it if module
@@ -199,9 +217,10 @@ func (p *Resolver) moduleMember(expr *ast.IndexExpr) *ast.VarExpr {
 	return &ast.VarExpr{Module: &module, Name: name, Local: p.member(module, name)}
 }
 
-// moduleAssign reports an assignment to a member of the module m names.
-func (p *Resolver) moduleAssign(m ast.Expr, tok ast.Token) {
-	p.error(tok, "Cannot assign to a member of module '"+m.(*ast.VarExpr).Name.Lexeme+"'.")
+// memberAssign reports an assignment to a member of the qualifier q that
+// e names.
+func (p *Resolver) memberAssign(q string, e ast.Expr, tok ast.Token) {
+	p.error(tok, "Cannot assign to a member of "+strings.ToLower(q)+" '"+e.(*ast.VarExpr).Name.Lexeme+"'.")
 }
 
 // structType returns the struct type t names, reporting it if t names

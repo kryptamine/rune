@@ -37,7 +37,7 @@ let xs = [10, 20, 30];
 print(xs[1]);       // expect: 20
 try { xs[1.0]; } catch e is TypeError { print(e.message); } // expect: Array index must be an integer.
 for k, v in xs {
-  if k == 2 print(math.isInt(k)); // expect: true
+  if k == 2 { print(math.isInt(k)); } // expect: true
 }
 for n in 0..3 { print(n); }
 // expect: 0

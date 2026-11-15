@@ -99,6 +99,7 @@ const (
 	BANG
 	BANG_EQUAL
 	BANG_IN
+	BANG_IS
 	EQUAL
 	EQUAL_EQUAL
 	LESS
@@ -303,6 +304,8 @@ func (tokenType TokenType) String() string {
 		return "BANG_EQUAL"
 	case BANG_IN:
 		return "BANG_IN"
+	case BANG_IS:
+		return "BANG_IS"
 	case LESS:
 		return "LESS"
 	case LESS_EQUAL:

@@ -10,7 +10,7 @@ fun shape(v) {
         [{ id }, ...mut others] => {
             others.push(id);
             return others;
-        }
+        },
         _ => "other",
     };
 }

@@ -7,36 +7,39 @@
 [line: 4] Error at 'a': Cannot mutate immutable variable 'a'.
     4 | a.sort(); // Error at 'a': Cannot mutate immutable variable 'a'.
       | ^
-[line: 6] Error at 'o': Cannot mutate immutable variable 'o'.
-    6 | o.xs.push(1); // Error at 'o': Cannot mutate immutable variable 'o'.
+[line: 5] Error at 'a': Cannot mutate immutable variable 'a'.
+    5 | a.reverse(); // Error at 'a': Cannot mutate immutable variable 'a'.
       | ^
 [line: 7] Error at 'o': Cannot mutate immutable variable 'o'.
-    7 | (o?.xs).push(1); // Error at 'o': Cannot mutate immutable variable 'o'.
-      |  ^
-[line: 8] Error at 'o': Cannot mutate immutable variable 'o'.
-    8 | o.delete("xs"); // Error at 'o': Cannot mutate immutable variable 'o'.
+    7 | o.xs.push(1); // Error at 'o': Cannot mutate immutable variable 'o'.
       | ^
-[line: 11] Error at 'm': Cannot mutate immutable variable 'm'.
-   11 | m.set("b", 2); // Error at 'm': Cannot mutate immutable variable 'm'.
+[line: 8] Error at 'o': Cannot mutate immutable variable 'o'.
+    8 | (o?.xs).push(1); // Error at 'o': Cannot mutate immutable variable 'o'.
+      |  ^
+[line: 9] Error at 'o': Cannot mutate immutable variable 'o'.
+    9 | o.delete("xs"); // Error at 'o': Cannot mutate immutable variable 'o'.
       | ^
 [line: 12] Error at 'm': Cannot mutate immutable variable 'm'.
-   12 | m.delete("a"); // Error at 'm': Cannot mutate immutable variable 'm'.
+   12 | m["b"] = 2; // Error at 'm': Cannot mutate immutable variable 'm'.
       | ^
 [line: 13] Error at 'm': Cannot mutate immutable variable 'm'.
-   13 | m.clear(); // Error at 'm': Cannot mutate immutable variable 'm'.
+   13 | m.delete("a"); // Error at 'm': Cannot mutate immutable variable 'm'.
       | ^
-[line: 14] Error at 's': Cannot mutate immutable variable 's'.
-   14 | s.add(2); // Error at 's': Cannot mutate immutable variable 's'.
+[line: 14] Error at 'm': Cannot mutate immutable variable 'm'.
+   14 | m.clear(); // Error at 'm': Cannot mutate immutable variable 'm'.
       | ^
 [line: 15] Error at 's': Cannot mutate immutable variable 's'.
-   15 | s.delete(1); // Error at 's': Cannot mutate immutable variable 's'.
+   15 | s.add(2); // Error at 's': Cannot mutate immutable variable 's'.
       | ^
 [line: 16] Error at 's': Cannot mutate immutable variable 's'.
-   16 | s.clear(); // Error at 's': Cannot mutate immutable variable 's'.
+   16 | s.delete(1); // Error at 's': Cannot mutate immutable variable 's'.
       | ^
-[line: 17] Error at 'a': Cannot mutate immutable variable 'a'.
-   17 | a.insert(0, 1); // Error at 'a': Cannot mutate immutable variable 'a'.
+[line: 17] Error at 's': Cannot mutate immutable variable 's'.
+   17 | s.clear(); // Error at 's': Cannot mutate immutable variable 's'.
       | ^
 [line: 18] Error at 'a': Cannot mutate immutable variable 'a'.
-   18 | a.remove(0); // Error at 'a': Cannot mutate immutable variable 'a'.
+   18 | a.insert(0, 1); // Error at 'a': Cannot mutate immutable variable 'a'.
+      | ^
+[line: 19] Error at 'a': Cannot mutate immutable variable 'a'.
+   19 | a.remove(0); // Error at 'a': Cannot mutate immutable variable 'a'.
       | ^

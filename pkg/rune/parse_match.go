@@ -37,8 +37,7 @@ func (s *Parser) matchExpr() (*ast.MatchExpr, error) {
 			return nil, errors.NewSyntaxError(s.peek(), "Separate match arms with ','.")
 		}
 
-		// Only an expression needs a comma to end it.
-		if _, isExpr := arm.Body.(*ast.ExprStmt); !s.match(ast.COMMA) && isExpr {
+		if !s.match(ast.COMMA) {
 			break
 		}
 	}
@@ -64,7 +63,7 @@ func (s *Parser) matchArm() (ast.MatchArm, error) {
 	}
 
 	if s.match(ast.IF) {
-		if arm.Guard, err = s.rangeExpr(); err != nil {
+		if arm.Guard, err = s.nullish(); err != nil {
 			return arm, err
 		}
 	}
@@ -78,13 +77,8 @@ func (s *Parser) matchArm() (ast.MatchArm, error) {
 	return arm, err
 }
 
-// armBody parses an if, while, for or try statement, a block, or an
-// expression, which the arm's comma ends.
+// armBody parses a block or an expression.
 func (s *Parser) armBody() (ast.Stmt, error) {
-	if t := s.peek().TokenType; t == ast.TRY && s.atTryStatement() || t != ast.TRY && blockKeyword(t) {
-		return s.statement()
-	}
-
 	if stmts, ok, err := s.braceBody(); ok {
 		return ast.NewBlockStmt(stmts), err
 	}

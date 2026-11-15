@@ -13,8 +13,9 @@ let scores = [72, 95, 88];
 print(math.max(...scores)); // 95
 ```
 
-Both also take a set, in its order, a map as `[key, value]` pairs and bytes
-as integers: `[...tags]`, `f(...counts)`, `[...b"hi"]` is `[104, 105]`.
+Both also take a set, in its order, and bytes as integers: `[...tags]`,
+`f(...ids)`, `[...b"hi"]` is `[104, 105]`. A map is no list; take its
+`keys()`, `values()` or `entries()`.
 
 An object or a struct spreads into an object literal. Keys are applied in
 order and later ones win, so put the defaults first to override them, or
@@ -31,8 +32,9 @@ let p = Point { x: 1, y: 2 };
 print({ ...p, z: 3 });              // {x: 1, y: 2, z: 3}
 ```
 
-A struct literal takes a struct of its own type, or an object of some of
-its fields, which makes an updated copy (see [Structs](../data/structs.md)):
+A struct literal takes a struct of its own type, which makes an updated
+copy (see [Structs](../data/structs.md)); an object becomes a struct by
+[conversion](../data/structs.md#converting), `Point({ ...o, y: 5 })`:
 
 ```rune
 struct Point { x, y = 0 }

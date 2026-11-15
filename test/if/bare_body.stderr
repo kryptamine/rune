@@ -1,0 +1,3 @@
+[line: 2] Error at 'return': Expect '{' after if condition.
+    2 |   if x return 1; // Error at 'return': Expect '{' after if condition.
+      |        ^

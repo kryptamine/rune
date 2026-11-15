@@ -282,7 +282,7 @@ reload:
 				goto slow
 			}
 
-			*at(regs, in.a()) = value.NewBool(t.TypeShape().Has(*at(regs, in.b())))
+			*at(regs, in.a()) = value.NewBool(t.TypeShape().Has(*at(regs, in.b())) != in.y())
 
 		case opNeg:
 			if v := *at(regs, in.b()); v.IsFloat() {

@@ -1,4 +1,4 @@
-# String and Number Methods
+# String Methods
 
 Strings are immutable: every method returns a new value. Indices and
 lengths count characters, not bytes.
@@ -20,8 +20,8 @@ print("https://x.io".startsWith("https://")); // true
 
 ## Searching and replacing
 
-`replace(old, new)` replaces all occurrences; `repeat(n)`, `reverse` and
-`indexOf` work as for arrays. A substring is tested with `in` and cut out
+`replace(old, new)` replaces all occurrences; `repeat(n)` and `indexOf`
+work as for arrays. A substring is tested with `in` and cut out
 with a [slice](../language/strings.md), `s[a..b]`.
 
 ```rune
@@ -29,7 +29,6 @@ print("2026-11-12".replace("-", "/"));   // 2026/11/12
 print("=".repeat(10));                   // ==========
 print("héllo"[1..3]);              // él
 print("héllo"[-2..]);                // lo
-print("héllo".reverse());                // olléh
 print("wor" in "hello world");    // true
 print("héllo".indexOf("l"));             // 2
 print("hello".indexOf("z"));             // -1
@@ -100,7 +99,7 @@ for [name, qty, price] in items {
 
 ```rune
 let rows = [["GET /users", 12], ["POST /orders/batch", 340]];
-let width = rows.reduce((w, [path]) => math.max(w, path.len()), 0);
+let width = rows.reduce((w, [path, _]) => math.max(w, path.len()), 0);
 for [path, ms] in rows {
     print("%-*s %4dms".format(width, path, ms));
 }
@@ -110,14 +109,4 @@ for [path, ms] in rows {
 
 ```rune
 "%d".format("7"); // TypeError: string.format() expects an integer as argument 1, got string.
-```
-
-## Numbers
-
-A number has `fixed(digits)`, with 0 to 100 decimals.
-
-```rune
-print(3.14159.fixed(2));  // 3.14
-print(2.fixed(2));        // 2.00
-print((19.999).fixed(0)); // 20
 ```

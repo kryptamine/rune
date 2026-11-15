@@ -7,4 +7,4 @@ while node?.v {
 // expect: 1
 // expect: 2
 
-if node?.v print("no"); else print("done"); // expect: done
+if node?.v { print("no"); } else { print("done"); } // expect: done

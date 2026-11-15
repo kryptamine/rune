@@ -1,0 +1,8 @@
+struct P { x }
+let T = P;
+print(1 !is string);       // expect: true
+print("a" !is string);     // expect: false
+print(P { x: 1 } !is P);   // expect: false
+print(1 !is T);            // expect: true
+print(1 !is number == false); // expect: true
+if nil !is nil { print("no"); } else { print("yes"); } // expect: yes

@@ -53,7 +53,7 @@ impl Parser {
 
     fun next(mut self) {
         let t = self.tokens[self.i];
-        if t.kind != Kind.Eof self.i++;
+        if t.kind != Kind.Eof { self.i++; }
         return t;
     }
 
@@ -63,13 +63,13 @@ impl Parser {
     }
 
     fun accept(mut self, word) {
-        if !self.at(word) return false;
+        if !self.at(word) { return false; }
         self.next();
         return true;
     }
 
     fun expect(mut self, word) {
-        if !self.accept(word) self.fail("expected {word}");
+        if !self.accept(word) { self.fail("expected {word}"); }
     }
 
     fun fail(self, message) {
@@ -83,13 +83,13 @@ impl Parser {
     }
 
     fun name(mut self, what) {
-        if !self.atName() self.fail("expected {what}");
+        if !self.atName() { self.fail("expected {what}"); }
         return self.next().text;
     }
 
     fun exprs(mut self) {
         let mut xs = [self.expr(0)];
-        while self.accept(",") xs.push(self.expr(0));
+        while self.accept(",") { xs.push(self.expr(0)); }
         return xs;
     }
 
@@ -98,7 +98,7 @@ impl Parser {
         self.expect("SELECT");
         let distinct = self.accept("DISTINCT");
         let mut items = [self.item()];
-        while self.accept(",") items.push(self.item());
+        while self.accept(",") { items.push(self.item()); }
 
         self.expect("FROM");
         let from = self.table();
@@ -127,33 +127,33 @@ impl Parser {
         if self.accept("ORDER") {
             self.expect("BY");
             orderBy = [self.order()];
-            while self.accept(",") orderBy.push(self.order());
+            while self.accept(",") { orderBy.push(self.order()); }
         }
 
         let limit = self.accept("LIMIT") ? self.count("LIMIT") : nil;
         let offset = self.accept("OFFSET") ? self.count("OFFSET") : 0;
 
         self.accept(";");
-        if self.peek().kind != Kind.Eof self.fail("expected end of query");
+        if self.peek().kind != Kind.Eof { self.fail("expected end of query"); }
 
         return ast.Select { explain, distinct, items, from, joins, where, groupBy, having, orderBy, limit, offset };
     }
 
     fun count(mut self, what) {
         let t = self.next();
-        if t.kind != Kind.Num || "." in t.text throw ast.SqlError { message: "{what} takes a whole number", pos: t.pos };
+        if t.kind != Kind.Num || "." in t.text { throw ast.SqlError { message: "{what} takes a whole number", pos: t.pos }; }
         return int(t.text);
     }
 
     fun order(mut self) {
         let expr = self.expr(0);
         let desc = self.accept("DESC");
-        if !desc self.accept("ASC");
+        if !desc { self.accept("ASC"); }
         return ast.Order { expr, desc };
     }
 
     fun item(mut self) {
-        if self.accept("*") return ast.Star {};
+        if self.accept("*") { return ast.Star {}; }
         if self.peek().kind == Kind.Id && self.peek(1).text == "." && self.peek(2).text == "*" {
             let table = self.next().text;
             self.i += 2;
@@ -161,7 +161,7 @@ impl Parser {
         }
 
         let expr = self.expr(0);
-        if self.accept("AS") return ast.Item { expr, alias: self.name("a column alias") };
+        if self.accept("AS") { return ast.Item { expr, alias: self.name("a column alias") }; }
         return ast.Item { expr, alias: self.atName() ? self.next().text : nil };
     }
 
@@ -178,8 +178,8 @@ impl Parser {
         while true {
             let t = self.peek();
             let op = t.word ?? t.text;
-            let prec = t.kind == Kind.Op || t.kind == Kind.Id ? PRECEDENCE.get(op, -1) : -1;
-            if prec < minPrec || prec < 0 break;
+            let prec = t.kind == Kind.Op || t.kind == Kind.Id ? (PRECEDENCE?.[op] ?? -1) : -1;
+            if prec < minPrec || prec < 0 { break; }
 
             self.next();
             left = match op {
@@ -211,7 +211,7 @@ impl Parser {
             self.expect("AND");
             return ast.Between { expr, lo, hi: self.expr(5), not };
         }
-        if word == "LIKE" return ast.Like { expr, pattern: self.expr(5), not };
+        if word == "LIKE" { return ast.Like { expr, pattern: self.expr(5), not }; }
         self.i--;
         self.fail("expected IN, BETWEEN or LIKE after NOT");
     }
@@ -231,7 +231,7 @@ impl Parser {
             Token { word: "CASE" } => self.caseExpr(),
             Token { kind: Kind.Id, text, word, pos } if word !in RESERVED => self.reference(text, word, pos),
             _ => {
-                if t.kind != Kind.Eof self.i--;
+                if t.kind != Kind.Eof { self.i--; }
                 self.fail("expected an expression");
             }
         };
@@ -243,21 +243,21 @@ impl Parser {
     }
 
     fun reference(mut self, text, word, pos) {
-        if self.accept("(") return self.call(word, pos);
-        if self.accept(".") return ast.Col { table: text, name: self.name("a column name"), pos };
+        if self.accept("(") { return self.call(word, pos); }
+        if self.accept(".") { return ast.Col { table: text, name: self.name("a column name"), pos }; }
         return ast.Col { table: nil, name: text, pos };
     }
 
     fun call(mut self, name, pos) {
         if self.accept("*") {
-            if name != "COUNT" throw ast.SqlError { message: "only COUNT takes *", pos };
+            if name != "COUNT" { throw ast.SqlError { message: "only COUNT takes *", pos }; }
             self.expect(")");
             return ast.Call { name, args: [], star: true, pos };
         }
         let distinct = self.accept("DISTINCT");
         let args = self.at(")") ? [] : self.exprs();
         self.expect(")");
-        if distinct && name !in ast.AGGREGATES throw ast.SqlError { message: "DISTINCT only goes in an aggregate", pos };
+        if distinct && name !in ast.AGGREGATES { throw ast.SqlError { message: "DISTINCT only goes in an aggregate", pos }; }
         return ast.Call { name, args, distinct, pos };
     }
 
@@ -268,7 +268,7 @@ impl Parser {
             self.expect("THEN");
             whens.push([cond, self.expr(0)]);
         }
-        if !whens self.fail("expected WHEN");
+        if !whens { self.fail("expected WHEN"); }
         let otherwise = self.accept("ELSE") ? self.expr(0) : nil;
         self.expect("END");
         return ast.Case { whens, otherwise };

@@ -79,7 +79,7 @@ var compoundOps = map[ast.TokenType]ast.TokenType{
 
 // conditional parses cond ? then : else, right-associative.
 func (s *Parser) conditional() (ast.Expr, error) {
-	cond, err := s.rangeExpr()
+	cond, err := s.nullish()
 	if err != nil || !s.match(ast.QUESTION) {
 		return cond, err
 	}
@@ -101,8 +101,10 @@ func (s *Parser) conditional() (ast.Expr, error) {
 	return &ast.ConditionalExpr{Cond: cond, Then: then, Else: els}, nil
 }
 
+// rangeExpr parses a..b and a..=b, which bind looser than the bitwise and
+// arithmetic operators and tighter than comparisons.
 func (s *Parser) rangeExpr() (ast.Expr, error) {
-	expr, err := s.nullish()
+	expr, err := parseBitOr(s)
 	if err != nil || !s.match(ast.DOT_DOT, ast.DOT_DOT_EQUAL) {
 		return expr, err
 	}
@@ -117,13 +119,12 @@ func (s *Parser) rangeAfter(start ast.Expr, operator ast.Token) (ast.Expr, error
 		return ast.NewRangeExpr(start, nil, nil, operator), nil
 	}
 
-	return s.rangeRest(start, operator, s.nullish)
+	return s.rangeRest(start, operator)
 }
 
-// rangeRest parses the end and step of a range after its operator, each
-// an operand.
-func (s *Parser) rangeRest(start ast.Expr, operator ast.Token, operand func() (ast.Expr, error)) (ast.Expr, error) {
-	end, err := operand()
+// rangeRest parses the end and step of a range after its operator.
+func (s *Parser) rangeRest(start ast.Expr, operator ast.Token) (ast.Expr, error) {
+	end, err := parseBitOr(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +135,7 @@ func (s *Parser) rangeRest(start ast.Expr, operator ast.Token, operand func() (a
 	if s.check(ast.IDENTIFIER) && s.peek().Lexeme == "step" {
 		s.advance()
 
-		if step, err = operand(); err != nil {
+		if step, err = parseBitOr(s); err != nil {
 			return nil, err
 		}
 	}
@@ -207,7 +208,7 @@ func (s *Parser) equality() (ast.Expr, error) {
 		return nil, err
 	}
 
-	for s.match(ast.BANG_EQUAL, ast.EQUAL_EQUAL, ast.IS, ast.IN, ast.BANG_IN) {
+	for s.match(ast.BANG_EQUAL, ast.EQUAL_EQUAL, ast.IS, ast.BANG_IS, ast.IN, ast.BANG_IN) {
 		operator := s.previous()
 
 		right, err := s.equalityOperand(operator)
@@ -215,8 +216,8 @@ func (s *Parser) equality() (ast.Expr, error) {
 			return nil, err
 		}
 
-		if operator.TokenType == ast.IS {
-			expr = ast.NewIsExpr(expr, right, operator)
+		if t := operator.TokenType; t == ast.IS || t == ast.BANG_IS {
+			expr = ast.NewIsExpr(expr, right, operator, t == ast.BANG_IS)
 		} else {
 			expr = ast.NewBinaryExpr(expr, right, operator)
 		}
@@ -228,25 +229,15 @@ func (s *Parser) equality() (ast.Expr, error) {
 // equalityOperand parses what follows ==, != or is; after is, nil and
 // struct name types.
 func (s *Parser) equalityOperand(operator ast.Token) (ast.Expr, error) {
-	if operator.TokenType == ast.IS && isTypeKeyword(s.peek().TokenType) {
+	if (operator.TokenType == ast.IS || operator.TokenType == ast.BANG_IS) && isTypeKeyword(s.peek().TokenType) {
 		return s.typeName()
 	}
 
-	right, err := s.comparison()
-	if err != nil || operator.TokenType != ast.IN && operator.TokenType != ast.BANG_IN {
-		return right, err
-	}
-
-	// x in a..b tests the range, which binds looser than in.
-	if !s.match(ast.DOT_DOT, ast.DOT_DOT_EQUAL) {
-		return right, nil
-	}
-
-	return s.rangeRest(right, s.previous(), s.comparison)
+	return s.comparison()
 }
 
 func (s *Parser) comparison() (ast.Expr, error) {
-	return s.binaryLevel(parseBitOr, ast.GREATER, ast.GREATER_EQUAL, ast.LESS, ast.LESS_EQUAL)
+	return s.binaryLevel((*Parser).rangeExpr, ast.GREATER, ast.GREATER_EQUAL, ast.LESS, ast.LESS_EQUAL)
 }
 
 // The bitwise levels bind tighter than comparison and looser than +, as
@@ -468,10 +459,6 @@ func (s *Parser) primary() (ast.Expr, error) {
 
 	if s.match(ast.LEFT_BRACKET) {
 		return s.arrayLiteral()
-	}
-
-	if s.check(ast.FUN) && s.peekAt(1) == ast.LEFT_PAREN {
-		return nil, errors.NewSyntaxError(s.peek(), "Write an anonymous function as an arrow: (params) => body.")
 	}
 
 	if s.match(ast.MATCH) {

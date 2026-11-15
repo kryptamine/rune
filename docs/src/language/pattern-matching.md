@@ -19,9 +19,8 @@ print(status(503)); // server error 503
 print(status(418)); // unknown
 ```
 
-An arm is `pattern => expression`, `pattern => { block }`, or a bare `if`,
-`while`, `for` or `try` statement. Arms are separated by `,`, which a block
-or statement arm may leave out, and the last may have one too. `return`,
+An arm is `pattern => expression` or `pattern => { block }`. Arms are
+separated by `,`, and the last may have one too. `return`,
 `break`, `continue` and `throw` are expressions, so `pattern => return x,`
 works. As after an arrow function's `=>`, `{` starts a block: an object is
 `1 => ({ a: 1 })`. A guard, `pattern if condition`, adds a test after the
@@ -140,8 +139,7 @@ match 1 { 1 | x => 1, _ => 2 } // Error at 'x': Cannot bind variables in '|' pat
 
 ## Expression or Statement
 
-As an expression its value is the arm's; a block or statement arm gives
-`nil`. No arm matching is a `ValueError`:
+As an expression its value is the arm's; a block arm gives `nil`. No arm matching is a `ValueError`:
 
 ```rune
 let count = 3;

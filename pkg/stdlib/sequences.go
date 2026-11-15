@@ -25,12 +25,6 @@ var arraySequenceMethods = []*Native{
 
 		return value.NewArray(slices.Repeat(items, n))
 	}},
-	{"array.reverse", 1, 1, func(c *call) value.Value {
-		out := slices.Clone(c.arr(0))
-		slices.Reverse(out)
-
-		return value.NewArray(out)
-	}},
 	{"array.indexOf", 2, 2, func(c *call) value.Value {
 		return count(arrayIndex(c))
 	}},
@@ -38,12 +32,6 @@ var arraySequenceMethods = []*Native{
 
 // String positions count characters.
 var stringSequenceMethods = []*Native{
-	{"string.reverse", 1, 1, func(c *call) value.Value {
-		r := []rune(c.str(0))
-		slices.Reverse(r)
-
-		return value.NewString(string(r))
-	}},
 	{"string.indexOf", 2, 2, func(c *call) value.Value {
 		s, sub := c.str(0), c.str(1)
 		if i := strings.Index(s, sub); i >= 0 {

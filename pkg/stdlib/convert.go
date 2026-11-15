@@ -7,7 +7,6 @@ import (
 	"rune/pkg/errors"
 	"rune/pkg/helpers"
 	"rune/pkg/value"
-	"strconv"
 	"strings"
 )
 
@@ -106,47 +105,71 @@ var conversionNatives = []*Native{
 		return c.typeError(0, "a number or a string")
 	}},
 	{"int", 1, 2, func(c *call) value.Value {
-		if v := c.args[0]; v.Kind() == value.Enum && !c.has(1) {
-			if e := v.Variant().Shape; e.HasCases() {
-				c.err = errors.NewRuntimeError(errors.TypeError, *c.token, NotOrdinal(e))
-				return value.NilValue
-			}
-
-			return value.NewInt(int64(v.Variant().Ordinal))
+		switch v := c.args[0]; {
+		case c.has(1):
+			return intInBase(c)
+		case v.Kind() == value.Enum:
+			return ordinal(c, v.Variant())
+		case v.IsNumber():
+			return truncate(c, v)
 		}
 
-		if v := c.args[0]; v.IsNumber() && !c.has(1) {
-			if v.IsInt() {
-				return v
-			}
-
-			n, ok := value.FloatToInt(math.Trunc(v.Float()))
-			if !ok {
-				return c.fail(errors.ValueError, "cannot convert %s to an integer.", helpers.Stringify(v))
-			}
-
-			return value.NewInt(n)
-		}
-
-		base := 10
-		if c.has(1) {
-			base = c.int(1)
-		}
-
-		s := c.str(0)
-		if !c.ok() {
-			return value.NilValue
-		}
-
-		if base < 2 || base > 36 {
-			return c.fail(errors.ValueError, "expects a base from 2 to 36, got %d.", base)
-		}
-
-		n, err := strconv.ParseInt(strings.TrimSpace(s), base, 64)
-		if err != nil {
-			return c.fail(errors.ValueError, "cannot parse %s as an integer in base %d.", helpers.Quoted(c.args[0]), base)
-		}
-
-		return value.NewInt(n)
+		return intLiteral(c)
 	}},
+}
+
+// ordinal is int(v) of a variant: its number.
+func ordinal(c *call, v *value.Variant) value.Value {
+	if v.Shape.HasCases() {
+		c.err = errors.NewRuntimeError(errors.TypeError, *c.token, NotOrdinal(v.Shape))
+		return value.NilValue
+	}
+
+	return value.NewInt(int64(v.Ordinal))
+}
+
+// truncate is int(v) of a number: v toward zero.
+func truncate(c *call, v value.Value) value.Value {
+	if v.IsInt() {
+		return v
+	}
+
+	n, ok := value.FloatToInt(math.Trunc(v.Float()))
+	if !ok {
+		return c.fail(errors.ValueError, "cannot convert %s to an integer.", helpers.Stringify(v))
+	}
+
+	return value.NewInt(n)
+}
+
+// intLiteral is int(s): the integer literal s holds, as number reads it.
+func intLiteral(c *call) value.Value {
+	s := c.str(0)
+	if !c.ok() {
+		return value.NilValue
+	}
+
+	if n, ok := helpers.ParseNumber(strings.TrimSpace(s)); ok && n.IsInt() {
+		return n
+	}
+
+	return c.fail(errors.ValueError, "cannot parse %s as an integer.", helpers.Quoted(c.args[0]))
+}
+
+// intInBase is int(s, base): the digits of s in base.
+func intInBase(c *call) value.Value {
+	s, base := c.str(0), c.int(1)
+	switch {
+	case !c.ok():
+		return value.NilValue
+	case base < 2 || base > 36:
+		return c.fail(errors.ValueError, "expects a base from 2 to 36, got %d.", base)
+	}
+
+	n, ok := helpers.ParseInt(strings.TrimSpace(s), base)
+	if !ok {
+		return c.fail(errors.ValueError, "cannot parse %s as an integer in base %d.", helpers.Quoted(c.args[0]), base)
+	}
+
+	return value.NewInt(n)
 }

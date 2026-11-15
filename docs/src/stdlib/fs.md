@@ -123,7 +123,7 @@ fun loadTodos(path) {
     try {
         return fs.lines(path);
     } catch e is IOError {
-        if e.code != "notFound" throw e;
+        if e.code != "notFound" { throw e; }
         return [];
     }
 }

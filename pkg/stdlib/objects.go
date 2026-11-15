@@ -27,17 +27,6 @@ func objectEntries(o *value.Obj, pick func(k string, v value.Value) value.Value)
 }
 
 var objectMethods = []*Native{
-	objectMethod("object.get", 2, 3, func(c *call, o *value.Obj) value.Value {
-		if v, found := o.Get(c.str(1)); found {
-			return v
-		}
-
-		if c.has(2) {
-			return c.args[2]
-		}
-
-		return value.NilValue
-	}),
 	objectMethod("object.keys", 1, 1, func(_ *call, o *value.Obj) value.Value {
 		return objectEntries(o, func(k string, _ value.Value) value.Value { return value.NewString(k) })
 	}),

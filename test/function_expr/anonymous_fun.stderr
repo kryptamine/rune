@@ -1,3 +1,3 @@
-[line: 1] Error at 'fun': Write an anonymous function as an arrow: (params) => body.
-    1 | let f = fun (x) { return x; }; // Error at 'fun': Write an anonymous function as an arrow: (params) => body.
+[line: 1] Error at 'fun': Expect expression.
+    1 | let f = fun (x) { return x; }; // Error at 'fun': Expect expression.
       |         ^

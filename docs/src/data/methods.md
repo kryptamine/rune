@@ -54,7 +54,7 @@ impl Account {
   }
   fun withdraw(mut self, amount) {
     self.balance -= amount;
-    if self.balance < 0 throw ValueError { message: "insufficient funds" };
+    if self.balance < 0 { throw ValueError { message: "insufficient funds" }; }
   }
 }
 
@@ -74,7 +74,7 @@ impl Account {
   fun deposit(mut self, amount) { self.balance += amount; }
   fun withdraw(mut self, amount) {
     self.balance -= amount;
-    if self.balance < 0 throw ValueError { message: "insufficient funds" };
+    if self.balance < 0 { throw ValueError { message: "insufficient funds" }; }
   }
 }
 

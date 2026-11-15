@@ -4,7 +4,7 @@ export struct FrontMatterError { message, path, line }
 
 export fun parse(src, path) {
     let lines = src.split("\n");
-    if !lines || lines[0].trim() != "---" return { meta: {}, body: src };
+    if !lines || lines[0].trim() != "---" { return { meta: {}, body: src }; }
 
     let mut meta = {};
     for i in 1..lines.len() {

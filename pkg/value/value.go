@@ -118,8 +118,6 @@ type Shape struct {
 	// Keys holds Fields as values, for iteration.
 	Keys    []Value
 	Methods []Method
-	// Namespace marks a built-in namespace, whose members are called as ns.f().
-	Namespace bool
 	// Builtin makes a built-in type such as string, which 'is' tests
 	// values of Kind against.
 	Builtin bool
@@ -140,6 +138,9 @@ type Variant struct {
 	Ordinal int
 	Name    string
 }
+
+// String is the variant as written, Type.Variant.
+func (v *Variant) String() string { return v.Shape.Name + "." + v.Name }
 
 // NewEnum makes an enum of variants; those with fields are cases, given
 // their fields by Define.
@@ -388,7 +389,7 @@ func (v Value) IsUndefined() bool {
 	return v.p == otherTag() && v.n == uint64(Undefined)<<kindShift
 }
 
-// Truthy is false for nil, false, 0 and anything empty: a string, bytes,
+// Truthy is false for nil, false, 0, NaN and anything empty: a string, bytes,
 // a buffer, an array, an object, a map or a set.
 func (v Value) Truthy() bool {
 	switch v.p {
@@ -397,7 +398,9 @@ func (v Value) Truthy() bool {
 	case boolTag():
 		return v.n != 0
 	case numTag():
-		return v.n<<1 != 0
+		// Without the sign, 0 is zero bits and NaN more than infinity's.
+		x := v.n << 1
+		return x != 0 && x <= 0x7FF0_0000_0000_0000<<1
 	case intTag():
 		return v.n != 0
 	}

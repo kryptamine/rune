@@ -232,8 +232,8 @@ func (p *Resolver) VisitVarExpr(expr *ast.VarExpr) (value.Value, error) {
 		return value.NilValue, nil
 	}
 
-	if p.isModule(expr) {
-		p.error(expr.Name, "Module '"+expr.Name.Lexeme+"' is not a value; use its members, as in "+expr.Name.Lexeme+".name.")
+	if q := p.qualifier(expr); q != "" {
+		p.error(expr.Name, q+" '"+expr.Name.Lexeme+"' is not a value; use its members, as in "+expr.Name.Lexeme+".name.")
 		return value.NilValue, nil
 	}
 
@@ -546,8 +546,12 @@ func (p *Resolver) VisitComputedExpr(expr *ast.ComputedExpr) (value.Value, error
 }
 
 func (p *Resolver) VisitIndexExpr(expr *ast.IndexExpr) (value.Value, error) {
-	if p.isModule(expr.Array) {
+	switch p.qualifier(expr.Array) {
+	case moduleQualifier:
 		expr.Export = p.moduleMember(expr)
+		return value.NilValue, nil
+	case namespaceQualifier:
+		p.namespaceMember(expr)
 		return value.NilValue, nil
 	}
 
@@ -561,8 +565,9 @@ func (p *Resolver) VisitIndexExpr(expr *ast.IndexExpr) (value.Value, error) {
 	return value.NilValue, nil
 }
 
-// resolveMember binds a literal member of an unshadowed namespace to the
-// built-in it names, so reading it costs nothing at run time.
+// resolveMember binds a literal member of an unshadowed namespace, as in
+// string.fromCharCode, to the built-in it names, so reading it costs
+// nothing at run time.
 func (p *Resolver) resolveMember(expr *ast.IndexExpr) {
 	ns, ok := expr.Array.(*ast.VarExpr)
 	key, isLiteral := expr.Index.(*ast.LiteralExpr)
@@ -571,45 +576,60 @@ func (p *Resolver) resolveMember(expr *ast.IndexExpr) {
 		return
 	}
 
-	v, found, isNamespace := p.namespaceMember(ns.Name.Lexeme, key.Value.Str())
-
-	switch {
-	case found:
-		expr.Member = &v
-	case isNamespace:
-		msg := ns.Name.Lexeme + " has no member '" + key.Value.Str() + "'."
-		if owner := stdlib.Owner(key.Value.Str()); owner != "" {
-			msg += " Did you mean " + owner + "." + key.Value.Str() + "?"
-		}
-		p.error(expr.Token, msg)
+	members := p.namespace(ns.Name.Lexeme)
+	if members == nil {
+		return
 	}
+
+	if v, found := members[key.Value.Str()]; found {
+		expr.Member = &v
+		return
+	}
+
+	msg := ns.Name.Lexeme + " has no member '" + key.Value.Str() + "'."
+	if owner := stdlib.Owner(key.Value.Str()); owner != "" {
+		msg += " Did you mean " + owner + "." + key.Value.Str() + "?"
+	}
+	p.error(expr.Token, msg)
+}
+
+// namespaceMember resolves ns.name for a namespace that is no value, whose
+// members must be named.
+func (p *Resolver) namespaceMember(expr *ast.IndexExpr) {
+	if key, ok := expr.Index.(*ast.LiteralExpr); !ok || !key.Value.IsString() {
+		ns := expr.Array.(*ast.VarExpr).Name.Lexeme
+		p.error(expr.Token, "Namespace members must be named, as in "+ns+".name.")
+		return
+	}
+
+	p.resolveMember(expr)
 }
 
 // fileNamespace names the namespace of each file's own: module.dir and
 // module.file, the directory and path of the file.
 const fileNamespace = "module"
 
-func newFileNamespace(root, path string) value.Value {
+func newFileNamespace(root, path string) stdlib.Namespace {
 	file := filepath.Join(root, filepath.FromSlash(path))
 
-	return stdlib.NewNamespace([]stdlib.Builtin{
-		{Name: "dir", Value: value.NewString(filepath.Dir(file))},
-		{Name: "file", Value: value.NewString(file)},
-	})
+	return stdlib.Namespace{
+		"dir":  value.NewString(filepath.Dir(file)),
+		"file": value.NewString(file),
+	}
 }
 
-func (p *Resolver) namespaceMember(ns, key string) (v value.Value, found, isNamespace bool) {
-	if ns == fileNamespace {
-		v, found = stdlib.NamespaceMember(p.mod.file, key)
-		return v, found, true
+// namespace is the built-in namespace called name, or nil.
+func (p *Resolver) namespace(name string) stdlib.Namespace {
+	if name == fileNamespace {
+		return p.mod.file
 	}
 
-	return stdlib.Member(ns, key)
+	return stdlib.Namespaces[name]
 }
 
 func (p *Resolver) VisitSetIndexExpr(expr *ast.SetIndexExpr) (value.Value, error) {
-	if p.isModule(expr.Array) {
-		p.moduleAssign(expr.Array, expr.Token)
+	if q := p.qualifier(expr.Array); q != "" {
+		p.memberAssign(q, expr.Array, expr.Token)
 		p.resolveExpr(expr.Value)
 
 		return value.NilValue, nil
@@ -653,8 +673,8 @@ func (p *Resolver) VisitUpdateExpr(expr *ast.UpdateExpr) (value.Value, error) {
 	case *ast.VarExpr:
 		p.requireMutable(t.Name, "assign to")
 	case *ast.IndexExpr:
-		if t.Export != nil {
-			p.moduleAssign(t.Array, t.Token)
+		if q := p.qualifier(t.Array); q != "" {
+			p.memberAssign(q, t.Array, t.Token)
 		} else {
 			p.requireMutableRoot(t.Array)
 		}
@@ -787,7 +807,7 @@ func (p *Resolver) resolveLocal(name ast.Token) *ast.Local {
 }
 
 func (p *Resolver) builtin(name string) *ast.Local {
-	v, ok := p.mod.builtinValue(name)
+	v, ok := builtinValues()[name]
 	if !ok {
 		return nil
 	}

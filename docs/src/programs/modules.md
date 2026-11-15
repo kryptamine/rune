@@ -31,7 +31,7 @@ export fun add(a, b) {
 }
 
 fun check(a, b) {
-    if a.currency != b.currency throw CurrencyError { message: "{a.currency} vs {b.currency}" };
+    if a.currency != b.currency { throw CurrencyError { message: "{a.currency} vs {b.currency}" }; }
 }
 ```
 
@@ -119,7 +119,8 @@ import lib.money;
 money.check(1, 2); // Error at 'check': Module 'money' has no export 'check'.
 ```
 
-A module is not a value:
+A module is not a value, as a [namespace](../stdlib/builtins.md#namespaces)
+is not:
 
 ```rune
 import lib.money;

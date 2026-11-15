@@ -4,7 +4,6 @@ print(nil is nil);                 // expect: true
 print(false is nil);               // expect: false
 print(P is struct);                // expect: true
 print(P { x: 1 } is struct);       // expect: false
-print(math is struct);             // expect: false
 print(nil is nil == true);         // expect: true
 
 let kind = v => match v {

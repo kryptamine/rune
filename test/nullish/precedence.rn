@@ -9,4 +9,4 @@ let mut x = nil;
 x = x ?? 5;
 print(x); // expect: 5
 
-if nil ?? false print("no"); else print("yes"); // expect: yes
+if nil ?? false { print("no"); } else { print("yes"); } // expect: yes
