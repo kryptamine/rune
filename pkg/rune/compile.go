@@ -77,6 +77,7 @@ func compile(stmts []ast.Stmt, builtins []namedLocal, main *ast.FunctionStmt, me
 		fs.declareStructs(stmts)
 		fs.declareTopLevel(stmts, builtins)
 		fs.declareMethods(stmts)
+		markMoves(stmts)
 		fs.stmts(stmts)
 
 		if main == nil {
@@ -304,6 +305,7 @@ func (fs *funcState) functionNamed(decl *ast.FunctionStmt, name string, mutSelf 
 		}
 	}
 
+	markMoves(decl.Body)
 	f.stmts(decl.Body)
 	f.returnSelf()
 	f.emit(ins{op: opReturnNil}, nil)

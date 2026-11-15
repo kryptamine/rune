@@ -9,6 +9,7 @@ Before running, the resolved AST is compiled to bytecode for a register machine,
 - a struct is one allocation of its fields; the compiler interns field names, so `p.x` finds the field by pointer, with no hashing or string comparison;
 - setting a field copies the struct, as structs are values; but a `mut self` method that never lets its struct go (no passing, returning, capturing or binding it, and calling only methods that keep `self` too) copies it once, on its first write, and then sets fields in place. A `let mut` variable or `mut` parameter no function captures does the same, copying again only after a read that lets the struct go; one just given a struct literal needs no copy at all;
 - a `mut self` method called on such a variable changes the variable's own struct in place, unless a `try` is open in the calling function, which must find the struct unchanged after an error;
+- an array is copied lazily: a copy marks it shared, and the next write clones it first. A copy from a variable read for the last time, `return r` included, is a move and marks nothing; a parameter, a loop, catch or match variable and a captured or exported one are never moved from;
 - a `const` has no variable: reads of it fold like the literal, in every file;
 - a map or a set is an open-addressing table over the values themselves, in insertion order;
 - a `for`-`in` over an array walks a snapshot, whose buffer a loop that runs to its end hands on to the next;

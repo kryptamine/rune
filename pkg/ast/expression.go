@@ -71,6 +71,8 @@ type Local struct {
 	// MutSelf is set on the self of a mut self method, the only variable
 	// whose struct can have its fields set.
 	MutSelf bool
+	// Exported is set on a variable another module can read.
+	Exported bool
 	// Const is the value every read of a constant folds to, if IsConst.
 	Const   value.Value
 	IsConst bool
@@ -117,6 +119,9 @@ type VarExpr struct {
 	// Lends on one that calls a method which may mutate it.
 	Leaks bool
 	Lends bool
+	// Moves is set on a read of a variable that holds its value alone
+	// and is dead after it, so a copy takes the value unshared.
+	Moves bool
 }
 
 func NewVarExpr(name Token) Expr {

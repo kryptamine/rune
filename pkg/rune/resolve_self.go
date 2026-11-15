@@ -187,15 +187,8 @@ func (p *Resolver) ownVars() {
 		}
 	}
 
-	exported := map[*ast.Local]bool{}
-	for _, m := range p.modules {
-		for _, l := range m.exports {
-			exported[l] = true
-		}
-	}
-
 	for _, u := range p.locals {
-		if u.local.Captured || exported[u.local] || !callsAny(u, mutating) {
+		if u.local.Captured || u.local.Exported || !callsAny(u, mutating) {
 			continue
 		}
 

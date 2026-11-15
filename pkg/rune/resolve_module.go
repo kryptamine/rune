@@ -62,7 +62,10 @@ func (p *Resolver) ResolveModules(files []*fileAST) []error {
 
 		for _, stmt := range f.exports {
 			for _, name := range declaredNames(stmt) {
-				p.mod.exports[name] = p.mod.topLevel[name]
+				if l := p.mod.topLevel[name]; l != nil {
+					l.Exported = true
+					p.mod.exports[name] = l
+				}
 			}
 		}
 	}

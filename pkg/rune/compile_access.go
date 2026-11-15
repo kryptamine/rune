@@ -108,7 +108,15 @@ func (fs *funcState) setIndex(n *ast.SetIndexExpr) int32 {
 	}
 
 	if n.Op == nil {
-		v := fs.exprAny(n.Value)
+		var v int32
+		if sameRoot(n.Value, n.Array) {
+			// The write puts a copy in the variable, which v must not be.
+			v = fs.alloc()
+			fs.expr(n.Value, v)
+		} else {
+			v = fs.exprAny(n.Value)
+		}
+
 		fs.share(n.Value, v)
 		pl.store(v)
 

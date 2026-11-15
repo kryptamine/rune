@@ -309,7 +309,7 @@ func (fs *funcState) orDefault(dst int32, def ast.Expr) {
 	}
 
 	skip := fs.emit(ins{op: opJmpDefined, a: dst}, nil)
-	fs.expr(def, dst)
+	fs.copyExpr(def, dst)
 	fs.patch([]int{skip})
 }
 

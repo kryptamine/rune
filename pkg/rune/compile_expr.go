@@ -245,8 +245,8 @@ func (fs *funcState) share(e ast.Expr, r int32) {
 }
 
 // fresh reports whether e makes its value, so nothing else holds it: a
-// constant is shared for good, and a function returns what it holds as
-// shared.
+// constant is shared for good, a function returns what it holds as
+// shared, and a variable read last gives its value up.
 func fresh(e ast.Expr) bool {
 	if e == nil {
 		return true
@@ -254,7 +254,7 @@ func fresh(e ast.Expr) bool {
 
 	switch n := unwrap(e).(type) {
 	case *ast.VarExpr:
-		return isConst(n)
+		return isConst(n) || n.Moves
 	case *ast.LiteralExpr, *ast.ArrayExpr, *ast.ObjectExpr, *ast.StructExpr, *ast.CallExpr,
 		*ast.BinaryExpr, *ast.UnaryExpr, *ast.InterpolationExpr, *ast.RangeExpr, *ast.FunctionExpr,
 		*ast.SliceExpr, *ast.IsExpr, *ast.UpdateExpr:
@@ -276,6 +276,12 @@ func (fs *funcState) arg(e ast.Expr, dst int32) {
 	} else {
 		fs.expr(e, dst)
 	}
+}
+
+// sameRoot reports whether a and b are read from one variable.
+func sameRoot(a, b ast.Expr) bool {
+	ra, rb := rootVar(a), rootVar(b)
+	return ra != nil && rb != nil && ra.Local != nil && ra.Local == rb.Local
 }
 
 func (fs *funcState) move(dst, src int32) {
@@ -780,7 +786,11 @@ func (fs *funcState) invoke(n *ast.CallExpr, prop *ast.IndexExpr, dst int32) {
 	}
 
 	for _, arg := range n.Args {
-		fs.arg(arg, fs.alloc())
+		if sameRoot(arg, prop.Array) {
+			fs.copyExpr(arg, fs.alloc())
+		} else {
+			fs.arg(arg, fs.alloc())
+		}
 	}
 
 	// An owned variable passes its flag and takes it back from the

@@ -96,28 +96,49 @@ func runBenchSources(b *testing.B, sources map[string]string) {
 
 // A copy of the array takes 16KB; reads of it take none.
 func TestReadsDoNotCopy(t *testing.T) {
-	run := func(n int) uint64 {
-		src := fmt.Sprintf(`fun sum(xs) { let mut s = 0; for x in xs { s += x; } return s; }
-			let mut a = []; for i in 0..1000 { a.push(i); }
-			let o = {a};
-			for k in 0..%d { let b = a; sum(b); let c = o.a; let [h, ...t] = c[..1]; a.len(); a.filter(x => false); }
-			a.push(0);`, n)
-		prog, errs := loadSource([]byte(src))
-		if len(errs) > 0 {
-			t.Fatal(errs)
-		}
+	src := `fun sum(xs) { let mut s = 0; for x in xs { s += x; } return s; }
+		let mut a = []; for i in 0..1000 { a.push(i); }
+		let o = {a};
+		for k in 0..%d { let b = a; sum(b); let c = o.a; let [h, ...t] = c[..1]; a.len(); a.filter(x => false); }
+		a.push(0);`
 
-		var before, after runtime.MemStats
-		runtime.ReadMemStats(&before)
-		if err := NewInterpreter(testStdio(io.Discard)).Run(prog, nil); err != nil {
-			t.Fatal(err)
-		}
-		runtime.ReadMemStats(&after)
-
-		return after.TotalAlloc - before.TotalAlloc
-	}
-
-	if one, many := run(1), run(101); many-one > 100<<10 {
+	if one, many := allocated(t, src, 1), allocated(t, src, 101); many-one > 100<<10 {
 		t.Fatalf("reads copy: %d bytes for 1 pass, %d for 101", one, many)
 	}
+}
+
+// Each pass makes one 16KB array; a copy of it would take as much again.
+func TestMovesDoNotCopy(t *testing.T) {
+	for name, src := range map[string]string{
+		"return":   `fun build() { let mut r = [0].repeat(1000); return r; } for k in 0..%d { let mut xs = build(); xs[0] = 1; }`,
+		"let":      `for k in 0..%d { let mut a = [0].repeat(1000); let mut b = a; b[0] = 1; }`,
+		"assign":   `for k in 0..%d { let mut a = [0].repeat(1000); let mut b = []; b = a; b[0] = 1; }`,
+		"rebind":   `let mut a = [0].repeat(1000); for k in 0..%d { let mut b = a; b[0] = k; a = b; let c = [0].repeat(1000); }`,
+		"pass":     `fun first(xs) { return xs[0]; } for k in 0..%d { let mut a = [0].repeat(1000); first(a); a[0] = 1; }`,
+		"passlast": `fun put(mut xs) { xs[0] = 1; } for k in 0..%d { let mut a = [0].repeat(1000); let mut b = a; put(b); }`,
+		"cond":     `fun pick(c) { let mut a = [0].repeat(1000); let mut b = [1]; return c ? a : b; } for k in 0..%d { let mut xs = pick(k %% 2 == 0); xs[0] = 1; }`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			if one, many := allocated(t, src, 1), allocated(t, src, 101); many-one > 100*20<<10 {
+				t.Fatalf("copies: %d bytes for 1 pass, %d for 101", one, many)
+			}
+		})
+	}
+}
+
+// allocated is how many bytes src, with its %d for the passes, takes.
+func allocated(t *testing.T, src string, passes int) uint64 {
+	prog, errs := loadSource([]byte(fmt.Sprintf(src, passes)))
+	if len(errs) > 0 {
+		t.Fatal(errs)
+	}
+
+	var before, after runtime.MemStats
+	runtime.ReadMemStats(&before)
+	if err := NewInterpreter(testStdio(io.Discard)).Run(prog, nil); err != nil {
+		t.Fatal(err)
+	}
+	runtime.ReadMemStats(&after)
+
+	return after.TotalAlloc - before.TotalAlloc
 }
