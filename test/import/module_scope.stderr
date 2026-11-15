@@ -1,3 +1,6 @@
-[line: 4] NameError: Undefined variable 'g'.
-    4 | print(g); // expect runtime error: [line: 4] NameError: Undefined variable 'g'.
-      |       ^
+NameError: Undefined variable 'g'.
+ --> module_scope.rn:4:7
+  |
+3 | print(uses_greet.welcome()); // expect: hi all
+4 | print(g); // expect runtime error: [line: 4] NameError: Undefined variable 'g'.
+  |       ^

@@ -1,3 +1,5 @@
-[line: 1] NameError: Undefined variable 'range'.
-    1 | print(range(3)); // expect runtime error: [line: 1] NameError: Undefined variable 'range'.
-      |       ^
+NameError: Undefined variable 'range'.
+ --> range_removed.rn:1:7
+  |
+1 | print(range(3)); // expect runtime error: [line: 1] NameError: Undefined variable 'range'.
+  |       ^^^^^

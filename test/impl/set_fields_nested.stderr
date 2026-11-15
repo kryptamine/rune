@@ -1,3 +1,6 @@
-[line: 19] TypeError: Cannot set field 'to' of Line outside its mut self methods.
-   19 | l.to.shift(1); // expect runtime error: [line: 19] TypeError: Cannot set field 'to' of Line outside its mut self methods.
-      |   ^
+TypeError: Cannot set field 'to' of Line outside its mut self methods.
+  --> set_fields_nested.rn:19:3
+   |
+18 | print(l); // expect: Line {from: Point {x: 0, y: 0}, to: Point {x: 6, y: 1}, tags: {k: 5, list: [5]}}
+19 | l.to.shift(1); // expect runtime error: [line: 19] TypeError: Cannot set field 'to' of Line outside its mut self methods.
+   |   ^^

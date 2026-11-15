@@ -1,6 +1,12 @@
-[line: 1] Error at ';': Expect module name.
-    1 | import _lib.; // Error at ';': Expect module name.
-      |             ^
-[line: 4] Error at 'print': Expect ';' after import.
-    4 | print(1);
-      | ^
+error: Expect module name.
+ --> bad_path.rn:1:13
+  |
+1 | import _lib.; // Error at ';': Expect module name.
+  |             ^
+
+error: Expect ';' after import.
+ --> bad_path.rn:2:17
+  |
+1 | import _lib.; // Error at ';': Expect module name.
+2 | import _lib.math
+  |                 ^

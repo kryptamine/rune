@@ -1,3 +1,5 @@
-[line: 3] IndexError: Index out of bounds: 1 of 0
-    3 | arr[1]; // expect runtime error: [line: 3] IndexError: Index out of bounds: 1 of 0
-      |      ^
+IndexError: Index out of bounds: 1 of 0
+ --> accessing.rn:3:6
+  |
+3 | arr[1]; // expect runtime error: [line: 3] IndexError: Index out of bounds: 1 of 0
+  |      ^

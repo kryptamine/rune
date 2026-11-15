@@ -1,3 +1,5 @@
-[line: 1] Error at '..': A range needs an end; only a slice, as in xs[1..], may leave it open.
-    1 | print([1..]); // Error at '..': A range needs an end; only a slice, as in xs[1..], may leave it open.
-      |         ^
+error: A range needs an end; only a slice, as in xs[1..], may leave it open.
+ --> open_range.rn:1:9
+  |
+1 | print([1..]); // Error at '..': A range needs an end; only a slice, as in xs[1..], may leave it open.
+  |         ^^

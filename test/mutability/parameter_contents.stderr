@@ -1,3 +1,8 @@
-[line: 2] Error at 'arr': Cannot mutate immutable variable 'arr'.
-    2 |   arr[0] = 1; // [line: 2] Error at 'arr': Cannot mutate immutable variable 'arr'.
-      |   ^
+error: Cannot mutate immutable variable 'arr'.
+ --> parameter_contents.rn:2:3
+  |
+1 | fun f(arr) {
+2 |   arr[0] = 1; // [line: 2] Error at 'arr': Cannot mutate immutable variable 'arr'.
+  |   ^^^
+  |
+  = hint: declare it as 'mut arr' on line 1

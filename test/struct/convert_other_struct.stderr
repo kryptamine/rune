@@ -1,3 +1,5 @@
-[line: 4] TypeError: Cannot convert Vec to Point.
-    4 | print(Point(Vec { x: 1, y: 2 })); // expect runtime error: [line: 4] TypeError: Cannot convert Vec to Point.
-      |                               ^
+TypeError: Cannot convert Vec to Point.
+ --> convert_other_struct.rn:4:31
+  |
+4 | print(Point(Vec { x: 1, y: 2 })); // expect runtime error: [line: 4] TypeError: Cannot convert Vec to Point.
+  |                               ^

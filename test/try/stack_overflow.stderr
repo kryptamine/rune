@@ -1,6 +1,9 @@
-[line: 1] Stack overflow.
-    1 | fun rec() { rec(); }
-      |                 ^
-  at rec (line 1)
+error: Stack overflow.
+ --> stack_overflow.rn:1:17
+  |
+1 | fun rec() { rec(); }
+  |                 ^
+
+  at rec (stack_overflow.rn:1)
   ... repeated 9999 more times
-  at <script> (line 4)
+  at <script> (stack_overflow.rn:4)

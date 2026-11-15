@@ -1,3 +1,6 @@
-[line: 19] TypeError: Cannot set field 'from' of Line outside its mut self methods.
-   19 | l.from.moveBy(-4, 0); // expect runtime error: [line: 19] TypeError: Cannot set field 'from' of Line outside its mut self methods.
-      |   ^
+TypeError: Cannot set field 'from' of Line outside its mut self methods.
+  --> set_element_field.rn:19:3
+   |
+18 | let mut l = Line { from: Point { x: 0, y: 0 }, to: Point { x: 1, y: 1 } };
+19 | l.from.moveBy(-4, 0); // expect runtime error: [line: 19] TypeError: Cannot set field 'from' of Line outside its mut self methods.
+   |   ^^^^

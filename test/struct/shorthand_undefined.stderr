@@ -1,3 +1,5 @@
-[line: 3] NameError: Undefined variable 'x'.
-    3 | let p = P { x }; // expect runtime error: [line: 3] NameError: Undefined variable 'x'.
-      |             ^
+NameError: Undefined variable 'x'.
+ --> shorthand_undefined.rn:3:13
+  |
+3 | let p = P { x }; // expect runtime error: [line: 3] NameError: Undefined variable 'x'.
+  |             ^

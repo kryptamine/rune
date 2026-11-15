@@ -1,3 +1,5 @@
-[line: 1] TypeError: string has no method 'push'.
-    1 | "abc".push(1); // expect runtime error: [line: 1] TypeError: string has no method 'push'.
-      |       ^
+TypeError: string has no method 'push'.
+ --> not_array.rn:1:7
+  |
+1 | "abc".push(1); // expect runtime error: [line: 1] TypeError: string has no method 'push'.
+  |       ^^^^

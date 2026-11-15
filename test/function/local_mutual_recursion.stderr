@@ -1,5 +1,9 @@
-[line: 4] NameError: Undefined variable 'isOdd'.
-    4 |     return isOdd(n - 1); // expect runtime error: [line: 4] NameError: Undefined variable 'isOdd'.
-      |            ^
-  at isEven (line 4)
-  at <script> (line 11)
+NameError: Undefined variable 'isOdd'.
+ --> local_mutual_recursion.rn:4:12
+  |
+3 |     if n == 0 { return true; }
+4 |     return isOdd(n - 1); // expect runtime error: [line: 4] NameError: Undefined variable 'isOdd'.
+  |            ^^^^^
+
+  at isEven (local_mutual_recursion.rn:4)
+  at <script> (local_mutual_recursion.rn:11)

@@ -714,7 +714,7 @@ reload:
 
 	undefined:
 		fr.pc = pc
-		err = undefinedVariable(fr.cl.proto, pc)
+		err = p.undefinedVariable(fr.cl.proto, pc)
 
 		goto fail
 
@@ -751,9 +751,11 @@ func at(p unsafe.Pointer, i int) *value.Value {
 	return (*value.Value)(unsafe.Add(p, i<<4))
 }
 
-func undefinedVariable(f *Proto, pc int) error {
+func (p *Interpreter) undefinedVariable(f *Proto, pc int) error {
 	tok := f.toks[pc-1]
-	return errors.NewRuntimeError(errors.NameError, *tok, fmt.Sprintf("Undefined variable '%s'.", tok.Lexeme))
+	err := errors.NewRuntimeError(errors.NameError, *tok, fmt.Sprintf("Undefined variable '%s'.", tok.Lexeme))
+
+	return errors.WithHint(err, p.hints[*tok])
 }
 
 func compareNumbers[T int64 | float64](op uint8, l, r T) bool {

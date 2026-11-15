@@ -1,3 +1,6 @@
-[line: 9] TypeError: Cannot set field 'y' of Point outside its mut self methods.
-    9 | p.y += side(); // expect runtime error: [line: 9] TypeError: Cannot set field 'y' of Point outside its mut self methods.
-      |   ^
+TypeError: Cannot set field 'y' of Point outside its mut self methods.
+ --> compound_field.rn:9:3
+  |
+8 | let mut p = Point { x: 1, y: 2 };
+9 | p.y += side(); // expect runtime error: [line: 9] TypeError: Cannot set field 'y' of Point outside its mut self methods.
+  |   ^

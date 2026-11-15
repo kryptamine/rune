@@ -78,7 +78,8 @@ func arith(operator *ast.Token, op value.Arith, l, r value.Value) (value.Value, 
 	case l.IsNumber() && r.IsNumber():
 		return value.FloatArith(op, l.Num(), r.Num()), nil
 	case op != value.OpAdd:
-		return value.NilValue, errors.NewRuntimeError(errors.TypeError, *operator, "Operands must be numbers.")
+		err := errors.NewRuntimeError(errors.TypeError, *operator, "Operands must be numbers.")
+		return value.NilValue, errors.WithHint(err, operandHint(op, l, r))
 	case l.IsString() && r.IsString():
 		return value.Concat(l, r), nil
 	case l.Kind() == value.Bytes && r.Kind() == value.Bytes:
@@ -86,7 +87,7 @@ func arith(operator *ast.Token, op value.Arith, l, r value.Value) (value.Value, 
 		return value.NewBytes(append(b[:len(b):len(b)], r.Bytes()...)), nil
 	}
 
-	return value.NilValue, notOrdered(operator)
+	return value.NilValue, errors.WithHint(notOrdered(operator), operandHint(op, l, r))
 }
 
 func notOrdered(operator *ast.Token) error {

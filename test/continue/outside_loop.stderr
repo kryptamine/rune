@@ -1,3 +1,6 @@
-[line: 2] Error at 'continue': Cannot use 'continue' outside of a loop.
-    2 |   continue; // [line: 2] Error at 'continue': Cannot use 'continue' outside of a loop.
-      |   ^
+error: Cannot use 'continue' outside of a loop.
+ --> outside_loop.rn:2:3
+  |
+1 | fun f() {
+2 |   continue; // [line: 2] Error at 'continue': Cannot use 'continue' outside of a loop.
+  |   ^^^^^^^^

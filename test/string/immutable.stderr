@@ -1,3 +1,6 @@
-[line: 2] TypeError: Strings are immutable.
-    2 | s[0] = "x"; // expect runtime error: [line: 2] TypeError: Strings are immutable.
-      |    ^
+TypeError: Strings are immutable.
+ --> immutable.rn:2:4
+  |
+1 | let mut s = "abc";
+2 | s[0] = "x"; // expect runtime error: [line: 2] TypeError: Strings are immutable.
+  |    ^

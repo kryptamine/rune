@@ -1,3 +1,5 @@
-[line: 1] KeyError: Undefined property 'y'.
-    1 | let { x, y } = { x: 1 }; // expect runtime error: [line: 1] KeyError: Undefined property 'y'.
-      |          ^
+KeyError: Undefined property 'y'.
+ --> missing_property.rn:1:10
+  |
+1 | let { x, y } = { x: 1 }; // expect runtime error: [line: 1] KeyError: Undefined property 'y'.
+  |          ^

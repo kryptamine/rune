@@ -1,6 +1,8 @@
 exit: 65
 -- stdout --
 -- stderr --
-[line: 1] Error: Unterminated string.
-    1 | let s = "unterminated;
-      |         ^
+error: Unterminated string.
+ --> scan_error.rn:1:9
+  |
+1 | let s = "unterminated;
+  |         ^

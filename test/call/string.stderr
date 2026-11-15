@@ -1,3 +1,5 @@
-[line: 1] TypeError: Can only call functions.
-    1 | "str"(); // expect runtime error: [line: 1] TypeError: Can only call functions.
-      |       ^
+TypeError: Can only call functions.
+ --> string.rn:1:7
+  |
+1 | "str"(); // expect runtime error: [line: 1] TypeError: Can only call functions.
+  |       ^

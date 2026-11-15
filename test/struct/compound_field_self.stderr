@@ -1,5 +1,9 @@
-[line: 4] KeyError: Point has no field 'z'.
-    4 |   fun grow(mut self) { self.x += side(); print(self.x); self.z += side(); }
-      |                                                              ^
-  at Point.grow (line 4)
-  at <script> (line 13)
+KeyError: Point has no field 'z'.
+ --> compound_field_self.rn:4:62
+  |
+3 | impl Point {
+4 |   fun grow(mut self) { self.x += side(); print(self.x); self.z += side(); }
+  |                                                              ^
+
+  at Point.grow (compound_field_self.rn:4)
+  at <script> (compound_field_self.rn:13)

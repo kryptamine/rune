@@ -2,6 +2,7 @@ package value
 
 import (
 	"iter"
+	"slices"
 	"unsafe"
 )
 
@@ -31,6 +32,9 @@ func (o *Obj) All() iter.Seq2[string, Value] {
 		}
 	}
 }
+
+// Keys yields the keys in order.
+func (o *Obj) Keys() iter.Seq[string] { return slices.Values(o.keys) }
 
 func (o *Obj) find(k string) int {
 	if o.index != nil {

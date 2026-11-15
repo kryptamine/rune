@@ -1,3 +1,5 @@
-[line: 1] Error at end: Expect ';' after expression.
-    1 | throw e // [line: 1] Error at end: Expect ';' after expression.
-      |        ^
+error: Expect ';' after expression.
+ --> missing_semicolon.rn:1:8
+  |
+1 | throw e // [line: 1] Error at end: Expect ';' after expression.
+  |        ^

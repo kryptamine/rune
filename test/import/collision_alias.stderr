@@ -1,4 +1,8 @@
-[line: 2] Error at 'math': Variable with this name already declared in this scope.
-    2 | import _lib.math_clash as math; // Error at 'math': Variable with this name already declared in this scope.
-      |                           ^
-  note: first declared at line 1
+error: Variable with this name already declared in this scope.
+ --> collision_alias.rn:2:27
+  |
+1 | import _lib.math;
+2 | import _lib.math_clash as math; // Error at 'math': Variable with this name already declared in this scope.
+  |                           ^^^^
+  |
+  = hint: 'math' is first declared on line 1; rename one of them

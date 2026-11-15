@@ -1,3 +1,5 @@
-[line: 1] Error at '}': Expect ':' after string key.
-    1 | let { "x" } = { x: 1 }; // Error at '}': Expect ':' after string key.
-      |           ^
+error: Expect ':' after string key.
+ --> string_key.rn:1:11
+  |
+1 | let { "x" } = { x: 1 }; // Error at '}': Expect ':' after string key.
+  |           ^

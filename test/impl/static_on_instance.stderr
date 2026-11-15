@@ -1,3 +1,5 @@
-[line: 7] TypeError: 'origin' is a static method of Point; call it as Point.origin().
-    7 | Point { x: 1 }.origin(); // expect runtime error: [line: 7] TypeError: 'origin' is a static method of Point; call it as Point.origin().
-      |                ^
+TypeError: 'origin' is a static method of Point; call it as Point.origin().
+ --> static_on_instance.rn:7:16
+  |
+7 | Point { x: 1 }.origin(); // expect runtime error: [line: 7] TypeError: 'origin' is a static method of Point; call it as Point.origin().
+  |                ^^^^^^

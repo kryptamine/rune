@@ -189,7 +189,7 @@ func (p *Resolver) checkMutation(call *ast.CallExpr, prop *ast.IndexExpr) {
 		call.Frozen = true
 
 		if kind != 0 && kind&plain == 0 {
-			p.error(rootVar(prop.Array).Name, "Cannot mutate immutable variable '"+name+"'.")
+			p.immutable(rootVar(prop.Array).Name, "Cannot mutate immutable variable '"+name+"'.")
 		}
 
 		return

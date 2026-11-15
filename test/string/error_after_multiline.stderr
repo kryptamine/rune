@@ -1,3 +1,5 @@
-[line: 7] NameError: Undefined variable 'err'.
-    7 | err; // // expect runtime error: [line: 7] NameError: Undefined variable 'err'.
-      | ^
+NameError: Undefined variable 'err'.
+ --> error_after_multiline.rn:7:1
+  |
+7 | err; // // expect runtime error: [line: 7] NameError: Undefined variable 'err'.
+  | ^^^

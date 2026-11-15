@@ -1,3 +1,8 @@
-[line: 2] Error at 'x': Cannot assign to immutable variable 'x'.
-    2 |   x = 1; // [line: 2] Error at 'x': Cannot assign to immutable variable 'x'.
-      |   ^
+error: Cannot assign to immutable variable 'x'.
+ --> parameter.rn:2:3
+  |
+1 | fun f(x) {
+2 |   x = 1; // [line: 2] Error at 'x': Cannot assign to immutable variable 'x'.
+  |   ^
+  |
+  = hint: declare it as 'mut x' on line 1

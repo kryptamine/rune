@@ -1,3 +1,5 @@
-[line: 1] Error at '}': Expect property name in pattern.
-    1 | let {} = {}; // Error at '}': Expect property name in pattern.
-      |      ^
+error: Expect property name in pattern.
+ --> empty.rn:1:6
+  |
+1 | let {} = {}; // Error at '}': Expect property name in pattern.
+  |      ^

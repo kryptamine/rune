@@ -1,3 +1,5 @@
-[line: 1] Error at 'break': Expect '{' after while condition.
-    1 | while true break; // Error at 'break': Expect '{' after while condition.
-      |            ^
+error: Expect '{' after while condition.
+ --> bare_body.rn:1:12
+  |
+1 | while true break; // Error at 'break': Expect '{' after while condition.
+  |            ^^^^^

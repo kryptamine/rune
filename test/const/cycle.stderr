@@ -1,3 +1,6 @@
-[line: 2] Error at 'A': Constant 'A' depends on itself.
-    2 | const B = A; // Error at 'A': Constant 'A' depends on itself.
-      |           ^
+error: Constant 'A' depends on itself.
+ --> cycle.rn:2:11
+  |
+1 | const A = B + 1;
+2 | const B = A; // Error at 'A': Constant 'A' depends on itself.
+  |           ^

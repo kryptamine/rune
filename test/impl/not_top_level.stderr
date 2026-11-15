@@ -1,3 +1,6 @@
-[line: 4] Error at 'Point': Impl blocks must be at the top level.
-    4 |   impl Point { // [line: 4] Error at 'Point': Impl blocks must be at the top level.
-      |        ^
+error: Impl blocks must be at the top level.
+ --> not_top_level.rn:4:8
+  |
+3 | {
+4 |   impl Point { // [line: 4] Error at 'Point': Impl blocks must be at the top level.
+  |        ^^^^^

@@ -1,4 +1,8 @@
-[line: 3] Error at 'a': Variable with this name already declared in this scope.
-    3 |   let a = "other"; // Error at 'a': Variable with this name already declared in this scope.
-      |       ^
-  note: first declared at line 2
+error: Variable with this name already declared in this scope.
+ --> duplicate_local.rn:3:7
+  |
+2 |   let a = "value";
+3 |   let a = "other"; // Error at 'a': Variable with this name already declared in this scope.
+  |       ^
+  |
+  = hint: 'a' is first declared on line 2; rename one of them

@@ -1,3 +1,7 @@
-[line: 1] TypeError: Operands must be two numbers, two strings or two bytes.
-    1 | true + "s"; // expect runtime error: [line: 1] TypeError: Operands must be two numbers, two strings or two bytes.
-      |      ^
+TypeError: Operands must be two numbers, two strings or two bytes.
+ --> add_bool_string.rn:1:6
+  |
+1 | true + "s"; // expect runtime error: [line: 1] TypeError: Operands must be two numbers, two strings or two bytes.
+  |      ^
+  |
+  = hint: to put a value in a string, interpolate it: "text {x}"

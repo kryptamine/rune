@@ -1,12 +1,26 @@
-[line: 1] Error at '!': Expect '}' after pattern.
-    1 | fun page({ title, root ! "." }) { // Error at '!': Expect '}' after pattern.
-      |                        ^
-[line: 6] Error at '!': Expect '}' after object properties.
-    6 |     let y = { k: 1 ! }; // Error at '!': Expect '}' after object properties.
-      |                    ^
-[line: 7] Error at ')': Expect expression.
-    7 |     if y { print(1 +); } // Error at ')': Expect expression.
-      |                     ^
-[line: 12] Error at ';': Expect expression.
-   12 |     while true { let w = ; } // Error at ';': Expect expression.
-      |                          ^
+error: Expect '}' after pattern.
+ --> nested_braces.rn:1:24
+  |
+1 | fun page({ title, root ! "." }) { // Error at '!': Expect '}' after pattern.
+  |                        ^
+
+error: Expect '}' after object properties.
+ --> nested_braces.rn:6:20
+  |
+5 | fun a() {
+6 |     let y = { k: 1 ! }; // Error at '!': Expect '}' after object properties.
+  |                    ^
+
+error: Expect expression.
+ --> nested_braces.rn:7:21
+  |
+6 |     let y = { k: 1 ! }; // Error at '!': Expect '}' after object properties.
+7 |     if y { print(1 +); } // Error at ')': Expect expression.
+  |                     ^
+
+error: Expect expression.
+  --> nested_braces.rn:12:26
+   |
+11 | fun b() {
+12 |     while true { let w = ; } // Error at ';': Expect expression.
+   |                          ^

@@ -1,3 +1,5 @@
-[line: 3] TypeError: Tok has variants with fields; values(), Tok(n) and int() are for enums without.
-    3 | print(Tok.values()); // expect runtime error: [line: 3] TypeError: Tok has variants with fields; values(), Tok(n) and int() are for enums without.
-      |           ^
+TypeError: Tok has variants with fields; values(), Tok(n) and int() are for enums without.
+ --> fields_ordinal.rn:3:11
+  |
+3 | print(Tok.values()); // expect runtime error: [line: 3] TypeError: Tok has variants with fields; values(), Tok(n) and int() are for enums without.
+  |           ^^^^^^

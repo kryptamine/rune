@@ -1,3 +1,5 @@
-[line: 1] Error at 'a': Immutable variable must be initialized.
-    1 | let a; // [line: 1] Error at 'a': Immutable variable must be initialized.
-      |     ^
+error: Immutable variable must be initialized.
+ --> uninitialized.rn:1:5
+  |
+1 | let a; // [line: 1] Error at 'a': Immutable variable must be initialized.
+  |     ^

@@ -1,3 +1,8 @@
-[line: 3] Error at 'a': Cannot assign to immutable variable 'a'.
-    3 | a = 2; // Error at 'a': Cannot assign to immutable variable 'a'.
-      | ^
+error: Cannot assign to immutable variable 'a'.
+ --> array_immutable.rn:3:1
+  |
+2 | b = 3;
+3 | a = 2; // Error at 'a': Cannot assign to immutable variable 'a'.
+  | ^
+  |
+  = hint: declare it as 'mut a' on line 1

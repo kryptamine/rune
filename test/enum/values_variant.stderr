@@ -1,3 +1,6 @@
-[line: 2] Error at 'values': A variant cannot be named 'values'.
-    2 | enum C { values }
-      |          ^
+error: A variant cannot be named 'values'.
+ --> values_variant.rn:2:10
+  |
+1 | // [line: 2] Error at 'values': A variant cannot be named 'values'.
+2 | enum C { values }
+  |          ^^^^^^

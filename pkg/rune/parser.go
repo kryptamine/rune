@@ -270,7 +270,11 @@ func (s *Parser) consume(tokenType ast.TokenType, errMsg string) (ast.Token, err
 		return s.advance(), nil
 	}
 
-	return ast.Token{}, errors.NewSyntaxError(s.peek(), errMsg)
+	if s.current == 0 {
+		return ast.Token{}, errors.NewSyntaxError(s.peek(), errMsg)
+	}
+
+	return ast.Token{}, errors.NewMissingError(s.previous(), s.peek(), errMsg)
 }
 
 // peekAt returns the type of the token n positions ahead of the current one,

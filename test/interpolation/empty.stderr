@@ -1,3 +1,6 @@
-[line: 2] Error at '}"': Expect expression.
-    2 | print("{}");
-      |         ^
+error: Expect expression.
+ --> empty.rn:2:9
+  |
+1 | // [line: 2] Error at '}"': Expect expression.
+2 | print("{}");
+  |         ^^

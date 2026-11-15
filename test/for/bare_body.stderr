@@ -1,3 +1,5 @@
-[line: 1] Error at 'print': Expect '{' after for-in clause.
-    1 | for x in [1] print(x); // Error at 'print': Expect '{' after for-in clause.
-      |              ^
+error: Expect '{' after for-in clause.
+ --> bare_body.rn:1:14
+  |
+1 | for x in [1] print(x); // Error at 'print': Expect '{' after for-in clause.
+  |              ^^^^^

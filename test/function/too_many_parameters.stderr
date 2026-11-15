@@ -1,3 +1,6 @@
-[line: 2] Error at 'i': Cannot have more than 8 parameters.
-    2 | fun f(a, b, c, d, e, f, g, h, i) {} // Error at 'i': Cannot have more than 8 parameters.
-      |                               ^
+error: Cannot have more than 8 parameters.
+ --> too_many_parameters.rn:2:31
+  |
+1 | // 9 parameters.
+2 | fun f(a, b, c, d, e, f, g, h, i) {} // Error at 'i': Cannot have more than 8 parameters.
+  |                               ^

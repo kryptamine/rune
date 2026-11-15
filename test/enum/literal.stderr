@@ -1,3 +1,6 @@
-[line: 3] Error at 'C': 'C' is an enum, not a struct; its variants are C.A and so on.
-    3 | print(C { });
-      |       ^
+error: 'C' is an enum, not a struct; its variants are C.A and so on.
+ --> literal.rn:3:7
+  |
+2 | enum C { A }
+3 | print(C { });
+  |       ^

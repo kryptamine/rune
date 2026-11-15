@@ -1,6 +1,13 @@
-[line: 3] Error: Unexpected character: @
-    3 | foo(a @ b);
-      |       ^
-[line: 3] Error at 'b': Expect ')' after arguments.
-    3 | foo(a @ b);
-      |         ^
+error: Unexpected character: @
+ --> unexpected_character.rn:3:7
+  |
+2 | // [line: 3] Error at 'b': Expect ')' after arguments.
+3 | foo(a @ b);
+  |       ^
+
+error: Expect ')' after arguments.
+ --> unexpected_character.rn:3:9
+  |
+2 | // [line: 3] Error at 'b': Expect ')' after arguments.
+3 | foo(a @ b);
+  |         ^

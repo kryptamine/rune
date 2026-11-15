@@ -142,9 +142,7 @@ func execute(fsys fs.FS, name string, out io.Writer, timeout time.Duration) outc
 	var files []errors.File
 
 	o.prog, files, o.compileErrors = Load(fsys, "", name)
-	for _, err := range o.compileErrors {
-		stderr.WriteString(errors.Report(err, files))
-	}
+	stderr.WriteString(errors.ReportAll(o.compileErrors, files, false))
 
 	if o.prog != nil {
 		p := NewInterpreter(stdlib.NewStdio(strings.NewReader(""), out, &stderr))
@@ -157,7 +155,7 @@ func execute(fsys fs.FS, name string, out io.Writer, timeout time.Duration) outc
 		timer.Stop()
 
 		if o.runtimeError != nil {
-			stderr.WriteString(errors.Report(o.runtimeError, files))
+			stderr.WriteString(errors.Report(o.runtimeError, files, false))
 		}
 	}
 

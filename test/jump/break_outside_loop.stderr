@@ -1,3 +1,5 @@
-[line: 1] Error at 'break': Cannot use 'break' outside of a loop.
-    1 | let v = nil ?? break; // [line: 1] Error at 'break': Cannot use 'break' outside of a loop.
-      |                ^
+error: Cannot use 'break' outside of a loop.
+ --> break_outside_loop.rn:1:16
+  |
+1 | let v = nil ?? break; // [line: 1] Error at 'break': Cannot use 'break' outside of a loop.
+  |                ^^^^^

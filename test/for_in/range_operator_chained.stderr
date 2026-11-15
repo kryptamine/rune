@@ -1,3 +1,5 @@
-[line: 1] Error at '..': Ranges cannot be chained.
-    1 | let a = 1..2..3; // Error at '..': Ranges cannot be chained.
-      |             ^
+error: Ranges cannot be chained.
+ --> range_operator_chained.rn:1:13
+  |
+1 | let a = 1..2..3; // Error at '..': Ranges cannot be chained.
+  |             ^^

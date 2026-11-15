@@ -1,3 +1,5 @@
-[line: 1] ValueError: No match arm for 5.
-    1 | print(match 5 { 1 => "one" }); // expect runtime error: [line: 1] ValueError: No match arm for 5.
-      |       ^
+ValueError: No match arm for 5.
+ --> no_match.rn:1:7
+  |
+1 | print(match 5 { 1 => "one" }); // expect runtime error: [line: 1] ValueError: No match arm for 5.
+  |       ^^^^^

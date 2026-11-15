@@ -1,3 +1,6 @@
-[line: 3] Error at 'A': C has a variant 'A'.
-    3 | impl C { fun A() {} }
-      |              ^
+error: C has a variant 'A'.
+ --> method_variant.rn:3:14
+  |
+2 | enum C { A }
+3 | impl C { fun A() {} }
+  |              ^

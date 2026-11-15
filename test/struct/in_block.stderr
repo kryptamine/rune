@@ -1,3 +1,6 @@
-[line: 2] Error at 'Q': Structs must be declared at the top level.
-    2 |     struct Q { a } // Error at 'Q': Structs must be declared at the top level.
-      |            ^
+error: Structs must be declared at the top level.
+ --> in_block.rn:2:12
+  |
+1 | {
+2 |     struct Q { a } // Error at 'Q': Structs must be declared at the top level.
+  |            ^

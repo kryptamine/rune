@@ -1,5 +1,9 @@
-[line: 4] TypeError: Cannot read property 'y' of number.
-    4 |   fun bad(self) { return self.x.y; } // expect runtime error: [line: 4] TypeError: Cannot read property 'y' of number.
-      |                                 ^
-  at Point.bad (line 4)
-  at <script> (line 7)
+TypeError: Cannot read property 'y' of number.
+ --> trace.rn:4:33
+  |
+3 | impl Point {
+4 |   fun bad(self) { return self.x.y; } // expect runtime error: [line: 4] TypeError: Cannot read property 'y' of number.
+  |                                 ^
+
+  at Point.bad (trace.rn:4)
+  at <script> (trace.rn:7)

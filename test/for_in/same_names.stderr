@@ -1,4 +1,7 @@
-[line: 1] Error at 'x': Variable with this name already declared in this scope.
-    1 | for x, x in [1] { print(x); } // [line: 1] Error at 'x': Variable with this name already declared in this scope.
-      |        ^
-  note: first declared at line 1
+error: Variable with this name already declared in this scope.
+ --> same_names.rn:1:8
+  |
+1 | for x, x in [1] { print(x); } // [line: 1] Error at 'x': Variable with this name already declared in this scope.
+  |        ^
+  |
+  = hint: 'x' is first declared on line 1; rename one of them

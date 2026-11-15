@@ -1,3 +1,6 @@
-[line: 8] TypeError: Cannot take mutating method 'incr' of Counter as a value.
-    8 | let f = c.incr; // expect runtime error: [line: 8] TypeError: Cannot take mutating method 'incr' of Counter as a value.
-      |           ^
+TypeError: Cannot take mutating method 'incr' of Counter as a value.
+ --> bound_mut.rn:8:11
+  |
+7 | let mut c = Counter {};
+8 | let f = c.incr; // expect runtime error: [line: 8] TypeError: Cannot take mutating method 'incr' of Counter as a value.
+  |           ^^^^

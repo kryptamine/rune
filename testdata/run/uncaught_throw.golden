@@ -1,6 +1,9 @@
 exit: 70
 -- stdout --
 -- stderr --
-[line: 2] Stop {at: 1}
-    2 | throw Stop { at: 1 };
-      | ^
+error: Stop {at: 1}
+ --> uncaught_throw.rn:2:1
+  |
+1 | struct Stop { at }
+2 | throw Stop { at: 1 };
+  | ^^^^^

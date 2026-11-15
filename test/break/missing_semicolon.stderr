@@ -1,3 +1,6 @@
-[line: 2] Error at 'print': Expect ';' after 'break'.
-    2 |   break print(1); // [line: 2] Error at 'print': Expect ';' after 'break'.
-      |         ^
+error: Expect ';' after 'break'.
+ --> missing_semicolon.rn:2:9
+  |
+1 | while true {
+2 |   break print(1); // [line: 2] Error at 'print': Expect ';' after 'break'.
+  |         ^^^^^

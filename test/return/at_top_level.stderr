@@ -1,3 +1,5 @@
-[line: 1] Error at 'return': Cannot return from top-level code.
-    1 | return "wat"; // [line: 1] Error at 'return': Cannot return from top-level code.
-      | ^
+error: Cannot return from top-level code.
+ --> at_top_level.rn:1:1
+  |
+1 | return "wat"; // [line: 1] Error at 'return': Cannot return from top-level code.
+  | ^^^^^^

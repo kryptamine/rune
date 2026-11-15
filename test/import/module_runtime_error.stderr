@@ -1,6 +1,9 @@
-[line: 2] TypeError: Cannot read property 'y' of number.
-  --> _lib/fail.rn:2:12
-    2 |   return x.y;
-      |            ^
+TypeError: Cannot read property 'y' of number.
+ --> _lib/fail.rn:2:12
+  |
+1 | export fun boom(x) {
+2 |   return x.y;
+  |            ^
+
   at boom (_lib/fail.rn:2)
-  at <script> (line 3)
+  at <script> (module_runtime_error.rn:3)

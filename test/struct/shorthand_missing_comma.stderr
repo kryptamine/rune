@@ -1,3 +1,6 @@
-[line: 5] Error at '1': Expect '}' after struct fields.
-    5 | P { a, b 1 }; // [line: 5] Error at '1': Expect '}' after struct fields.
-      |          ^
+error: Expect '}' after struct fields.
+ --> shorthand_missing_comma.rn:5:10
+  |
+4 | let b = 2;
+5 | P { a, b 1 }; // [line: 5] Error at '1': Expect '}' after struct fields.
+  |          ^

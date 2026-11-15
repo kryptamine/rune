@@ -1,3 +1,6 @@
-[line: 2] Error: Unterminated string.
-    2 | print "starts here // [line: 2] Error: Unterminated string.
-      |       ^
+error: Unterminated string.
+ --> unterminated_multiline.rn:2:7
+  |
+1 | print(1);
+2 | print "starts here // [line: 2] Error: Unterminated string.
+  |       ^

@@ -1,3 +1,6 @@
-[line: 36] E: stmt
-   36 |     5 => throw E { message: "stmt" },
-      |          ^
+E: stmt
+  --> expression.rn:36:10
+   |
+35 | match 5 {
+36 |     5 => throw E { message: "stmt" },
+   |          ^^^^^

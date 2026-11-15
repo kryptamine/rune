@@ -1,3 +1,5 @@
-[line: 1] ValueError: Range step must not be zero.
-    1 | for i in 0..5 step 0 { print(i); } // expect runtime error: [line: 1] ValueError: Range step must not be zero.
-      |           ^
+ValueError: Range step must not be zero.
+ --> range_step_zero.rn:1:11
+  |
+1 | for i in 0..5 step 0 { print(i); } // expect runtime error: [line: 1] ValueError: Range step must not be zero.
+  |           ^^

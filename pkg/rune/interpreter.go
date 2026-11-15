@@ -48,6 +48,7 @@ type Interpreter struct {
 	// methods holds the closure of each method; kinds the built-in types'.
 	methods []value.Value
 	kinds   *[value.NumKinds][]value.Method
+	hints   map[ast.Token]string
 	// fast holds the built-in methods that need no call, by method ID.
 	fast []stdlib.Fast
 	// cursors holds array cursors of finished loops, for reuse.
@@ -112,6 +113,7 @@ func (p *Interpreter) exec(prog *Program, args []string) (value.Value, error) {
 	}
 
 	p.kinds = &prog.methods.kinds
+	p.hints = prog.hints
 
 	p.grow(1 + cl.proto.nregs)
 	p.stack[0] = value.NewFunction(cl)

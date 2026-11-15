@@ -1,7 +1,9 @@
 # Errors and Exit Codes
 
-Errors show the offending source line with a caret under the column.
-A runtime error also lists the calls it unwound through:
+Errors name the file, line and column, show the source with the offending
+token underlined, and, when the cause is certain, a hint on how to fix it.
+On a terminal they are colored; set `NO_COLOR` to turn that off. A runtime
+error also lists the calls it unwound through:
 
 ```rune
 fun total(order) {
@@ -13,12 +15,36 @@ print(orders.map(total));
 ```
 
 ```
-[line: 2] TypeError: Cannot read property 'price' of number.
-    2 |     return order.price * order.qty;
-      |                  ^
-  at total (line 2)
+TypeError: Cannot read property 'price' of number.
+ --> main.rn:2:18
+  |
+1 | fun total(order) {
+2 |     return order.price * order.qty;
+  |                  ^^^^^
+
+  at total (main.rn:2)
   at array.map (native)
-  at <script> (line 6)
+  at <script> (main.rn:6)
+```
+
+A hint follows the source:
+
+```rune
+let count = 0;
+for n in [1, 2, 3] {
+    count += n;
+}
+```
+
+```
+error: Cannot assign to immutable variable 'count'.
+ --> main.rn:3:5
+  |
+2 | for n in [1, 2, 3] {
+3 |     count += n;
+  |     ^^^^^
+  |
+  = hint: declare it as 'mut count' on line 1
 ```
 
 The parser recovers from a syntax error and reports all of them in one run:
@@ -29,12 +55,18 @@ print(x)
 ```
 
 ```
-[line: 1] Error at ';': Expect expression.
-    1 | let x = (1 + ;
-      |              ^
-[line: 2] Error at end: Expect ';' after expression.
-    2 | print(x)
-      |         ^
+error: Expect expression.
+ --> main.rn:1:14
+  |
+1 | let x = (1 + ;
+  |              ^
+
+error: Expect ';' after expression.
+ --> main.rn:2:9
+  |
+1 | let x = (1 + ;
+2 | print(x)
+  |         ^
 ```
 
 `run` exits with `65` on a syntax or compile error, `70` on an uncaught

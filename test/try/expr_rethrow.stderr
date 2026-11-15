@@ -1,5 +1,8 @@
-[line: 1] ValueError: array.pop() got an empty array.
-    1 | let x = try [].pop() catch e is KeyError => 0; // expect runtime error: [line: 1] ValueError: array.pop() got an empty array.
-      |                ^
+ValueError: array.pop() got an empty array.
+ --> expr_rethrow.rn:1:16
+  |
+1 | let x = try [].pop() catch e is KeyError => 0; // expect runtime error: [line: 1] ValueError: array.pop() got an empty array.
+  |                ^^^
+
   at array.pop (native)
-  at <script> (line 1)
+  at <script> (expr_rethrow.rn:1)

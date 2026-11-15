@@ -1,3 +1,6 @@
-[line: 2] TypeError: Can only throw struct instances.
-    2 | throw "boom"; // expect runtime error: [line: 2] TypeError: Can only throw struct instances.
-      | ^
+TypeError: Can only throw struct instances.
+ --> non_struct.rn:2:1
+  |
+1 | print("start"); // expect: start
+2 | throw "boom"; // expect runtime error: [line: 2] TypeError: Can only throw struct instances.
+  | ^^^^^

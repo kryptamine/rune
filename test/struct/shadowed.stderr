@@ -1,3 +1,6 @@
-[line: 4] Error at 'Point': 'Point' is not a struct.
-    4 |   return Point { x: 1, y: 2 }; // [line: 4] Error at 'Point': 'Point' is not a struct.
-      |          ^
+error: 'Point' is not a struct.
+ --> shadowed.rn:4:10
+  |
+3 | fun f(Point) {
+4 |   return Point { x: 1, y: 2 }; // [line: 4] Error at 'Point': 'Point' is not a struct.
+  |          ^^^^^

@@ -1,3 +1,5 @@
-[line: 1] Error at ',': Rest element must be last.
-    1 | let [...a, b] = [1, 2]; // Error at ',': Rest element must be last.
-      |          ^
+error: Rest element must be last.
+ --> array_rest_not_last.rn:1:10
+  |
+1 | let [...a, b] = [1, 2]; // Error at ',': Rest element must be last.
+  |          ^

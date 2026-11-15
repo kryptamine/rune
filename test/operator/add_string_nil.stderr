@@ -1,3 +1,7 @@
-[line: 1] TypeError: Operands must be two numbers, two strings or two bytes.
-    1 | "s" + nil; // expect runtime error: [line: 1] TypeError: Operands must be two numbers, two strings or two bytes.
-      |     ^
+TypeError: Operands must be two numbers, two strings or two bytes.
+ --> add_string_nil.rn:1:5
+  |
+1 | "s" + nil; // expect runtime error: [line: 1] TypeError: Operands must be two numbers, two strings or two bytes.
+  |     ^
+  |
+  = hint: to put a value in a string, interpolate it: "text {x}"

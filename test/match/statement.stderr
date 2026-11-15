@@ -1,3 +1,6 @@
-[line: 78] ValueError: No match arm for 3.
-   78 | match 3 { 1 => { print("one"); } } // expect runtime error: [line: 78] ValueError: No match arm for 3.
-      | ^
+ValueError: No match arm for 3.
+  --> statement.rn:78:1
+   |
+77 | // As a statement too, a value no arm matches is an error.
+78 | match 3 { 1 => { print("one"); } } // expect runtime error: [line: 78] ValueError: No match arm for 3.
+   | ^^^^^

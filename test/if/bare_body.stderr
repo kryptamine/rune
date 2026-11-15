@@ -1,3 +1,6 @@
-[line: 2] Error at 'return': Expect '{' after if condition.
-    2 |   if x return 1; // Error at 'return': Expect '{' after if condition.
-      |        ^
+error: Expect '{' after if condition.
+ --> bare_body.rn:2:8
+  |
+1 | fun f(x) {
+2 |   if x return 1; // Error at 'return': Expect '{' after if condition.
+  |        ^^^^^^

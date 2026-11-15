@@ -1,3 +1,6 @@
-[line: 2] TypeError: Right operand of 'is' must be a type, got number.
-    2 | print("a" is string); // expect runtime error: [line: 2] TypeError: Right operand of 'is' must be a type, got number.
-      |           ^
+TypeError: Right operand of 'is' must be a type, got number.
+ --> shadowed.rn:2:11
+  |
+1 | let string = 1;
+2 | print("a" is string); // expect runtime error: [line: 2] TypeError: Right operand of 'is' must be a type, got number.
+  |           ^^

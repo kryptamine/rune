@@ -1,3 +1,6 @@
-[line: 4] Error at 'z': Point has no field 'z'.
-    4 | print(Point { ...p, z: 3 }); // [line: 4] Error at 'z': Point has no field 'z'.
-      |                     ^
+error: Point has no field 'z'.
+ --> spread_unknown_field.rn:4:21
+  |
+3 | let p = Point { x: 1, y: 2 };
+4 | print(Point { ...p, z: 3 }); // [line: 4] Error at 'z': Point has no field 'z'.
+  |                     ^

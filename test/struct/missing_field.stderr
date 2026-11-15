@@ -1,3 +1,5 @@
-[line: 3] Error at 'Point': Missing field 'y' of Point.
-    3 | print(Point { x: 1 }); // [line: 3] Error at 'Point': Missing field 'y' of Point.
-      |       ^
+error: Missing field 'y' of Point.
+ --> missing_field.rn:3:7
+  |
+3 | print(Point { x: 1 }); // [line: 3] Error at 'Point': Missing field 'y' of Point.
+  |       ^^^^^

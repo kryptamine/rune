@@ -1,3 +1,5 @@
-[line: 1] NameError: Undefined variable 'notDefined'.
-    1 | print(notDefined);  // expect runtime error: [line: 1] NameError: Undefined variable 'notDefined'.
-      |       ^
+NameError: Undefined variable 'notDefined'.
+ --> undefined_global.rn:1:7
+  |
+1 | print(notDefined);  // expect runtime error: [line: 1] NameError: Undefined variable 'notDefined'.
+  |       ^^^^^^^^^^

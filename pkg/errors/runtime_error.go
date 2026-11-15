@@ -25,28 +25,45 @@ type RuntimeError struct {
 	errMsg string
 	value  value.Value
 	frames []Frame
+	fix    string
 	// extra holds fields the kind has beyond the common ones, by name.
 	extra map[string]value.Value
 }
 
 func (e RuntimeError) Error() string {
-	if e.thrown() {
-		return fmt.Sprintf("[line: %d] %s", e.token.Line, thrownMessage(e.value))
+	kind, msg := e.heading()
+	if kind == "" {
+		return fmt.Sprintf("[line: %d] %s", e.token.Line, msg)
 	}
 
-	if e.kind != nil {
-		return fmt.Sprintf("[line: %d] %s: %s", e.token.Line, e.kind.Name, e.errMsg)
-	}
-
-	return fmt.Sprintf("[line: %d] %s", e.token.Line, e.errMsg)
+	return fmt.Sprintf("[line: %d] %s: %s", e.token.Line, kind, msg)
 }
 
 func (e RuntimeError) Fatal() bool { return e.kind == nil && !e.thrown() }
 
 func (e RuntimeError) thrown() bool { return e.value.Kind() == value.Struct }
 
-func (e RuntimeError) Pos() (file, line, col int) {
-	return e.token.File, e.token.Line, e.token.Col
+func (e RuntimeError) span() Span { return tokenSpan(e.token) }
+
+func (e RuntimeError) hint() string { return e.fix }
+
+// heading is the error's kind and message: the thrown struct's type and
+// message field, or with no string message no kind and the struct as
+// printed. A fatal error has no kind.
+func (e RuntimeError) heading() (string, string) {
+	switch {
+	case e.thrown():
+		s := e.value.Shape()
+		if i := s.Index("message"); i >= 0 && e.value.Fields()[i].Kind() == value.String {
+			return s.Name, e.value.Fields()[i].Str()
+		}
+
+		return "", helpers.Stringify(e.value)
+	case e.kind != nil:
+		return e.kind.Name, e.errMsg
+	}
+
+	return "", e.errMsg
 }
 
 // Value is what a catch clause binds: the thrown value for a throw, or a
@@ -106,17 +123,4 @@ func NewFatalError(token ast.Token, msg string) error {
 // NewThrownError is the error of `throw v`; v must be a struct.
 func NewThrownError(token ast.Token, v value.Value) error {
 	return RuntimeError{token: token, value: v}
-}
-
-// thrownMessage is "Name: message" when v has a string message, v as
-// printed otherwise.
-func thrownMessage(v value.Value) string {
-	s := v.Shape()
-	if i := s.Index("message"); i >= 0 {
-		if m := v.Fields()[i]; m.Kind() == value.String {
-			return s.Name + ": " + m.Str()
-		}
-	}
-
-	return helpers.Stringify(v)
 }

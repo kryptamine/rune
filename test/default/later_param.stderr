@@ -1,5 +1,8 @@
-[line: 1] NameError: Undefined variable 'b'.
-    1 | fun f(a = b, b = 1) { return a; }
-      |           ^
-  at f (line 1)
-  at <script> (line 3)
+NameError: Undefined variable 'b'.
+ --> later_param.rn:1:11
+  |
+1 | fun f(a = b, b = 1) { return a; }
+  |           ^
+
+  at f (later_param.rn:1)
+  at <script> (later_param.rn:3)

@@ -1,3 +1,5 @@
-[line: 1] Error at ']': Expect variable name in pattern.
-    1 | let [] = []; // Error at ']': Expect variable name in pattern.
-      |      ^
+error: Expect variable name in pattern.
+ --> array_empty.rn:1:6
+  |
+1 | let [] = []; // Error at ']': Expect variable name in pattern.
+  |      ^

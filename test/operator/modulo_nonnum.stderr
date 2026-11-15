@@ -1,3 +1,5 @@
-[line: 1] TypeError: Operands must be numbers.
-    1 | "1" % 2; // expect runtime error: [line: 1] TypeError: Operands must be numbers.
-      |     ^
+TypeError: Operands must be numbers.
+ --> modulo_nonnum.rn:1:5
+  |
+1 | "1" % 2; // expect runtime error: [line: 1] TypeError: Operands must be numbers.
+  |     ^

@@ -1,5 +1,8 @@
-[line: 3] TypeError: Tok has variants with fields; values(), Tok(n) and int() are for enums without.
-    3 | print(int(Tok.Eof)); // expect runtime error: [line: 3] TypeError: Tok has variants with fields; values(), Tok(n) and int() are for enums without.
-      |                  ^
+TypeError: Tok has variants with fields; values(), Tok(n) and int() are for enums without.
+ --> fields_int.rn:3:18
+  |
+3 | print(int(Tok.Eof)); // expect runtime error: [line: 3] TypeError: Tok has variants with fields; values(), Tok(n) and int() are for enums without.
+  |                  ^
+
   at int (native)
-  at <script> (line 3)
+  at <script> (fields_int.rn:3)

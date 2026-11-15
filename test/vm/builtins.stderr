@@ -1,3 +1,6 @@
-[line: 15] NameError: Undefined variable 'nope'.
-   15 | nope = 1; // expect runtime error: [line: 15] NameError: Undefined variable 'nope'.
-      | ^
+NameError: Undefined variable 'nope'.
+  --> builtins.rn:15:1
+   |
+14 | try { missing(); } catch e { print(e.message); } // expect: Undefined variable 'nope'.
+15 | nope = 1; // expect runtime error: [line: 15] NameError: Undefined variable 'nope'.
+   | ^^^^

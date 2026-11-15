@@ -1,21 +1,47 @@
-[line: 3] Error at 'Zero': 'Expr.Zero' has no fields; it is a value, not a type.
-    3 | print(Expr.Zero { });                   // Error at 'Zero': 'Expr.Zero' has no fields; it is a value, not a type.
-      |            ^
-[line: 4] Error at 'Sub': Expr has no variant 'Sub'.
-    4 | print(Expr.Sub { value: 1 });           // Error at 'Sub': Expr has no variant 'Sub'.
-      |            ^
-[line: 5] Error at 'Num': Missing field 'value' of Expr.Num.
-    5 | print(Expr.Num { });                    // Error at 'Num': Missing field 'value' of Expr.Num.
-      |            ^
-[line: 6] Error at 'x': Expr.Num has no field 'x'.
-    6 | print(Expr.Num { value: 1, x: 2 });     // Error at 'x': Expr.Num has no field 'x'.
-      |                            ^
-[line: 7] Error at 'Expr': 'Expr' is an enum, not a struct; its variants are Expr.Num and so on.
-    7 | print(Expr { value: 1 });               // Error at 'Expr': 'Expr' is an enum, not a struct; its variants are Expr.Num and so on.
-      |       ^
-[line: 8] Error at 'Num': 'Expr.Num' has fields; match it as Expr.Num { ... } or _ is Expr.Num.
-    8 | print(match 1 { Expr.Num => 1, _ => 2 }); // Error at 'Num': 'Expr.Num' has fields; match it as Expr.Num { ... } or _ is Expr.Num.
-      |                      ^
-[line: 9] Error at 'x': Expr.Num has no field 'x'.
-    9 | print(match 1 { Expr.Num { x } => 1, _ => 2 }); // Error at 'x': Expr.Num has no field 'x'.
-      |                            ^
+error: 'Expr.Zero' has no fields; it is a value, not a type.
+ --> fields_errors.rn:3:12
+  |
+3 | print(Expr.Zero { });                   // Error at 'Zero': 'Expr.Zero' has no fields; it is a value, not a type.
+  |            ^^^^
+
+error: Expr has no variant 'Sub'.
+ --> fields_errors.rn:4:12
+  |
+3 | print(Expr.Zero { });                   // Error at 'Zero': 'Expr.Zero' has no fields; it is a value, not a type.
+4 | print(Expr.Sub { value: 1 });           // Error at 'Sub': Expr has no variant 'Sub'.
+  |            ^^^
+
+error: Missing field 'value' of Expr.Num.
+ --> fields_errors.rn:5:12
+  |
+4 | print(Expr.Sub { value: 1 });           // Error at 'Sub': Expr has no variant 'Sub'.
+5 | print(Expr.Num { });                    // Error at 'Num': Missing field 'value' of Expr.Num.
+  |            ^^^
+
+error: Expr.Num has no field 'x'.
+ --> fields_errors.rn:6:28
+  |
+5 | print(Expr.Num { });                    // Error at 'Num': Missing field 'value' of Expr.Num.
+6 | print(Expr.Num { value: 1, x: 2 });     // Error at 'x': Expr.Num has no field 'x'.
+  |                            ^
+
+error: 'Expr' is an enum, not a struct; its variants are Expr.Num and so on.
+ --> fields_errors.rn:7:7
+  |
+6 | print(Expr.Num { value: 1, x: 2 });     // Error at 'x': Expr.Num has no field 'x'.
+7 | print(Expr { value: 1 });               // Error at 'Expr': 'Expr' is an enum, not a struct; its variants are Expr.Num and so on.
+  |       ^^^^
+
+error: 'Expr.Num' has fields; match it as Expr.Num { ... } or _ is Expr.Num.
+ --> fields_errors.rn:8:22
+  |
+7 | print(Expr { value: 1 });               // Error at 'Expr': 'Expr' is an enum, not a struct; its variants are Expr.Num and so on.
+8 | print(match 1 { Expr.Num => 1, _ => 2 }); // Error at 'Num': 'Expr.Num' has fields; match it as Expr.Num { ... } or _ is Expr.Num.
+  |                      ^^^
+
+error: Expr.Num has no field 'x'.
+ --> fields_errors.rn:9:28
+  |
+8 | print(match 1 { Expr.Num => 1, _ => 2 }); // Error at 'Num': 'Expr.Num' has fields; match it as Expr.Num { ... } or _ is Expr.Num.
+9 | print(match 1 { Expr.Num { x } => 1, _ => 2 }); // Error at 'x': Expr.Num has no field 'x'.
+  |                            ^

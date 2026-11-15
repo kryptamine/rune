@@ -1,3 +1,5 @@
-[line: 1] Error at ';': Expect name after 'as'.
-    1 | import _lib.math as; // Error at ';': Expect name after 'as'.
-      |                    ^
+error: Expect name after 'as'.
+ --> bad_alias.rn:1:20
+  |
+1 | import _lib.math as; // Error at ';': Expect name after 'as'.
+  |                    ^

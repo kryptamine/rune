@@ -1,3 +1,6 @@
-[line: 8] TypeError: Operands must be two numbers, two strings or two bytes.
-    8 | print("a" < 1); // expect runtime error: [line: 8] TypeError: Operands must be two numbers, two strings or two bytes.
-      |           ^
+TypeError: Operands must be two numbers, two strings or two bytes.
+ --> compare.rn:8:11
+  |
+7 | if s > "a" { print("z wins"); } // expect: z wins
+8 | print("a" < 1); // expect runtime error: [line: 8] TypeError: Operands must be two numbers, two strings or two bytes.
+  |           ^

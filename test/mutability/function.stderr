@@ -1,3 +1,6 @@
-[line: 2] Error at 'f': Cannot assign to immutable variable 'f'.
-    2 | f = 1; // [line: 2] Error at 'f': Cannot assign to immutable variable 'f'.
-      | ^
+error: Cannot assign to immutable variable 'f'.
+ --> function.rn:2:1
+  |
+1 | fun f() {}
+2 | f = 1; // [line: 2] Error at 'f': Cannot assign to immutable variable 'f'.
+  | ^

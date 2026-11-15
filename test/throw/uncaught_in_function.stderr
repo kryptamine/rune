@@ -1,5 +1,9 @@
-[line: 2] ValueError: oops
-    2 |   throw ValueError { message: "oops" }; // expect runtime error: [line: 2] ValueError: oops
-      |   ^
-  at fail (line 2)
-  at <script> (line 4)
+ValueError: oops
+ --> uncaught_in_function.rn:2:3
+  |
+1 | fun fail() {
+2 |   throw ValueError { message: "oops" }; // expect runtime error: [line: 2] ValueError: oops
+  |   ^^^^^
+
+  at fail (uncaught_in_function.rn:2)
+  at <script> (uncaught_in_function.rn:4)

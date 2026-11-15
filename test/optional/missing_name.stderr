@@ -1,3 +1,6 @@
-[line: 2] Error at ')': Expect property name after '?.'.
-    2 | print(o?.); // Error at ')': Expect property name after '?.'.
-      |          ^
+error: Expect property name after '?.'.
+ --> missing_name.rn:2:10
+  |
+1 | let o = {};
+2 | print(o?.); // Error at ')': Expect property name after '?.'.
+  |          ^

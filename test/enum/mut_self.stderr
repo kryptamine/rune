@@ -1,3 +1,6 @@
-[line: 3] Error at 'f': Methods of enum C cannot take 'mut self'.
-    3 | impl C { fun f(mut self) {} }
-      |              ^
+error: Methods of enum C cannot take 'mut self'.
+ --> mut_self.rn:3:14
+  |
+2 | enum C { A }
+3 | impl C { fun f(mut self) {} }
+  |              ^

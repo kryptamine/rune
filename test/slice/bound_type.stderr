@@ -1,3 +1,5 @@
-[line: 1] TypeError: Slice start must be an integer, got number.
-    1 | print([1][1.0..]); // expect runtime error: [line: 1] TypeError: Slice start must be an integer, got number.
-      |              ^
+TypeError: Slice start must be an integer, got number.
+ --> bound_type.rn:1:14
+  |
+1 | print([1][1.0..]); // expect runtime error: [line: 1] TypeError: Slice start must be an integer, got number.
+  |              ^^

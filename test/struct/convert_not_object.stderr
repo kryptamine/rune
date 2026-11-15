@@ -1,3 +1,5 @@
-[line: 3] TypeError: Cannot convert array to Point.
-    3 | print(Point([1])); // expect runtime error: [line: 3] TypeError: Cannot convert array to Point.
-      |                ^
+TypeError: Cannot convert array to Point.
+ --> convert_not_object.rn:3:16
+  |
+3 | print(Point([1])); // expect runtime error: [line: 3] TypeError: Cannot convert array to Point.
+  |                ^

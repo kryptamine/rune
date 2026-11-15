@@ -1,3 +1,6 @@
-[line: 2] TypeError: Array index must be an integer.
-    2 | print(xs?.["a"]); // expect runtime error: [line: 2] TypeError: Array index must be an integer.
-      |               ^
+TypeError: Array index must be an integer.
+ --> bad_index.rn:2:15
+  |
+1 | let xs = [1];
+2 | print(xs?.["a"]); // expect runtime error: [line: 2] TypeError: Array index must be an integer.
+  |               ^

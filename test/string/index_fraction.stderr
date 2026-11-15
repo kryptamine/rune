@@ -1,3 +1,5 @@
-[line: 1] TypeError: String index must be an integer.
-    1 | "abc"[0.5]; // expect runtime error: [line: 1] TypeError: String index must be an integer.
-      |          ^
+TypeError: String index must be an integer.
+ --> index_fraction.rn:1:10
+  |
+1 | "abc"[0.5]; // expect runtime error: [line: 1] TypeError: String index must be an integer.
+  |          ^

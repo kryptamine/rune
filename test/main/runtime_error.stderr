@@ -1,5 +1,9 @@
-[line: 2] TypeError: Cannot read property 'x' of nil.
-    2 |   return nil.x; // expect runtime error: [line: 2] TypeError: Cannot read property 'x' of nil.
-      |              ^
-  at main (line 2)
-  at <script> (line 1)
+TypeError: Cannot read property 'x' of nil.
+ --> runtime_error.rn:2:14
+  |
+1 | fun main() {
+2 |   return nil.x; // expect runtime error: [line: 2] TypeError: Cannot read property 'x' of nil.
+  |              ^
+
+  at main (runtime_error.rn:2)
+  at <script> (runtime_error.rn:1)

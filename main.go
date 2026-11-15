@@ -60,13 +60,23 @@ func soleFile(path string, src []byte) []errors.File {
 }
 
 func printErrors(w io.Writer, errs []error, files []errors.File) {
-	for _, err := range errs {
-		printError(w, err, files)
-	}
+	fmt.Fprint(w, errors.ReportAll(errs, files, colored(w)))
 }
 
 func printError(w io.Writer, err error, files []errors.File) {
-	fmt.Fprint(w, errors.Report(err, files))
+	fmt.Fprint(w, errors.Report(err, files, colored(w)))
+}
+
+// colored says whether w is a terminal that takes colors.
+func colored(w io.Writer) bool {
+	f, ok := w.(*os.File)
+	if !ok || os.Getenv("NO_COLOR") != "" || os.Getenv("TERM") == "dumb" {
+		return false
+	}
+
+	info, err := f.Stat()
+
+	return err == nil && info.Mode()&os.ModeCharDevice != 0
 }
 
 // exitStatus is the exit code of a run that ended with err, reported.

@@ -1,3 +1,5 @@
-[line: 1] Error at ';': Separate match arms with ','.
-    1 | match 1 { 1 => print(1); _ => {} } // Error at ';': Separate match arms with ','.
-      |                        ^
+error: Separate match arms with ','.
+ --> arm_semicolon.rn:1:24
+  |
+1 | match 1 { 1 => print(1); _ => {} } // Error at ';': Separate match arms with ','.
+  |                        ^

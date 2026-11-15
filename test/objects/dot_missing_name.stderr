@@ -1,3 +1,6 @@
-[line: 2] Error at ')': Expect property name after '.'.
-    2 | print(obj.); // [line: 2] Error at ')': Expect property name after '.'.
-      |           ^
+error: Expect property name after '.'.
+ --> dot_missing_name.rn:2:11
+  |
+1 | let obj = {};
+2 | print(obj.); // [line: 2] Error at ')': Expect property name after '.'.
+  |           ^

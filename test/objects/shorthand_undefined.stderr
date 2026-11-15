@@ -1,3 +1,5 @@
-[line: 1] NameError: Undefined variable 'nope'.
-    1 | print({ nope }); // expect runtime error: [line: 1] NameError: Undefined variable 'nope'.
-      |         ^
+NameError: Undefined variable 'nope'.
+ --> shorthand_undefined.rn:1:9
+  |
+1 | print({ nope }); // expect runtime error: [line: 1] NameError: Undefined variable 'nope'.
+  |         ^^^^

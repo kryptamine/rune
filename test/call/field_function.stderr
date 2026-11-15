@@ -1,3 +1,6 @@
-[line: 3] TypeError: Handler has no method 'on'; call the function in its field as (x.on)().
-    3 | h.on(1); // expect runtime error: [line: 3] TypeError: Handler has no method 'on'; call the function in its field as (x.on)().
-      |   ^
+TypeError: Handler has no method 'on'; call the function in its field as (x.on)().
+ --> field_function.rn:3:3
+  |
+2 | let h = Handler { on: x => x };
+3 | h.on(1); // expect runtime error: [line: 3] TypeError: Handler has no method 'on'; call the function in its field as (x.on)().
+  |   ^^

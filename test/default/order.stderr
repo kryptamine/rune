@@ -1,3 +1,5 @@
-[line: 1] Error at 'b': A parameter without a default cannot follow one with a default.
-    1 | fun f(a = 1, b) {} // [line: 1] Error at 'b': A parameter without a default cannot follow one with a default.
-      |              ^
+error: A parameter without a default cannot follow one with a default.
+ --> order.rn:1:14
+  |
+1 | fun f(a = 1, b) {} // [line: 1] Error at 'b': A parameter without a default cannot follow one with a default.
+  |              ^

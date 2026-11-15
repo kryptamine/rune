@@ -1,3 +1,5 @@
-[line: 1] Error at '"x"': Expect '{' after 'else'.
-    1 | if false { } else "x"; // [line: 1] Error at '"x"': Expect '{' after 'else'.
-      |                   ^
+error: Expect '{' after 'else'.
+ --> else_missing_brace.rn:1:19
+  |
+1 | if false { } else "x"; // [line: 1] Error at '"x"': Expect '{' after 'else'.
+  |                   ^^^

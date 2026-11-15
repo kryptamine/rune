@@ -1,3 +1,6 @@
-[line: 2] Error: Invalid number literal '12abc'.
-    2 | print(12abc);
-      |       ^
+error: Invalid number literal '12abc'.
+ --> bad_literal.rn:2:7
+  |
+1 | // [line: 2] Error: Invalid number literal '12abc'.
+2 | print(12abc);
+  |       ^
