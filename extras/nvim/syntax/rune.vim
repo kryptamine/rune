@@ -11,11 +11,15 @@ syn keyword runeNil nil
 syn keyword runeSelf self
 syn match runeAs "\<as\>"
 
-syn keyword runeNamespace string math regex bytes json http time fs io os array module
+syn keyword runeNamespace string math regex bytes json http time fs io os
 syn keyword runeBuiltin print type object number int map set
+
+syn keyword runeBuiltinType TypeError ArgumentError ValueError IndexError KeyError NameError IOError
+syn keyword runeBuiltinType FileInfo ExecOptions ExecResult Match HttpOptions HttpResponse Date
 
 syn match runeFuncDecl "\<fun\s\+\zs\h\w*"
 syn match runeFuncCall "\h\w*\ze\s*("
+syn match runeType "\<\u\w*\>"
 syn match runeStructName "\<\(struct\|enum\|impl\)\s\+\zs\h\w*"
 syn match runeConst "\<\u[A-Z0-9_]\+\>"
 
@@ -52,6 +56,8 @@ hi def link runeBuiltin Function
 hi def link runeFuncDecl Function
 hi def link runeFuncCall Function
 hi def link runeStructName Type
+hi def link runeType Type
+hi def link runeBuiltinType Type
 hi def link runeConst Constant
 hi def link runeNumber Number
 hi def link runeString String
