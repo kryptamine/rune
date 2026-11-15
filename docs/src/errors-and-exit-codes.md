@@ -33,6 +33,8 @@ print(x)
     1 | let x = (1 + ;
       |              ^
 [line: 2] Error at end: Expect ';' after expression.
+    2 | print(x)
+      |         ^
 ```
 
 `run` exits with `65` on a syntax or compile error, `70` on an uncaught

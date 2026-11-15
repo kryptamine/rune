@@ -1,21 +1,9 @@
 # Rune
 
-Rune is a dynamically typed interpreted programming language inspired by [Lox](https://github.com/munificent/craftinginterpreters) and built following concepts from the book [Crafting Interpreters](https://craftinginterpreters.com/) by Robert Nystrom. The interpreter is implemented in **Go**: the resolved AST is compiled to register bytecode run by a VM, and the whole thing ships as a single statically linked binary.
-
-```rune
-struct Point { x, y = 0 }
-
-impl Point {
-  fun len(self) { return math.sqrt(self.x * self.x + self.y * self.y); }
-}
-
-let points = [Point { x: 3, y: 4 }, Point { x: 1 }];
-for i, p in points {
-    print("{i}: {p} has length {p.len()}");
-}
-// 0: Point {x: 3, y: 4} has length 5
-// 1: Point {x: 1, y: 0} has length 1
-```
+Rune is a small, dynamically typed scripting language, inspired by
+JavaScript, Python, Rust and Swift. It is written in Go: the AST is compiled
+to register bytecode run by a VM, and the whole thing ships as a single
+static binary.
 
 ## A Taste
 
@@ -58,45 +46,31 @@ Language chapters in order.
 
 ## Features
 
+**Language**
 
-- Dynamically typed language with a simple syntax
-- Supports expressions, statements, variables, and functions
-- Variables are immutable by default (`let`); `let mut` makes them mutable
-- Standard library in namespaces: `array`, `string`, `regex`, `math`, `json`, `http`, `time`, `fs`, `io`, `os`
-- Modules with their own top level, `export` and `import a.b as m;`, relative `import ..lib.x;`
-- Recursive descent parser; the resolved AST is compiled to register bytecode run by a VM
-- Parser recovers from syntax errors and reports all of them in one run
-- String escapes: `\n`, `\t`, `\r`, `\"`, `\\`, `\{`, `\}`; raw strings take neither: `r"\d{3}"`
-- Multi-line strings, dedented, with quotes inside: `"""..."""`, raw `r"""..."""`
-- String interpolation: `"x = {x}, sum = {a + b}"`
-- 64-bit integers and floats, both of type `number`: `7 / 2` is `3.5`, `7 % 2` is `1`, and overflow is an error
-- Number literals with exponents, hex, octal, binary and `_`: `1e3`, `0xff`, `0o17`, `0b1010`, `1_000_000`
-- Bitwise operators on integers: `&`, `|`, `^`, `~`, `<<`, `>>`
-- Objects, `map` and `set` keep their keys in insertion order; a `map` or `set` key may be any hashable value
-- `bytes`: immutable binary data, with literals `b"\x00\xff"`
-- Streams: files and HTTP bodies read line by line or in chunks, `for line in fs.open(path)`
-- Object property access with `obj.name` as sugar for `obj["name"]`; shorthand `{ ip, hits }` for `{ ip: ip, hits: hits }`, computed keys `{ [name]: value }`
-- Structs with required and default fields, values whose fields only their `mut self` methods set: `struct Point { x, y = 0 }`, `Point { ...p, x: 1 }`
-- Methods in `impl` blocks, on structs and built-in types: `p.len()`, `Point.origin()`, `fun move(mut self)`; a function in a property is called as `(o.f)()`
-- Destructuring of objects, structs and arrays, in `let`, parameters and `for`, with defaults: `let { x, y = 0 } = p;`, `let [head, ...tail] = xs;`
-- Nil-safe access and defaults: `resp?.data?.items ?? []`
-- Conditional expressions: `n > 0 ? "pos" : "neg"`
-- Spread and rest: `[...a, ...b]`, `{...o, x: 1}`, `Point { ...p, x: 1 }`, `f(...args)`, `fun log(level, ...parts)`
-- Strings compare with `<`, `<=`, `>`, `>=` and index by character: `"héllo"[1]` is `"é"`; a negative index counts from the end: `xs[-1]`
-- Pattern matching with `match`, as an expression or a statement, on literals, types, structs, objects and arrays: `[cmd, ...args] =>`
-- Logical operators `&&`, `||` and `!`, type tests with `is`: `v is Point`, `catch e is KeyError`, `p is Point =>`
-- Error handling with `try`/`catch` and `throw`, also as an expression: `x ?? throw E { ... }`
-- `return`, `break` and `continue` as expressions: `let v = x ?? return nil;`, `row?.id ?? continue`
-- Two loops only: `while` and `for x in ...` over arrays, strings, objects and ranges (`a..b`)
-- `break` and `continue` in both
-- `if`/`else`, `while` and `for` bodies are blocks, or a bare statement starting with a name or keyword: `if v < 0 return;`, `for x in xs out.push(x);`
-- Anonymous functions: `fun (x) { return x * 2; }`, or arrow functions: `x => x * 2`
-- Default parameters, evaluated at each call: `fun greet(name, greeting = "hi")`
-- Modulo `%` and compound assignment: `+=`, `-=`, `*=`, `/=`, `%=`
-- Increment and decrement, prefix and postfix: `++i`, `i++`, `--i`, `i--` (on variables, array elements and properties)
-- Cross-platform, compiles to a single binary
+- [values](language/values.md): `nil`, booleans, 64-bit [numbers](language/numbers.md) (integers and floats), Unicode [strings](language/strings.md) with interpolation `"x = {x}"`
+- [variables](language/variables.md) immutable by default: `let`, `let mut`, compile-time `const`
+- `if`/`else`, `? :`, [loops](language/loops.md) `while` and `for x in ...` over arrays, strings, objects and ranges `a..b`
+- [functions](language/functions.md): closures, defaults, arrows `x => x * 2`, expression bodies `fun sq(x) => x * x;`
+- [spread and rest](language/spread-and-rest.md), [destructuring](language/destructuring.md): `let [head, ...tail] = xs;`
+- [nil safety](language/nil-safety.md): `resp?.data?.items ?? []`
+- [pattern matching](language/pattern-matching.md) on literals, types, structs, arrays and enums, exhaustive over enum variants
+- [errors](language/error-handling.md): `throw`, `try`/`catch` by type, `try` as an expression, `defer`
+- `return`, `break`, `continue` and `throw` as expressions: `let v = x ?? return nil;`
+
+**Data**
+
+- [arrays](data/arrays.md), objects, [map and set](data/map-and-set.md) in insertion order, [bytes](data/bytes.md)
+- [structs](data/structs.md) with default fields, [methods](data/methods.md) in `impl` blocks, also on built-in types
+- [enums](data/enums.md), whose variants may carry fields
+
+**Programs**
+
+- [modules](programs/modules.md) with `export` and `import`, [`main`](programs/main.md) with command-line arguments
+- [standard library](stdlib/builtins.md): `string`, `regex`, `math`, `json`, `http`, `time`, `fs`, [streams](stdlib/streams.md), `io`, `os`
+- errors with source snippets and traces; the parser reports every syntax error in one run
+- `rune fmt` formats code, `rune disasm` shows the bytecode
 
 ## References
 
-- [Crafting Interpreters](https://craftinginterpreters.com/) by Robert Nystrom
-- [Lox Programming Language](https://github.com/munificent/craftinginterpreters)
+- [Crafting Interpreters](https://craftinginterpreters.com/) by Robert Nystrom, where Rune started
