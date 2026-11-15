@@ -18,27 +18,56 @@ Inspired by JavaScript, Python, Rust and Swift. Written in Go: the AST is
 compiled to register bytecode and run by a VM.
 
 ```rust
-struct Point { x, y = 0 }
-
-impl Point {
-  fun len(self) { return math.sqrt(self.x * self.x + self.y * self.y); }
+enum Shape {
+    Circle { r },
+    Rect { w, h },
 }
 
-let points = [Point { x: 3, y: 4 }, Point { x: 1 }];
-for i, p in points {
-    print("{i}: {p} has length {p.len()}");
+impl Shape {
+    fun area(self) => match self {
+        Shape.Circle { r } => 3.14 * r * r,
+        Shape.Rect { w, h } => w * h,
+    };
 }
+
+fun parse(line) {
+    let [kind, ...dims] = line.split(" ");
+    let [a, b = a] = dims.map(int);
+    return match kind {
+        "circle" => Shape.Circle { r: a },
+        "rect" | "square" => Shape.Rect { w: a, h: b },
+        _ => throw ValueError { message: "unknown shape '{kind}'" },
+    };
+}
+
+let input = ["circle 2", "rect 3 4", "square 5", "hexagon 1", "rect x"];
+let parsed = input.map(line => try parse(line) catch e => e);
+
+for e in parsed.filter(p => p is ValueError) print("skip: {e.message}");
+
+let mut shapes = parsed.filter(p => p is Shape);
+shapes.sort((a, b) => b.area() - a.area());
+for s in shapes print("{s.area()}\t{s}");
+```
+
+```
+skip: unknown shape 'hexagon'
+skip: int() cannot parse "x" as an integer in base 10.
+25      Shape.Rect {w: 5, h: 5}
+12.56   Shape.Circle {r: 2}
+12      Shape.Rect {w: 3, h: 4}
 ```
 
 ## Features
 
 - immutable by default (`let` / `let mut`), compile-time `const`
-- structs and enums (variants may carry fields) with `impl` methods
-- pattern matching, destructuring, spread, nil-safe chains `a?.b ?? c`
-- `try`/`catch` with typed errors, as a statement or an expression; `defer`
-- `return` / `break` / `continue` as expressions
+- structs and enums with fields, `impl` methods, `fun f(x) => expr;`
+- `match` with exhaustiveness checks over enums; destructuring, spread, rest
+- nil-safe chains `a?.b ?? c`; `return` / `break` / `continue` / `throw` as expressions
+- `try`/`catch` by error type, as a statement or an expression; `defer`
 - modules with `export` / `import`
 - standard library: `string`, `regex`, `math`, `json`, `http`, `time`, `fs`, `io`, `os`
+- built-in formatter: `rune fmt`
 
 ## Install
 
