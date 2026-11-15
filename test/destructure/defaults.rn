@@ -31,7 +31,7 @@ let g = k => {
 print(g({})); // expect: dflt
 print(g({ v: nil })); // expect: nil
 
-for { k = "none" } in [{ k: 1 }, {}] print(k);
+for { k = "none" } in [{ k: 1 }, {}] { print(k); }
 // expect: 1
 // expect: none
 

@@ -11,21 +11,7 @@ import (
 // ends: digits, then optionally "." and digits, then an exponent; or a
 // 0x, 0o or 0b prefix and digits of that base. A "_" may separate digits.
 func NumberEnd(s string, i int) int {
-	digits := func(i int, isDigit func(byte) bool) int {
-		start := i
-		for i < len(s) {
-			switch {
-			case isDigit(s[i]):
-				i++
-			case s[i] == '_' && i > start && i+1 < len(s) && isDigit(s[i+1]):
-				i++
-			default:
-				return i
-			}
-		}
-
-		return i
-	}
+	digits := func(i int, isDigit func(byte) bool) int { return digitsEnd(s, i, isDigit) }
 
 	if i+2 < len(s) && s[i] == '0' {
 		if isDigit := basePrefix(s[i+1]); isDigit != nil && isDigit(s[i+2]) {
@@ -51,6 +37,53 @@ func NumberEnd(s string, i int) int {
 	}
 
 	return i
+}
+
+// digitsEnd returns where the digits starting at s[i] end; a "_" may
+// separate two of them.
+func digitsEnd(s string, i int, isDigit func(byte) bool) int {
+	start := i
+	for i < len(s) {
+		switch {
+		case isDigit(s[i]):
+			i++
+		case s[i] == '_' && i > start && i+1 < len(s) && isDigit(s[i+1]):
+			i++
+		default:
+			return i
+		}
+	}
+
+	return i
+}
+
+// ParseInt parses s, optionally negated, as digits in base, 2 to 36,
+// which "_" may separate as in a literal.
+func ParseInt(s string, base int) (int64, bool) {
+	digits := strings.TrimPrefix(s, "-")
+	isDigit := func(c byte) bool { return digitValue(c) < base }
+
+	if digits == "" || !isDigit(digits[0]) || digitsEnd(digits, 0, isDigit) != len(digits) {
+		return 0, false
+	}
+
+	n, err := strconv.ParseInt(strings.ReplaceAll(s, "_", ""), base, 64)
+
+	return n, err == nil
+}
+
+// digitValue is the value of c as a digit of base 36, or 36 if none.
+func digitValue(c byte) int {
+	switch {
+	case isDecimal(c):
+		return int(c - '0')
+	case c >= 'a' && c <= 'z':
+		return int(c-'a') + 10
+	case c >= 'A' && c <= 'Z':
+		return int(c-'A') + 10
+	}
+
+	return 36
 }
 
 func isDecimal(c byte) bool { return c >= '0' && c <= '9' }

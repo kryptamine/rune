@@ -28,7 +28,8 @@ $ echo $?
 2
 ```
 
-Arguments are always strings; convert them yourself:
+Arguments are always strings; convert them yourself. A pattern takes as
+many as it lists, so here a third is an `IndexError`:
 
 ```rune
 // repeat.rn

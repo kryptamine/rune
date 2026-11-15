@@ -104,7 +104,7 @@ print(r.status);                  // 201
 print(r.headers["location"]);     // /users/42
 print(json.parse(r.body).id);     // 42
 
-if r.status != 201 throw IOError { message: "status {r.status}" };
+if r.status != 201 { throw IOError { message: "status {r.status}" }; }
 ```
 
 ```rune
@@ -120,7 +120,7 @@ never held whole:
 ```rune
 let r = http.request("GET", "https://api.example.com/export.csv", { stream: true });
 for i, line in r.body {
-    if i == 0 continue;
+    if i == 0 { continue; }
     let [id, total] = line.split(",");
     print("order {id}: {total}");
 }

@@ -7,12 +7,12 @@ print(4 in s);   // expect: false
 print(s.add(4)); // expect: nil
 print(4 in s); // expect: true
 print(s.delete(3)); // expect: true
-print(s.values()); // expect: [1, 2, 4]
+print([...s]); // expect: [1, 2, 4]
 for x in s { print(x); }
 // expect: 1
 // expect: 2
 // expect: 4
-for i, x in s { if i == 2 print(x); } // expect: 4
+for i, x in s { if i == 2 { print(x); } } // expect: 4
 
 let a = set([1, 2, 3]);
 let b = set([2, 3, 4]);

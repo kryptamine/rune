@@ -20,7 +20,7 @@ fun fails(f) {
   try { f(); } catch e { print(type(e) + ": " + e.message); }
 }
 fails(() => m[[1]]);            // expect: TypeError: Cannot use an array as a key.
-fails(() => m.set({}, 1));      // expect: TypeError: map.set() cannot use an object as a key.
+fails(() => m[{}] = 1);         // expect: TypeError: Cannot use an object as a key.
 fails(() => map([[0 / 0, 1]])); // expect: TypeError: map() cannot use NaN as a key.
 fails(() => m[Point { x: [1], y: 0 }]); // expect: TypeError: Cannot use a struct holding an array as a key.
 fails(() => m["missing"]);      // expect: KeyError: Key not found: "missing".

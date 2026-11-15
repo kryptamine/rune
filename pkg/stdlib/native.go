@@ -244,10 +244,9 @@ func FieldNames() map[string]string {
 	return names
 }
 
-// namespace groups built-ins under one global, an immutable struct of them.
-// Its natives are named "<namespace>.<member>". With a call, the global is
-// that function instead, as string(v) is; its members, bound when the
-// program is compiled, stay reachable as string.f.
+// namespace groups built-ins under one name. Its natives are named
+// "<namespace>.<member>". With a call, the name is also that function, a
+// global value, as string(v) is.
 type namespace struct {
 	name    string
 	natives []*Native
@@ -260,6 +259,7 @@ var namespaces = []namespace{
 	{"math", mathNatives, []Builtin{
 		{"PI", value.NewNumber(math.Pi)},
 		{"INF", value.NewNumber(math.Inf(1))},
+		{"NAN", value.NewNumber(math.NaN())},
 		{"MAX_INT", value.NewInt(math.MaxInt64)},
 		{"MIN_INT", value.NewInt(math.MinInt64)},
 	}, nil},
@@ -273,8 +273,12 @@ var namespaces = []namespace{
 	{"os", osNatives, osConsts, nil},
 }
 
-func (ns namespace) value() value.Value {
-	members := make([]Builtin, 0, len(ns.natives)+len(ns.consts))
+// Namespace holds the members of a namespace by name; they are bound when
+// a program is compiled, so a namespace itself is no value.
+type Namespace map[string]value.Value
+
+func (ns namespace) members() Namespace {
+	members := make(Namespace, len(ns.natives)+len(ns.consts))
 
 	for _, n := range ns.natives {
 		prefix, member, _ := strings.Cut(n.name, ".")
@@ -282,67 +286,30 @@ func (ns namespace) value() value.Value {
 			panic("stdlib: " + n.name + " is not in namespace " + ns.name)
 		}
 
-		members = append(members, Builtin{member, value.NewFunction(n)})
+		members[member] = value.NewFunction(n)
 	}
 
-	return NewNamespace(append(members, ns.consts...))
+	for _, c := range ns.consts {
+		members[c.Name] = c.Value
+	}
+
+	return members
 }
 
-// NewNamespace makes a namespace of members, an immutable struct.
-func NewNamespace(members []Builtin) value.Value {
-	decls := make([]value.Field, len(members))
-
-	for i, m := range members {
-		decls[i] = value.Field{Name: m.Name, Required: true}
-	}
-
-	shape := value.NewShape("namespace", decls)
-	shape.Namespace = true
-
-	v, fields := value.NewStruct(shape)
-	for i, m := range members {
-		fields[i] = m.Value
-	}
-
-	return v
-}
-
-var namespaceValues = func() map[string]value.Value {
-	m := make(map[string]value.Value, len(namespaces))
+// Namespaces are the built-in namespaces by name.
+var Namespaces = func() map[string]Namespace {
+	m := make(map[string]Namespace, len(namespaces))
 	for _, ns := range namespaces {
-		m[ns.name] = ns.value()
+		m[ns.name] = ns.members()
 	}
 
 	return m
 }()
 
-// Member returns member key of the namespace called name; isNamespace is
-// false when no namespace has that name.
-func Member(name, key string) (v value.Value, found, isNamespace bool) {
-	ns, ok := namespaceValues[name]
-	if !ok {
-		return value.NilValue, false, false
-	}
-
-	v, found = NamespaceMember(ns, key)
-
-	return v, found, true
-}
-
-// NamespaceMember returns member key of the namespace ns.
-func NamespaceMember(ns value.Value, key string) (value.Value, bool) {
-	i := ns.Shape().Index(key)
-	if i < 0 {
-		return value.NilValue, false
-	}
-
-	return ns.Fields()[i], true
-}
-
 // Owner returns the first namespace that has member key, or "".
 func Owner(key string) string {
 	for _, ns := range namespaces {
-		if namespaceValues[ns.name].Shape().Index(key) >= 0 {
+		if _, ok := Namespaces[ns.name][key]; ok {
 			return ns.name
 		}
 	}
@@ -391,7 +358,6 @@ var Methods = func() (out []Method) {
 	add(value.Array, false, arrayMethods, arraySequenceMethods, lenMethod("array"))
 	add(value.Array, true, arrayInPlace)
 	add(value.String, false, stringMethods, stringSequenceMethods, lenMethod("string"))
-	add(value.Number, false, numberMethods)
 	add(value.Object, false, objectMethods, lenMethod("object"))
 	add(value.Object, true, objectInPlace)
 	add(value.Map, false, mapMethods, lenMethod("map"))
@@ -416,12 +382,9 @@ func builtins() []Builtin {
 	}
 
 	for _, ns := range namespaces {
-		v := namespaceValues[ns.name]
 		if ns.call != nil {
-			v = value.NewFunction(ns.call)
+			out = append(out, Builtin{ns.name, value.NewFunction(ns.call)})
 		}
-
-		out = append(out, Builtin{ns.name, v})
 	}
 
 	for _, t := range Types {

@@ -21,8 +21,6 @@ print(b"".crc32());                 // expect: 0
 print(b"abc".sha256().hex());       // expect: ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad
 print(b"abc".sha1().hex());         // expect: a9993e364706816aba3e25717850c26c9cd0d89d
 print(b"abc".md5().hex());          // expect: 900150983cd24fb0d6963f7d28e17f72
-print(bytes.concat(b"a", b"b", b"c")); // expect: b"abc"
-print(bytes.concat());              // expect: b""
 
 fun fails(f) {
   try { f(); } catch e { print(type(e) + ": " + e.message); }

@@ -17,7 +17,7 @@ type BoundMethod struct {
 
 func (b *BoundMethod) String() string { return b.fn.String() }
 
-// BoundNative is a built-in method read off its receiver, as in m.get.
+// BoundNative is a built-in method read off its receiver, as in m.keys.
 type BoundNative struct {
 	recv value.Value
 	fn   *stdlib.Native
@@ -104,13 +104,6 @@ func (p *Interpreter) invoke(fr *frame, in Instr, tok *ast.Token) error {
 	at, n := fr.base+in.a(), in.b()
 	t, key := p.stack[at+1], fr.cl.proto.consts[in.c()]
 
-	if t.Kind() == value.Struct && t.Shape().Namespace {
-		if v, ok := own(tok, t, key); ok {
-			p.stack[at] = v
-			return p.callWithout(at, n, tok)
-		}
-	}
-
 	ms, owner := p.methodsOf(t)
 
 	m := value.FindMethod(ms, key.Str())
@@ -196,22 +189,8 @@ func mutatingCallError(name, owner string) string {
 	return "Cannot call mutating method " + method + ": the receiver is not a mutable variable, element or property."
 }
 
-// methodHints names the syntax Rune has for a method other languages have.
-var methodHints = map[string]string{
-	"contains": "test membership with 'x in xs'",
-	"has":      "test membership with 'x in xs'",
-	"slice":    "slice with 'xs[a..b]'",
-}
-
 func noMethod(tok *ast.Token, owner, name string) error {
-	msg := fmt.Sprintf("%s has no method '%s'", owner, name)
-	if hint, ok := methodHints[name]; ok {
-		msg += "; " + hint + "."
-	} else {
-		msg += "."
-	}
-
-	return errors.NewRuntimeError(errors.TypeError, *tok, msg)
+	return errors.NewRuntimeError(errors.TypeError, *tok, fmt.Sprintf("%s has no method '%s'.", owner, name))
 }
 
 // notMethod is the error of t.name(args) for a function in a field or property.

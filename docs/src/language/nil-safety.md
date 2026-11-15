@@ -86,7 +86,7 @@ print(5 ?? loadDefault());    // 5
 print(nil ?? nil ?? "last");  // last
 ```
 
-`??` binds looser than `||` and tighter than ranges and `? :`.
+`??` binds looser than `||` and tighter than `? :`.
 
 ## Leaving Early
 

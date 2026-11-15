@@ -1,4 +1,0 @@
-try { set([1]).contains(1); } catch e is TypeError { print(e.message); } // expect: set has no method 'contains'; test membership with 'x in xs'.
-try { map().has(1); } catch e is TypeError { print(e.message); } // expect: map has no method 'has'; test membership with 'x in xs'.
-try { "abc".slice(1); } catch e is TypeError { print(e.message); } // expect: string has no method 'slice'; slice with 'xs[a..b]'.
-try { [1].nope(); } catch e is TypeError { print(e.message); } // expect: array has no method 'nope'.

@@ -53,6 +53,7 @@ print(pick in colors);   // true
 print(math.PI);        // 3.141592653589793
 print(math.INF);       // inf
 print(-math.INF);      // -inf
+print(math.NAN);       // nan
 print(math.MAX_INT);   // 9223372036854775807
 print(math.MIN_INT);   // -9223372036854775808
 ```

@@ -75,7 +75,7 @@ print([1, 2] == [2, 1]);           // false
 
 Arrays are references: assigning an array or passing it to a function does
 not copy it, so `push`, `pop` and index assignment are visible through every
-reference. `[...xs]` or `xs[..]` makes a copy.
+reference. `[...xs]` makes a copy.
 
 ```rune
 let a = [1, 2];

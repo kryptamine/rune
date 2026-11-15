@@ -36,7 +36,7 @@ let log = """
 let mut counts = map();
 for line in log.split("\n") {
     let k = kind(parse(line));
-    counts[k] = counts.get(k, 0) + 1;
+    counts[k] = (counts?.[k] ?? 0) + 1;
 }
 print(counts);    // map {"ok": 2, "slow": 1, "error": 1}
 ```

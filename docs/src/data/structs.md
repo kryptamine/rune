@@ -95,11 +95,11 @@ part of the struct, so `ann.tags.push("x")` changes it in place.
 
 ## Updating with spread
 
-A literal may spread a struct of the same type, or an object of some of
-its fields, as `T { ...t, x: 1 }` does an update without changing `t`.
-Items apply in order, later ones winning, and a field none of them gives
-takes its default; one with no default, a key that is not a field, or a
-struct of another type is a runtime error.
+A literal may spread a struct of the same type, as `T { ...t, x: 1 }`
+does an update without changing `t`. Items apply in order, later ones
+winning. Spreading anything else, an object or a struct of another type,
+is a runtime error; an object becomes a struct by
+[conversion](#converting).
 
 ```rune
 struct Config { host, port = 8080, debug = false }
@@ -107,7 +107,6 @@ struct Config { host, port = 8080, debug = false }
 let base = Config { host: "localhost" };
 print(Config { ...base, debug: true });  // Config {host: "localhost", port: 8080, debug: true}
 print(Config { debug: true, ...base });  // Config {host: "localhost", port: 8080, debug: false}
-print(Config { ...{ host: "example.com" } }); // Config {host: "example.com", port: 8080, debug: false}
 print(base);                             // Config {host: "localhost", port: 8080, debug: false}
 ```
 
@@ -144,8 +143,8 @@ Config({ port: 80 }); // KeyError: Missing field 'host' of Config.
 
 `==` compares structs field by field and only if they are of the same
 struct, so a struct never equals an object. `for k, v in s` walks the
-fields in declaration order. `object(s)` copies a struct into a new
-object, `object(s).len()` its number of fields and `type(s)` its name.
+fields in declaration order. `{ ...s }` copies a struct into a new
+object, `{ ...s }.len()` is its number of fields and `type(s)` its name.
 
 ```rune
 struct User { name, role = "member" }
@@ -162,8 +161,8 @@ for field, value in ann {
 // name: ann
 // role: member
 
-print(object(ann)); // {name: "ann", role: "member"}
-print(object(ann).len()); // 2
+print({ ...ann });  // {name: "ann", role: "member"}
+print({ ...ann }.len()); // 2
 print(type(ann));   // User
 print(type(User));  // struct
 ```

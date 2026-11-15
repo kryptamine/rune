@@ -1,10 +1,10 @@
 let m = map([["a", 1]]);
 let s = set([1]);
-print(m.get("a")); // expect: 1
+print(m["a"]); // expect: 1
 print(1 in s); // expect: true
 
 let mut mm = m;
-mm.set("b", 2);
+mm["b"] = 2;
 print(m); // expect: map {"a": 1, "b": 2}
 
 let a = [2, 1];

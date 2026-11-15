@@ -286,8 +286,9 @@ func (p *Interpreter) slow(in Instr) error {
 
 		arr, n, req := src.Arr(), in.c()&maxUnpack, in.c()>>unpackShift
 
-		if len(arr) < req {
-			return errors.NewRuntimeError(errors.IndexError, *tok, fmt.Sprintf("Expected at least %s but got %d.", helpers.Plural(req, "element"), len(arr)))
+		rest := in.x() != 0
+		if len(arr) < req || !rest && !in.y() && len(arr) > n {
+			return unpackError(tok, len(arr), req, n, rest)
 		}
 
 		got := copy(regs[in.a():in.a()+n], arr)
@@ -295,7 +296,7 @@ func (p *Interpreter) slow(in Instr) error {
 			regs[in.a()+i] = value.UndefinedValue
 		}
 
-		if in.x() != 0 {
+		if rest {
 			regs[in.a()+n] = value.NewArray(append([]value.Value(nil), arr[got:]...))
 		}
 
@@ -460,8 +461,8 @@ func spread(tok *ast.Token, dst, src value.Value) error {
 	return nil
 }
 
-// spreadItems appends the elements of src: an array's, a set's, a map's
-// [key, value] pairs or a bytes' integers.
+// spreadItems appends the elements of src: an array's, a set's or a
+// bytes' integers.
 func spreadItems(items []value.Value, src value.Value) ([]value.Value, bool) {
 	switch src.Kind() {
 	case value.Array:
@@ -469,11 +470,6 @@ func spreadItems(items []value.Value, src value.Value) ([]value.Value, bool) {
 	case value.Set:
 		src.HashMap().Each(func(k, _ value.Value) bool {
 			items = append(items, k)
-			return true
-		})
-	case value.Map:
-		src.HashMap().Each(func(k, v value.Value) bool {
-			items = append(items, value.NewArray([]value.Value{k, v}))
 			return true
 		})
 	case value.Bytes, value.Buffer:
@@ -497,19 +493,14 @@ func spreadArgs(src value.Value) ([]value.Value, bool) {
 	return spreadItems(nil, src)
 }
 
-// spreadFields copies src, a struct of type shape or an object of some of
-// its fields, into the field registers fields.
+// spreadFields copies src, a struct of type shape, into the field
+// registers fields.
 func spreadFields(tok *ast.Token, shape *value.Shape, fields []value.Value, src value.Value) error {
-	switch {
-	case src.Kind() == value.Struct && src.Shape() == shape:
-		copy(fields, src.Fields())
-	case src.Kind() == value.Object:
-		if extra, ok := shape.Assign(fields, src.Obj()); !ok {
-			return errors.NewRuntimeError(errors.KeyError, *tok, errors.NoField(shape.Name, extra))
-		}
-	default:
+	if src.Kind() != value.Struct || src.Shape() != shape {
 		return spreadError(tok, src, shape.Name)
 	}
+
+	copy(fields, src.Fields())
 
 	return nil
 }
@@ -536,6 +527,20 @@ func omit(tok *ast.Token, src value.Value, keys []string) (value.Value, error) {
 	}
 
 	return value.NewObject(obj), nil
+}
+
+// unpackError says an array of got elements does not fit a pattern
+// taking from req to n of them, or more with rest.
+func unpackError(tok *ast.Token, got, req, n int, rest bool) error {
+	want := "Expected " + helpers.Plural(req, "element")
+	switch {
+	case got < req && (rest || req < n):
+		want = "Expected at least " + helpers.Plural(req, "element")
+	case got > n && req < n:
+		want = "Expected at most " + helpers.Plural(n, "element")
+	}
+
+	return errors.NewRuntimeError(errors.IndexError, *tok, fmt.Sprintf("%s but got %d.", want, got))
 }
 
 func spreadError(tok *ast.Token, v value.Value, into string) error {

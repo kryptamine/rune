@@ -10,8 +10,8 @@ struct AggSpec { fn, arg, distinct }
 // specs compiles the aggregate calls against the rows' scope.
 export fun specs(calls, scope) {
     return calls.map(e => {
-        if e.args.len() != (e.star ? 0 : 1) throw ast.SqlError { message: "{e.name} takes one argument", pos: e.pos };
-        if !e.star && ast.aggregatesIn(e.args[0]) throw ast.SqlError { message: "aggregates cannot nest", pos: e.pos };
+        if e.args.len() != (e.star ? 0 : 1) { throw ast.SqlError { message: "{e.name} takes one argument", pos: e.pos }; }
+        if !e.star && ast.aggregatesIn(e.args[0]) { throw ast.SqlError { message: "aggregates cannot nest", pos: e.pos }; }
         return AggSpec {
             fn: Agg(e.name[0] + e.name[1..].lower()),
             arg: e.star ? nil : expr.compile(e.args[0], expr.Ctx { scope }),
@@ -39,11 +39,11 @@ export fun aggregate(rows, keys, aggs) {
             1 => (keys[0])(r),
             _ => string(keys.map(f => f(r))),
         };
-        let mut g = slots.get(k);
+        let mut g = slots?.[k];
         if g == nil {
             groups.push([keys.map(f => f(r)), fresh()]);
             g = groups.len() - 1;
-            slots.set(k, g);
+            slots[k] = g;
         }
 
         let mut acc = groups[g][1];
@@ -54,7 +54,7 @@ export fun aggregate(rows, keys, aggs) {
                 continue;
             }
             let v = (a.arg)(r);
-            if v == nil continue;
+            if v == nil { continue; }
             if a.distinct {
                 acc[i].add(v);
                 continue;
@@ -65,14 +65,14 @@ export fun aggregate(rows, keys, aggs) {
                 Agg.Avg => {
                     acc[i][0] += v;
                     acc[i][1]++;
-                }
-                Agg.Min => if acc[i] == nil || expr.compare(v, acc[i]) < 0 acc[i] = v;
-                Agg.Max => if acc[i] == nil || expr.compare(v, acc[i]) > 0 acc[i] = v;
+                },
+                Agg.Min => { if acc[i] == nil || expr.compare(v, acc[i]) < 0 { acc[i] = v; } },
+                Agg.Max => { if acc[i] == nil || expr.compare(v, acc[i]) > 0 { acc[i] = v; } }
             }
         }
     }
 
-    if nk == 0 && !groups groups.push([[], fresh()]);
+    if nk == 0 && !groups { groups.push([[], fresh()]); }
 
     return groups.map(([ks, acc]) => [...ks, ...aggs.map((a, i) => finish(a, acc[i]))]);
 }

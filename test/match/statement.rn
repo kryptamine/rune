@@ -9,8 +9,8 @@ let mut i = 0;
 while true {
     i++;
     match i {
-        1 => { continue; }
-        4 => { break; }
+        1 => { continue; },
+        4 => { break; },
         _ => {}
     }
     print(i);
@@ -18,15 +18,15 @@ while true {
 // expect: 2
 // expect: 3
 
-for x in [1, 2, 3] match x {
-    2 => { print("two"); } // expect: two
+for x in [1, 2, 3] { match x {
+    2 => { print("two"); }, // expect: two
     _ => {}
-}
+} }
 
 fun sign(n) {
     match n {
-        0 => { return "zero"; }
-        n if n < 0 => { return "negative"; }
+        0 => { return "zero"; },
+        n if n < 0 => { return "negative"; },
         _ => {}
     }
 
@@ -46,7 +46,7 @@ fun classify(n) {
         0 => print("zero"),
         1 => return "one",
         2 => throw Oops { code: 2 },
-        n => if n > 5 print("big"); else print("small");
+        n => { if n > 5 { print("big"); } else { print("small"); } }
     }
 
     return "done";
@@ -66,11 +66,11 @@ try {
     print(e.code); // expect: 2
 }
 
-for i in 0..5 match i {
+for i in 0..5 { match i {
     1 => continue,
     3 => break,
     _ => print(i),
-}
+} }
 // expect: 0
 // expect: 2
 

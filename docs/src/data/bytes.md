@@ -36,13 +36,12 @@ buf[0] = 120; // TypeError: Bytes are immutable.
 ## The bytes namespace
 
 Besides `bytes(v)` itself, `alloc(n[, fill])` (`n` bytes of `fill`,
-default `0`), `concat(b, ...)`, `fromHex(s)`, `fromBase64(s)` and
-`buffer([data])`, a new [buffer](#buffers):
+default `0`), `fromHex(s)`, `fromBase64(s)` and `buffer([data])`, a new
+[buffer](#buffers):
 
 ```rune
 print(bytes.alloc(3));             // b"\x00\x00\x00"
 print(bytes.alloc(2, 255));        // b"\xff\xff"
-print(bytes.concat(b"a", b"b"));   // b"ab"
 print(bytes.fromHex("cafe"));      // b"\xca\xfe"
 print(bytes.fromBase64("aGk="));   // b"hi"
 ```
@@ -50,16 +49,17 @@ print(bytes.fromBase64("aGk="));   // b"hi"
 ## Methods
 
 `text()` (the bytes as UTF-8 text, as a stream's `readText()` reads it;
-anything else is a `ValueError`), `toArray()`, `indexOf(sub)` (`-1` if missing), `concat(b, ...)`,
-`hex()` and `base64()`.
+anything else is a `ValueError`), `indexOf(sub)` (`-1` if missing), `hex()`
+and `base64()`. `[...b]` is the bytes as an array of integers, and `+`
+joins them; to join many, write them to a [buffer](#buffers).
 
 ```rune
 let data = b"hello";
 print(data.text());                  // hello
-print(data.toArray());               // [104, 101, 108, 108, 111]
+print([...data]);                    // [104, 101, 108, 108, 111]
 print(data[1..3]);             // b"el"
 print(data.indexOf(b"ll"));          // 2
-print(data.concat(b", ", b"world")); // b"hello, world"
+print(data + b", world");            // b"hello, world"
 print(data.base64());                // aGVsbG8=
 ```
 

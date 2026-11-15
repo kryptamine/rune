@@ -37,19 +37,14 @@ for s in ["abc", "inf", "0x", "", "-", ".5", "5.", "+1", "1e", "1e400", "1 2"] {
 // expect: number() cannot parse "1 2" as a number.
 
 try { number(nil); } catch e is TypeError { print(e.message); } // expect: number() expects a number or a string as argument 1, got nil.
-try { int("3.5"); } catch e is ValueError { print(e.message); } // expect: int() cannot parse "3.5" as an integer in base 10.
-try { int("1_000"); } catch e is ValueError { print(e.message); } // expect: int() cannot parse "1_000" as an integer in base 10.
+try { int("3.5"); } catch e is ValueError { print(e.message); } // expect: int() cannot parse "3.5" as an integer.
+try { int("1e3"); } catch e is ValueError { print(e.message); } // expect: int() cannot parse "1e3" as an integer.
+try { int("1__0", 10); } catch e is ValueError { print(e.message); } // expect: int() cannot parse "1__0" as an integer in base 10.
+print(int("1_000"), int(" -0x1F "), int("0b11"), int("f_f", 16), int("0755", 8)); // expect: 1000 -31 3 255 493
 try { int("z", 37); } catch e is ValueError { print(e.message); } // expect: int() expects a base from 2 to 36, got 37.
 try { int(10, 2); } catch e is TypeError { print(e.message); } // expect: int() expects a string as argument 1, got number.
 try { int(math.INF); } catch e is ValueError { print(e.message); } // expect: int() cannot convert inf to an integer.
 
-print(3.14159.fixed(2)); // expect: 3.14
-print(2.fixed(3)); // expect: 2.000
-print(2.5.fixed(0)); // expect: 2
-print((-0.001).fixed(1)); // expect: -0.0
-print((-0).fixed(2)); // expect: 0.00
-try { 1.fixed(101); } catch e is ValueError { print(e.message); } // expect: number.fixed() expects 0 to 100 digits, got 101.
-try { 1.fixed(1.5); } catch e is TypeError { print(e.message); } // expect: number.fixed() expects an integer as argument 1, got number.
 print(number("1_000")); // expect: 1000
 print(number("0xff")); // expect: 255
 print(number(" -0b101 ")); // expect: -5
@@ -57,18 +52,13 @@ print(number("1_000.5")); // expect: 1000.5
 
 struct User { name, role = "guest" }
 print(object());                               // expect: {}
-print(object(User { name: "ann" }));           // expect: {name: "ann", role: "guest"}
 print(object(map([["b", 1], ["a", 2]])));      // expect: {b: 1, a: 2}
 print(object([["x", 1], ["y", [2]]]));         // expect: {x: 1, y: [2]}
-let src = { a: 1 };
-let mut copy = object(src);
-copy.b = 2;
-print([src, copy]);                            // expect: [{a: 1}, {a: 1, b: 2}]
+try { object({ a: 1 }); } catch e is TypeError { print(e.message); }     // expect: object() expects a map or an array of pairs as argument 1, got object.
 try { object(map([[1, 2]])); } catch e is TypeError { print(e.message); } // expect: object() expects string keys, got 1.
 try { object([1]); } catch e is TypeError { print(e.message); }           // expect: object() expects [key, value] pairs, got 1.
 
 print([1, "a", nil].map(string));              // expect: ["1", "a", "nil"]
 print(["hi"].map(bytes));                      // expect: [b"hi"]
 print([{ name: "bob" }].map(User));            // expect: [User {name: "bob", role: "guest"}]
-try { [1].map(math); } catch e is TypeError { print(e.message); } // expect: array.map() expects a function as argument 1, got namespace.
 print(map(User { name: "ann" }));              // expect: map {"name": "ann", "role": "guest"}

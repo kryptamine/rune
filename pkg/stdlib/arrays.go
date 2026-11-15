@@ -207,6 +207,10 @@ var arrayInPlace = []*Native{
 
 		return x
 	}},
+	{"array.reverse", 1, 1, func(c *call) value.Value {
+		slices.Reverse(c.arr(0))
+		return value.NilValue
+	}},
 	// sort sorts in place, stably.
 	{"array.sort", 1, 2, func(c *call) value.Value {
 		items := c.arr(0)

@@ -570,30 +570,19 @@ func (s *Parser) ifStatement() (ast.Stmt, error) {
 // declaration: a block statement or a jump.
 func stmtKeyword(t ast.TokenType) bool {
 	switch t {
-	case ast.RETURN, ast.THROW, ast.BREAK, ast.CONTINUE:
-		return true
-	}
-
-	return blockKeyword(t)
-}
-
-// atTryStatement reports whether "try {" is ahead; any other try is an expression.
-func (s *Parser) atTryStatement() bool { return s.check(ast.TRY) && s.peekAt(1) == ast.LEFT_BRACE }
-
-// blockKeyword reports whether t starts a statement that is no expression.
-func blockKeyword(t ast.TokenType) bool {
-	switch t {
-	case ast.IF, ast.WHILE, ast.FOR, ast.TRY:
+	case ast.RETURN, ast.THROW, ast.BREAK, ast.CONTINUE, ast.IF, ast.WHILE, ast.FOR, ast.TRY:
 		return true
 	}
 
 	return false
 }
 
-// body parses an if/else/while/for body: a block, or a bare statement
-// starting with a token that cannot continue the paren-free header.
+// atTryStatement reports whether "try {" is ahead; any other try is an expression.
+func (s *Parser) atTryStatement() bool { return s.check(ast.TRY) && s.peekAt(1) == ast.LEFT_BRACE }
+
+// body parses an if/else/while/for body, a block.
 func (s *Parser) body(after string) (ast.Stmt, error) {
-	if t := s.peek().TokenType; t == ast.LEFT_BRACE || t == ast.IDENTIFIER || t == ast.MATCH || stmtKeyword(t) {
+	if s.check(ast.LEFT_BRACE) {
 		return s.statement()
 	}
 

@@ -139,7 +139,7 @@ unchanged, with all its fields.
 struct AgeError { message, value }
 
 fun parseAge(v) {
-    if v < 0 throw AgeError { message: "negative age", value: v };
+    if v < 0 { throw AgeError { message: "negative age", value: v }; }
     return v;
 }
 
@@ -206,21 +206,20 @@ throw "oops"; // TypeError: Can only throw struct instances.
 
 ## defer
 
-`defer statement` runs the statement when the block it is in is left: at
-its end, by `return`, `break` or `continue`, or by an error, which then
-goes on up. The statement is a block or a bare statement starting with a
-name or keyword. Defers run last first.
+`defer { ... }` runs the block when the block it is in is left: at its
+end, by `return`, `break` or `continue`, or by an error, which then goes on
+up. Defers run last first.
 
 ```rune
 fun save(path, lines) {
     let out = fs.open(path, "w");
-    defer out.close();
+    defer { out.close(); }
 
-    for line in lines out.write(line + "\n");
+    for line in lines { out.write(line + "\n"); }
 }
 
 let dir = fs.tempDir();
-defer fs.removeAll(dir);
+defer { fs.removeAll(dir); }
 
 let path = fs.join(dir, "todo.txt");
 save(path, ["milk", "tea"]);
@@ -229,8 +228,8 @@ print(fs.lines(path)); // ["milk", "tea"]
 
 ```rune
 fun step(n) {
-    defer print("step {n} done");
-    if n == 0 throw ValueError { message: "zero" };
+    defer { print("step {n} done"); }
+    if n == 0 { throw ValueError { message: "zero" }; }
     print("step {n}");
 }
 
@@ -247,6 +246,6 @@ cannot `return`, nor `break` or `continue` out of itself:
 
 ```rune
 fun f() {
-    defer return 1; // Error at 'return': Cannot return from a 'defer' body.
+    defer { return 1; } // Error at 'return': Cannot return from a 'defer' body.
 }
 ```

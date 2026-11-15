@@ -8,7 +8,7 @@ for i in 0..3 {
     }
 }
 
-for f in fs print(f());
+for f in fs { print(f()); }
 // expect: 1
 // expect: 2
 

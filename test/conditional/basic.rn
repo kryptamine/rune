@@ -34,4 +34,4 @@ struct P { x }
 let p = x > 0 ? P { x } : nil;
 print(p); // expect: P {x: 5}
 
-if (x > 0 ? true : false) print("ok"); // expect: ok
+if (x > 0 ? true : false) { print("ok"); } // expect: ok

@@ -275,7 +275,7 @@ func (fs *funcState) expr(e ast.Expr, dst int32) {
 		}
 
 		v := fs.operand(n.Value, n.Type)
-		fs.emit(ins{op: opIs, a: dst, b: v, c: fs.exprAny(n.Type)}, &n.Token)
+		fs.emit(ins{op: opIs, a: dst, b: v, c: fs.exprAny(n.Type), y: uint8(boolNum(n.Negate))}, &n.Token)
 	case *ast.IndexExpr:
 		fs.index(n, dst)
 	case *ast.SliceExpr:
@@ -827,5 +827,5 @@ func (fs *funcState) isType(n *ast.IsExpr, dst int32) {
 	v := fs.exprAny(n.Value)
 	t := fs.alloc()
 	fs.emit(ins{op: opLoadK, a: t, c: fs.constant(value.NewType(n.Shape))}, nil)
-	fs.emit(ins{op: opIs, a: dst, b: v, c: t}, &n.Token)
+	fs.emit(ins{op: opIs, a: dst, b: v, c: t, y: uint8(boolNum(n.Negate))}, &n.Token)
 }

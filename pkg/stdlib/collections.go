@@ -107,6 +107,10 @@ var collectionNatives = []*Native{
 		return c.result(value.NewMap(m))
 	}},
 	{"object", 0, 1, func(c *call) value.Value {
+		if c.has(0) && c.args[0].Kind() != value.Map && c.args[0].Kind() != value.Array {
+			return c.typeError(0, "a map or an array of pairs")
+		}
+
 		obj := value.NewObj(0)
 		for k, v := range c.entries(0) {
 			if !k.IsString() {
@@ -179,18 +183,6 @@ func setMethod(name string, min, max int, fn func(c *call, m *value.HashMap) val
 }
 
 var mapMethods = []*Native{
-	mapMethod("map.get", 2, 3, func(c *call, m *value.HashMap) value.Value {
-		v, found, err := m.Get(c.args[1])
-		if !c.keyErr(err) {
-			return value.NilValue
-		}
-
-		if !found && c.has(2) {
-			return c.args[2]
-		}
-
-		return v
-	}),
 	mapMethod("map.keys", 1, 1, func(_ *call, m *value.HashMap) value.Value { return keysOf(m) }),
 	mapMethod("map.values", 1, 1, func(_ *call, m *value.HashMap) value.Value {
 		return collect(m, func(_, v value.Value) value.Value { return v })
@@ -201,10 +193,6 @@ var mapMethods = []*Native{
 }
 
 var mapInPlace = []*Native{
-	mapMethod("map.set", 3, 3, func(c *call, m *value.HashMap) value.Value {
-		c.keyErr(m.Set(c.args[1], c.args[2]))
-		return value.NilValue
-	}),
 	mapMethod("map.delete", 2, 2, deleteKey),
 	mapMethod("map.clear", 1, 1, clearTable),
 }
@@ -248,7 +236,6 @@ var setInPlace = []*Native{
 }
 
 var setMethods = []*Native{
-	setMethod("set.values", 1, 1, func(_ *call, m *value.HashMap) value.Value { return keysOf(m) }),
 	setOp("set.union", func(bool) bool { return true }, true),
 	setOp("set.intersection", func(in bool) bool { return in }, false),
 	setOp("set.difference", func(in bool) bool { return !in }, false),

@@ -57,7 +57,7 @@ impl Parser {
 
     fun expect(mut self, text) {
         let t = self.next();
-        if t.text != text throw CalcError { message: "expected '{text}', got '{t.text}'", pos: t.pos };
+        if t.text != text { throw CalcError { message: "expected '{text}', got '{t.text}'", pos: t.pos }; }
         return t;
     }
 
@@ -76,7 +76,7 @@ impl Parser {
             let mut params = [];
             while self.peek().text != ")" {
                 params.push(self.next().text);
-                if self.peek().text == "," self.next();
+                if self.peek().text == "," { self.next(); }
             }
             self.expect(")");
             self.expect("=");
@@ -91,8 +91,8 @@ impl Parser {
 
         while true {
             let op = self.peek().text;
-            let prec = PRECEDENCE.get(op, -1);
-            if prec < minPrec || prec < 0 break;
+            let prec = PRECEDENCE?.[op] ?? -1;
+            if prec < minPrec || prec < 0 { break; }
 
             self.next();
             let nextMin = op in RIGHT_ASSOC ? prec : prec + 1;
@@ -118,7 +118,7 @@ impl Parser {
                 let mut args = [];
                 while self.peek().text != ")" {
                     args.push(self.expr(0));
-                    if self.peek().text == "," self.next();
+                    if self.peek().text == "," { self.next(); }
                 }
                 self.expect(")");
                 return Node.Call { name, args };
@@ -133,7 +133,7 @@ fun parse(src) {
     let mut p = Parser.new(src);
     let ast = p.statement();
     let end = p.peek();
-    if end.kind != Kind.Eof throw CalcError { message: "unexpected '{end.text}'", pos: end.pos };
+    if end.kind != Kind.Eof { throw CalcError { message: "unexpected '{end.text}'", pos: end.pos }; }
     return ast;
 }
 
@@ -156,7 +156,7 @@ impl Env {
 
         return match node {
             Node.Num { value } => value,
-            Node.Var { name } => locals?.[name] ?? self.vars.get(name) ?? throw CalcError { message: "unknown variable '{name}'" },
+            Node.Var { name } => locals?.[name] ?? self.vars?.[name] ?? throw CalcError { message: "unknown variable '{name}'" },
             Node.Neg { expr } => -ev(expr),
             Node.Binary { op, left, right } => {
                 let [a, b] = [ev(left), ev(right)];
@@ -172,22 +172,22 @@ impl Env {
             Node.Call { name, args } => self.call(name, args.map(ev)),
             Node.Assign { name, expr } => {
                 let v = ev(expr);
-                self.vars.set(name, v);
+                self.vars[name] = v;
                 return v;
             },
             Node.FunDef { name, params } => {
-                self.funs.set(name, node);
+                self.funs[name] = node;
                 return "{name}({params.join(", ")})";
             },
         };
     }
 
     fun call(mut self, name, args) {
-        let f = self.funs.get(name);
+        let f = self.funs?.[name];
         if f != nil {
-            if args.len() != f.params.len() throw CalcError { message: "{name} takes {f.params.len()} arguments, got {args.len()}" };
+            if args.len() != f.params.len() { throw CalcError { message: "{name} takes {f.params.len()} arguments, got {args.len()}" }; }
             let mut locals = {};
-            for i, p in f.params locals[p] = args[i];
+            for i, p in f.params { locals[p] = args[i]; }
             return self.eval(f.body, locals);
         }
 
@@ -199,7 +199,7 @@ impl Env {
 fun show(v, digits = 6) => match v {
     _ if type(v) == "string" => v,
     _ if math.isInt(v) => string(v),
-    _ => regex.replace("\\.?0+$", v.fixed(digits), ""),
+    _ => regex.replace("\\.?0+$", "%.*f".format(digits, v), ""),
 };
 
 fun run(mut env, line) {
@@ -207,7 +207,7 @@ fun run(mut env, line) {
         print("{line.padEnd(32)} => {show(env.eval(parse(line)))}");
     } catch e is CalcError {
         print("{line.padEnd(32)} !! {e.message}");
-        if e.pos != nil print(" ".repeat(e.pos) + "^");
+        if e.pos != nil { print(" ".repeat(e.pos) + "^"); }
     } catch e is ValueError | TypeError {
         print("{line.padEnd(32)} !! {type(e)}: {e.message}");
     }
@@ -239,18 +239,18 @@ fun main(args) {
     if args?.[0] == "repl" {
         let mut line = io.readLine();
         while line != nil {
-            if line.trim() != "" run(env, line);
+            if line.trim() != "" { run(env, line); }
             line = io.readLine();
         }
         return;
     }
 
-    for line in DEMO run(env, line);
+    for line in DEMO { run(env, line); }
 
     let mut stats = map();
     for line in DEMO {
         let kind = try type(parse(line)) catch => continue;
-        stats.set(kind, stats.get(kind, 0) + 1);
+        stats[kind] = (stats?.[kind] ?? 0) + 1;
     }
     print("\nparsed node kinds: {stats}");
 }

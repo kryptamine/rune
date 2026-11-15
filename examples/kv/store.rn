@@ -17,7 +17,7 @@ impl Segment {
 
     fun added(mut self, n, alive) {
         self.size += n;
-        if alive self.live += n;
+        if alive { self.live += n; }
     }
 
     fun dropped(mut self, n) {
@@ -25,7 +25,7 @@ impl Segment {
     }
 
     fun read(mut self, at, n) {
-        if self.reader == nil self.reader = fs.open(self.log);
+        if self.reader == nil { self.reader = fs.open(self.log); }
         return self.reader.readAt(at, n);
     }
 
@@ -36,7 +36,7 @@ impl Segment {
     fun remove(self) {
         self.close();
         fs.remove(self.log);
-        if fs.exists(self.hint) fs.remove(self.hint);
+        if fs.exists(self.hint) { fs.remove(self.hint); }
     }
 }
 
@@ -98,7 +98,7 @@ impl Store {
         let mut rec = { segments: 0, records: 0, hinted: 0, truncated: [], ms: 0 };
 
         for f in fs.list(self.dir) {
-            if f.name.endsWith(".tmp") fs.remove(fs.join(self.dir, f.name));
+            if f.name.endsWith(".tmp") { fs.remove(fs.join(self.dir, f.name)); }
         }
         let ids = fs.list(self.dir).filter(f => f.name.endsWith(".log")).map(f => int(fs.stem(f.name)));
 
@@ -121,13 +121,13 @@ impl Store {
     }
 
     fun openActive(mut self) {
-        if self.active !in self.segs self.segs[self.active] = Segment.at(self.dir, self.active);
+        if self.active !in self.segs { self.segs[self.active] = Segment.at(self.dir, self.active); }
         self.out = fs.open(self.segs[self.active].log, "a");
     }
 
     fun apply(mut self, key, loc, kind) {
         let old = self.keydir?.[key];
-        if old self.segs[old.seg].dropped(old.recLen);
+        if old { self.segs[old.seg].dropped(old.recLen); }
         if kind == codec.PUT {
             self.keydir[key] = loc;
         } else {
@@ -144,7 +144,7 @@ impl Store {
         while at < data.len() {
             let r = codec.decode(data, at);
             if r is codec.Bad {
-                if !last throw KvError { message: "{seg.name()}: {r.name.lower()} record at byte {at}" };
+                if !last { throw KvError { message: "{seg.name()}: {r.name.lower()} record at byte {at}" }; }
                 fs.truncate(seg.log, at);
                 rec.truncated.push({ file: seg.name(), at, dropped: data.len() - at, reason: r.name.lower() });
                 break;
@@ -167,10 +167,10 @@ impl Store {
     }
 
     fun write(mut self, kind, key, value) {
-        if type(key) != "string" || key == "" throw KvError { message: "keys are non-empty strings, got {key}" };
+        if type(key) != "string" || key == "" { throw KvError { message: "keys are non-empty strings, got {key}" }; }
         let rec = codec.encode(kind, key, value);
         let used = self.segs[self.active].size;
-        if used > 0 && used + rec.len() > self.maxSegment self.rotate();
+        if used > 0 && used + rec.len() > self.maxSegment { self.rotate(); }
 
         let loc = codec.Loc { seg: self.active, start: self.segs[self.active].size, recLen: rec.len(), size: value.len() };
         self.out.write(rec);
@@ -194,7 +194,7 @@ impl Store {
     }
 
     fun delete(mut self, key) {
-        if key !in self.keydir return false;
+        if key !in self.keydir { return false; }
         self.write(codec.DEL, key, b"");
         return true;
     }
@@ -243,7 +243,7 @@ impl Store {
             let mut log = bytes.buffer();
             let mut hints = bytes.buffer();
             for [key, loc] in chunk {
-                if loc.seg !in data data[loc.seg] = fs.readBytes(self.segs[loc.seg].log);
+                if loc.seg !in data { data[loc.seg] = fs.readBytes(self.segs[loc.seg].log); }
                 let moved = codec.Loc { ...loc, seg: self.active, start: log.len() };
                 log.write(data[loc.seg][loc.start..loc.start + loc.recLen]);
                 codec.writeHint(hints, key, moved);
@@ -255,7 +255,7 @@ impl Store {
             segs[self.active] = Segment { ...seg, size: log.len(), live: log.len() };
         }
 
-        for s in old s.remove();
+        for s in old { s.remove(); }
         self.segs = segs;
         self.keydir = keydir;
         self.active++;
@@ -265,7 +265,7 @@ impl Store {
 
     fun close(self) {
         self.out.close();
-        for _, s in self.segs s.close();
+        for _, s in self.segs { s.close(); }
         self.lock.close();
     }
 }

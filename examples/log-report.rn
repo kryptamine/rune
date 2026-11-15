@@ -49,7 +49,7 @@ impl Stats {
     fun add(mut self, { status, bytes, latency }) {
         self.count++;
         self.bytes += bytes;
-        if status >= 500 self.errors++;
+        if status >= 500 { self.errors++; }
         self.latencies.push(latency);
     }
 
@@ -80,21 +80,21 @@ impl Report {
         self.total++;
 
         let key = "{e.method} {e.path}";
-        let mut s = self.endpoints.get(key) ?? Stats.new();
+        let mut s = self.endpoints?.[key] ?? Stats.new();
         s.add(e);
-        self.endpoints.set(key, s);
+        self.endpoints[key] = s;
 
         let cls = statusClass(e.status);
-        self.statuses.set(cls, self.statuses.get(cls, 0) + 1);
+        self.statuses[cls] = (self.statuses?.[cls] ?? 0) + 1;
 
-        let mut c = self.clients.get(e.ip) ?? { hits: 0, paths: set() };
+        let mut c = self.clients?.[e.ip] ?? { hits: 0, paths: set() };
         c.hits++;
         c.paths.add(e.path);
-        self.clients.set(e.ip, c);
+        self.clients[e.ip] = c;
 
         self.slowest.push(e);
         self.slowest.sort((a, b) => b.latency - a.latency);
-        if self.slowest.len() > TOP_SLOW self.slowest.pop();
+        if self.slowest.len() > TOP_SLOW { self.slowest.pop(); }
     }
 
     fun skip(mut self, err) {
@@ -103,7 +103,7 @@ impl Report {
 
     fun topClients(self, n = 3) {
         let mut rows = [];
-        for ip, { hits, paths } in self.clients rows.push({ ip, hits, distinct: paths.len() });
+        for ip, { hits, paths } in self.clients { rows.push({ ip, hits, distinct: paths.len() }); }
         rows.sort((a, b) => b.hits - a.hits);
         return rows[..n];
     }
@@ -113,7 +113,7 @@ fun analyze(path) {
     let mut report = Report.new();
 
     for i, line in fs.open(path) {
-        if line.trim() == "" continue;
+        if line.trim() == "" { continue; }
         try {
             report.add(parseLine(line, i + 1));
         } catch e is ParseError {
@@ -133,7 +133,7 @@ fun bar(value, max, width = 24) {
 fun table(headers, rows) {
     let mut widths = headers.map(h => h.len());
     for row in rows {
-        for i, cell in row widths[i] = math.max(widths[i], string(cell).len());
+        for i, cell in row { widths[i] = math.max(widths[i], string(cell).len()); }
     }
 
     let fmt = cells => {
@@ -147,7 +147,7 @@ fun table(headers, rows) {
 
     print(fmt(headers));
     print(widths.map(w => "─".repeat(w)).join("  "));
-    for row in rows print(fmt(row));
+    for row in rows { print(fmt(row)); }
 }
 
 fun printReport(r) {
@@ -173,7 +173,7 @@ fun printReport(r) {
     print("");
     print("status classes:");
     let mut max = 0;
-    for _, n in r.statuses max = math.max(max, n);
+    for _, n in r.statuses { max = math.max(max, n); }
     let mut classes = r.statuses.keys();
     classes.sort();
     for cls in classes {
@@ -239,7 +239,7 @@ let ROUTES = [
 fun generate(path, n = 400) {
     let mut rng = Rng.new(42);
     let out = fs.open(path, "w");
-    defer out.close();
+    defer { out.close(); }
 
     for i in 0..n {
         let route = rng.pick(ROUTES);
@@ -257,8 +257,8 @@ fun generate(path, n = 400) {
         let sec = i * 7;
         let time = "12/Nov/2026:%02d:%02d:%02d".format(10 + math.idiv(sec, 3600), math.idiv(sec, 60) % 60, sec % 60);
 
-        out.write("{rng.pick(IPS)} - - [{time}] \"{route.method} {(route.path)(rng.next())} HTTP/1.1\" {status} {size} {latency.fixed(4)}\n");
-        if i == 100 || i == 250 out.write("garbage line from a misconfigured proxy\n");
+        out.write("{rng.pick(IPS)} - - [{time}] \"{route.method} {(route.path)(rng.next())} HTTP/1.1\" {status} {size} {"%.4f".format(latency)}\n");
+        if i == 100 || i == 250 { out.write("garbage line from a misconfigured proxy\n"); }
     }
 }
 
@@ -282,13 +282,13 @@ fun run(path, flags) {
 
 fun main(args) {
     let started = time.now();
-    defer print("\ndone in %.1f ms".format((time.now() - started) * 1000));
+    defer { print("\ndone in %.1f ms".format((time.now() - started) * 1000)); }
 
     let [path, ...flags] = args || [nil];
-    if path != nil return run(path, flags);
+    if path != nil { return run(path, flags); }
 
     let tmp = fs.tempDir();
-    defer fs.removeAll(tmp);
+    defer { fs.removeAll(tmp); }
     let sample = fs.join(tmp, "access.log");
     generate(sample);
     print("(sample log: {fs.stat(sample).size} bytes)\n");

@@ -1,0 +1,15 @@
+[line: 1] Error at 'math': Namespace 'math' is not a value; use its members, as in math.name.
+    1 | let m = math; // Error at 'math': Namespace 'math' is not a value; use its members, as in math.name.
+      |         ^
+[line: 2] Error at 'json': Namespace 'json' is not a value; use its members, as in json.name.
+    2 | print(type(json)); // Error at 'json': Namespace 'json' is not a value; use its members, as in json.name.
+      |            ^
+[line: 3] Error at 'fs': Namespace 'fs' is not a value; use its members, as in fs.name.
+    3 | for k in fs { print(k); } // Error at 'fs': Namespace 'fs' is not a value; use its members, as in fs.name.
+      |          ^
+[line: 5] Error at ']': Namespace members must be named, as in math.name.
+    5 | print(math[key](1.2)); // Error at ']': Namespace members must be named, as in math.name.
+      |               ^
+[line: 6] Error at 'module': Namespace 'module' is not a value; use its members, as in module.name.
+    6 | print(module); // Error at 'module': Namespace 'module' is not a value; use its members, as in module.name.
+      |       ^

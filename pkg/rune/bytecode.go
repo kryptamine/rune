@@ -42,7 +42,7 @@ const (
 	opModK
 	opCmp     // R[A] = R[B] <X> R[C]
 	opCmpK    // R[A] = R[B] <X> K[C]
-	opIs      // R[A] = R[B] is R[C]
+	opIs      // R[A] = R[B] is R[C], negated with Y
 	opNeg     // R[A] = -R[B]
 	opNot     // R[A] = !R[B]
 	opIncr    // R[A] = R[B] + 1, or - 1 if X
@@ -92,7 +92,7 @@ const (
 	opSpread   // append the elements of array R[B] to array R[A], or merge R[B] into object R[A]
 	// Unpack: R[A+i] = R[B][i] for i < n, and if X R[A+n] = R[B][n:]; C is
 	// n | required<<unpackShift, and an element past those required that is
-	// missing is undefined.
+	// missing is undefined. More than n elements fail unless X or Y.
 	opUnpack
 	opOmit // R[A] = an object of the properties or fields of R[B] but keys[C]
 

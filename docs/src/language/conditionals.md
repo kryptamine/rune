@@ -18,13 +18,12 @@ if temp > 30 {
 // mild
 ```
 
-A body is a block, or a bare statement starting with a name or keyword, which
-suits early returns:
+A body is always a block, here and in `else`, `while`, `for` and `defer`:
 
 ```rune
 fun classify(age) {
-    if age < 0 return "invalid";
-    if age < 18 return "minor";
+    if age < 0 { return "invalid"; }
+    if age < 18 { return "minor"; }
     return "adult";
 }
 
@@ -52,7 +51,7 @@ print("ann" && "admin");           // admin
 ## Conditional Expressions
 
 `c ? a : b` is `a` if `c` is truthy, else `b`; only the chosen branch runs.
-It binds looser than ranges and `??`, tighter than assignment, and nests to
+It binds looser than `??`, tighter than assignment, and nests to
 the right: `a ? b : c ? d : e` is `a ? b : (c ? d : e)`.
 
 ```rune

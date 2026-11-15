@@ -1,0 +1,1 @@
+while true break; // Error at 'break': Expect '{' after while condition.

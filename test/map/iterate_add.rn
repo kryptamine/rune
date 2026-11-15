@@ -6,5 +6,5 @@ print(m); // expect: map {}
 
 let mut n = map([[1, 1]]);
 for k in n { // expect runtime error: [line: 8] ValueError: Cannot add to a map while iterating over it.
-  n.set(k + 1, 0);
+  n[k + 1] = 0;
 }

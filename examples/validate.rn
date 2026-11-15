@@ -105,24 +105,24 @@ fun check(s, v, path, mut out) {
         Deprecated { of, hint } => {
             warn(out, path, "deprecated: {hint}");
             return check(of, v, path, out);
-        }
+        },
         _ is Str => checkStr(s, v, path, out),
         Int { min, max } => {
-            if !want("number", v, path, out) return nil;
-            if int(v) != v return fail(out, path, "expected an integer, got {v}");
+            if !want("number", v, path, out) { return nil; }
+            if int(v) != v { return fail(out, path, "expected an integer, got {v}"); }
             return bounded(v, min, max, path, out);
-        }
+        },
         _ is Flag => want("boolean", v, path, out) ? v : nil,
         Duration { min, max } => {
-            if !want("string", v, path, out) return nil;
+            if !want("string", v, path, out) { return nil; }
             let ms = parseDuration(v) ?? return fail(out, path, "{show(v)} is not a duration like \"30s\" or \"1m30s\"");
             return bounded(ms, min, max, path, out, duration);
-        }
+        },
         Size { min, max } => {
-            if !want("string", v, path, out) return nil;
+            if !want("string", v, path, out) { return nil; }
             let n = parseSize(v) ?? return fail(out, path, "{show(v)} is not a size like \"512KB\" or \"8MB\"");
             return bounded(n, min, max, path, out, size);
-        }
+        },
         _ is Url => checkUrl(s, v, path, out),
         _ is Addr => checkAddr(v, path, out),
         _ is List => checkList(s, v, path, out),
@@ -133,41 +133,41 @@ fun check(s, v, path, mut out) {
 }
 
 fun want(t, v, path, mut out) {
-    if type(v) == t return true;
+    if type(v) == t { return true; }
     fail(out, path, "expected {t}, got {v == nil ? "null" : show(v)}");
     return false;
 }
 
 fun bounded(v, min, max, path, mut out, unit = string) {
-    if min != nil && v < min return fail(out, path, "{unit(v)} is below the minimum {unit(min)}");
-    if max != nil && v > max return fail(out, path, "{unit(v)} is above the maximum {unit(max)}");
+    if min != nil && v < min { return fail(out, path, "{unit(v)} is below the minimum {unit(min)}"); }
+    if max != nil && v > max { return fail(out, path, "{unit(v)} is above the maximum {unit(max)}"); }
     return v;
 }
 
 fun checkStr({ min, max, pattern, like, oneOf }, v, path, mut out) {
-    if !want("string", v, path, out) return nil;
+    if !want("string", v, path, out) { return nil; }
     if oneOf != nil && v !in oneOf {
         return fail(out, path, "{show(v)} is not one of {oneOf.join(", ")}" + suggest(v, oneOf));
     }
-    if v.len() < min return fail(out, path, min == 1 ? "must not be empty" : "shorter than {min} characters");
-    if max != nil && v.len() > max return fail(out, path, "longer than {max} characters");
-    if pattern != nil && !regex.test(pattern, v) return fail(out, path, "{show(v)} is not {like ?? "matching " + pattern}");
+    if v.len() < min { return fail(out, path, min == 1 ? "must not be empty" : "shorter than {min} characters"); }
+    if max != nil && v.len() > max { return fail(out, path, "longer than {max} characters"); }
+    if pattern != nil && !regex.test(pattern, v) { return fail(out, path, "{show(v)} is not {like ?? "matching " + pattern}"); }
     return v;
 }
 
 const URL_RE = r"^(?P<scheme>[a-z][a-z0-9+.-]*)://(?P<host>[^/:?#\s]+)(?::(?P<port>\d+))?(?:[/?#]\S*)?$";
 
 fun checkUrl({ schemes }, v, path, mut out) {
-    if !want("string", v, path, out) return nil;
+    if !want("string", v, path, out) { return nil; }
     let m = regex.find(URL_RE, v) ?? return fail(out, path, "{show(v)} is not a URL");
     let { scheme, port } = m.named;
-    if scheme !in schemes return fail(out, path, "scheme {scheme} is not allowed, use {schemes.join(" or ")}");
-    if port != nil && !validPort(int(port)) return fail(out, path, "port {port} is out of range 1-65535");
+    if scheme !in schemes { return fail(out, path, "scheme {scheme} is not allowed, use {schemes.join(" or ")}"); }
+    if port != nil && !validPort(int(port)) { return fail(out, path, "port {port} is out of range 1-65535"); }
     return v;
 }
 
 fun checkAddr(v, path, mut out) {
-    if !want("string", v, path, out) return nil;
+    if !want("string", v, path, out) { return nil; }
     let m = regex.find(r"^(?:[\w.-]*|\[[0-9a-fA-F:]+\]):(\d+)$", v) ?? return fail(out, path, "{show(v)} is not host:port");
     let port = int(m.groups[0]);
     return validPort(port) ? v : fail(out, path, "port {port} is out of range 1-65535");
@@ -176,19 +176,19 @@ fun checkAddr(v, path, mut out) {
 fun validPort(p) => p >= 1 && p <= 65535;
 
 fun checkList({ of, min, max, unique }, v, path, mut out) {
-    if !want("array", v, path, out) return nil;
-    if v.len() < min fail(out, path, min == 1 ? "must not be empty" : "needs at least {min} items");
-    if max != nil && v.len() > max fail(out, path, "has {v.len()} items, at most {max} allowed");
+    if !want("array", v, path, out) { return nil; }
+    if v.len() < min { fail(out, path, min == 1 ? "must not be empty" : "needs at least {min} items"); }
+    if max != nil && v.len() > max { fail(out, path, "has {v.len()} items, at most {max} allowed"); }
 
     let mut seen = map();
     let mut items = [];
     for i, item in v {
         let at = [...path, i];
         items.push(check(of, item, at, out));
-        if unique == nil continue;
+        if unique == nil { continue; }
 
-        let [key, keyAt] = unique == true ? [item, at] : [item is object ? item.get(unique) : nil, [...at, unique]];
-        if !(key is string || key is number) continue;
+        let [key, keyAt] = unique == true ? [item, at] : [item is object ? item?.[unique] : nil, [...at, unique]];
+        if !(key is string || key is number) { continue; }
         if key in seen {
             fail(out, keyAt, "duplicate {show(key)}, first at {fmtPath(seen[key])}");
         } else {
@@ -199,55 +199,55 @@ fun checkList({ of, min, max, unique }, v, path, mut out) {
 }
 
 fun checkDict({ of, key, min }, v, path, mut out) {
-    if !want("object", v, path, out) return nil;
-    if v.len() < min fail(out, path, min == 1 ? "must not be empty" : "needs at least {min} entries");
+    if !want("object", v, path, out) { return nil; }
+    if v.len() < min { fail(out, path, min == 1 ? "must not be empty" : "needs at least {min} entries"); }
 
     let mut entries = {};
     for k, item in v {
         let at = [...path, k];
-        if key != nil && check(key, k, at, out) == nil continue;
+        if key != nil && check(key, k, at, out) == nil { continue; }
         entries[k] = check(of, item, at, out);
     }
     return entries;
 }
 
 fun checkObj({ fields, strict }, v, path, mut out) {
-    if !want("object", v, path, out) return nil;
+    if !want("object", v, path, out) { return nil; }
 
     let mut result = {};
     for field, s in fields {
         let at = [...path, field];
-        let given = v.get(field);
+        let given = v?.[field];
         if given != nil {
             let value = check(s, given, at, out);
-            if value != nil result[field] = value;
+            if value != nil { result[field] = value; }
             continue;
         }
         match s {
             Opt { of, default } if default != nil => result[field] = check(of, default, at, out),
-            _ is Opt | Deprecated => {}
+            _ is Opt | Deprecated => {},
             _ => fail(out, at, "missing required field"),
         }
     }
 
     if strict {
         for k in v.keys() {
-            if k !in fields fail(out, [...path, k], "unknown field" + suggest(k, fields.keys()));
+            if k !in fields { fail(out, [...path, k], "unknown field" + suggest(k, fields.keys())); }
         }
     }
     return result;
 }
 
 fun checkTagged({ tag, variants }, v, path, mut out) {
-    if !want("object", v, path, out) return nil;
+    if !want("object", v, path, out) { return nil; }
 
     let at = [...path, tag];
-    let kind = v.get(tag) ?? return fail(out, at, "missing required field");
-    if !want("string", kind, at, out) return nil;
-    let variant = variants.get(kind)
+    let kind = v?.[tag] ?? return fail(out, at, "missing required field");
+    if !want("string", kind, at, out) { return nil; }
+    let variant = variants?.[kind]
         ?? return fail(out, at, "unknown {tag} {show(kind)}, expected {variants.keys().join(", ")}" + suggest(kind, variants.keys()));
 
-    let rest = check(variant, object(v.entries().filter(([k]) => k != tag)), path, out) ?? return nil;
+    let rest = check(variant, object(v.entries().filter(([k, _]) => k != tag)), path, out) ?? return nil;
     return { [tag]: kind, ...rest };
 }
 
@@ -260,22 +260,22 @@ fun knownUpstreams(cfg, mut out) {
     for i, route in cfg?.routes ?? [] {
         let up = route?.upstream ?? continue;
         used.add(up);
-        if up !in names fail(out, ["routes", i, "upstream"], "no upstream named {show(up)}" + suggest(up, names));
+        if up !in names { fail(out, ["routes", i, "upstream"], "no upstream named {show(up)}" + suggest(up, names)); }
     }
     for n in names {
-        if n !in used warn(out, ["upstreams", n], "not used by any route");
+        if n !in used { warn(out, ["upstreams", n], "not used by any route"); }
     }
 }
 
 fun tlsOnHttpsPort(cfg, mut out) {
     let port = regex.find(r":(\d+)$", cfg?.listen ?? "")?.groups[0];
-    if port == "443" && cfg?.tls == nil fail(out, ["tls"], "required when listening on port 443");
+    if port == "443" && cfg?.tls == nil { fail(out, ["tls"], "required when listening on port 443"); }
 }
 
 fun probesFitInterval(cfg, mut out) {
     for n, up in cfg?.upstreams ?? {} {
         let h = up?.health ?? continue;
-        if h?.timeout == nil || h?.interval == nil continue;
+        if h?.timeout == nil || h?.interval == nil { continue; }
         if h.timeout >= h.interval {
             fail(out, ["upstreams", n, "health", "timeout"], "{duration(h.timeout)} must be shorter than the interval {duration(h.interval)}");
         }
@@ -287,7 +287,7 @@ let RULES = [knownUpstreams, tlsOnHttpsPort, probesFitInterval];
 fun validate(raw) {
     let mut issues = [];
     let cfg = check(SCHEMA, raw, [], issues);
-    for rule in RULES rule(cfg, issues);
+    for rule in RULES { rule(cfg, issues); }
     return { cfg, issues };
 }
 
@@ -309,7 +309,7 @@ fun v1to2(cfg, mut notes) {
         next.log = { level: log_level };
         notes.push("log_level → log.level");
     }
-    for k in dropped.keys() notes.push("server.{k} dropped, no longer supported");
+    for k in dropped.keys() { notes.push("server.{k} dropped, no longer supported"); }
     return next;
 }
 
@@ -317,7 +317,7 @@ fun v2to3(cfg, mut notes) {
     let { version: _, backends = [], routes = [], ...rest } = cfg;
 
     let mut upstreams = {};
-    for { name, ...up } in backends upstreams[name] = up;
+    for { name, ...up } in backends { upstreams[name] = up; }
     notes.push("backends → upstreams, keyed by name");
 
     let next = routes.map(({ path, backend, auth = "none", ...more }) => {
@@ -329,11 +329,11 @@ fun v2to3(cfg, mut notes) {
 }
 
 fun upgrade(raw, mut notes) {
-    if !(raw is object) return raw;
+    if !(raw is object) { return raw; }
     let mut cfg = raw;
 
     while true {
-        let v = cfg.get("version", 1);
+        let v = cfg?.version ?? 1;
         cfg = try match v {
             1 => v1to2(cfg, notes),
             2 => v2to3(cfg, notes),
@@ -378,7 +378,7 @@ fun suggest(word, options) {
 
 fun distance(a, b) {
     let mut prev = [];
-    for j in 0..b.len() + 1 prev.push(j);
+    for j in 0..b.len() + 1 { prev.push(j); }
 
     for i in 1..a.len() + 1 {
         let mut row = [i];
@@ -395,7 +395,7 @@ const UNITS = { h: 60 * 60 * 1000, m: 60 * 1000, s: 1000, ms: 1 };
 const SIZES = { GB: 1024 * MB, MB, KB: 1024, B: 1 };
 
 fun parseDuration(s) {
-    if !regex.test(r"^(\d+(ms|s|m|h))+$", s) return nil;
+    if !regex.test(r"^(\d+(ms|s|m|h))+$", s) { return nil; }
     return regex.findAll(r"(\d+)(ms|s|m|h)", s).reduce((ms, m) => ms + int(m.groups[0]) * UNITS[m.groups[1]], 0);
 }
 
@@ -406,7 +406,7 @@ fun parseSize(s) {
 
 fun inUnits(n, units) {
     for unit, k in units {
-        if n >= k && n % k == 0 return "{n / k}{unit}";
+        if n >= k && n % k == 0 { return "{n / k}{unit}"; }
     }
     return string(n);
 }
@@ -447,8 +447,8 @@ fun run([cmd = "help", path = nil, ...flags]) {
         print(usage());
         return 0;
     }
-    if cmd !in ["check", "migrate", "normalize"] throw UsageError { message: "unknown command '{cmd}'" };
-    if path == nil throw UsageError { message: "{cmd}: which file?" };
+    if cmd !in ["check", "migrate", "normalize"] { throw UsageError { message: "unknown command '{cmd}'" }; }
+    if path == nil { throw UsageError { message: "{cmd}: which file?" }; }
 
     let raw = load(path);
     let mut notes = [];
@@ -456,12 +456,12 @@ fun run([cmd = "help", path = nil, ...flags]) {
 
     match cmd {
         "check" => {
-            for n in notes io.eprint("  migrated: {n}");
+            for n in notes { io.eprint("  migrated: {n}"); }
             return report(validate(cfg).issues) > 0 ? 1 : 0;
-        }
+        },
         "migrate" => {
-            for n in notes io.eprint("  {n}");
-            if !notes io.eprint("  already at version {LATEST}");
+            for n in notes { io.eprint("  {n}"); }
+            if !notes { io.eprint("  already at version {LATEST}"); }
             if "-w" !in flags {
                 print(json.stringify(cfg, 2));
             } else if notes {
@@ -470,7 +470,7 @@ fun run([cmd = "help", path = nil, ...flags]) {
                 io.eprint("  wrote {path}");
             }
             return 0;
-        }
+        },
         "normalize" => {
             let { cfg: clean, issues } = validate(cfg);
             if issues.some(i => i.level == Level.Error) {
@@ -558,9 +558,9 @@ let BROKEN = r"""
 
 fun demo() {
     let dir = fs.tempDir();
-    defer fs.removeAll(dir);
+    defer { fs.removeAll(dir); }
     let files = { "edge.json": EDGE, "billing.json": BILLING_V1, "broken.json": BROKEN };
-    for file, text in files fs.write(fs.join(dir, file), text);
+    for file, text in files { fs.write(fs.join(dir, file), text); }
 
     let session = [
         "check edge.json",
@@ -579,7 +579,7 @@ fun demo() {
 
 fun main(args) {
     try {
-        if !args demo(); else return run(args);
+        if !args { demo(); } else { return run(args); }
     } catch e is UsageError {
         io.eprint("validate: {e.message}");
         io.eprint(usage());

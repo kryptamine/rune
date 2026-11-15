@@ -56,8 +56,8 @@ print([5, 6, 7].filter((_, i) => i % 2 == 0));           // [5, 7]
 
 ## Sorting
 
-`sort([cmp])` sorts **in place**, stably; `reverse()` and the rest return a
-new array.
+`sort([cmp])` sorts **in place**, stably, and `reverse()` reverses **in
+place**; `[...xs]` first keeps the original.
 Without `cmp` the elements must be all numbers or all strings; with it,
 `cmp(a, b) < 0` puts `a` first.
 
@@ -75,6 +75,11 @@ print(fruits);                            // ["fig", "pear", "Apple"]
 let mut people = [{ name: "bob", age: 25 }, { name: "ann", age: 31 }];
 people.sort((a, b) => b.age - a.age);
 print(people.map(({ name }) => name));    // ["ann", "bob"]
+
+let mut newest = [...scores];
+newest.reverse();
+print(newest);                            // [10, 5, 3, 1]
+print(scores);                            // [1, 3, 5, 10]
 ```
 
 ```rune
@@ -106,7 +111,7 @@ print([[1, 2], [3, 4]].indexOf([3, 4]));        // 1
 
 ## Slicing and joining
 
-`reverse()`, `repeat(n)` and `join(sep)` return new values, as does a
+`repeat(n)` and `join(sep)` return new values, as does a
 [slice](../data/arrays.md), `xs[a..b]`. `repeat` makes an array of a
 given size; its elements are shared, not copied, so `[[]].repeat(3)` holds
 one array three times.
@@ -115,7 +120,6 @@ one array three times.
 let xs = [10, 20, 30, 40, 50];
 print(xs[1..3]);   // [20, 30]
 print(xs[-2..]);     // [40, 50]
-print(xs.reverse());     // [50, 40, 30, 20, 10]
 print([0].repeat(3));    // [0, 0, 0]
 print(xs);               // [10, 20, 30, 40, 50]
 print(["a", "b", "c"].join(", ")); // a, b, c

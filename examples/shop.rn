@@ -37,7 +37,7 @@ impl Client {
         try {
             return self.send(method, "/auth" + path, body);
         } catch e is ApiError {
-            if e.status != 401 || self.refreshToken == nil throw e;
+            if e.status != 401 || self.refreshToken == nil { throw e; }
             self.refresh();
             return self.send(method, "/auth" + path, body);
         }
@@ -45,8 +45,8 @@ impl Client {
 
     fun send(self, method, path, body = nil) {
         let mut headers = { Accept: "application/json" };
-        if self.token != nil headers.Authorization = "Bearer " + self.token;
-        if body != nil headers["Content-Type"] = "application/json";
+        if self.token != nil { headers.Authorization = "Bearer " + self.token; }
+        if body != nil { headers["Content-Type"] = "application/json"; }
 
         let r = http.request(method, self.base + path, {
             headers,
@@ -78,7 +78,7 @@ fun urlEncode(s) {
     return out;
 }
 
-fun money(n) => "$" + n.fixed(2);
+fun money(n) => "$%.2f".format(n);
 
 fun section(title) {
     print("");

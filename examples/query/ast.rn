@@ -73,17 +73,17 @@ fun children(e) {
         Between { expr, lo, hi } => [expr, lo, hi],
         Case { whens, otherwise } => {
             let mut xs = [];
-            for [c, v] in whens xs.push(c, v);
-            if otherwise != nil xs.push(otherwise);
+            for [c, v] in whens { xs.push(c, v); }
+            if otherwise != nil { xs.push(otherwise); }
             return xs;
-        }
+        },
         _ => [],
     };
 }
 
 export fun walk(e, f) {
     f(e);
-    for c in children(e) walk(c, f);
+    for c in children(e) { walk(c, f); }
 }
 
 // rewrite is e with each node replaced by f of it, its children rewritten first.
@@ -107,13 +107,13 @@ export fun rewrite(e, f) {
 
 export fun columnsOf(e) {
     let mut out = [];
-    walk(e, n => { if n is Col out.push(n); });
+    walk(e, n => { if n is Col { out.push(n); } });
     return out;
 }
 
 export fun aggregatesIn(e) {
     let mut out = [];
-    walk(e, n => { if isAggregate(n) out.push(n); });
+    walk(e, n => { if isAggregate(n) { out.push(n); } });
     return out;
 }
 

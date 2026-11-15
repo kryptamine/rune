@@ -28,11 +28,12 @@ print("Zed" < "ann");    // true
 
 ## Escapes
 
-`\n`, `\t`, `\r`, `\"`, `\\`, `\{` and `\}`:
+`\n`, `\t`, `\r`, `\"`, `\\`, `\{`, `\}` and `\u{...}`, a code point in hex:
 
 ```rune
 print("say \"hi\"");             // say "hi"
 print("C:\\temp");               // C:\temp
+print("caf\u{e9} \u{2713}");      // café ✓
 print("shipped\npending");
 // shipped
 // pending
@@ -49,7 +50,7 @@ let total = 59.97;
 
 print("hi {user.name}");                                  // hi ann
 print("roles: {user.roles}");                             // roles: ["admin", "ops"]
-print("{user.roles.len()} roles, total {total.fixed(1)}"); // 2 roles, total 60.0
+print("{user.roles.len()} roles, total {"%.1f".format(total)}"); // 2 roles, total 60.0
 print("order is {total > 50 ? "big" : "small"}");         // order is big
 print("set \{name} in the template");                     // set {name} in the template
 ```
