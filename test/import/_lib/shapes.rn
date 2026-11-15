@@ -1,0 +1,11 @@
+export enum Shape { Circle { r }, Rect { w, h = 1 }, Dot }
+
+impl Shape {
+  fun area(self) {
+    return match self {
+      Shape.Circle { r } => 3 * r * r,
+      Shape.Rect { w, h } => w * h,
+      Shape.Dot => 0,
+    };
+  }
+}

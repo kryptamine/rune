@@ -1,0 +1,9 @@
+enum Expr { Num { value }, Add { left, right = nil }, Zero }
+
+print(Expr.Zero { });                   // Error at 'Zero': 'Expr.Zero' has no fields; it is a value, not a type.
+print(Expr.Sub { value: 1 });           // Error at 'Sub': Expr has no variant 'Sub'.
+print(Expr.Num { });                    // Error at 'Num': Missing field 'value' of Expr.Num.
+print(Expr.Num { value: 1, x: 2 });     // Error at 'x': Expr.Num has no field 'x'.
+print(Expr { value: 1 });               // Error at 'Expr': 'Expr' is an enum, not a struct; its variants are Expr.Num and so on.
+print(match 1 { Expr.Num => 1, _ => 2 }); // Error at 'Num': 'Expr.Num' has fields; match it as Expr.Num { ... } or _ is Expr.Num.
+print(match 1 { Expr.Num { x } => 1, _ => 2 }); // Error at 'x': Expr.Num has no field 'x'.

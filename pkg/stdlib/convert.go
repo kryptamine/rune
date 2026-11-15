@@ -35,8 +35,10 @@ func Convert(token *ast.Token, shape *value.Shape, v value.Value) (value.Value, 
 // ordinal v, or named v.
 func variantOf(token *ast.Token, shape *value.Shape, v value.Value) (value.Value, error) {
 	switch {
-	case v.Kind() == value.Enum && v.Variant().Shape == shape:
+	case shape.Has(v):
 		return v, nil
+	case shape.HasCases():
+		return value.NilValue, errors.NewRuntimeError(errors.TypeError, *token, NotOrdinal(shape))
 	case v.IsInt():
 		if i := v.Int(); i >= 0 && i < int64(len(shape.Variants)) {
 			return shape.Variants[i], nil
@@ -52,6 +54,11 @@ func variantOf(token *ast.Token, shape *value.Shape, v value.Value) (value.Value
 
 	return value.NilValue, errors.NewRuntimeError(errors.ValueError, *token, fmt.Sprintf(
 		"%s has no variant %s.", shape.Name, helpers.Quoted(v)))
+}
+
+// NotOrdinal says an enum with cases has no ordinals.
+func NotOrdinal(enum *value.Shape) string {
+	return enum.Name + " has variants with fields; values(), " + enum.Name + "(n) and int() are for enums without."
 }
 
 func structOf(token *ast.Token, shape *value.Shape, obj *value.Obj) (value.Value, error) {
@@ -100,6 +107,11 @@ var conversionNatives = []*Native{
 	}},
 	{"int", 1, 2, func(c *call) value.Value {
 		if v := c.args[0]; v.Kind() == value.Enum && !c.has(1) {
+			if e := v.Variant().Shape; e.HasCases() {
+				c.err = errors.NewRuntimeError(errors.TypeError, *c.token, NotOrdinal(e))
+				return value.NilValue
+			}
+
 			return value.NewInt(int64(v.Variant().Ordinal))
 		}
 

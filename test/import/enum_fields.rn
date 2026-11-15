@@ -1,0 +1,19 @@
+import _lib.shapes as s;
+
+let xs = [s.Shape.Circle { r: 2 }, s.Shape.Rect { w: 3 }, s.Shape.Dot];
+print(xs.map(x => x.area()));  // expect: [12, 3, 0]
+
+for x in xs {
+  print(match x {
+    s.Shape.Circle { r } => "circle {r}",
+    _ is s.Shape.Rect => "rect",
+    s.Shape.Dot => "dot",
+  });
+}
+// expect: circle 2
+// expect: rect
+// expect: dot
+
+print(xs[1] is s.Shape.Rect);       // expect: true
+print(xs[1] is s.Shape);            // expect: true
+print(s.Shape.Rect({ w: 2, h: 2 })); // expect: Shape.Rect {w: 2, h: 2}

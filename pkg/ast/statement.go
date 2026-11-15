@@ -280,9 +280,17 @@ type StructStmt struct {
 	Name     Token
 	Fields   []StructField
 	Enum     bool
-	Variants []Token
+	Variants []EnumVariant
 	Local    *Local
 	Shape    *value.Shape
+}
+
+// EnumVariant is a variant of an enum declaration, with Fields if
+// HasFields.
+type EnumVariant struct {
+	Name      Token
+	Fields    []StructField
+	HasFields bool
 }
 
 func NewStructStmt(name Token, fields []StructField) Stmt {

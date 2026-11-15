@@ -1,0 +1,53 @@
+enum Expr {
+  Num { value },
+  Add { left, right },
+  Neg { expr, twice = false },
+  Zero,
+}
+
+impl Expr {
+  fun eval(self) {
+    return match self {
+      Expr.Num { value } => value,
+      Expr.Add { left, right } => left.eval() + right.eval(),
+      Expr.Neg { expr, twice: true } => expr.eval(),
+      Expr.Neg { expr } => -expr.eval(),
+      Expr.Zero => 0,
+    };
+  }
+
+  fun num(n) { return Expr.Num { value: n }; }
+}
+
+let e = Expr.Add { left: Expr.num(1), right: Expr.Neg { expr: Expr.num(3) } };
+print(e);                  // expect: Expr.Add {left: Expr.Num {value: 1}, right: Expr.Neg {expr: Expr.Num {value: 3}, twice: false}}
+print(e.eval());           // expect: -2
+print(e.left.value);       // expect: 1
+print(type(e));            // expect: Expr.Add
+print(e is Expr);          // expect: true
+print(e is Expr.Add);      // expect: true
+print(e is Expr.Num);      // expect: false
+print(Expr.Zero is Expr);  // expect: true
+print(Expr.Add);           // expect: <struct Expr.Add>
+print(type(Expr.Add));     // expect: struct
+
+print(Expr.Add { ...e, right: Expr.Zero }.eval());  // expect: 1
+print(e == Expr.Add { left: Expr.num(1), right: Expr.Neg { expr: Expr.num(3) } }); // expect: true
+print(Expr.num(1) == Expr.Neg { expr: Expr.num(1) }); // expect: false
+print(Expr.Num({ value: 5 }));  // expect: Expr.Num {value: 5}
+print(Expr(e) == e);            // expect: true
+
+let { left, right } = e;
+print(right.expr.value);   // expect: 3
+
+let mut seen = map();
+seen[Expr.num(2)] = "two";
+print(seen[Expr.num(2)]);  // expect: two
+
+print(json.stringify(Expr.num(7)));  // expect: {"value":7}
+
+print(match Expr.num(4) {
+  _ is Expr.Add | Expr.Neg => "compound",
+  n is Expr.Num if n.value > 3 => "big",
+  _ => "other",
+});                        // expect: big

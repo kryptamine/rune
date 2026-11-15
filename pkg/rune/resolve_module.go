@@ -164,6 +164,24 @@ func (p *Resolver) member(module, name ast.Token) *ast.Local {
 	return l
 }
 
+// qualified returns the variable m.name names, or the constant of the
+// case Enum.Case or m.Enum.Case.
+func (p *Resolver) qualified(e *ast.VarExpr) *ast.Local {
+	if e.Case != nil {
+		if l := p.member(*e.Module, e.Name); l != nil {
+			return p.caseNamed(p.structs[l], e.Name, *e.Case)
+		}
+
+		return nil
+	}
+
+	if enum := p.localEnum(*e.Module); enum != nil {
+		return p.caseNamed(enum, *e.Module, e.Name)
+	}
+
+	return p.member(*e.Module, e.Name)
+}
+
 // moduleMember returns the member m.name or m["name"] of the module m
 // names; any other key is an error.
 func (p *Resolver) moduleMember(expr *ast.IndexExpr) *ast.VarExpr {

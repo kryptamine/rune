@@ -41,8 +41,10 @@ type Resolver struct {
 	modules []*moduleScope
 	// root is where the program's files are on disk, for module.dir.
 	root string
-	// structs holds every struct type up front, by its name's declaration.
+	// structs holds every struct type up front, by its name's declaration;
+	// cases holds the constant each case of an enum is read as.
 	structs map[*ast.Local]*value.Shape
+	cases   map[*value.Shape]*ast.Local
 	// fieldNames holds each field name's one string, shared by every struct
 	// type that has the field.
 	fieldNames map[string]string
@@ -72,6 +74,7 @@ func NewResolver() *Resolver {
 		mod:        mod,
 		modules:    []*moduleScope{mod},
 		structs:    map[*ast.Local]*value.Shape{},
+		cases:      map[*value.Shape]*ast.Local{},
 		fieldNames: stdlib.FieldNames(),
 		impls:      map[*ast.ImplStmt]bool{},
 		locals:     map[*ast.Local]*varUses{},
@@ -118,15 +121,6 @@ func (p *Resolver) resolveTopLevel(stmts []ast.Stmt) {
 	}
 
 	p.resolveStmts(stmts)
-}
-
-func (p *Resolver) shapeStructs(stmts []ast.Stmt, enums bool) {
-	for _, stmt := range stmts {
-		if s, ok := stmt.(*ast.StructStmt); ok && s.Enum == enums {
-			s.Shape = p.shape(s)
-			p.structs[p.mod.topLevel[s.Name.Lexeme]] = s.Shape
-		}
-	}
 }
 
 // declareMain takes a top-level declaration of name as the entry point
@@ -235,7 +229,7 @@ func (p *Resolver) use(name ast.Token, verb string) (l *ast.Local, ok bool) {
 
 func (p *Resolver) VisitVarExpr(expr *ast.VarExpr) (value.Value, error) {
 	if expr.Module != nil {
-		expr.Local = p.member(*expr.Module, expr.Name)
+		expr.Local = p.qualified(expr)
 		return value.NilValue, nil
 	}
 
@@ -345,151 +339,6 @@ func (p *Resolver) VisitFunctionStmt(fnStmt *ast.FunctionStmt) error {
 	p.resolveFn(fnStmt)
 
 	return nil
-}
-
-// VisitStructStmt checks stmt is at the top level, whose structs
-// resolveTopLevel has given their shapes.
-func (p *Resolver) VisitStructStmt(stmt *ast.StructStmt) error {
-	if stmt.Shape == nil {
-		p.error(stmt.Name, helpers.If(stmt.Enum, "Enums", "Structs")+" must be declared at the top level.")
-		return nil
-	}
-
-	stmt.Local = p.declare(ast.Binding{Name: stmt.Name})
-	p.define(stmt.Name)
-
-	return nil
-}
-
-func (p *Resolver) shape(s *ast.StructStmt) *value.Shape {
-	if s.Enum {
-		names := make([]string, len(s.Variants))
-		for i, v := range s.Variants {
-			names[i] = v.Lexeme
-		}
-
-		return value.NewEnum(s.Name.Lexeme, names)
-	}
-
-	fields := make([]value.Field, len(s.Fields))
-
-	for i, f := range s.Fields {
-		name := p.intern(f.Name.Lexeme)
-
-		var def value.Value
-		if f.Default != nil {
-			p.resolveExpr(f.Default)
-
-			var ok bool
-			if def, ok = p.constantOf(f.Default); !ok {
-				p.error(f.DefaultAt, "Field default must be a constant: a literal, a const, an enum variant, or an array, object, map() or set() of them.")
-			}
-		}
-		fields[i] = value.Field{Name: name, Default: def, Required: f.Default == nil}
-	}
-
-	return value.NewShape(s.Name.Lexeme, fields)
-}
-
-func (p *Resolver) constantOf(e ast.Expr) (value.Value, bool) {
-	if v, ok := literalOf(e); ok {
-		return v, true
-	}
-
-	switch n := unwrap(e).(type) {
-	case *ast.ArrayExpr:
-		items := make([]value.Value, len(n.Items))
-		for i, item := range n.Items {
-			v, ok := p.constantOf(item)
-			if !ok {
-				return value.NilValue, false
-			}
-			items[i] = v
-		}
-		return value.NewArray(items), true
-	case *ast.ObjectExpr:
-		fields := value.NewObj(len(n.Pairs))
-		for _, pair := range n.Pairs {
-			v, ok := p.constantOf(pair.Value)
-			if !ok {
-				return value.NilValue, false
-			}
-			fields.Set(pair.Key, v)
-		}
-		return value.NewObject(fields), true
-	case *ast.IndexExpr:
-		return p.variantOf(n)
-	case *ast.CallExpr:
-		callee, ok := n.Callee.(*ast.VarExpr)
-		if !ok || len(n.Args) > 0 || callee.Module != nil || !p.isBuiltin(callee.Name.Lexeme) {
-			return value.NilValue, false
-		}
-		switch callee.Name.Lexeme {
-		case "map":
-			return value.NewMap(value.NewHashMap(0)), true
-		case "set":
-			return value.NewSet(value.NewHashMap(0)), true
-		}
-	}
-
-	return value.NilValue, false
-}
-
-// intern returns the one string of a field or method name.
-func (p *Resolver) intern(name string) string {
-	if s, ok := p.fieldNames[name]; ok {
-		return s
-	}
-
-	p.fieldNames[name] = name
-
-	return name
-}
-
-func (p *Resolver) VisitStructExpr(expr *ast.StructExpr) (value.Value, error) {
-	for _, pair := range expr.Pairs {
-		p.resolveExpr(pair.Value)
-	}
-
-	p.resolveExpr(expr.Type)
-
-	shape := p.structType(expr.Type)
-	if shape == nil {
-		return value.NilValue, nil
-	}
-
-	if shape.Enum {
-		p.error(expr.Type.Name, notStruct(shape))
-		return value.NilValue, nil
-	}
-
-	expr.Shape = shape
-	given := make([]bool, len(shape.Fields))
-	spread := false
-
-	for i, pair := range expr.Pairs {
-		if ast.IsSpread(pair.Value) {
-			spread = true
-			continue
-		}
-
-		slot := shape.Index(pair.Key.Lexeme)
-		if slot < 0 {
-			p.error(pair.Key, errors.NoField(shape.Name, pair.Key.Lexeme))
-			continue
-		}
-
-		expr.Pairs[i].Slot = slot
-		given[slot] = true
-	}
-
-	for i, f := range shape.Fields {
-		if _, optional := shape.Default(i); !given[i] && !optional && !spread {
-			p.error(expr.Type.Name, errors.MissingField(shape.Name, f))
-		}
-	}
-
-	return value.NilValue, nil
 }
 
 func (p *Resolver) VisitIsExpr(expr *ast.IsExpr) (value.Value, error) {

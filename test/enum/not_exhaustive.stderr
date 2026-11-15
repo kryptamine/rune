@@ -1,0 +1,9 @@
+[line: 4] Error at 'match': Match does not cover Color.Green; add arms or '_ =>'.
+    4 | print(match Color.Red { Color.Red => 1 });  // Error at 'match': Match does not cover Color.Green; add arms or '_ =>'.
+      |       ^
+[line: 7] Error at 'match': Match does not cover Shape.Circle, Shape.Dot; add arms or '_ =>'.
+    7 |   return match s {  // Error at 'match': Match does not cover Shape.Circle, Shape.Dot; add arms or '_ =>'.
+      |          ^
+[line: 14] Error at 'match': Match does not cover Shape.Square; add arms or '_ =>'.
+   14 | match Shape.Dot {  // Error at 'match': Match does not cover Shape.Square; add arms or '_ =>'.
+      | ^
