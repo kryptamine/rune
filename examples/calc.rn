@@ -7,13 +7,15 @@ enum Kind { Num, Id, Op, Eof }
 
 struct Token { kind, text, pos }
 
-struct Num { value }
-struct Var { name }
-struct Unary { op, expr }
-struct Binary { op, left, right }
-struct Call { name, args }
-struct Assign { name, expr }
-struct FunDef { name, params, body }
+enum Node {
+    Num { value },
+    Var { name },
+    Neg { expr },
+    Binary { op, left, right },
+    Call { name, args },
+    Assign { name, expr },
+    FunDef { name, params, body },
+}
 
 struct CalcError { message, pos = nil }
 
@@ -64,7 +66,7 @@ impl Parser {
 
         if a.kind == Kind.Id && b?.text == "=" {
             self.i += 2;
-            return Assign { name: a.text, expr: self.expr(0) };
+            return Node.Assign { name: a.text, expr: self.expr(0) };
         }
 
         if a.text == "fn" {
@@ -78,7 +80,7 @@ impl Parser {
             }
             self.expect(")");
             self.expect("=");
-            return FunDef { name, params, body: self.expr(0) };
+            return Node.FunDef { name, params, body: self.expr(0) };
         }
 
         return self.expr(0);
@@ -94,7 +96,7 @@ impl Parser {
 
             self.next();
             let nextMin = RIGHT_ASSOC.contains(op) ? prec : prec + 1;
-            left = Binary { op, left, right: self.expr(nextMin) };
+            left = Node.Binary { op, left, right: self.expr(nextMin) };
         }
 
         return left;
@@ -104,8 +106,8 @@ impl Parser {
         let t = self.next();
 
         return match t {
-            Token { kind: Kind.Num, text } => Num { value: number(text) },
-            Token { kind: Kind.Op, text: "-" } => Unary { op: "-", expr: self.expr(25) },
+            Token { kind: Kind.Num, text } => Node.Num { value: number(text) },
+            Token { kind: Kind.Op, text: "-" } => Node.Neg { expr: self.expr(25) },
             Token { kind: Kind.Op, text: "(" } => {
                 let e = self.expr(0);
                 self.expect(")");
@@ -119,9 +121,9 @@ impl Parser {
                     if self.peek().text == "," self.next();
                 }
                 self.expect(")");
-                return Call { name, args };
+                return Node.Call { name, args };
             },
-            Token { kind: Kind.Id, text: name } => Var { name },
+            Token { kind: Kind.Id, text: name } => Node.Var { name },
             _ => throw CalcError { message: "unexpected '{t.text}'", pos: t.pos },
         };
     }
@@ -155,10 +157,10 @@ impl Env {
         let ev = n => self.eval(n, locals);
 
         return match node {
-            Num { value } => value,
-            Var { name } => locals?.[name] ?? self.vars.get(name) ?? throw CalcError { message: "unknown variable '{name}'" },
-            Unary { expr } => -ev(expr),
-            Binary { op, left, right } => {
+            Node.Num { value } => value,
+            Node.Var { name } => locals?.[name] ?? self.vars.get(name) ?? throw CalcError { message: "unknown variable '{name}'" },
+            Node.Neg { expr } => -ev(expr),
+            Node.Binary { op, left, right } => {
                 let [a, b] = [ev(left), ev(right)];
                 return match op {
                     "+" => a + b,
@@ -169,13 +171,13 @@ impl Env {
                     "^" | "**" => math.pow(a, b),
                 };
             },
-            Call { name, args } => self.call(name, args.map(ev)),
-            Assign { name, expr } => {
+            Node.Call { name, args } => self.call(name, args.map(ev)),
+            Node.Assign { name, expr } => {
                 let v = ev(expr);
                 self.vars.set(name, v);
                 return v;
             },
-            FunDef { name, params } => {
+            Node.FunDef { name, params } => {
                 self.funs.set(name, node);
                 return "{name}({params.join(", ")})";
             },

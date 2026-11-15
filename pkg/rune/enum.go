@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"rune/pkg/ast"
 	"rune/pkg/errors"
+	"rune/pkg/stdlib"
 	"rune/pkg/value"
 	"slices"
 )
@@ -37,6 +38,10 @@ func variants(tok *ast.Token, enum *value.Shape, n int) (value.Value, error) {
 	if n > 0 {
 		return value.NilValue, errors.NewRuntimeError(errors.ArgumentError, *tok, fmt.Sprintf(
 			"%s.%s() expects 0 arguments, got %d.", enum.Name, enumValues, n))
+	}
+
+	if enum.HasCases() {
+		return value.NilValue, errors.NewRuntimeError(errors.TypeError, *tok, stdlib.NotOrdinal(enum))
 	}
 
 	return value.NewArray(slices.Clone(enum.Variants)), nil

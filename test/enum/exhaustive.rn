@@ -1,0 +1,40 @@
+enum Shape { Circle { r }, Square { side }, Dot }
+
+fun area(s) {
+  return match s {
+    Shape.Circle { r } => 3 * r * r,
+    Shape.Square { side } => side * side,
+    Shape.Dot => 0,
+  };
+}
+
+print(area(Shape.Square { side: 2 }));  // expect: 4
+
+fun kind(s) {
+  return match s {
+    _ is Shape.Circle | Shape.Square => "round or square",
+    Shape.Dot => "dot",
+  };
+}
+
+print(kind(Shape.Dot));  // expect: dot
+
+fun any(s) {
+  return match s {
+    Shape.Circle { r: 0 } => "point",
+    _ is Shape => "shape",
+    _ => "other",
+  };
+}
+
+print(any(Shape.Circle { r: 0 }));  // expect: point
+print(any(1));                       // expect: other
+
+fun sized(s) {
+  return match s {
+    Shape.Circle { r } if r > 1 => "big circle",
+    _ => "other",
+  };
+}
+
+print(sized(Shape.Circle { r: 2 }));  // expect: big circle

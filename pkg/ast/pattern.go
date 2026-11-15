@@ -34,11 +34,10 @@ type FieldPattern struct {
 	Shorthand bool
 }
 
-// StructPattern tests the value is a Name and matches its Fields; the
+// StructPattern tests the value is a Type and matches its Fields; the
 // resolver sets Shape.
 type StructPattern struct {
-	Module *Token
-	Name   Token
+	Type   *VarExpr
 	Fields []FieldPattern
 	Shape  *value.Shape
 }

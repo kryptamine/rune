@@ -39,7 +39,8 @@ after an arrow function's `=>`, braces that look like an object are one:
   [test](values.md#type-tests) as `v is T` and `catch e is T`;
 - literals: numbers, strings, `true`, `false`, `nil`, compared as by `==`;
 - `p | q` matches if either does;
-- `Color.White` matches that [enum](../data/enums.md) variant;
+- `Color.White` matches that [enum](../data/enums.md) variant, and
+  `Expr.Num { value }` a variant with fields, as a struct pattern;
 - `Point { x, y: 0 }` tests the type, then matches the listed fields;
 - `{ key, "other key": p }` matches an object, or a struct, that has the
   keys; other keys are allowed and a missing one is no match;
@@ -179,6 +180,9 @@ The first call prints `usage: add | list | quit` before `continue`.
 The value is evaluated once. It may be a struct literal,
 `match Point { x: 1 } { ... }`, except an empty one, which needs
 parentheses: `match (Empty {}) { ... }`.
+
+A match naming variants of an enum must cover them all, unless an arm
+matches everything; see [Matching every variant](../data/enums.md#matching-every-variant).
 
 An arm after one that matches everything is an error:
 

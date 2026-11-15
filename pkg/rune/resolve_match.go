@@ -4,6 +4,8 @@ import (
 	"rune/pkg/ast"
 	"rune/pkg/errors"
 	"rune/pkg/value"
+	"slices"
+	"strings"
 )
 
 func (p *Resolver) VisitMatchStmt(stmt *ast.MatchStmt) error {
@@ -37,7 +39,89 @@ func (p *Resolver) VisitMatchExpr(expr *ast.MatchExpr) (value.Value, error) {
 		p.endScope()
 	}
 
+	p.checkExhaustive(expr)
+
 	return value.NilValue, nil
+}
+
+// checkExhaustive reports a match without a catch-all arm that names
+// variants of an enum but not all of them. A variant is covered by an arm
+// without a guard that matches all its values.
+func (p *Resolver) checkExhaustive(expr *ast.MatchExpr) {
+	var enums []*value.Shape
+	covered := map[value.Value]bool{}
+
+	cover := func(enum *value.Shape, v value.Value, full bool) {
+		if !slices.Contains(enums, enum) {
+			enums = append(enums, enum)
+		}
+
+		covered[v] = covered[v] || full
+	}
+
+	var visit func(pat ast.Pattern, full bool)
+	visit = func(pat ast.Pattern, full bool) {
+		switch n := pat.(type) {
+		case *ast.OrPattern:
+			for _, alt := range n.Alts {
+				visit(alt, full)
+			}
+		case *ast.LiteralPattern:
+			if n.Value.Kind() == value.Enum {
+				cover(n.Value.Variant().Shape, n.Value, full)
+			}
+		case *ast.StructPattern:
+			if n.Shape != nil && n.Shape.Parent != nil {
+				cover(n.Shape.Parent, value.NewType(n.Shape), full && fieldsIrrefutable(n.Fields))
+			}
+		case *ast.TypePattern:
+			full = full && ast.Irrefutable(n.Inner)
+
+			for _, t := range n.Shapes {
+				switch {
+				case t == nil:
+				case t.Parent != nil:
+					cover(t.Parent, value.NewType(t), full)
+				case t.Enum && !t.Builtin:
+					for _, v := range t.Variants {
+						cover(t, v, full)
+					}
+				}
+			}
+		}
+	}
+
+	for i := range expr.Arms {
+		arm := &expr.Arms[i]
+		if reachedAll(arm) {
+			return
+		}
+
+		visit(arm.Pattern, arm.Guard == nil)
+	}
+
+	for _, enum := range enums {
+		var missing []string
+		for _, v := range enum.Variants {
+			if !covered[v] {
+				missing = append(missing, enum.Name+"."+value.VariantName(v))
+			}
+		}
+
+		if len(missing) > 0 {
+			p.error(expr.Keyword, "Match does not cover "+strings.Join(missing, ", ")+"; add arms or '_ =>'.")
+		}
+	}
+}
+
+func fieldsIrrefutable(fields []ast.FieldPattern) bool {
+	for _, f := range fields {
+		if !ast.Irrefutable(f.Pattern) {
+			return false
+		}
+	}
+
+	return true
 }
 
 // reachedAll reports whether arm matches every value, so no arm after it runs.
@@ -70,16 +154,15 @@ func (p *Resolver) resolvePattern(pat ast.Pattern) ast.Pattern {
 			}
 		}
 	case *ast.StructPattern:
-		if n.Module != nil {
-			t := &ast.VarExpr{Module: n.Module, Name: n.Name}
+		if t := n.Type; t.Module != nil {
 			p.resolveExpr(t)
 			n.Shape = p.structType(t)
-		} else if n.Shape = p.structNamed(n.Name.Lexeme); n.Shape == nil {
-			p.error(n.Name, "'"+n.Name.Lexeme+"' is not a struct.")
+		} else if n.Shape = p.structNamed(t.Name.Lexeme); n.Shape == nil {
+			p.error(t.Name, "'"+t.Name.Lexeme+"' is not a struct.")
 		}
 
 		if n.Shape != nil && n.Shape.Enum {
-			p.error(n.Name, notStruct(n.Shape))
+			p.error(n.Type.Name, notStruct(n.Shape))
 		}
 
 		for _, f := range n.Fields {

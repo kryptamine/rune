@@ -543,17 +543,15 @@ func (s *Parser) primary() (ast.Expr, error) {
 	if s.match(ast.IDENTIFIER) {
 		prev := s.previous()
 
-		if s.isStructLiteralStart(0) {
-			s.advance()
-			return s.structLiteral(nil, prev)
-		}
+		if s.qualifiedStructStart() {
+			t, err := s.qualifiedName(prev)
+			if err != nil {
+				return nil, err
+			}
 
-		if s.check(ast.DOT) && s.peekAt(1) == ast.IDENTIFIER && s.isStructLiteralStart(2) {
-			s.advance()
-			name := s.advance()
 			s.advance()
 
-			return s.structLiteral(&prev, name)
+			return s.structLiteral(t)
 		}
 
 		return ast.NewVarExpr(prev), nil
@@ -676,14 +674,55 @@ func (s *Parser) objectLiteral() (ast.Expr, error) {
 	return ast.NewObjectExpr(ast.OBJECT, pairs), nil
 }
 
-// structLiteral parses [module.]Name { field: value, ... }; "Name {" has already been consumed.
-func (s *Parser) structLiteral(module *ast.Token, name ast.Token) (ast.Expr, error) {
+// qualifiedStructStart reports whether Name, m.Name, Enum.Case or
+// m.Enum.Case and then "{" start a struct literal; Name is the previous token.
+func (s *Parser) qualifiedStructStart() bool {
+	for at := 0; at <= 4; at += 2 {
+		if s.isStructLiteralStart(at) {
+			return true
+		}
+
+		if s.peekAt(at) != ast.DOT || s.peekAt(at+1) != ast.IDENTIFIER {
+			return false
+		}
+	}
+
+	return false
+}
+
+// qualifiedName parses the rest of Name, m.Name, Enum.Case or
+// m.Enum.Case after its first name.
+func (s *Parser) qualifiedName(first ast.Token) (*ast.VarExpr, error) {
+	t := &ast.VarExpr{Name: first}
+	if !s.match(ast.DOT) {
+		return t, nil
+	}
+
+	name, err := s.consume(ast.IDENTIFIER, "Expect name after '.'.")
+	if err != nil {
+		return nil, err
+	}
+
+	t.Module, t.Name = &first, name
+	if !s.match(ast.DOT) {
+		return t, nil
+	}
+
+	variant, err := s.consume(ast.IDENTIFIER, "Expect variant name after '.'.")
+	t.Case = &variant
+
+	return t, err
+}
+
+// structLiteral parses the fields of a struct literal of type t; "{" has
+// already been consumed.
+func (s *Parser) structLiteral(t *ast.VarExpr) (ast.Expr, error) {
 	pairs, err := s.structPairs()
 	if err != nil {
 		return nil, err
 	}
 
-	return &ast.StructExpr{Type: &ast.VarExpr{Module: module, Name: name}, Pairs: pairs}, nil
+	return &ast.StructExpr{Type: t, Pairs: pairs}, nil
 }
 
 // structPairs parses field: value, ... up to "}"; the "{" has already been

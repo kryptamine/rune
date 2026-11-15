@@ -62,6 +62,8 @@ func (p *Resolver) declareImpl(stmt *ast.ImplStmt) {
 			}
 		}
 
+		owner := fieldOwner(shape, m.Name)
+
 		switch {
 		case m.Self && fn.Rest && len(fn.Parameters) == 1:
 			p.error(fn.Parameters[0].Name, "'self' cannot be a rest parameter.")
@@ -71,8 +73,8 @@ func (p *Resolver) declareImpl(stmt *ast.ImplStmt) {
 			p.error(fn.Name, "Methods of "+name+" must take self.")
 		case shape == nil && m.Mut:
 			p.error(fn.Name, "Only methods of structs can take 'mut self'.")
-		case shape != nil && shape.Index(m.Name) >= 0:
-			p.error(fn.Name, name+" has a field '"+m.Name+"'.")
+		case owner != nil:
+			p.error(fn.Name, owner.Name+" has a field '"+m.Name+"'.")
 		case shape != nil && shape.Enum && m.Mut:
 			p.error(fn.Name, "Methods of enum "+name+" cannot take 'mut self'.")
 		case shape != nil && shape.Enum && hasVariant(shape, m.Name):
@@ -94,6 +96,12 @@ func (p *Resolver) declareImpl(stmt *ast.ImplStmt) {
 
 		p.nmethods++
 		stmt.Methods[i].Method = m
+	}
+
+	if shape != nil {
+		for c := range shape.Cases() {
+			c.Methods = shape.Methods
+		}
 	}
 }
 

@@ -160,31 +160,19 @@ func (s *Parser) patternAlt() (ast.Pattern, error) {
 			return s.typePattern(&ast.WildcardPattern{Token: name})
 		}
 
-		pat := &ast.StructPattern{Name: name}
-
-		if s.match(ast.DOT) {
-			typ, err := s.consume(ast.IDENTIFIER, "Expect struct name after '.'.")
-			if err != nil {
-				return nil, err
-			}
-
-			pat.Module, pat.Name = &name, typ
-		}
-
-		if pat.Module != nil && s.match(ast.DOT) {
-			variant, err := s.consume(ast.IDENTIFIER, "Expect variant name after '.'.")
-			return &ast.VariantPattern{Module: pat.Module, Enum: pat.Name, Variant: variant}, err
-		}
-
-		if s.match(ast.LEFT_BRACE) {
-			fields, err := s.fieldPatterns(false)
-			pat.Fields = fields
+		t, err := s.qualifiedName(name)
+		switch {
+		case err != nil:
+			return nil, err
+		case s.match(ast.LEFT_BRACE):
+			pat := &ast.StructPattern{Type: t}
+			pat.Fields, err = s.fieldPatterns(false)
 
 			return pat, err
-		}
-
-		if pat.Module != nil {
-			return &ast.VariantPattern{Enum: name, Variant: pat.Name}, nil
+		case t.Case != nil:
+			return &ast.VariantPattern{Module: t.Module, Enum: t.Name, Variant: *t.Case}, nil
+		case t.Module != nil:
+			return &ast.VariantPattern{Enum: *t.Module, Variant: t.Name}, nil
 		}
 
 		return s.typePattern(&ast.BindPattern{Binding: ast.Binding{Name: name}})

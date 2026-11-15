@@ -105,8 +105,11 @@ func NewLiteralExpr(tokenType TokenType, v any) Expr {
 
 // VarExpr is a name; Module is set when it is qualified, as in m.Point.
 type VarExpr struct {
+	// Module qualifies Name: a module, or an enum of the file whose case
+	// Name is. With Case, as in m.Enum.Case, it is a module and Name its enum.
 	Module *Token
 	Name   Token
+	Case   *Token
 	Local  *Local
 	// Leaks is set on a read of an owned variable that lets its value go,
 	// Lends on one that calls a method which may mutate it.

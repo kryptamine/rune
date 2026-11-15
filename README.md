@@ -33,7 +33,7 @@ for i, p in points {
 ## Features
 
 - immutable by default (`let` / `let mut`), compile-time `const`
-- structs and enums with `impl` methods
+- structs and enums (variants may carry fields) with `impl` methods
 - pattern matching, destructuring, spread, nil-safe chains `a?.b ?? c`
 - `try`/`catch` with typed errors, `return` / `break` / `continue` as expressions
 - modules with `export` / `import`

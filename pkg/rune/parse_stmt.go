@@ -58,9 +58,19 @@ func (s *Parser) structDeclaration() (ast.Stmt, error) {
 		return nil, err
 	}
 
+	fields, err := s.structFields()
+	if err != nil {
+		return nil, err
+	}
+
+	return ast.NewStructStmt(name, fields), nil
+}
+
+// structFields parses a, b = 1 up to "}"; the "{" has already been consumed.
+func (s *Parser) structFields() ([]ast.StructField, error) {
 	var fields []ast.StructField
 
-	err = s.braceList("Duplicate field name.", "Expect '}' after struct fields.", func() (string, ast.Token, error) {
+	err := s.braceList("Duplicate field name.", "Expect '}' after struct fields.", func() (string, ast.Token, error) {
 		field, err := s.consume(ast.IDENTIFIER, "Expect field name.")
 		if err != nil {
 			return "", field, err
@@ -84,14 +94,12 @@ func (s *Parser) structDeclaration() (ast.Stmt, error) {
 
 		return field.Lexeme, field, nil
 	})
-	if err != nil {
-		return nil, err
-	}
 
-	return ast.NewStructStmt(name, fields), nil
+	return fields, err
 }
 
-// enumDeclaration parses enum Name { A, B }; "enum" has already been consumed.
+// enumDeclaration parses enum Name { A, B { x, y = 0 } }; "enum" has
+// already been consumed.
 func (s *Parser) enumDeclaration() (ast.Stmt, error) {
 	name, err := s.consume(ast.IDENTIFIER, "Expect enum name.")
 	if err != nil {
@@ -103,7 +111,7 @@ func (s *Parser) enumDeclaration() (ast.Stmt, error) {
 		return nil, err
 	}
 
-	var variants []ast.Token
+	var variants []ast.EnumVariant
 
 	err = s.braceList("Duplicate variant name.", "Expect '}' after enum variants.", func() (string, ast.Token, error) {
 		v, err := s.consume(ast.IDENTIFIER, "Expect variant name.")
@@ -115,7 +123,22 @@ func (s *Parser) enumDeclaration() (ast.Stmt, error) {
 			s.errors = append(s.errors, errors.NewSyntaxError(v, "A variant cannot be named '"+v.Lexeme+"'."))
 		}
 
-		variants = append(variants, v)
+		variant := ast.EnumVariant{Name: v}
+
+		if s.match(ast.LEFT_BRACE) {
+			brace := s.previous()
+			variant.HasFields = true
+
+			if variant.Fields, err = s.structFields(); err != nil {
+				return "", v, err
+			}
+
+			if len(variant.Fields) == 0 {
+				s.errors = append(s.errors, errors.NewSyntaxError(brace, "A variant without fields takes no braces."))
+			}
+		}
+
+		variants = append(variants, variant)
 
 		return v.Lexeme, v, nil
 	})
@@ -753,14 +776,5 @@ func (s *Parser) typeName() (*ast.VarExpr, error) {
 		return nil, err
 	}
 
-	typ := &ast.VarExpr{Name: t}
-	if s.match(ast.DOT) {
-		if typ.Name, err = s.consume(ast.IDENTIFIER, "Expect type name after '.'."); err != nil {
-			return nil, err
-		}
-
-		typ.Module = &t
-	}
-
-	return typ, nil
+	return s.qualifiedName(t)
 }

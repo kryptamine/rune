@@ -122,10 +122,14 @@ type Shape struct {
 	// values of Kind against.
 	Builtin bool
 	Kind    Kind
-	// Enum marks an enum type, whose values are Variants, in order.
+	// Enum marks an enum type. Its Variants are, in declaration order,
+	// its values and the types of its cases, the variants with fields.
 	Enum     bool
 	Variants []Value
-	decls    []Field
+	// Parent is the enum a case belongs to, Case its name there.
+	Parent *Shape
+	Case   string
+	decls  []Field
 }
 
 // Variant is a value of an enum type: its Ordinal-th, named Name.
@@ -135,25 +139,67 @@ type Variant struct {
 	Name    string
 }
 
-func NewEnum(name string, variants []string) *Shape {
+// NewEnum makes an enum of variants; those with fields are cases, given
+// their fields by Define.
+func NewEnum(name string, variants []string, fields []bool) *Shape {
 	s := &Shape{Name: name, Enum: true, Variants: make([]Value, len(variants))}
 
 	for i, v := range variants {
-		s.Variants[i] = Value{p: unsafe.Pointer(&Variant{Shape: s, Ordinal: i, Name: v}), n: uint64(Enum) << kindShift}
+		if fields[i] {
+			s.Variants[i] = NewType(&Shape{Name: name + "." + v, Parent: s, Case: v})
+		} else {
+			s.Variants[i] = Value{p: unsafe.Pointer(&Variant{Shape: s, Ordinal: i, Name: v}), n: uint64(Enum) << kindShift}
+		}
 	}
 
 	return s
 }
 
+// VariantName is the name of a variant of an enum: a value, or a case's type.
+func VariantName(v Value) string {
+	if v.Kind() == Type {
+		return v.TypeShape().Case
+	}
+
+	return v.Variant().Name
+}
+
 // Variant returns the variant of the enum s named name.
 func (s *Shape) Variant(name string) (Value, bool) {
 	for _, v := range s.Variants {
-		if v.Variant().Name == name {
+		if VariantName(v) == name {
 			return v, true
 		}
 	}
 
 	return NilValue, false
+}
+
+// Cases walks the cases of the enum s.
+func (s *Shape) Cases() iter.Seq[*Shape] {
+	return func(yield func(*Shape) bool) {
+		for _, v := range s.Variants {
+			if v.Kind() == Type && !yield(v.TypeShape()) {
+				return
+			}
+		}
+	}
+}
+
+// HasCases reports whether the enum s has variants with fields, and so
+// no ordinals.
+func (s *Shape) HasCases() bool {
+	for range s.Cases() {
+		return true
+	}
+
+	return false
+}
+
+// Define gives a case its fields.
+func (s *Shape) Define(decls []Field) {
+	d := NewShape(s.Name, decls)
+	s.Fields, s.Keys, s.decls = d.Fields, d.Keys, d.decls
 }
 
 // Method is a method of an impl block or a built-in type; ID indexes the
@@ -170,7 +216,7 @@ func (s *Shape) Has(v Value) bool {
 	k := v.Kind()
 	switch {
 	case k == Struct:
-		return v.Shape() == s
+		return v.Shape() == s || v.Shape().Parent == s
 	case k == Enum:
 		return v.Variant().Shape == s
 	case k == Type && s.Builtin:

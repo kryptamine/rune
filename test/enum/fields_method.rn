@@ -1,0 +1,5 @@
+enum Tok { Num { text }, Eof }
+
+impl Tok {
+  fun text(self) { return ""; } // Error at 'text': Tok.Num has a field 'text'.
+}

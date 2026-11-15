@@ -1,0 +1,3 @@
+[line: 4] Error at 'text': Tok.Num has a field 'text'.
+    4 |   fun text(self) { return ""; } // Error at 'text': Tok.Num has a field 'text'.
+      |       ^
