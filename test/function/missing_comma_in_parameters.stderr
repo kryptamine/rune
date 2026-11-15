@@ -1,3 +1,6 @@
-[line: 2] Error at 'c': Expect ')' after parameters.
-    2 | fun foo(a, b c, d, e, f) {}
-      |              ^
+error: Expect ')' after parameters.
+ --> missing_comma_in_parameters.rn:2:14
+  |
+1 | // [line: 2] Error at 'c': Expect ')' after parameters.
+2 | fun foo(a, b c, d, e, f) {}
+  |              ^

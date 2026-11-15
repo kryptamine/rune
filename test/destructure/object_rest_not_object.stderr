@@ -1,3 +1,5 @@
-[line: 1] TypeError: Cannot destructure number as an object.
-    1 | let { ...r } = 1; // expect runtime error: [line: 1] TypeError: Cannot destructure number as an object.
-      |     ^
+TypeError: Cannot destructure number as an object.
+ --> object_rest_not_object.rn:1:5
+  |
+1 | let { ...r } = 1; // expect runtime error: [line: 1] TypeError: Cannot destructure number as an object.
+  |     ^

@@ -1,3 +1,8 @@
-[line: 8] Error at 'c': Cannot mutate immutable variable 'c'.
-    8 | c.incr(); // Error at 'c': Cannot mutate immutable variable 'c'.
-      | ^
+error: Cannot mutate immutable variable 'c'.
+ --> mut_self_immutable.rn:8:1
+  |
+7 | let c = Counter {};
+8 | c.incr(); // Error at 'c': Cannot mutate immutable variable 'c'.
+  | ^
+  |
+  = hint: declare it as 'mut c' on line 7

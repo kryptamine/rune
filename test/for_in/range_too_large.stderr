@@ -1,3 +1,6 @@
-[line: 4] ValueError: Range is too large to make an array.
-    4 | let r = 0..1e30; // expect runtime error: [line: 4] ValueError: Range is too large to make an array.
-      |          ^
+ValueError: Range is too large to make an array.
+ --> range_too_large.rn:4:10
+  |
+3 | // expect: 1
+4 | let r = 0..1e30; // expect runtime error: [line: 4] ValueError: Range is too large to make an array.
+  |          ^^

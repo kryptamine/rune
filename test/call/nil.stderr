@@ -1,3 +1,5 @@
-[line: 1] TypeError: Can only call functions.
-    1 | nil(); // expect runtime error: [line: 1] TypeError: Can only call functions.
-      |     ^
+TypeError: Can only call functions.
+ --> nil.rn:1:5
+  |
+1 | nil(); // expect runtime error: [line: 1] TypeError: Can only call functions.
+  |     ^

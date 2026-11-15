@@ -2,8 +2,12 @@ exit: 70
 -- stdout --
 before
 -- stderr --
-[line: 2] TypeError: Cannot read property 'y' of number.
-    2 |   return x.y;
-      |            ^
-  at f (line 2)
-  at <script> (line 5)
+TypeError: Cannot read property 'y' of number.
+ --> runtime_error.rn:2:12
+  |
+1 | fun f(x) {
+2 |   return x.y;
+  |            ^
+
+  at f (runtime_error.rn:2)
+  at <script> (runtime_error.rn:5)

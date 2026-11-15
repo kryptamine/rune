@@ -1,12 +1,26 @@
-[line: 1] Error at 'b': An element without a default cannot follow one with a default.
-    1 | let [a = 1, b] = [1, 2]; // Error at 'b': An element without a default cannot follow one with a default.
-      |             ^
-[line: 2] Error at '=': A rest element or _ cannot have a default.
-    2 | let [_ = 1] = []; // Error at '=': A rest element or _ cannot have a default.
-      |        ^
-[line: 3] Error at '=': A rest element or _ cannot have a default.
-    3 | let [...r = 1] = []; // Error at '=': A rest element or _ cannot have a default.
-      |           ^
-[line: 4] Error at '=': A rest element or _ cannot have a default.
-    4 | let { v: _ = 1 } = {}; // Error at '=': A rest element or _ cannot have a default.
-      |            ^
+error: An element without a default cannot follow one with a default.
+ --> defaults_errors.rn:1:13
+  |
+1 | let [a = 1, b] = [1, 2]; // Error at 'b': An element without a default cannot follow one with a default.
+  |             ^
+
+error: A rest element or _ cannot have a default.
+ --> defaults_errors.rn:2:8
+  |
+1 | let [a = 1, b] = [1, 2]; // Error at 'b': An element without a default cannot follow one with a default.
+2 | let [_ = 1] = []; // Error at '=': A rest element or _ cannot have a default.
+  |        ^
+
+error: A rest element or _ cannot have a default.
+ --> defaults_errors.rn:3:11
+  |
+2 | let [_ = 1] = []; // Error at '=': A rest element or _ cannot have a default.
+3 | let [...r = 1] = []; // Error at '=': A rest element or _ cannot have a default.
+  |           ^
+
+error: A rest element or _ cannot have a default.
+ --> defaults_errors.rn:4:12
+  |
+3 | let [...r = 1] = []; // Error at '=': A rest element or _ cannot have a default.
+4 | let { v: _ = 1 } = {}; // Error at '=': A rest element or _ cannot have a default.
+  |            ^

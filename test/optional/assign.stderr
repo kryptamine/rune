@@ -1,6 +1,13 @@
-[line: 2] Error at '=': Invalid assignment target.
-    2 | o?.a = 1; // Error at '=': Invalid assignment target.
-      |      ^
-[line: 3] Error at '++': Invalid increment target.
-    3 | o?.a++; // Error at '++': Invalid increment target.
-      |     ^
+error: Invalid assignment target.
+ --> assign.rn:2:6
+  |
+1 | let mut o = { a: nil };
+2 | o?.a = 1; // Error at '=': Invalid assignment target.
+  |      ^
+
+error: Invalid increment target.
+ --> assign.rn:3:5
+  |
+2 | o?.a = 1; // Error at '=': Invalid assignment target.
+3 | o?.a++; // Error at '++': Invalid increment target.
+  |     ^^

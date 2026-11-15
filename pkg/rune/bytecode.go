@@ -248,6 +248,9 @@ type Program struct {
 	// main is the name of the entry point, nil without one.
 	main    *ast.Token
 	methods methodTable
+	// hints holds the fix for each name that names no variable, if one
+	// is close enough to be what was meant.
+	hints map[ast.Token]string
 }
 
 // methodTable holds the methods of the built-in types, by kind, and the

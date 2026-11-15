@@ -1,3 +1,5 @@
-[line: 1] Error at '2': Expect '=>' after 'catch'.
-    1 | let a = try 1 catch 2; // Error at '2': Expect '=>' after 'catch'.
-      |                     ^
+error: Expect '=>' after 'catch'.
+ --> expr_arrow.rn:1:21
+  |
+1 | let a = try 1 catch 2; // Error at '2': Expect '=>' after 'catch'.
+  |                     ^

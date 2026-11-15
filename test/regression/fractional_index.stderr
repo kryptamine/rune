@@ -1,3 +1,5 @@
-[line: 3] TypeError: Array index must be an integer.
-    3 | arr[0.5]; // expect runtime error: [line: 3] TypeError: Array index must be an integer.
-      |        ^
+TypeError: Array index must be an integer.
+ --> fractional_index.rn:3:8
+  |
+3 | arr[0.5]; // expect runtime error: [line: 3] TypeError: Array index must be an integer.
+  |        ^

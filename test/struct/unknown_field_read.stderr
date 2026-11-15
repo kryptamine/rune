@@ -1,3 +1,6 @@
-[line: 4] KeyError: Point has no field 'z'.
-    4 | print(p.z); // expect runtime error: [line: 4] KeyError: Point has no field 'z'.
-      |         ^
+KeyError: Point has no field 'z'.
+ --> unknown_field_read.rn:4:9
+  |
+3 | let p = Point { x: 1, y: 2 };
+4 | print(p.z); // expect runtime error: [line: 4] KeyError: Point has no field 'z'.
+  |         ^

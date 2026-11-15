@@ -1,3 +1,5 @@
-[line: 1] Error at 'main': main takes at most one parameter.
-    1 | fun main(a, b) {} // Error at 'main': main takes at most one parameter.
-      |     ^
+error: main takes at most one parameter.
+ --> too_many_params.rn:1:5
+  |
+1 | fun main(a, b) {} // Error at 'main': main takes at most one parameter.
+  |     ^^^^

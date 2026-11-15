@@ -1,3 +1,6 @@
-[line: 2] Error at '=': Invalid assignment target.
-    2 | (a) = "value"; // [line: 2] Error at '=': Invalid assignment target.
-      |     ^
+error: Invalid assignment target.
+ --> grouping.rn:2:5
+  |
+1 | let a = "a";
+2 | (a) = "value"; // [line: 2] Error at '=': Invalid assignment target.
+  |     ^

@@ -1,6 +1,10 @@
-[line: 2] TypeError: Cannot read property 'y' of number.
-    2 |   return x.y; // expect runtime error: [line: 2] TypeError: Cannot read property 'y' of number.
-      |            ^
-  at f (line 2)
+TypeError: Cannot read property 'y' of number.
+ --> uncaught_native.rn:2:12
+  |
+1 | fun f(x) {
+2 |   return x.y; // expect runtime error: [line: 2] TypeError: Cannot read property 'y' of number.
+  |            ^
+
+  at f (uncaught_native.rn:2)
   at array.map (native)
-  at <script> (line 6)
+  at <script> (uncaught_native.rn:6)

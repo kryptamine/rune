@@ -1,9 +1,15 @@
 exit: 65
 -- stdout --
 -- stderr --
-[line: 1] Error at ';': Expect expression.
-    1 | let x = ;
-      |         ^
-[line: 2] Error at ')': Expect expression.
-    2 | print(x +);
-      |          ^
+error: Expect expression.
+ --> syntax_error.rn:1:9
+  |
+1 | let x = ;
+  |         ^
+
+error: Expect expression.
+ --> syntax_error.rn:2:10
+  |
+1 | let x = ;
+2 | print(x +);
+  |          ^

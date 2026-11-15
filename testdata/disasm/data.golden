@@ -1,6 +1,11 @@
 exit: 65
 -- stdout --
 -- stderr --
-[line: 5] Error at 'a': Cannot mutate immutable variable 'a'.
-    5 | a[1]++;
-      | ^
+error: Cannot mutate immutable variable 'a'.
+ --> data.rn:5:1
+  |
+4 | let a = [1, 2, 3];
+5 | a[1]++;
+  | ^
+  |
+  = hint: declare it as 'mut a' on line 4

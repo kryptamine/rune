@@ -71,7 +71,7 @@ func (p *Interpreter) property(tok *ast.Token, t, key value.Value, missing *valu
 		return *missing, nil
 	}
 
-	return value.NilValue, missingMember(tok, t, key.Str())
+	return value.NilValue, missingMember(tok, t, key.Str(), ms)
 }
 
 // methodValue is m read off t: bound to an instance, or off a struct type
@@ -120,7 +120,7 @@ func (p *Interpreter) invoke(fr *frame, in Instr, tok *ast.Token) error {
 			return notMethod(tok, t, owner, key.Str())
 		}
 
-		return noMethod(tok, owner, key.Str())
+		return noMethod(tok, t, owner, key.Str(), ms)
 	case t.Kind() == value.Type:
 		p.stack[at] = p.methods[m.ID]
 		return p.callWithout(at, n, tok)
@@ -165,17 +165,17 @@ func (p *Interpreter) callWithout(at, n int, tok *ast.Token) error {
 	return p.callAt(at, n, tok)
 }
 
-func missingMember(tok *ast.Token, t value.Value, name string) error {
+func missingMember(tok *ast.Token, t value.Value, name string, ms []value.Method) error {
 	switch t.Kind() {
 	case value.Object:
-		return undefinedProperty(tok, name)
+		return undefinedProperty(tok, t, name)
 	case value.Struct:
 		return undefinedField(tok, t.Shape(), name)
 	case value.Type:
-		return noMethod(tok, t.TypeShape().Name, name)
+		return noMethod(tok, t, t.TypeShape().Name, name, ms)
 	}
 
-	return propertyError("read", tok, t)
+	return errors.WithHint(propertyError("read", tok, t), memberHint(t, name, ms))
 }
 
 // mutatingCallError is the error of a mut self method called on a value
@@ -189,8 +189,9 @@ func mutatingCallError(name, owner string) string {
 	return "Cannot call mutating method " + method + ": the receiver is not a mutable variable, element or property."
 }
 
-func noMethod(tok *ast.Token, owner, name string) error {
-	return errors.NewRuntimeError(errors.TypeError, *tok, fmt.Sprintf("%s has no method '%s'.", owner, name))
+func noMethod(tok *ast.Token, t value.Value, owner, name string, ms []value.Method) error {
+	err := errors.NewRuntimeError(errors.TypeError, *tok, fmt.Sprintf("%s has no method '%s'.", owner, name))
+	return errors.WithHint(err, memberHint(t, name, ms))
 }
 
 // notMethod is the error of t.name(args) for a function in a field or property.

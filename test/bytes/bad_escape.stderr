@@ -1,3 +1,6 @@
-[line: 2] Error: Invalid escape sequence '\q'.
-    2 | print(b"\q");
-      |       ^
+error: Invalid escape sequence '\q'.
+ --> bad_escape.rn:2:7
+  |
+1 | // [line: 2] Error: Invalid escape sequence '\q'.
+2 | print(b"\q");
+  |       ^

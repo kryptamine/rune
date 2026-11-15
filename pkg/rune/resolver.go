@@ -12,8 +12,11 @@ import (
 type localVar struct {
 	defined bool
 	mutable bool
-	local   *ast.Local
-	name    ast.Token
+	// fixed is set on a function, type, module or catch variable, which
+	// no mut makes mutable.
+	fixed bool
+	local *ast.Local
+	name  ast.Token
 }
 
 // Scope maps a local's name to its declaration; fnDepth is the nesting
@@ -68,6 +71,9 @@ type Resolver struct {
 	// each one's value is; constDecls finds them by declaration.
 	consts     map[*ast.VarStmt]constState
 	constDecls map[*ast.Local]*ast.VarStmt
+	// hints holds a fix for each name that names no variable, if one is
+	// close enough to be what was meant.
+	hints map[ast.Token]string
 }
 
 func NewResolver() *Resolver {
@@ -82,6 +88,7 @@ func NewResolver() *Resolver {
 		impls:      map[*ast.ImplStmt]bool{},
 		locals:     map[*ast.Local]*varUses{},
 		nmethods:   len(stdlib.Methods),
+		hints:      map[ast.Token]string{},
 	}
 
 	for i, m := range stdlib.Methods {
@@ -216,7 +223,14 @@ func (p *Resolver) use(name ast.Token, verb string) (l *ast.Local, ok bool) {
 
 	p.requireInitialized(name, verb)
 
-	return p.resolveLocal(name), true
+	l = p.resolveLocal(name)
+	if l == nil {
+		if hint := p.unknownName(name.Lexeme); hint != "" {
+			p.hints[name] = hint
+		}
+	}
+
+	return l, true
 }
 
 func (p *Resolver) VisitVarExpr(expr *ast.VarExpr) (value.Value, error) {
@@ -339,6 +353,7 @@ func (p *Resolver) VisitFunctionExpr(expr *ast.FunctionExpr) (value.Value, error
 
 func (p *Resolver) VisitFunctionStmt(fnStmt *ast.FunctionStmt) error {
 	fnStmt.Local = p.declare(fnStmt.Binding)
+	p.fix(fnStmt.Name)
 	p.define(fnStmt.Name)
 	p.resolveFn(fnStmt)
 
@@ -418,6 +433,7 @@ func (p *Resolver) resolveCatch(c *ast.CatchClause) {
 
 	if c.Param != nil {
 		c.ParamLocal = p.declare(ast.Binding{Name: *c.Param})
+		p.fix(*c.Param)
 		p.define(*c.Param)
 	}
 
@@ -690,14 +706,14 @@ func (p *Resolver) requireMutable(name ast.Token, verb string) {
 	case p.constNamed(name.Lexeme) != nil:
 		p.error(name, "Cannot "+verb+" constant '"+name.Lexeme+"'.")
 	case !p.isMutable(name.Lexeme):
-		p.error(name, "Cannot "+verb+" immutable variable '"+name.Lexeme+"'.")
+		p.immutable(name, "Cannot "+verb+" immutable variable '"+name.Lexeme+"'.")
 	}
 }
 
 // requireMutableRoot checks the variable an element or property chain starts from.
 func (p *Resolver) requireMutableRoot(expr ast.Expr) {
 	if name := p.immutableRoot(expr); name != "" {
-		p.error(rootVar(expr).Name, "Cannot mutate immutable variable '"+name+"'.")
+		p.immutable(rootVar(expr).Name, "Cannot mutate immutable variable '"+name+"'.")
 	}
 }
 
@@ -887,6 +903,13 @@ func (p *Resolver) declare(b ast.Binding) *ast.Local {
 	p.peekScope().vars[name.Lexeme] = &localVar{mutable: b.Mutable, local: l, name: name}
 
 	return l
+}
+
+// fix marks the variable name declares as one no mut makes mutable.
+func (p *Resolver) fix(name ast.Token) {
+	if l := p.innermost()[name.Lexeme]; l != nil {
+		l.fixed = true
+	}
 }
 
 // define marks the variable name declares defined; a discard declares none.

@@ -1,3 +1,5 @@
-[line: 3] TypeError: Array index must be an integer.
-    3 | arr["x"] = 2; // expect runtime error: [line: 3] TypeError: Array index must be an integer.
-      |        ^
+TypeError: Array index must be an integer.
+ --> set_index_non_number.rn:3:8
+  |
+3 | arr["x"] = 2; // expect runtime error: [line: 3] TypeError: Array index must be an integer.
+  |        ^

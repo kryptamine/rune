@@ -1,5 +1,8 @@
-[line: 1] ArgumentError: math.min() expects at least 1 argument, got 0.
-    1 | math.min(); // expect runtime error: [line: 1] ArgumentError: math.min() expects at least 1 argument, got 0.
-      |          ^
+ArgumentError: math.min() expects at least 1 argument, got 0.
+ --> min_arity.rn:1:10
+  |
+1 | math.min(); // expect runtime error: [line: 1] ArgumentError: math.min() expects at least 1 argument, got 0.
+  |          ^
+
   at math.min (native)
-  at <script> (line 1)
+  at <script> (min_arity.rn:1)

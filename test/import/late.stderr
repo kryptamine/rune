@@ -1,3 +1,6 @@
-[line: 2] Error at 'import': Imports must come before other statements.
-    2 | import _lib.math; // Error at 'import': Imports must come before other statements.
-      | ^
+error: Imports must come before other statements.
+ --> late.rn:2:1
+  |
+1 | print(1);
+2 | import _lib.math; // Error at 'import': Imports must come before other statements.
+  | ^^^^^^

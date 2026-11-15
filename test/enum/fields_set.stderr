@@ -1,3 +1,6 @@
-[line: 4] TypeError: Cannot set field 'text' of Tok.Num outside its mut self methods.
-    4 | t.text = "2"; // expect runtime error: [line: 4] TypeError: Cannot set field 'text' of Tok.Num outside its mut self methods.
-      |   ^
+TypeError: Cannot set field 'text' of Tok.Num outside its mut self methods.
+ --> fields_set.rn:4:3
+  |
+3 | let mut t = Tok.Num { text: "1" };
+4 | t.text = "2"; // expect runtime error: [line: 4] TypeError: Cannot set field 'text' of Tok.Num outside its mut self methods.
+  |   ^^^^

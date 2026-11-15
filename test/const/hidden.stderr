@@ -1,3 +1,6 @@
-[line: 2] Error at 'HIDDEN': Module 'limits' has no export 'HIDDEN'.
-    2 | print(limits.HIDDEN); // Error at 'HIDDEN': Module 'limits' has no export 'HIDDEN'.
-      |              ^
+error: Module 'limits' has no export 'HIDDEN'.
+ --> hidden.rn:2:14
+  |
+1 | import _lib.limits;
+2 | print(limits.HIDDEN); // Error at 'HIDDEN': Module 'limits' has no export 'HIDDEN'.
+  |              ^^^^^^

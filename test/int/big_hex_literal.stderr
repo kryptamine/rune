@@ -1,3 +1,6 @@
-[line: 2] Error: Integer literal is too large.
-    2 | print(0x1_0000_0000_0000_0000);
-      |       ^
+error: Integer literal is too large.
+ --> big_hex_literal.rn:2:7
+  |
+1 | // [line: 2] Error: Integer literal is too large.
+2 | print(0x1_0000_0000_0000_0000);
+  |       ^

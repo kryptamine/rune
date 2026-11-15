@@ -1,3 +1,6 @@
-[line: 10] IndexError: Index out of bounds: -4 of 3
-   10 | print(xs[-4]); // expect runtime error: [line: 10] IndexError: Index out of bounds: -4 of 3
-      |            ^
+IndexError: Index out of bounds: -4 of 3
+  --> negative_index.rn:10:12
+   |
+ 9 | print(xs?.[-4]); // expect: nil
+10 | print(xs[-4]); // expect runtime error: [line: 10] IndexError: Index out of bounds: -4 of 3
+   |            ^

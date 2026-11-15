@@ -1,3 +1,5 @@
-[line: 1] TypeError: Can only call functions.
-    1 | true(); // expect runtime error: [line: 1] TypeError: Can only call functions.
-      |      ^
+TypeError: Can only call functions.
+ --> bool.rn:1:6
+  |
+1 | true(); // expect runtime error: [line: 1] TypeError: Can only call functions.
+  |      ^

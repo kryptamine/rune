@@ -1,15 +1,33 @@
-[line: 3] Error at 'pi': Cannot assign to a member of module 'math'.
-    3 | math.pi = 4; // Error at 'pi': Cannot assign to a member of module 'math'.
-      |      ^
-[line: 4] Error at 'calls': Cannot assign to a member of module 'math'.
-    4 | math.calls += 1; // Error at 'calls': Cannot assign to a member of module 'math'.
-      |      ^
-[line: 5] Error at 'calls': Cannot assign to a member of module 'math'.
-    5 | math.calls++; // Error at 'calls': Cannot assign to a member of module 'math'.
-      |      ^
-[line: 6] Error at 'items': Cannot mutate immutable variable 'math.items'.
-    6 | math.items[0] = 1; // Error at 'items': Cannot mutate immutable variable 'math.items'.
-      |      ^
-[line: 7] Error at 'math': Cannot assign to immutable variable 'math'.
-    7 | math = 1; // Error at 'math': Cannot assign to immutable variable 'math'.
-      | ^
+error: Cannot assign to a member of module 'math'.
+ --> mutation.rn:3:6
+  |
+3 | math.pi = 4; // Error at 'pi': Cannot assign to a member of module 'math'.
+  |      ^^
+
+error: Cannot assign to a member of module 'math'.
+ --> mutation.rn:4:6
+  |
+3 | math.pi = 4; // Error at 'pi': Cannot assign to a member of module 'math'.
+4 | math.calls += 1; // Error at 'calls': Cannot assign to a member of module 'math'.
+  |      ^^^^^
+
+error: Cannot assign to a member of module 'math'.
+ --> mutation.rn:5:6
+  |
+4 | math.calls += 1; // Error at 'calls': Cannot assign to a member of module 'math'.
+5 | math.calls++; // Error at 'calls': Cannot assign to a member of module 'math'.
+  |      ^^^^^
+
+error: Cannot mutate immutable variable 'math.items'.
+ --> mutation.rn:6:6
+  |
+5 | math.calls++; // Error at 'calls': Cannot assign to a member of module 'math'.
+6 | math.items[0] = 1; // Error at 'items': Cannot mutate immutable variable 'math.items'.
+  |      ^^^^^
+
+error: Cannot assign to immutable variable 'math'.
+ --> mutation.rn:7:1
+  |
+6 | math.items[0] = 1; // Error at 'items': Cannot mutate immutable variable 'math.items'.
+7 | math = 1; // Error at 'math': Cannot assign to immutable variable 'math'.
+  | ^^^^

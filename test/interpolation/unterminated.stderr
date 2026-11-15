@@ -1,3 +1,6 @@
-[line: 2] Error: Unterminated string.
-    2 | print("a {x)
-      |       ^
+error: Unterminated string.
+ --> unterminated.rn:2:7
+  |
+1 | // [line: 2] Error: Unterminated string.
+2 | print("a {x)
+  |       ^

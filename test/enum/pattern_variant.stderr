@@ -1,3 +1,6 @@
-[line: 3] Error at 'B': C has no variant 'B'.
-    3 | print(match C.A { C.B => 1, _ => 2 });
-      |                     ^
+error: C has no variant 'B'.
+ --> pattern_variant.rn:3:21
+  |
+2 | enum C { A }
+3 | print(match C.A { C.B => 1, _ => 2 });
+  |                     ^

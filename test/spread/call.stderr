@@ -1,3 +1,6 @@
-[line: 12] ArgumentError: Expected 3 arguments but got 2.
-   12 | add(...xs); // expect runtime error: [line: 12] ArgumentError: Expected 3 arguments but got 2.
-      |          ^
+ArgumentError: Expected 3 arguments but got 2.
+  --> call.rn:12:10
+   |
+11 | print([[1, 2, 3]].map(args => add(...args))); // expect: [6]
+12 | add(...xs); // expect runtime error: [line: 12] ArgumentError: Expected 3 arguments but got 2.
+   |          ^

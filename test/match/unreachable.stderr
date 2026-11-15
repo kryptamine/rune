@@ -1,6 +1,13 @@
-[line: 2] Error at '2': Unreachable match arm.
-    2 | match a { n => 1, 2 => 3 }; // [line: 2] Error at '2': Unreachable match arm.
-      |                   ^
-[line: 3] Error at '2': Unreachable match arm.
-    3 | match a { _ | 1 => 1, 2 => 3 }; // [line: 3] Error at '2': Unreachable match arm.
-      |                       ^
+error: Unreachable match arm.
+ --> unreachable.rn:2:19
+  |
+1 | let a = 1;
+2 | match a { n => 1, 2 => 3 }; // [line: 2] Error at '2': Unreachable match arm.
+  |                   ^
+
+error: Unreachable match arm.
+ --> unreachable.rn:3:23
+  |
+2 | match a { n => 1, 2 => 3 }; // [line: 2] Error at '2': Unreachable match arm.
+3 | match a { _ | 1 => 1, 2 => 3 }; // [line: 3] Error at '2': Unreachable match arm.
+  |                       ^

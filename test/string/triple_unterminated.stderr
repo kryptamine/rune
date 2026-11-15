@@ -1,3 +1,5 @@
-[line: 1] Error: Unterminated string.
-    1 | print """never closed;
-      |       ^
+error: Unterminated string.
+ --> triple_unterminated.rn:1:7
+  |
+1 | print """never closed;
+  |       ^

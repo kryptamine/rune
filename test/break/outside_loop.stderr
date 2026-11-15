@@ -1,3 +1,5 @@
-[line: 1] Error at 'break': Cannot use 'break' outside of a loop.
-    1 | break; // [line: 1] Error at 'break': Cannot use 'break' outside of a loop.
-      | ^
+error: Cannot use 'break' outside of a loop.
+ --> outside_loop.rn:1:1
+  |
+1 | break; // [line: 1] Error at 'break': Cannot use 'break' outside of a loop.
+  | ^^^^^

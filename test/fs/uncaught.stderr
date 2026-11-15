@@ -1,5 +1,8 @@
-[line: 1] IOError: fs.readText() /nonexistent-rune-test/x: no such file or directory.
-    1 | fs.readText("/nonexistent-rune-test/x"); // expect runtime error: [line: 1] IOError: fs.readText() /nonexistent-rune-test/x: no such file or directory.
-      |                                       ^
+IOError: fs.readText() /nonexistent-rune-test/x: no such file or directory.
+ --> uncaught.rn:1:39
+  |
+1 | fs.readText("/nonexistent-rune-test/x"); // expect runtime error: [line: 1] IOError: fs.readText() /nonexistent-rune-test/x: no such file or directory.
+  |                                       ^
+
   at fs.readText (native)
-  at <script> (line 1)
+  at <script> (uncaught.rn:1)

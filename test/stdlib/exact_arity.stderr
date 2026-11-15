@@ -1,5 +1,8 @@
-[line: 1] ArgumentError: math.floor() expects 1 argument, got 2.
-    1 | math.floor(1, 2); // expect runtime error: [line: 1] ArgumentError: math.floor() expects 1 argument, got 2.
-      |                ^
+ArgumentError: math.floor() expects 1 argument, got 2.
+ --> exact_arity.rn:1:16
+  |
+1 | math.floor(1, 2); // expect runtime error: [line: 1] ArgumentError: math.floor() expects 1 argument, got 2.
+  |                ^
+
   at math.floor (native)
-  at <script> (line 1)
+  at <script> (exact_arity.rn:1)

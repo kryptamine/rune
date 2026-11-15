@@ -1,3 +1,5 @@
-[line: 1] Error at 'x': Expect '{' after struct name.
-    1 | struct Point x, y }; // [line: 1] Error at 'x': Expect '{' after struct name.
-      |              ^
+error: Expect '{' after struct name.
+ --> missing_brace.rn:1:14
+  |
+1 | struct Point x, y }; // [line: 1] Error at 'x': Expect '{' after struct name.
+  |              ^

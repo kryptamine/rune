@@ -1,5 +1,9 @@
-[line: 4] KeyError: Point has no field 'z'.
-    4 |   fun set(mut self, k, v) { self[k] = v; }
-      |                                   ^
-  at Point.set (line 4)
-  at <script> (line 8)
+KeyError: Point has no field 'z'.
+ --> set_index_missing.rn:4:35
+  |
+3 | impl Point {
+4 |   fun set(mut self, k, v) { self[k] = v; }
+  |                                   ^
+
+  at Point.set (set_index_missing.rn:4)
+  at <script> (set_index_missing.rn:8)

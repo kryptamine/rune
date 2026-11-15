@@ -1,9 +1,19 @@
-[line: 1] Error at 'flor': math has no member 'flor'.
-    1 | math.flor(1); // [line: 1] Error at 'flor': math has no member 'flor'.
-      |      ^
-[line: 2] Error at ']': string has no member 'nope'.
-    2 | string["nope"]; // [line: 2] Error at ']': string has no member 'nope'.
-      |              ^
-[line: 3] Error at 'join': os has no member 'join'. Did you mean fs.join?
-    3 | os.join("a"); // [line: 3] Error at 'join': os has no member 'join'. Did you mean fs.join?
-      |    ^
+error: math has no member 'flor'.
+ --> unknown_member.rn:1:6
+  |
+1 | math.flor(1); // [line: 1] Error at 'flor': math has no member 'flor'.
+  |      ^^^^
+
+error: string has no member 'nope'.
+ --> unknown_member.rn:2:14
+  |
+1 | math.flor(1); // [line: 1] Error at 'flor': math has no member 'flor'.
+2 | string["nope"]; // [line: 2] Error at ']': string has no member 'nope'.
+  |              ^
+
+error: os has no member 'join'. Did you mean fs.join?
+ --> unknown_member.rn:3:4
+  |
+2 | string["nope"]; // [line: 2] Error at ']': string has no member 'nope'.
+3 | os.join("a"); // [line: 3] Error at 'join': os has no member 'join'. Did you mean fs.join?
+  |    ^^^^

@@ -1,18 +1,53 @@
-[line: 2] Error at 'arr': Cannot mutate immutable variable 'arr'.
-    2 | arr[0] = 2; // [line: 2] Error at 'arr': Cannot mutate immutable variable 'arr'.
-      | ^
-[line: 3] Error at 'arr': Cannot mutate immutable variable 'arr'.
-    3 | arr[0][0] = 2; // [line: 3] Error at 'arr': Cannot mutate immutable variable 'arr'.
-      | ^
-[line: 4] Error at 'arr': Cannot mutate immutable variable 'arr'.
-    4 | arr[0] += 1; // [line: 4] Error at 'arr': Cannot mutate immutable variable 'arr'.
-      | ^
-[line: 5] Error at 'arr': Cannot mutate immutable variable 'arr'.
-    5 | arr[0]++; // [line: 5] Error at 'arr': Cannot mutate immutable variable 'arr'.
-      | ^
-[line: 7] Error at 'obj': Cannot mutate immutable variable 'obj'.
-    7 | obj.x = 2; // [line: 7] Error at 'obj': Cannot mutate immutable variable 'obj'.
-      | ^
-[line: 8] Error at 'obj': Cannot mutate immutable variable 'obj'.
-    8 | obj["x"] = 2; // [line: 8] Error at 'obj': Cannot mutate immutable variable 'obj'.
-      | ^
+error: Cannot mutate immutable variable 'arr'.
+ --> contents.rn:2:1
+  |
+1 | let arr = [[1]];
+2 | arr[0] = 2; // [line: 2] Error at 'arr': Cannot mutate immutable variable 'arr'.
+  | ^^^
+  |
+  = hint: declare it as 'mut arr' on line 1
+
+error: Cannot mutate immutable variable 'arr'.
+ --> contents.rn:3:1
+  |
+2 | arr[0] = 2; // [line: 2] Error at 'arr': Cannot mutate immutable variable 'arr'.
+3 | arr[0][0] = 2; // [line: 3] Error at 'arr': Cannot mutate immutable variable 'arr'.
+  | ^^^
+  |
+  = hint: declare it as 'mut arr' on line 1
+
+error: Cannot mutate immutable variable 'arr'.
+ --> contents.rn:4:1
+  |
+3 | arr[0][0] = 2; // [line: 3] Error at 'arr': Cannot mutate immutable variable 'arr'.
+4 | arr[0] += 1; // [line: 4] Error at 'arr': Cannot mutate immutable variable 'arr'.
+  | ^^^
+  |
+  = hint: declare it as 'mut arr' on line 1
+
+error: Cannot mutate immutable variable 'arr'.
+ --> contents.rn:5:1
+  |
+4 | arr[0] += 1; // [line: 4] Error at 'arr': Cannot mutate immutable variable 'arr'.
+5 | arr[0]++; // [line: 5] Error at 'arr': Cannot mutate immutable variable 'arr'.
+  | ^^^
+  |
+  = hint: declare it as 'mut arr' on line 1
+
+error: Cannot mutate immutable variable 'obj'.
+ --> contents.rn:7:1
+  |
+6 | let obj = {x: 1};
+7 | obj.x = 2; // [line: 7] Error at 'obj': Cannot mutate immutable variable 'obj'.
+  | ^^^
+  |
+  = hint: declare it as 'mut obj' on line 6
+
+error: Cannot mutate immutable variable 'obj'.
+ --> contents.rn:8:1
+  |
+7 | obj.x = 2; // [line: 7] Error at 'obj': Cannot mutate immutable variable 'obj'.
+8 | obj["x"] = 2; // [line: 8] Error at 'obj': Cannot mutate immutable variable 'obj'.
+  | ^^^
+  |
+  = hint: declare it as 'mut obj' on line 6

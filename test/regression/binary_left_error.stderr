@@ -1,3 +1,5 @@
-[line: 1] NameError: Undefined variable 'undefinedVar'.
-    1 | print(undefinedVar + 1); // expect runtime error: [line: 1] NameError: Undefined variable 'undefinedVar'.
-      |       ^
+NameError: Undefined variable 'undefinedVar'.
+ --> binary_left_error.rn:1:7
+  |
+1 | print(undefinedVar + 1); // expect runtime error: [line: 1] NameError: Undefined variable 'undefinedVar'.
+  |       ^^^^^^^^^^^^

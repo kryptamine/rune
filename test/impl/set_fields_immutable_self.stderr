@@ -1,3 +1,8 @@
-[line: 4] Error at 'self': Cannot mutate immutable variable 'self'.
-    4 |   fun bad(self) { self.x = 1; } // [line: 4] Error at 'self': Cannot mutate immutable variable 'self'.
-      |                   ^
+error: Cannot mutate immutable variable 'self'.
+ --> set_fields_immutable_self.rn:4:19
+  |
+3 | impl Point {
+4 |   fun bad(self) { self.x = 1; } // [line: 4] Error at 'self': Cannot mutate immutable variable 'self'.
+  |                   ^^^^
+  |
+  = hint: declare it as 'mut self' on line 4

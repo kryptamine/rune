@@ -1,3 +1,6 @@
-[line: 14] TypeError: Cannot read property 'c' of nil.
-   14 | (o.n?.b).c; // expect runtime error: [line: 14] TypeError: Cannot read property 'c' of nil.
-      |          ^
+TypeError: Cannot read property 'c' of nil.
+  --> short_circuit.rn:14:10
+   |
+13 | // A grouping ends the chain.
+14 | (o.n?.b).c; // expect runtime error: [line: 14] TypeError: Cannot read property 'c' of nil.
+   |          ^

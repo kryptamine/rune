@@ -1,3 +1,6 @@
-[line: 2] Error at 'Point': Cannot assign to immutable variable 'Point'.
-    2 | Point = 1; // [line: 2] Error at 'Point': Cannot assign to immutable variable 'Point'.
-      | ^
+error: Cannot assign to immutable variable 'Point'.
+ --> assign_type.rn:2:1
+  |
+1 | struct Point { x }
+2 | Point = 1; // [line: 2] Error at 'Point': Cannot assign to immutable variable 'Point'.
+  | ^^^^^

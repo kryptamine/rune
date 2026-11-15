@@ -1,3 +1,6 @@
-[line: 3] Error at 'a': Cannot read local variable in its own initializer.
-    3 |   let a = a; // Error at 'a': Cannot read local variable in its own initializer.
-      |           ^
+error: Cannot read local variable in its own initializer.
+ --> use_local_in_initializer.rn:3:11
+  |
+2 | {
+3 |   let a = a; // Error at 'a': Cannot read local variable in its own initializer.
+  |           ^

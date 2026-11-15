@@ -1,3 +1,5 @@
-[line: 1] Error at ',': A for-in key cannot be a pattern.
-    1 | for { a }, x in [] {} // [line: 1] Error at ',': A for-in key cannot be a pattern.
-      |          ^
+error: A for-in key cannot be a pattern.
+ --> pattern_key.rn:1:10
+  |
+1 | for { a }, x in [] {} // [line: 1] Error at ',': A for-in key cannot be a pattern.
+  |          ^

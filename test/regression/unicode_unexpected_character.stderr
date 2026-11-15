@@ -1,6 +1,13 @@
-[line: 3] Error: Unexpected character: é
-    3 | let é = 1;
-      |     ^
-[line: 3] Error at '=': Expect variable name.
-    3 | let é = 1;
-      |       ^
+error: Unexpected character: é
+ --> unicode_unexpected_character.rn:3:5
+  |
+2 | // [line: 3] Error at '=': Expect variable name.
+3 | let é = 1;
+  |     ^
+
+error: Expect variable name.
+ --> unicode_unexpected_character.rn:3:7
+  |
+2 | // [line: 3] Error at '=': Expect variable name.
+3 | let é = 1;
+  |       ^

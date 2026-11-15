@@ -1,12 +1,26 @@
-[line: 2] Error at ';': Expect expression.
-    2 |   let mut x = 1 +; // [line: 2] Error at ';': Expect expression.
-      |                  ^
-[line: 4] Error at ';': Expect expression.
-    4 |   x = ; // [line: 4] Error at ';': Expect expression.
-      |       ^
-[line: 7] Error at '1': Expect parameter name.
-    7 | fun g( 1 { } // [line: 7] Error at '1': Expect parameter name.
-      |        ^
-[line: 8] Error at end: Expect ';' after expression.
-    8 | print(1) // [line: 8] Error at end: Expect ';' after expression.
-      |         ^
+error: Expect expression.
+ --> errors_in_function.rn:2:18
+  |
+1 | fun f() {
+2 |   let mut x = 1 +; // [line: 2] Error at ';': Expect expression.
+  |                  ^
+
+error: Expect expression.
+ --> errors_in_function.rn:4:7
+  |
+3 |   print(x);
+4 |   x = ; // [line: 4] Error at ';': Expect expression.
+  |       ^
+
+error: Expect parameter name.
+ --> errors_in_function.rn:7:8
+  |
+7 | fun g( 1 { } // [line: 7] Error at '1': Expect parameter name.
+  |        ^
+
+error: Expect ';' after expression.
+ --> errors_in_function.rn:8:9
+  |
+7 | fun g( 1 { } // [line: 7] Error at '1': Expect parameter name.
+8 | print(1) // [line: 8] Error at end: Expect ';' after expression.
+  |         ^

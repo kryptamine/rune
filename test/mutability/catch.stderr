@@ -1,3 +1,6 @@
-[line: 2] Error at 'e': Cannot assign to immutable variable 'e'.
-    2 |   e = 1; // [line: 2] Error at 'e': Cannot assign to immutable variable 'e'.
-      |   ^
+error: Cannot assign to immutable variable 'e'.
+ --> catch.rn:2:3
+  |
+1 | try {} catch e {
+2 |   e = 1; // [line: 2] Error at 'e': Cannot assign to immutable variable 'e'.
+  |   ^

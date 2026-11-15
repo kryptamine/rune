@@ -1,9 +1,20 @@
-[line: 2] Error at 'return': Cannot return from a 'defer' body.
-    2 |   defer { return 1; } // Error at 'return': Cannot return from a 'defer' body.
-      |           ^
-[line: 5] Error at 'break': Cannot use 'break' to leave a 'defer' body.
-    5 |   defer { break; } // Error at 'break': Cannot use 'break' to leave a 'defer' body.
-      |           ^
-[line: 8] Error at 'continue': Cannot use 'continue' to leave a 'defer' body.
-    8 |     continue; // Error at 'continue': Cannot use 'continue' to leave a 'defer' body.
-      |     ^
+error: Cannot return from a 'defer' body.
+ --> jumps.rn:2:11
+  |
+1 | fun f() {
+2 |   defer { return 1; } // Error at 'return': Cannot return from a 'defer' body.
+  |           ^^^^^^
+
+error: Cannot use 'break' to leave a 'defer' body.
+ --> jumps.rn:5:11
+  |
+4 | for x in [1] {
+5 |   defer { break; } // Error at 'break': Cannot use 'break' to leave a 'defer' body.
+  |           ^^^^^
+
+error: Cannot use 'continue' to leave a 'defer' body.
+ --> jumps.rn:8:5
+  |
+7 |     for y in [1] { break; }
+8 |     continue; // Error at 'continue': Cannot use 'continue' to leave a 'defer' body.
+  |     ^^^^^^^^

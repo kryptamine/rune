@@ -1,3 +1,5 @@
-[line: 1] Error at 'let': Expect 'name in' after 'for'.
-    1 | for let mut i = 0; i < 3; i++ { print(i); } // [line: 1] Error at 'let': Expect 'name in' after 'for'.
-      |     ^
+error: Expect 'name in' after 'for'.
+ --> c_style.rn:1:5
+  |
+1 | for let mut i = 0; i < 3; i++ { print(i); } // [line: 1] Error at 'let': Expect 'name in' after 'for'.
+  |     ^^^

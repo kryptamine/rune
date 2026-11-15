@@ -1,6 +1,13 @@
-[line: 4] Error at 'self': 'self' must be the first parameter.
-    4 |   fun f(a, self) {} // [line: 4] Error at 'self': 'self' must be the first parameter.
-      |            ^
-[line: 5] Error at 'self': 'self' cannot be a rest parameter.
-    5 |   fun g(...self) {} // [line: 5] Error at 'self': 'self' cannot be a rest parameter.
-      |            ^
+error: 'self' must be the first parameter.
+ --> self_position.rn:4:12
+  |
+3 | impl Point {
+4 |   fun f(a, self) {} // [line: 4] Error at 'self': 'self' must be the first parameter.
+  |            ^^^^
+
+error: 'self' cannot be a rest parameter.
+ --> self_position.rn:5:12
+  |
+4 |   fun f(a, self) {} // [line: 4] Error at 'self': 'self' must be the first parameter.
+5 |   fun g(...self) {} // [line: 5] Error at 'self': 'self' cannot be a rest parameter.
+  |            ^^^^

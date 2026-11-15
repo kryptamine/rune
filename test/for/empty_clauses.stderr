@@ -1,3 +1,5 @@
-[line: 1] Error at ';': Expect 'name in' after 'for'.
-    1 | for ;; { print(1); } // [line: 1] Error at ';': Expect 'name in' after 'for'.
-      |     ^
+error: Expect 'name in' after 'for'.
+ --> empty_clauses.rn:1:5
+  |
+1 | for ;; { print(1); } // [line: 1] Error at ';': Expect 'name in' after 'for'.
+  |     ^

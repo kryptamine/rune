@@ -1,6 +1,13 @@
-[line: 2] Error at 'a': Cannot assign to local variable in its own initializer.
-    2 |   let mut a = a = 0; // Error at 'a': Cannot assign to local variable in its own initializer.
-      |               ^
-[line: 4] Error at 'b': Cannot assign to global variable in its own initializer.
-    4 | let mut b = b = 1; // Error at 'b': Cannot assign to global variable in its own initializer.
-      |             ^
+error: Cannot assign to local variable in its own initializer.
+ --> assign_in_own_initializer.rn:2:15
+  |
+1 | {
+2 |   let mut a = a = 0; // Error at 'a': Cannot assign to local variable in its own initializer.
+  |               ^
+
+error: Cannot assign to global variable in its own initializer.
+ --> assign_in_own_initializer.rn:4:13
+  |
+3 | }
+4 | let mut b = b = 1; // Error at 'b': Cannot assign to global variable in its own initializer.
+  |             ^

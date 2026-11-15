@@ -1,3 +1,5 @@
-[line: 1] Error at 'fun': Expect expression.
-    1 | let f = fun (x) { return x; }; // Error at 'fun': Expect expression.
-      |         ^
+error: Expect expression.
+ --> anonymous_fun.rn:1:9
+  |
+1 | let f = fun (x) { return x; }; // Error at 'fun': Expect expression.
+  |         ^^^

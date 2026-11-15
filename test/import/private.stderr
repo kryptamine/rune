@@ -1,3 +1,5 @@
-[line: 3] Error at 'helper': Module 'math' has no export 'helper'.
-    3 | math.helper(); // Error at 'helper': Module 'math' has no export 'helper'.
-      |      ^
+error: Module 'math' has no export 'helper'.
+ --> private.rn:3:6
+  |
+3 | math.helper(); // Error at 'helper': Module 'math' has no export 'helper'.
+  |      ^^^^^^

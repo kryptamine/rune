@@ -1,3 +1,8 @@
-[line: 4] Error at 'n': Cannot assign to immutable variable 'n'.
-    4 |     n = 1; // [line: 4] Error at 'n': Cannot assign to immutable variable 'n'.
-      |     ^
+error: Cannot assign to immutable variable 'n'.
+ --> assign_closure.rn:4:5
+  |
+3 |   fun g() {
+4 |     n = 1; // [line: 4] Error at 'n': Cannot assign to immutable variable 'n'.
+  |     ^
+  |
+  = hint: declare it as 'mut n' on line 2

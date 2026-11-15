@@ -492,7 +492,7 @@ func (s *Parser) expressionStatement() (ast.Stmt, error) {
 
 	_, err = s.consume(ast.SEMICOLON, "Expect ';' after expression.")
 	if err != nil {
-		return nil, err
+		return nil, foreignKeyword(expr, err)
 	}
 
 	return ast.NewExprStmt(expr), nil

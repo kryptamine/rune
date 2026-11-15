@@ -1,3 +1,6 @@
-[line: 2] KeyError: Undefined property 'missing'.
-    2 | print(obj.missing); // expect runtime error: [line: 2] KeyError: Undefined property 'missing'.
-      |           ^
+KeyError: Undefined property 'missing'.
+ --> dot_undefined.rn:2:11
+  |
+1 | let obj = {};
+2 | print(obj.missing); // expect runtime error: [line: 2] KeyError: Undefined property 'missing'.
+  |           ^^^^^^^

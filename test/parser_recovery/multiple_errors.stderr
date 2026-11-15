@@ -1,9 +1,19 @@
-[line: 1] Error at ';': Expect expression.
-    1 | let a = ; // [line: 1] Error at ';': Expect expression.
-      |         ^
-[line: 3] Error at 'let': Expect ')' after arguments.
-    3 | let b = 1); // [line: 3] Error at 'let': Expect ')' after arguments.
-      | ^
-[line: 4] Error at '=': Expect variable name.
-    4 | let = 2; // [line: 4] Error at '=': Expect variable name.
-      |     ^
+error: Expect expression.
+ --> multiple_errors.rn:1:9
+  |
+1 | let a = ; // [line: 1] Error at ';': Expect expression.
+  |         ^
+
+error: Expect ')' after arguments.
+ --> multiple_errors.rn:2:11
+  |
+1 | let a = ; // [line: 1] Error at ';': Expect expression.
+2 | print("ok"
+  |           ^
+
+error: Expect variable name.
+ --> multiple_errors.rn:4:5
+  |
+3 | let b = 1); // [line: 3] Error at 'let': Expect ')' after arguments.
+4 | let = 2; // [line: 4] Error at '=': Expect variable name.
+  |     ^

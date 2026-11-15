@@ -1,3 +1,5 @@
-[line: 1] TypeError: Range end must be a number, got string.
-    1 | for i in 0.."x" { print(i); } // expect runtime error: [line: 1] TypeError: Range end must be a number, got string.
-      |           ^
+TypeError: Range end must be a number, got string.
+ --> range_operator_bad.rn:1:11
+  |
+1 | for i in 0.."x" { print(i); } // expect runtime error: [line: 1] TypeError: Range end must be a number, got string.
+  |           ^^

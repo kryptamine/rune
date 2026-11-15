@@ -1,3 +1,5 @@
-[line: 1] Error at 'a': Cannot read global variable in its own initializer.
-    1 | let a = a; // [line: 1] Error at 'a': Cannot read global variable in its own initializer.
-      |         ^
+error: Cannot read global variable in its own initializer.
+ --> use_global_in_initializer.rn:1:9
+  |
+1 | let a = a; // [line: 1] Error at 'a': Cannot read global variable in its own initializer.
+  |         ^

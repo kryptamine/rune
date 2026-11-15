@@ -1,4 +1,7 @@
-[line: 1] Error at 'a': Variable with this name already declared in this scope.
-    1 | let [a, a] = [1, 2]; // Error at 'a': Variable with this name already declared in this scope.
-      |         ^
-  note: first declared at line 1
+error: Variable with this name already declared in this scope.
+ --> array_redeclare.rn:1:9
+  |
+1 | let [a, a] = [1, 2]; // Error at 'a': Variable with this name already declared in this scope.
+  |         ^
+  |
+  = hint: 'a' is first declared on line 1; rename one of them

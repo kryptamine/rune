@@ -1,5 +1,8 @@
-[line: 11] ValueError: array.repeat() count must not be negative.
-   11 | print([1].repeat(-1)); // expect runtime error: [line: 11] ValueError: array.repeat() count must not be negative.
-      |           ^
+ValueError: array.repeat() count must not be negative.
+  --> repeat.rn:11:11
+   |
+11 | print([1].repeat(-1)); // expect runtime error: [line: 11] ValueError: array.repeat() count must not be negative.
+   |           ^^^^^^
+
   at array.repeat (native)
-  at <script> (line 11)
+  at <script> (repeat.rn:11)

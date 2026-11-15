@@ -1,3 +1,5 @@
-[line: 3] Error at 'x': Duplicate field name.
-    3 | print(Point { x: 1, x: 2, y: 3 }); // [line: 3] Error at 'x': Duplicate field name.
-      |                     ^
+error: Duplicate field name.
+ --> duplicate_literal_field.rn:3:21
+  |
+3 | print(Point { x: 1, x: 2, y: 3 }); // [line: 3] Error at 'x': Duplicate field name.
+  |                     ^

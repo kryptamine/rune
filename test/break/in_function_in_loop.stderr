@@ -1,3 +1,6 @@
-[line: 3] Error at 'break': Cannot use 'break' outside of a loop.
-    3 |     break; // [line: 3] Error at 'break': Cannot use 'break' outside of a loop.
-      |     ^
+error: Cannot use 'break' outside of a loop.
+ --> in_function_in_loop.rn:3:5
+  |
+2 |   fun f() {
+3 |     break; // [line: 3] Error at 'break': Cannot use 'break' outside of a loop.
+  |     ^^^^^

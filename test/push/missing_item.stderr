@@ -1,5 +1,8 @@
-[line: 1] ArgumentError: array.push() expects at least 1 argument, got 0.
-    1 | [1].push(); // expect runtime error: [line: 1] ArgumentError: array.push() expects at least 1 argument, got 0.
-      |     ^
+ArgumentError: array.push() expects at least 1 argument, got 0.
+ --> missing_item.rn:1:5
+  |
+1 | [1].push(); // expect runtime error: [line: 1] ArgumentError: array.push() expects at least 1 argument, got 0.
+  |     ^^^^
+
   at array.push (native)
-  at <script> (line 1)
+  at <script> (missing_item.rn:1)

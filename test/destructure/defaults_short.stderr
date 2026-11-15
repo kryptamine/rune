@@ -1,3 +1,5 @@
-[line: 1] IndexError: Expected at least 1 element but got 0.
-    1 | let [a, b = 1] = []; // expect runtime error: [line: 1] IndexError: Expected at least 1 element but got 0.
-      |     ^
+IndexError: Expected at least 1 element but got 0.
+ --> defaults_short.rn:1:5
+  |
+1 | let [a, b = 1] = []; // expect runtime error: [line: 1] IndexError: Expected at least 1 element but got 0.
+  |     ^

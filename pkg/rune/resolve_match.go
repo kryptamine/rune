@@ -2,7 +2,6 @@ package rune
 
 import (
 	"rune/pkg/ast"
-	"rune/pkg/errors"
 	"rune/pkg/value"
 	"slices"
 	"strings"
@@ -165,7 +164,7 @@ func (p *Resolver) resolvePattern(pat ast.Pattern) ast.Pattern {
 
 		for _, f := range n.Fields {
 			if n.Shape != nil && n.Shape.Index(f.Key.Lexeme) < 0 {
-				p.error(f.Key, errors.NoField(n.Shape.Name, f.Key.Lexeme))
+				p.noField(f.Key, n.Shape)
 			}
 		}
 

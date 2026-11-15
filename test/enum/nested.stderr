@@ -1,3 +1,6 @@
-[line: 3] Error at 'D': Enums must be declared at the top level.
-    3 |   enum D { X }
-      |        ^
+error: Enums must be declared at the top level.
+ --> nested.rn:3:8
+  |
+2 | fun f() {
+3 |   enum D { X }
+  |        ^

@@ -1,3 +1,6 @@
-[line: 4] Error at 'text': Tok.Num has a field 'text'.
-    4 |   fun text(self) { return ""; } // Error at 'text': Tok.Num has a field 'text'.
-      |       ^
+error: Tok.Num has a field 'text'.
+ --> fields_method.rn:4:7
+  |
+3 | impl Tok {
+4 |   fun text(self) { return ""; } // Error at 'text': Tok.Num has a field 'text'.
+  |       ^^^^

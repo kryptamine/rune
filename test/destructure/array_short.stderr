@@ -1,3 +1,5 @@
-[line: 1] IndexError: Expected 3 elements but got 1.
-    1 | let [a, b, c] = [1]; // expect runtime error: [line: 1] IndexError: Expected 3 elements but got 1.
-      |     ^
+IndexError: Expected 3 elements but got 1.
+ --> array_short.rn:1:5
+  |
+1 | let [a, b, c] = [1]; // expect runtime error: [line: 1] IndexError: Expected 3 elements but got 1.
+  |     ^

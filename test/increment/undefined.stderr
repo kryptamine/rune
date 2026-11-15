@@ -1,3 +1,5 @@
-[line: 1] NameError: Undefined variable 'nope'.
-    1 | nope++; // expect runtime error: [line: 1] NameError: Undefined variable 'nope'.
-      | ^
+NameError: Undefined variable 'nope'.
+ --> undefined.rn:1:1
+  |
+1 | nope++; // expect runtime error: [line: 1] NameError: Undefined variable 'nope'.
+  | ^^^^

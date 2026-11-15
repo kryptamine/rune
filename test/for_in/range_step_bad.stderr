@@ -1,3 +1,5 @@
-[line: 1] TypeError: Range step must be a number, got string.
-    1 | for i in 0..5 step "x" { print(i); } // expect runtime error: [line: 1] TypeError: Range step must be a number, got string.
-      |           ^
+TypeError: Range step must be a number, got string.
+ --> range_step_bad.rn:1:11
+  |
+1 | for i in 0..5 step "x" { print(i); } // expect runtime error: [line: 1] TypeError: Range step must be a number, got string.
+  |           ^^

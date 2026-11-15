@@ -1,6 +1,13 @@
-[line: 2] Error at 'A': Cannot assign to constant 'A'.
-    2 | A = 2; // Error at 'A': Cannot assign to constant 'A'.
-      | ^
-[line: 3] Error at 'A': Cannot assign to constant 'A'.
-    3 | A++; // Error at 'A': Cannot assign to constant 'A'.
-      | ^
+error: Cannot assign to constant 'A'.
+ --> assign.rn:2:1
+  |
+1 | const A = 1;
+2 | A = 2; // Error at 'A': Cannot assign to constant 'A'.
+  | ^
+
+error: Cannot assign to constant 'A'.
+ --> assign.rn:3:1
+  |
+2 | A = 2; // Error at 'A': Cannot assign to constant 'A'.
+3 | A++; // Error at 'A': Cannot assign to constant 'A'.
+  | ^

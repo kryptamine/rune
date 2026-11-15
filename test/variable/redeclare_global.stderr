@@ -1,4 +1,8 @@
-[line: 2] Error at 'a': Variable with this name already declared in this scope.
-    2 | let mut a; // [line: 2] Error at 'a': Variable with this name already declared in this scope.
-      |         ^
-  note: first declared at line 1
+error: Variable with this name already declared in this scope.
+ --> redeclare_global.rn:2:9
+  |
+1 | let a = "1";
+2 | let mut a; // [line: 2] Error at 'a': Variable with this name already declared in this scope.
+  |         ^
+  |
+  = hint: 'a' is first declared on line 1; rename one of them

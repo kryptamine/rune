@@ -1,4 +1,6 @@
-[line: 2] Error at ';': Expect expression.
-  --> _lib/broken.rn:2:9
-    2 | let x = ;
-      |         ^
+error: Expect expression.
+ --> _lib/broken.rn:2:9
+  |
+1 | export fun ok() {}
+2 | let x = ;
+  |         ^

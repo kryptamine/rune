@@ -1,5 +1,8 @@
-[line: 3] KeyError: Point has no field 'z'.
-    3 | fun f({ z }) { return z; }
-      |         ^
-  at f (line 3)
-  at <script> (line 5)
+KeyError: Point has no field 'z'.
+ --> missing_field.rn:3:9
+  |
+3 | fun f({ z }) { return z; }
+  |         ^
+
+  at f (missing_field.rn:3)
+  at <script> (missing_field.rn:5)

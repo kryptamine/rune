@@ -1,6 +1,11 @@
-[line: 3] Error at 'Point': 'Point' is not a struct of this file or a built-in type.
-    3 | impl Point { // [line: 3] Error at 'Point': 'Point' is not a struct of this file or a built-in type.
-      |      ^
-[line: 7] Error at 'Nope': 'Nope' is not a struct of this file or a built-in type.
-    7 | impl Nope { // [line: 7] Error at 'Nope': 'Nope' is not a struct of this file or a built-in type.
-      |      ^
+error: 'Point' is not a struct of this file or a built-in type.
+ --> not_a_type.rn:3:6
+  |
+3 | impl Point { // [line: 3] Error at 'Point': 'Point' is not a struct of this file or a built-in type.
+  |      ^^^^^
+
+error: 'Nope' is not a struct of this file or a built-in type.
+ --> not_a_type.rn:7:6
+  |
+7 | impl Nope { // [line: 7] Error at 'Nope': 'Nope' is not a struct of this file or a built-in type.
+  |      ^^^^

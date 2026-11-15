@@ -1,3 +1,5 @@
-[line: 22] TypeError: Cannot set field 'x' of Point outside its mut self methods.
-   22 | q.x = 1; // expect runtime error: [line: 22] TypeError: Cannot set field 'x' of Point outside its mut self methods.
-      |   ^
+TypeError: Cannot set field 'x' of Point outside its mut self methods.
+  --> set_field.rn:22:3
+   |
+22 | q.x = 1; // expect runtime error: [line: 22] TypeError: Cannot set field 'x' of Point outside its mut self methods.
+   |   ^

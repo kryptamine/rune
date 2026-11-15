@@ -1,6 +1,10 @@
-[line: 2] IndexError: Index out of bounds: 0 of 0
-    2 |   return [][0]; // expect runtime error: [line: 2] IndexError: Index out of bounds: 0 of 0
-      |              ^
-  at inner (line 2)
-  at outer (line 7)
-  at <script> (line 13)
+IndexError: Index out of bounds: 0 of 0
+ --> uncaught.rn:2:14
+  |
+1 | fun inner() {
+2 |   return [][0]; // expect runtime error: [line: 2] IndexError: Index out of bounds: 0 of 0
+  |              ^
+
+  at inner (uncaught.rn:2)
+  at outer (uncaught.rn:7)
+  at <script> (uncaught.rn:13)

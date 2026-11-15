@@ -1,3 +1,5 @@
-[line: 1] Error at 'IOError': Cannot add methods to built-in struct 'IOError'.
-    1 | impl IOError { // [line: 1] Error at 'IOError': Cannot add methods to built-in struct 'IOError'.
-      |      ^
+error: Cannot add methods to built-in struct 'IOError'.
+ --> builtin_struct.rn:1:6
+  |
+1 | impl IOError { // [line: 1] Error at 'IOError': Cannot add methods to built-in struct 'IOError'.
+  |      ^^^^^^^

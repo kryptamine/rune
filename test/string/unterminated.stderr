@@ -1,3 +1,6 @@
-[line: 2] Error: Unterminated string.
-    2 | "this string has no close quote
-      | ^
+error: Unterminated string.
+ --> unterminated.rn:2:1
+  |
+1 | // [line: 2] Error: Unterminated string.
+2 | "this string has no close quote
+  | ^

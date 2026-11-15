@@ -1,3 +1,5 @@
-[line: 1] Error at ';': Expect 'catch' after try expression.
-    1 | let a = try 1; // Error at ';': Expect 'catch' after try expression.
-      |              ^
+error: Expect 'catch' after try expression.
+ --> expr_errors.rn:1:14
+  |
+1 | let a = try 1; // Error at ';': Expect 'catch' after try expression.
+  |              ^

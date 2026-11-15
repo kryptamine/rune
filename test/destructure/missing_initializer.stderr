@@ -1,3 +1,5 @@
-[line: 1] Error at ';': Expect '=' after pattern.
-    1 | let { x }; // Error at ';': Expect '=' after pattern.
-      |          ^
+error: Expect '=' after pattern.
+ --> missing_initializer.rn:1:10
+  |
+1 | let { x }; // Error at ';': Expect '=' after pattern.
+  |          ^

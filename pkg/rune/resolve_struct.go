@@ -37,6 +37,7 @@ func (p *Resolver) VisitStructStmt(stmt *ast.StructStmt) error {
 	}
 
 	stmt.Local = p.declare(ast.Binding{Name: stmt.Name})
+	p.fix(stmt.Name)
 	p.define(stmt.Name)
 
 	return nil
@@ -148,7 +149,7 @@ func (p *Resolver) VisitStructExpr(expr *ast.StructExpr) (value.Value, error) {
 
 		slot := shape.Index(pair.Key.Lexeme)
 		if slot < 0 {
-			p.error(pair.Key, errors.NoField(shape.Name, pair.Key.Lexeme))
+			p.noField(pair.Key, shape)
 			continue
 		}
 

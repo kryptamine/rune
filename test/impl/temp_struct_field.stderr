@@ -1,3 +1,6 @@
-[line: 10] TypeError: Cannot set field 'c' of R outside its mut self methods.
-   10 | mk().c.incr(); // expect runtime error: [line: 10] TypeError: Cannot set field 'c' of R outside its mut self methods.
-      |      ^
+TypeError: Cannot set field 'c' of R outside its mut self methods.
+  --> temp_struct_field.rn:10:6
+   |
+ 9 | print(mk().c.get()); // expect: 7
+10 | mk().c.incr(); // expect runtime error: [line: 10] TypeError: Cannot set field 'c' of R outside its mut self methods.
+   |      ^

@@ -1,3 +1,6 @@
-[line: 2] TypeError: Cannot convert array to Dir.
-    2 | print(Dir([])); // expect runtime error: [line: 2] TypeError: Cannot convert array to Dir.
-      |             ^
+TypeError: Cannot convert array to Dir.
+ --> convert_type.rn:2:13
+  |
+1 | enum Dir { North }
+2 | print(Dir([])); // expect runtime error: [line: 2] TypeError: Cannot convert array to Dir.
+  |             ^

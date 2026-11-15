@@ -1,3 +1,5 @@
-[line: 3] ArgumentError: Point() expects 1 argument, got 0.
-    3 | print(Point()); // expect runtime error: [line: 3] ArgumentError: Point() expects 1 argument, got 0.
-      |             ^
+ArgumentError: Point() expects 1 argument, got 0.
+ --> convert_arity.rn:3:13
+  |
+3 | print(Point()); // expect runtime error: [line: 3] ArgumentError: Point() expects 1 argument, got 0.
+  |             ^

@@ -1,5 +1,9 @@
-[line: 4] NameError: Undefined variable 'factor'.
-    4 |   fun scaled(self) { return self.x * factor; }
-      |                                      ^
-  at Point.scaled (line 4)
-  at <script> (line 7)
+NameError: Undefined variable 'factor'.
+ --> before_capture_defined.rn:4:38
+  |
+3 | impl Point {
+4 |   fun scaled(self) { return self.x * factor; }
+  |                                      ^^^^^^
+
+  at Point.scaled (before_capture_defined.rn:4)
+  at <script> (before_capture_defined.rn:7)

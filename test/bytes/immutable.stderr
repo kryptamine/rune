@@ -1,3 +1,6 @@
-[line: 2] TypeError: Bytes are immutable.
-    2 | b[0] = 1; // expect runtime error: [line: 2] TypeError: Bytes are immutable.
-      |    ^
+TypeError: Bytes are immutable.
+ --> immutable.rn:2:4
+  |
+1 | let mut b = b"abc";
+2 | b[0] = 1; // expect runtime error: [line: 2] TypeError: Bytes are immutable.
+  |    ^

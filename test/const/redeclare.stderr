@@ -1,4 +1,8 @@
-[line: 2] Error at 'A': Variable with this name already declared in this scope.
-    2 | const A = 2; // Error at 'A': Variable with this name already declared in this scope.
-      |       ^
-  note: first declared at line 1
+error: Variable with this name already declared in this scope.
+ --> redeclare.rn:2:7
+  |
+1 | const A = 1;
+2 | const A = 2; // Error at 'A': Variable with this name already declared in this scope.
+  |       ^
+  |
+  = hint: 'A' is first declared on line 1; rename one of them

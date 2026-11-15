@@ -1,5 +1,8 @@
-[line: 1] TypeError: object() expects a map or an array of pairs as argument 1, got number.
-    1 | object(1); // expect runtime error: [line: 1] TypeError: object() expects a map or an array of pairs as argument 1, got number.
-      |         ^
+TypeError: object() expects a map or an array of pairs as argument 1, got number.
+ --> type_names_in_errors.rn:1:9
+  |
+1 | object(1); // expect runtime error: [line: 1] TypeError: object() expects a map or an array of pairs as argument 1, got number.
+  |         ^
+
   at object (native)
-  at <script> (line 1)
+  at <script> (type_names_in_errors.rn:1)

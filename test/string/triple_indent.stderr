@@ -1,3 +1,5 @@
-[line: 1] Error: Insufficient indentation in multi-line string.
-    1 | print("""
-      |       ^
+error: Insufficient indentation in multi-line string.
+ --> triple_indent.rn:1:7
+  |
+1 | print("""
+  |       ^

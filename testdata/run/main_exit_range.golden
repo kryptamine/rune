@@ -1,6 +1,8 @@
 exit: 70
 -- stdout --
 -- stderr --
-[line: 1] ValueError: main must return nil or an exit code from 0 to 255, got 256.
-    1 | fun main() { return 256; }
-      |     ^
+ValueError: main must return nil or an exit code from 0 to 255, got 256.
+ --> main_exit_range.rn:1:5
+  |
+1 | fun main() { return 256; }
+  |     ^^^^

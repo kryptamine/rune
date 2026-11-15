@@ -92,7 +92,7 @@ func (p *Resolver) bindModule(name ast.Token, m *moduleScope) {
 		return
 	}
 
-	p.mod.globals[name.Lexeme] = &localVar{defined: true, name: name}
+	p.mod.globals[name.Lexeme] = &localVar{defined: true, fixed: true, name: name}
 	p.mod.globalMutable[name.Lexeme] = false
 	p.mod.imports[name.Lexeme] = m
 }

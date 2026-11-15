@@ -1,4 +1,8 @@
-[line: 2] Error at 'a': Variable with this name already declared in this scope.
-    2 | let a = "2"; // [line: 2] Error at 'a': Variable with this name already declared in this scope.
-      |     ^
-  note: first declared at line 1
+error: Variable with this name already declared in this scope.
+ --> redefine_global.rn:2:5
+  |
+1 | fun a() {}
+2 | let a = "2"; // [line: 2] Error at 'a': Variable with this name already declared in this scope.
+  |     ^
+  |
+  = hint: 'a' is first declared on line 1; rename one of them

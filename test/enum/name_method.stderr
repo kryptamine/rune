@@ -1,3 +1,6 @@
-[line: 3] Error at 'name': Variants of C have a property 'name'.
-    3 | impl C { fun name(self) {} }
-      |              ^
+error: Variants of C have a property 'name'.
+ --> name_method.rn:3:14
+  |
+2 | enum C { A }
+3 | impl C { fun name(self) {} }
+  |              ^^^^

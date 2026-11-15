@@ -1,3 +1,5 @@
-[line: 1] TypeError: Operands must be numbers.
-    1 | "1" / 1; // expect runtime error: [line: 1] TypeError: Operands must be numbers.
-      |     ^
+TypeError: Operands must be numbers.
+ --> divide_nonnum_num.rn:1:5
+  |
+1 | "1" / 1; // expect runtime error: [line: 1] TypeError: Operands must be numbers.
+  |     ^

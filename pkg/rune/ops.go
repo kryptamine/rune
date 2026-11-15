@@ -8,16 +8,19 @@ import (
 	"rune/pkg/helpers"
 	"rune/pkg/stdlib"
 	"rune/pkg/value"
+	"slices"
 	"strings"
 	"unicode/utf8"
 )
 
-func undefinedProperty(token *ast.Token, key string) error {
-	return errors.NewRuntimeError(errors.KeyError, *token, fmt.Sprintf("Undefined property '%s'.", key))
+func undefinedProperty(token *ast.Token, obj value.Value, key string) error {
+	err := errors.NewRuntimeError(errors.KeyError, *token, fmt.Sprintf("Undefined property '%s'.", key))
+	return errors.WithHint(err, errors.DidYouMean(key, obj.Obj().Keys()))
 }
 
 func undefinedField(token *ast.Token, shape *value.Shape, key string) error {
-	return errors.NewRuntimeError(errors.KeyError, *token, errors.NoField(shape.Name, key))
+	err := errors.NewRuntimeError(errors.KeyError, *token, errors.NoField(shape.Name, key))
+	return errors.WithHint(err, errors.DidYouMean(key, slices.Values(shape.Fields), methodNames(shape.Methods)))
 }
 
 func readOnlyField(token *ast.Token, shape *value.Shape, key string) error {
@@ -78,7 +81,7 @@ func getIndex(token *ast.Token, target, index value.Value) (value.Value, error) 
 
 	switch target.Kind() {
 	case value.Object:
-		return v, undefinedProperty(token, index.Str())
+		return v, undefinedProperty(token, target, index.Str())
 	case value.Map:
 		return v, errors.NewRuntimeError(errors.KeyError, *token, "Key not found: "+helpers.Quoted(index)+".")
 	case value.Struct:

@@ -1,7 +1,10 @@
-[line: 1] ValueError: array.pop() got an empty array.
-    1 | fun inner() { [].pop(); } // expect runtime error: [line: 1] ValueError: array.pop() got an empty array.
-      |                  ^
+ValueError: array.pop() got an empty array.
+ --> uncaught.rn:1:18
+  |
+1 | fun inner() { [].pop(); } // expect runtime error: [line: 1] ValueError: array.pop() got an empty array.
+  |                  ^^^
+
   at array.pop (native)
-  at inner (line 1)
-  at outer (line 4)
-  at <script> (line 6)
+  at inner (uncaught.rn:1)
+  at outer (uncaught.rn:4)
+  at <script> (uncaught.rn:6)

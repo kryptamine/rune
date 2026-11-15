@@ -1,3 +1,5 @@
-[line: 1] Error at '_lib': Cannot find module '_lib.nope'.
-    1 | import _lib.nope; // Error at '_lib': Cannot find module '_lib.nope'.
-      |        ^
+error: Cannot find module '_lib.nope'.
+ --> missing.rn:1:8
+  |
+1 | import _lib.nope; // Error at '_lib': Cannot find module '_lib.nope'.
+  |        ^^^^

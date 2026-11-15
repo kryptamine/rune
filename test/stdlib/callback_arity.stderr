@@ -1,5 +1,8 @@
-[line: 1] ArgumentError: Expected 3 arguments but got 2.
-    1 | [1].map((a, b, c) => { return a; }); // expect runtime error: [line: 1] ArgumentError: Expected 3 arguments but got 2.
-      |     ^
+ArgumentError: Expected 3 arguments but got 2.
+ --> callback_arity.rn:1:5
+  |
+1 | [1].map((a, b, c) => { return a; }); // expect runtime error: [line: 1] ArgumentError: Expected 3 arguments but got 2.
+  |     ^^^
+
   at array.map (native)
-  at <script> (line 1)
+  at <script> (callback_arity.rn:1)

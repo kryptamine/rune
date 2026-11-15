@@ -1,3 +1,5 @@
-[line: 3] Error at 'Point': 'Point' is not a struct.
-    3 | print(Point { x: 1 }); // [line: 3] Error at 'Point': 'Point' is not a struct.
-      |       ^
+error: 'Point' is not a struct.
+ --> not_a_struct.rn:3:7
+  |
+3 | print(Point { x: 1 }); // [line: 3] Error at 'Point': 'Point' is not a struct.
+  |       ^^^^^

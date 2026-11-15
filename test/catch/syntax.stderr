@@ -1,3 +1,5 @@
-[line: 1] Error at '{': Expect type name after 'is'.
-    1 | try {} catch e is  {} // [line: 1] Error at '{': Expect type name after 'is'.
-      |                    ^
+error: Expect type name after 'is'.
+ --> syntax.rn:1:20
+  |
+1 | try {} catch e is  {} // [line: 1] Error at '{': Expect type name after 'is'.
+  |                    ^

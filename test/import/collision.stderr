@@ -1,4 +1,7 @@
-[line: 3] Error at 'math': Variable with this name already declared in this scope.
-    3 | fun math() {} // Error at 'math': Variable with this name already declared in this scope.
-      |     ^
-  note: first declared at line 1
+error: Variable with this name already declared in this scope.
+ --> collision.rn:3:5
+  |
+3 | fun math() {} // Error at 'math': Variable with this name already declared in this scope.
+  |     ^^^^
+  |
+  = hint: 'math' is first declared on line 1; rename one of them

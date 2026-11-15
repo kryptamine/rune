@@ -1,45 +1,134 @@
-[line: 2] Error at 'a': Cannot mutate immutable variable 'a'.
-    2 | a.push(3); // Error at 'a': Cannot mutate immutable variable 'a'.
-      | ^
-[line: 3] Error at 'a': Cannot mutate immutable variable 'a'.
-    3 | a.pop(); // Error at 'a': Cannot mutate immutable variable 'a'.
-      | ^
-[line: 4] Error at 'a': Cannot mutate immutable variable 'a'.
-    4 | a.sort(); // Error at 'a': Cannot mutate immutable variable 'a'.
-      | ^
-[line: 5] Error at 'a': Cannot mutate immutable variable 'a'.
-    5 | a.reverse(); // Error at 'a': Cannot mutate immutable variable 'a'.
-      | ^
-[line: 7] Error at 'o': Cannot mutate immutable variable 'o'.
-    7 | o.xs.push(1); // Error at 'o': Cannot mutate immutable variable 'o'.
-      | ^
-[line: 8] Error at 'o': Cannot mutate immutable variable 'o'.
-    8 | (o?.xs).push(1); // Error at 'o': Cannot mutate immutable variable 'o'.
-      |  ^
-[line: 9] Error at 'o': Cannot mutate immutable variable 'o'.
-    9 | o.delete("xs"); // Error at 'o': Cannot mutate immutable variable 'o'.
-      | ^
-[line: 12] Error at 'm': Cannot mutate immutable variable 'm'.
-   12 | m["b"] = 2; // Error at 'm': Cannot mutate immutable variable 'm'.
-      | ^
-[line: 13] Error at 'm': Cannot mutate immutable variable 'm'.
-   13 | m.delete("a"); // Error at 'm': Cannot mutate immutable variable 'm'.
-      | ^
-[line: 14] Error at 'm': Cannot mutate immutable variable 'm'.
-   14 | m.clear(); // Error at 'm': Cannot mutate immutable variable 'm'.
-      | ^
-[line: 15] Error at 's': Cannot mutate immutable variable 's'.
-   15 | s.add(2); // Error at 's': Cannot mutate immutable variable 's'.
-      | ^
-[line: 16] Error at 's': Cannot mutate immutable variable 's'.
-   16 | s.delete(1); // Error at 's': Cannot mutate immutable variable 's'.
-      | ^
-[line: 17] Error at 's': Cannot mutate immutable variable 's'.
-   17 | s.clear(); // Error at 's': Cannot mutate immutable variable 's'.
-      | ^
-[line: 18] Error at 'a': Cannot mutate immutable variable 'a'.
-   18 | a.insert(0, 1); // Error at 'a': Cannot mutate immutable variable 'a'.
-      | ^
-[line: 19] Error at 'a': Cannot mutate immutable variable 'a'.
-   19 | a.remove(0); // Error at 'a': Cannot mutate immutable variable 'a'.
-      | ^
+error: Cannot mutate immutable variable 'a'.
+ --> in_place_builtins.rn:2:1
+  |
+1 | let a = [2, 1];
+2 | a.push(3); // Error at 'a': Cannot mutate immutable variable 'a'.
+  | ^
+  |
+  = hint: declare it as 'mut a' on line 1
+
+error: Cannot mutate immutable variable 'a'.
+ --> in_place_builtins.rn:3:1
+  |
+2 | a.push(3); // Error at 'a': Cannot mutate immutable variable 'a'.
+3 | a.pop(); // Error at 'a': Cannot mutate immutable variable 'a'.
+  | ^
+  |
+  = hint: declare it as 'mut a' on line 1
+
+error: Cannot mutate immutable variable 'a'.
+ --> in_place_builtins.rn:4:1
+  |
+3 | a.pop(); // Error at 'a': Cannot mutate immutable variable 'a'.
+4 | a.sort(); // Error at 'a': Cannot mutate immutable variable 'a'.
+  | ^
+  |
+  = hint: declare it as 'mut a' on line 1
+
+error: Cannot mutate immutable variable 'a'.
+ --> in_place_builtins.rn:5:1
+  |
+4 | a.sort(); // Error at 'a': Cannot mutate immutable variable 'a'.
+5 | a.reverse(); // Error at 'a': Cannot mutate immutable variable 'a'.
+  | ^
+  |
+  = hint: declare it as 'mut a' on line 1
+
+error: Cannot mutate immutable variable 'o'.
+ --> in_place_builtins.rn:7:1
+  |
+6 | let o = { xs: [] };
+7 | o.xs.push(1); // Error at 'o': Cannot mutate immutable variable 'o'.
+  | ^
+  |
+  = hint: declare it as 'mut o' on line 6
+
+error: Cannot mutate immutable variable 'o'.
+ --> in_place_builtins.rn:8:2
+  |
+7 | o.xs.push(1); // Error at 'o': Cannot mutate immutable variable 'o'.
+8 | (o?.xs).push(1); // Error at 'o': Cannot mutate immutable variable 'o'.
+  |  ^
+  |
+  = hint: declare it as 'mut o' on line 6
+
+error: Cannot mutate immutable variable 'o'.
+ --> in_place_builtins.rn:9:1
+  |
+8 | (o?.xs).push(1); // Error at 'o': Cannot mutate immutable variable 'o'.
+9 | o.delete("xs"); // Error at 'o': Cannot mutate immutable variable 'o'.
+  | ^
+  |
+  = hint: declare it as 'mut o' on line 6
+
+error: Cannot mutate immutable variable 'm'.
+  --> in_place_builtins.rn:12:1
+   |
+11 | let s = set([1]);
+12 | m["b"] = 2; // Error at 'm': Cannot mutate immutable variable 'm'.
+   | ^
+   |
+   = hint: declare it as 'mut m' on line 10
+
+error: Cannot mutate immutable variable 'm'.
+  --> in_place_builtins.rn:13:1
+   |
+12 | m["b"] = 2; // Error at 'm': Cannot mutate immutable variable 'm'.
+13 | m.delete("a"); // Error at 'm': Cannot mutate immutable variable 'm'.
+   | ^
+   |
+   = hint: declare it as 'mut m' on line 10
+
+error: Cannot mutate immutable variable 'm'.
+  --> in_place_builtins.rn:14:1
+   |
+13 | m.delete("a"); // Error at 'm': Cannot mutate immutable variable 'm'.
+14 | m.clear(); // Error at 'm': Cannot mutate immutable variable 'm'.
+   | ^
+   |
+   = hint: declare it as 'mut m' on line 10
+
+error: Cannot mutate immutable variable 's'.
+  --> in_place_builtins.rn:15:1
+   |
+14 | m.clear(); // Error at 'm': Cannot mutate immutable variable 'm'.
+15 | s.add(2); // Error at 's': Cannot mutate immutable variable 's'.
+   | ^
+   |
+   = hint: declare it as 'mut s' on line 11
+
+error: Cannot mutate immutable variable 's'.
+  --> in_place_builtins.rn:16:1
+   |
+15 | s.add(2); // Error at 's': Cannot mutate immutable variable 's'.
+16 | s.delete(1); // Error at 's': Cannot mutate immutable variable 's'.
+   | ^
+   |
+   = hint: declare it as 'mut s' on line 11
+
+error: Cannot mutate immutable variable 's'.
+  --> in_place_builtins.rn:17:1
+   |
+16 | s.delete(1); // Error at 's': Cannot mutate immutable variable 's'.
+17 | s.clear(); // Error at 's': Cannot mutate immutable variable 's'.
+   | ^
+   |
+   = hint: declare it as 'mut s' on line 11
+
+error: Cannot mutate immutable variable 'a'.
+  --> in_place_builtins.rn:18:1
+   |
+17 | s.clear(); // Error at 's': Cannot mutate immutable variable 's'.
+18 | a.insert(0, 1); // Error at 'a': Cannot mutate immutable variable 'a'.
+   | ^
+   |
+   = hint: declare it as 'mut a' on line 1
+
+error: Cannot mutate immutable variable 'a'.
+  --> in_place_builtins.rn:19:1
+   |
+18 | a.insert(0, 1); // Error at 'a': Cannot mutate immutable variable 'a'.
+19 | a.remove(0); // Error at 'a': Cannot mutate immutable variable 'a'.
+   | ^
+   |
+   = hint: declare it as 'mut a' on line 1

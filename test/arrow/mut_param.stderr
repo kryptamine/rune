@@ -1,3 +1,7 @@
-[line: 1] Error at 'x': Cannot assign to immutable variable 'x'.
-    1 | let bad = (x) => { x = 1; }; // Error at 'x': Cannot assign to immutable variable 'x'.
-      |                    ^
+error: Cannot assign to immutable variable 'x'.
+ --> mut_param.rn:1:20
+  |
+1 | let bad = (x) => { x = 1; }; // Error at 'x': Cannot assign to immutable variable 'x'.
+  |                    ^
+  |
+  = hint: declare it as 'mut x' on line 1

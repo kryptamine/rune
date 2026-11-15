@@ -1,15 +1,33 @@
-[line: 1] Error at 'math': Namespace 'math' is not a value; use its members, as in math.name.
-    1 | let m = math; // Error at 'math': Namespace 'math' is not a value; use its members, as in math.name.
-      |         ^
-[line: 2] Error at 'json': Namespace 'json' is not a value; use its members, as in json.name.
-    2 | print(type(json)); // Error at 'json': Namespace 'json' is not a value; use its members, as in json.name.
-      |            ^
-[line: 3] Error at 'fs': Namespace 'fs' is not a value; use its members, as in fs.name.
-    3 | for k in fs { print(k); } // Error at 'fs': Namespace 'fs' is not a value; use its members, as in fs.name.
-      |          ^
-[line: 5] Error at ']': Namespace members must be named, as in math.name.
-    5 | print(math[key](1.2)); // Error at ']': Namespace members must be named, as in math.name.
-      |               ^
-[line: 6] Error at 'module': Namespace 'module' is not a value; use its members, as in module.name.
-    6 | print(module); // Error at 'module': Namespace 'module' is not a value; use its members, as in module.name.
-      |       ^
+error: Namespace 'math' is not a value; use its members, as in math.name.
+ --> not_a_value.rn:1:9
+  |
+1 | let m = math; // Error at 'math': Namespace 'math' is not a value; use its members, as in math.name.
+  |         ^^^^
+
+error: Namespace 'json' is not a value; use its members, as in json.name.
+ --> not_a_value.rn:2:12
+  |
+1 | let m = math; // Error at 'math': Namespace 'math' is not a value; use its members, as in math.name.
+2 | print(type(json)); // Error at 'json': Namespace 'json' is not a value; use its members, as in json.name.
+  |            ^^^^
+
+error: Namespace 'fs' is not a value; use its members, as in fs.name.
+ --> not_a_value.rn:3:10
+  |
+2 | print(type(json)); // Error at 'json': Namespace 'json' is not a value; use its members, as in json.name.
+3 | for k in fs { print(k); } // Error at 'fs': Namespace 'fs' is not a value; use its members, as in fs.name.
+  |          ^^
+
+error: Namespace members must be named, as in math.name.
+ --> not_a_value.rn:5:15
+  |
+4 | let key = "ceil";
+5 | print(math[key](1.2)); // Error at ']': Namespace members must be named, as in math.name.
+  |               ^
+
+error: Namespace 'module' is not a value; use its members, as in module.name.
+ --> not_a_value.rn:6:7
+  |
+5 | print(math[key](1.2)); // Error at ']': Namespace members must be named, as in math.name.
+6 | print(module); // Error at 'module': Namespace 'module' is not a value; use its members, as in module.name.
+  |       ^^^^^^

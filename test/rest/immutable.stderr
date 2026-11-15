@@ -1,3 +1,8 @@
-[line: 2] Error at 'xs': Cannot mutate immutable variable 'xs'.
-    2 |   xs.push(1); // Error at 'xs': Cannot mutate immutable variable 'xs'.
-      |   ^
+error: Cannot mutate immutable variable 'xs'.
+ --> immutable.rn:2:3
+  |
+1 | fun f(...xs) {
+2 |   xs.push(1); // Error at 'xs': Cannot mutate immutable variable 'xs'.
+  |   ^^
+  |
+  = hint: declare it as 'mut xs' on line 1

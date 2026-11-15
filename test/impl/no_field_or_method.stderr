@@ -1,3 +1,5 @@
-[line: 3] TypeError: Point has no method 'nope'.
-    3 | print(Point { x: 1 }.nope()); // expect runtime error: [line: 3] TypeError: Point has no method 'nope'.
-      |                      ^
+TypeError: Point has no method 'nope'.
+ --> no_field_or_method.rn:3:22
+  |
+3 | print(Point { x: 1 }.nope()); // expect runtime error: [line: 3] TypeError: Point has no method 'nope'.
+  |                      ^^^^

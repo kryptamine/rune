@@ -1,3 +1,5 @@
-[line: 1] Error at '"x"': Expect '{' after while condition.
-    1 | while false "x"; // [line: 1] Error at '"x"': Expect '{' after while condition.
-      |             ^
+error: Expect '{' after while condition.
+ --> missing_brace.rn:1:13
+  |
+1 | while false "x"; // [line: 1] Error at '"x"': Expect '{' after while condition.
+  |             ^^^

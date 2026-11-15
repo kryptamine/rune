@@ -42,6 +42,8 @@ func Load(fsys fs.FS, root, name string) (*Program, []errors.File, []error) {
 		return nil, l.files, []error{err}
 	}
 
+	prog.hints = r.hints
+
 	return prog, l.files, nil
 }
 
