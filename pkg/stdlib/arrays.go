@@ -101,7 +101,7 @@ func (c *call) each(visit func(i int, item, r value.Value) bool) {
 	}
 
 	buf := make([]value.Value, 1, 2)
-	if c.caller.Required(f) >= 2 {
+	if c.host.caller.Required(f) >= 2 {
 		buf = buf[:2]
 	}
 
@@ -131,6 +131,17 @@ func firstWhere(c *call, want bool) int {
 	})
 
 	return found
+}
+
+func pushFast(args []value.Value) (value.Value, bool) {
+	if len(args) < 2 || args[0].Kind() != value.Array {
+		return value.NilValue, false
+	}
+
+	arr := args[0].ArrRef()
+	*arr = append(*arr, args[1:]...)
+
+	return value.NilValue, true
 }
 
 // arrayInPlace are the methods that change their array.

@@ -316,7 +316,7 @@ func (c *call) ioFail(err error) value.Value {
 		path, reason = le.Old, le.Old+" -> "+le.New+": "+le.Err.Error()
 	}
 
-	c.err = errors.NewIOError(*c.token, c.name+"() "+reason+".", path, ioCode(err))
+	c.err = errors.NewIOError(*c.token, c.n.name+"() "+reason+".", path, ioCode(err))
 
 	return value.NilValue
 }

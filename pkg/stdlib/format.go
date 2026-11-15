@@ -8,6 +8,7 @@ import (
 	"rune/pkg/value"
 	"strconv"
 	"strings"
+	"unsafe"
 )
 
 // format is printf: %[flags][width][.precision]verb, flags from "-+ 0#".
@@ -16,13 +17,12 @@ import (
 // %q as it shows inside an array; %d %x %X %o %b take integers, %f %e %E
 // %g %G numbers; %% is a percent sign.
 func format(c *call, f string, args []value.Value) value.Value {
-	var b strings.Builder
-
+	b := c.host.buf[:0]
 	p := printf{c: c, args: args}
 
 	for i := 0; i < len(f); i++ {
 		if f[i] != '%' {
-			b.WriteByte(f[i])
+			b = append(b, f[i])
 			continue
 		}
 
@@ -39,7 +39,7 @@ func format(c *call, f string, args []value.Value) value.Value {
 				return p.bad()
 			}
 
-			b.WriteByte('%')
+			b = append(b, '%')
 
 			continue
 		}
@@ -63,27 +63,62 @@ func format(c *call, f string, args []value.Value) value.Value {
 			return value.NilValue
 		}
 
+		// A bare directive needs no fmt.
+		if len(p.text) == 2 {
+			switch v := c.args[j]; {
+			case d.verb == 'v' || d.verb == 's':
+				b = helpers.AppendValue(b, v)
+				continue
+			case d.verb == 'd' && v.IsInt():
+				b = strconv.AppendInt(b, v.Int(), 10)
+				continue
+			}
+		}
+
 		arg, ok := formatArg(c, d.verb, j)
 		if !ok {
 			return value.NilValue
 		}
 
-		goDirective := p.text[:len(p.text)-1]
+		// The directive as written is Go's, but for a star or a verb of ours.
+		goDirective := p.text
 		if d.star {
 			goDirective = "%" + d.flags + width
 			if d.dot {
 				goDirective += "." + precision
 			}
+
+			goDirective += goVerb(d.verb)
+		} else if d.verb == 'v' || d.verb == 'q' {
+			goDirective = p.text[:len(p.text)-1] + "s"
 		}
 
-		fmt.Fprintf(&b, goDirective+goVerb(d.verb), arg)
+		b = fmt.Appendf(b, goDirective, arg)
 	}
 
 	if p.next < len(args) {
 		return c.fail(errors.ArgumentError, "got %d arguments for %d directives.", len(args), p.next)
 	}
 
-	return value.NewString(b.String())
+	c.host.keep(b)
+
+	return value.NewString(string(b))
+}
+
+// eface is the layout of an empty interface.
+type eface struct {
+	typ, data unsafe.Pointer
+}
+
+func typeOf(x any) unsafe.Pointer { return (*eface)(unsafe.Pointer(&x)).typ }
+
+var intType, floatType, strType = typeOf(int64(0)), typeOf(float64(0)), typeOf("")
+
+// box is the interface holding *p, of the type typ, without allocating;
+// it is good until *p changes.
+func box(typ unsafe.Pointer, p unsafe.Pointer) (x any) {
+	*(*eface)(unsafe.Pointer(&x)) = eface{typ, p}
+	return x
 }
 
 // printf walks the arguments of a format call; text and start are the
@@ -210,24 +245,34 @@ func goVerb(verb byte) string {
 	return string(verb)
 }
 
-// formatArg converts c.args[i] for verb.
+// formatArg converts c.args[i] for verb, boxed in the host.
 func formatArg(c *call, verb byte, i int) (any, bool) {
-	v := c.args[i]
+	v, h := c.args[i], c.host
 
 	switch verb {
 	case 'v', 's':
-		return string(helpers.AppendValue(nil, v)), true
+		if v.IsString() {
+			h.fmtStr = v.Str()
+		} else {
+			h.tmp = helpers.AppendValue(h.tmp[:0], v)
+			h.fmtStr = unsafe.String(unsafe.SliceData(h.tmp), len(h.tmp))
+		}
+
+		return box(strType, unsafe.Pointer(&h.fmtStr)), true
 	case 'q':
-		return helpers.Quoted(v), true
+		h.fmtStr = helpers.Quoted(v)
+		return box(strType, unsafe.Pointer(&h.fmtStr)), true
 	case 'd', 'x', 'X', 'o', 'b':
 		if n, ok := value.ToInt(v); ok {
-			return n, true
+			h.fmtInt = n
+			return box(intType, unsafe.Pointer(&h.fmtInt)), true
 		}
 
 		c.typeError(i, "an integer")
 	case 'f', 'e', 'E', 'g', 'G':
 		if v.IsNumber() {
-			return v.Num(), true
+			h.fmtFloat = v.Num()
+			return box(floatType, unsafe.Pointer(&h.fmtFloat)), true
 		}
 
 		c.typeError(i, "a number")

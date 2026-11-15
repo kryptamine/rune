@@ -38,11 +38,21 @@ type funcState struct {
 	selfReg  int32
 }
 
-// unit is what the functions of a program share: each field name's one
-// string, which constants equal to it reuse so the VM can match a field by
-// pointer.
+// unit is what the functions of a program share: each name's one string,
+// which string constants and object keys equal to it reuse so the VM can
+// match a field or property by pointer.
 type unit struct {
 	names map[string]string
+}
+
+func (u *unit) intern(s string) string {
+	if name, ok := u.names[s]; ok {
+		return name
+	}
+
+	u.names[s] = s
+
+	return s
 }
 
 type loop struct {
@@ -373,6 +383,10 @@ func (fs *funcState) declare(l *ast.Local) int32 {
 
 // keyList adds the property names of an object literal or pattern.
 func (fs *funcState) keyList(keys []string) int32 {
+	for i, k := range keys {
+		keys[i] = fs.unit.intern(k)
+	}
+
 	fs.proto.keys = append(fs.proto.keys, keys)
 	return int32(len(fs.proto.keys) - 1)
 }
@@ -392,9 +406,7 @@ func (fs *funcState) constant(v value.Value) int32 {
 		key.str = string(v.Bytes())
 	case value.String:
 		key.str = v.Str()
-		if name, ok := fs.unit.names[key.str]; ok {
-			v = value.NewString(name)
-		}
+		v = value.NewString(fs.unit.intern(key.str))
 	case value.Function, value.Type, value.Enum, value.Struct, value.Array, value.Object, value.Map, value.Set:
 		key.ptr = v.Ptr()
 	}

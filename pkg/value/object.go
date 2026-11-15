@@ -2,6 +2,7 @@ package value
 
 import (
 	"iter"
+	"unsafe"
 )
 
 // Obj is the table of an Object: string keys in the order they were
@@ -55,6 +56,37 @@ func (o *Obj) Get(k string) (Value, bool) {
 	}
 
 	return NilValue, false
+}
+
+// internedSlot is find for a key sharing the property name's storage, as
+// the compiler arranges; -1 does not mean there is none.
+func (o *Obj) internedSlot(key Value) int {
+	for i, k := range o.keys {
+		if unsafe.Pointer(unsafe.StringData(k)) == key.p && uint64(len(k)) == key.n&lenMask {
+			return i
+		}
+	}
+
+	return -1
+}
+
+// Interned is Get by internedSlot; key must be a string.
+func (o *Obj) Interned(key Value) (Value, bool) {
+	if i := o.internedSlot(key); i >= 0 {
+		return o.vals[i], true
+	}
+
+	return NilValue, false
+}
+
+// SetInterned sets a property internedSlot finds.
+func (o *Obj) SetInterned(key, v Value) bool {
+	i := o.internedSlot(key)
+	if i >= 0 {
+		o.vals[i] = v
+	}
+
+	return i >= 0
 }
 
 func (o *Obj) Has(k string) bool { return o.find(k) >= 0 }
