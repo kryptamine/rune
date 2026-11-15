@@ -12,11 +12,16 @@ export fun render(text) {
 
     while true {
         let m = regex.find(CODE_RE, rest);
-        if m == nil { break; }
+
+        if m == nil {
+            break;
+        }
+
         out.push(spans(rest[..m.index]));
         out.push("<code>{escape(m.groups[0])}</code>");
         rest = rest[m.index + m.text.len()..];
     }
+
     out.push(spans(rest));
 
     return out.join("");

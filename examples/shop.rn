@@ -27,7 +27,9 @@ impl Client {
         self.refreshes++;
     }
 
-    fun expire(mut self) { self.token = "expired"; }
+    fun expire(mut self) {
+        self.token = "expired";
+    }
 
     fun get(mut self, path) => self.authed("GET", path);
     fun post(mut self, path, body) => self.authed("POST", path, body);
@@ -37,7 +39,10 @@ impl Client {
         try {
             return self.send(method, "/auth" + path, body);
         } catch e is ApiError {
-            if e.status != 401 || self.refreshToken == nil { throw e; }
+            if e.status != 401 || self.refreshToken == nil {
+                throw e;
+            }
+
             self.refresh();
             return self.send(method, "/auth" + path, body);
         }
@@ -45,8 +50,14 @@ impl Client {
 
     fun send(self, method, path, body = nil) {
         let mut headers = { Accept: "application/json" };
-        if self.token != nil { headers.Authorization = "Bearer " + self.token; }
-        if body != nil { headers["Content-Type"] = "application/json"; }
+
+        if self.token != nil {
+            headers.Authorization = "Bearer " + self.token;
+        }
+
+        if body != nil {
+            headers["Content-Type"] = "application/json";
+        }
 
         let r = http.request(method, self.base + path, {
             headers,
@@ -55,9 +66,11 @@ impl Client {
         });
 
         let data = r.body == "" ? nil : json.parse(r.body);
+
         if r.status >= 400 {
             throw ApiError { message: data?.message ?? "HTTP {r.status}", status: r.status, path };
         }
+
         return data;
     }
 }
@@ -71,10 +84,12 @@ fun jwtClaims(token) {
 
 fun urlEncode(s) {
     let mut out = "";
+
     for _, b in bytes(s) {
         let c = string.fromCharCode(b);
         out += regex.test(r"^[A-Za-z0-9\-_.~]$", c) ? c : "%%%02X".format(b);
     }
+
     return out;
 }
 
@@ -90,6 +105,7 @@ fun showCarts(carts) {
         print("no carts");
         return;
     }
+
     for cart in carts {
         print("cart #{cart.id}: {cart.totalQuantity} items, {money(cart.total)} → {money(cart.discountedTotal)}");
         let mut top = cart.products[..];
@@ -117,6 +133,7 @@ fun main([query = "phone"]) {
     let mut api = Client.new();
 
     section("login");
+
     try {
         let me = api.login(username, password);
         let claims = jwtClaims(api.token);
@@ -152,6 +169,7 @@ fun main([query = "phone"]) {
     print("got {again.username} after {api.refreshes} refresh");
 
     section("errors");
+
     try {
         api.get("/products/999999");
     } catch e is ApiError {

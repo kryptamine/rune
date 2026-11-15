@@ -21,13 +21,18 @@ fun run(src, mut catalog, format) {
     let p = plan.plan(q, catalog);
 
     if q.explain {
-        for i, s in p.steps { print("{"  ".repeat(i)}{i == 0 ? "" : "└ "}{s.label}"); }
+        for i, s in p.steps {
+            print("{"  ".repeat(i)}{i == 0 ? "" : "└ "}{s.label}");
+        }
+
         return;
     }
 
     let rows = p.execute();
     output.write(format, p.columns, rows);
-    if format == "table" { print("({rows.len()} row{rows.len() == 1 ? "" : "s"}, {"%.1f".format((time.now() - started) * 1000)} ms)"); }
+    if format == "table" {
+        print("({rows.len()} row{rows.len() == 1 ? "" : "s"}, {"%.1f".format((time.now() - started) * 1000)} ms)");
+    }
 }
 
 // tryRun runs a query, reporting a mistake in it; it returns whether there was none.
@@ -43,7 +48,11 @@ fun tryRun(src, mut catalog, format = "table") {
 
 fun showDemo() {
     let dir = fs.tempDir();
-    defer { fs.removeAll(dir); }
+
+    defer {
+        fs.removeAll(dir);
+    }
+
     let n = int(os.env("ORDERS") ?? "100000");
 
     let mut started = time.now();
@@ -51,6 +60,7 @@ fun showDemo() {
     print("generated {n} orders in {"%.0f".format((time.now() - started) * 1000)} ms\n");
 
     let mut catalog = table.Catalog.new(dir);
+
     for name in demo.TABLES {
         started = time.now();
         let t = catalog.load(name);
@@ -65,35 +75,50 @@ fun showDemo() {
 }
 
 fun main(args) {
-    if !args { return showDemo(); }
+    if !args {
+        return showDemo();
+    }
 
     let mut dir = ".";
     let mut format = "table";
     let mut rest = [];
     let mut i = 0;
+
     while i < args.len() {
         match args[i] {
             "-d" => dir = args?.[++i] ?? return usage(),
             "-f" => format = args?.[++i] ?? return usage(),
             a => rest.push(a),
         }
+
         i++;
     }
-    if format !in output.FORMATS { return usage(); }
+
+    if format !in output.FORMATS {
+        return usage();
+    }
 
     let mut catalog = table.Catalog.new(dir);
 
     if rest == ["repl"] {
         let mut failed = 0;
         let mut line = io.readLine();
+
         while line != nil {
-            if line.trim() != "" && !tryRun(line, catalog, format) { failed++; }
+            if line.trim() != "" && !tryRun(line, catalog, format) {
+                failed++;
+            }
+
             line = io.readLine();
         }
+
         return failed > 0 ? 1 : 0;
     }
 
-    if rest.len() != 1 { return usage(); }
+    if rest.len() != 1 {
+        return usage();
+    }
+
     return tryRun(rest[0], catalog, format) ? 0 : 1;
 }
 

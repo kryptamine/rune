@@ -18,6 +18,7 @@ export struct Item { expr, alias = nil }
 export struct TableRef { name, alias, pos }
 export struct Join { left, table, on }
 export struct Order { expr, desc }
+
 export struct Select {
     explain = false,
     distinct = false,
@@ -73,8 +74,15 @@ fun children(e) {
         Between { expr, lo, hi } => [expr, lo, hi],
         Case { whens, otherwise } => {
             let mut xs = [];
-            for [c, v] in whens { xs.push(c, v); }
-            if otherwise != nil { xs.push(otherwise); }
+
+            for [c, v] in whens {
+                xs.push(c, v);
+            }
+
+            if otherwise != nil {
+                xs.push(otherwise);
+            }
+
             return xs;
         },
         _ => [],
@@ -83,12 +91,15 @@ fun children(e) {
 
 export fun walk(e, f) {
     f(e);
-    for c in children(e) { walk(c, f); }
+    for c in children(e) {
+        walk(c, f);
+    }
 }
 
 // rewrite is e with each node replaced by f of it, its children rewritten first.
 export fun rewrite(e, f) {
     let r = x => rewrite(x, f);
+
     return f(match e {
         _ is Unary => Unary { ...e, expr: r(e.expr) },
         _ is IsNull => IsNull { ...e, expr: r(e.expr) },
@@ -107,13 +118,21 @@ export fun rewrite(e, f) {
 
 export fun columnsOf(e) {
     let mut out = [];
-    walk(e, n => { if n is Col { out.push(n); } });
+
+    walk(e, n => { if n is Col {
+        out.push(n);
+    } });
+
     return out;
 }
 
 export fun aggregatesIn(e) {
     let mut out = [];
-    walk(e, n => { if isAggregate(n) { out.push(n); } });
+
+    walk(e, n => { if isAggregate(n) {
+        out.push(n);
+    } });
+
     return out;
 }
 
@@ -129,6 +148,7 @@ export fun suggest(word, options) {
     let w = word.lower();
     let mut best = nil;
     let mut bestD = 3;
+
     for o in options {
         let d = distance(w, o.lower());
         if d < bestD {
@@ -136,18 +156,23 @@ export fun suggest(word, options) {
             bestD = d;
         }
     }
+
     return best == nil ? "" : ", did you mean '{best}'?";
 }
 
 fun distance(a, b) {
     let mut prev = [...0..b.len() + 1];
+
     for i in 1..a.len() + 1 {
         let mut cur = [i];
+
         for j in 1..b.len() + 1 {
             let cost = a[i - 1] == b[j - 1] ? 0 : 1;
             cur.push(math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost));
         }
+
         prev = cur;
     }
+
     return prev[b.len()];
 }

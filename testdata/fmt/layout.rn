@@ -41,4 +41,13 @@ fun main(){
   print(~x, !(a), -(b));
       // trailing comment block
 }
+fun blocks() {
+    let a = 1;
+    xs.each(x => { p(x); });
+    let b = 2; // after b
+    // before if
+    if b { p(b); } else { p(a); }
+    try { t(); } catch e { p(e); }
+    let c = 3;
+}
 // end

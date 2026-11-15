@@ -14,20 +14,33 @@ impl Scope {
 
     fun find(self, col) {
         let mut found = -1;
+
         for i, f in self.fields {
-            if f.name != col.name || (col.table != nil && f.table != col.table) { continue; }
-            if found >= 0 { throw ast.SqlError { message: "column '{col.name}' is ambiguous, say which table: {self.fields[found].table}.{col.name} or {f.table}.{col.name}", pos: col.pos }; }
+            if f.name != col.name || (col.table != nil && f.table != col.table) {
+                continue;
+            }
+
+            if found >= 0 {
+                throw ast.SqlError { message: "column '{col.name}' is ambiguous, say which table: {self.fields[found].table}.{col.name} or {f.table}.{col.name}", pos: col.pos };
+            }
+
             found = i;
         }
+
         return found;
     }
 
     fun resolve(self, col) {
         let i = self.find(col);
-        if i >= 0 { return i; }
+
+        if i >= 0 {
+            return i;
+        }
+
         if col.table != nil && !self.fields.some(f => f.table == col.table) {
             throw ast.SqlError { message: "unknown table '{col.table}'", pos: col.pos };
         }
+
         let names = self.fields.filter(f => col.table == nil || f.table == col.table).map(f => f.name);
         throw ast.SqlError { message: "unknown column '{ast.sql(col)}'" + ast.suggest(col.name, names), pos: col.pos };
     }
@@ -36,7 +49,9 @@ impl Scope {
 
     // check fails on the first column of e it has not.
     fun check(self, e) {
-        for c in ast.columnsOf(e) { self.resolve(c); }
+        for c in ast.columnsOf(e) {
+            self.resolve(c);
+        }
     }
 }
 
@@ -48,8 +63,14 @@ export struct Ctx { scope, group = nil }
 export fun compile(e, ctx) {
     if ctx.group != nil {
         let k = ctx.group.indexOf(ast.sql(e));
-        if k >= 0 { return row => row[k]; }
-        if e is ast.Col { throw ast.SqlError { message: "'{ast.sql(e)}' must be in GROUP BY or inside an aggregate", pos: e.pos }; }
+
+        if k >= 0 {
+            return row => row[k];
+        }
+
+        if e is ast.Col {
+            throw ast.SqlError { message: "'{ast.sql(e)}' must be in GROUP BY or inside an aggregate", pos: e.pos };
+        }
     } else if ast.isAggregate(e) {
         throw ast.SqlError { message: "{e.name} is an aggregate and cannot be used here", pos: e.pos };
     }
@@ -64,6 +85,7 @@ export fun compile(e, ctx) {
         },
         ast.Unary { op: "-", expr } => {
             let f = c(expr);
+
             return row => {
                 let v = f(row);
                 return v == nil ? nil : -v;
@@ -71,6 +93,7 @@ export fun compile(e, ctx) {
         },
         ast.Unary { op: "NOT", expr } => {
             let f = c(expr);
+
             return row => {
                 let v = f(row);
                 return v == nil ? nil : !v;
@@ -78,21 +101,39 @@ export fun compile(e, ctx) {
         },
         ast.Binary { op: "AND", left, right } => {
             let [l, r] = [c(left), c(right)];
+
             return row => {
                 let a = l(row);
-                if a == false { return false; }
+
+                if a == false {
+                    return false;
+                }
+
                 let b = r(row);
-                if b == false { return false; }
+
+                if b == false {
+                    return false;
+                }
+
                 return a == nil || b == nil ? nil : true;
             };
         },
         ast.Binary { op: "OR", left, right } => {
             let [l, r] = [c(left), c(right)];
+
             return row => {
                 let a = l(row);
-                if a == true { return true; }
+
+                if a == true {
+                    return true;
+                }
+
                 let b = r(row);
-                if b == true { return true; }
+
+                if b == true {
+                    return true;
+                }
+
                 return a == nil || b == nil ? nil : false;
             };
         },
@@ -103,14 +144,18 @@ export fun compile(e, ctx) {
         },
         ast.InList { expr, list, not } => {
             let f = c(expr);
+
             if list.every(x => x is ast.Lit) {
                 let values = set(list.map(x => x.value));
+
                 return row => {
                     let v = f(row);
                     return v == nil ? nil : v in values != not;
                 };
             }
+
             let fs = list.map(c);
+
             return row => {
                 let v = f(row);
                 return v == nil ? nil : fs.some(g => g(row) == v) != not;
@@ -118,15 +163,21 @@ export fun compile(e, ctx) {
         },
         ast.Between { expr, lo, hi, not } => {
             let [f, l, h] = [c(expr), c(lo), c(hi)];
+
             return row => {
                 let v = f(row);
-                if v == nil { return nil; }
+
+                if v == nil {
+                    return nil;
+                }
+
                 return (v >= l(row) && v <= h(row)) != not;
             };
         },
         ast.Like { expr, pattern: ast.Lit { value: p is string }, not } => {
             let f = c(expr);
             let re = likeRegex(p);
+
             return row => {
                 let v = f(row);
                 return v == nil ? nil : regex.test(re, string(v)) != not;
@@ -136,21 +187,32 @@ export fun compile(e, ctx) {
         ast.Case { whens, otherwise } => {
             let arms = whens.map(([cond, v]) => [c(cond), c(v)]);
             let other = otherwise == nil ? (_ => nil) : c(otherwise);
+
             return row => {
                 for [cond, v] in arms {
-                    if cond(row) == true { return v(row); }
+                    if cond(row) == true {
+                        return v(row);
+                    }
                 }
+
                 return other(row);
             };
         },
         ast.Call { name: "COALESCE", args, pos } => {
-            if !args { throw ast.SqlError { message: "COALESCE takes at least one argument", pos }; }
+            if !args {
+                throw ast.SqlError { message: "COALESCE takes at least one argument", pos };
+            }
+
             let fs = args.map(c);
+
             return row => {
                 for g in fs {
                     let v = g(row);
-                    if v != nil { return v; }
+                    if v != nil {
+                        return v;
+                    }
                 }
+
                 return nil;
             };
         },
@@ -164,6 +226,7 @@ fun binary(op, l, r) {
         let b = r(row);
         return a == nil || b == nil ? nil : f(a, b);
     };
+
     return match op {
         "+" => strict((a, b) => a + b),
         "-" => strict((a, b) => a - b),
@@ -204,6 +267,7 @@ fun scalar(name, fs, pos) {
         message: "unknown function {name}" + ast.suggest(name, [...SCALARS.keys(), "COALESCE", ...ast.AGGREGATES]),
         pos,
     };
+
     if fs.len() < min || fs.len() > max {
         throw ast.SqlError { message: "{name} takes {min == max ? min : "{min} to {max}"} arguments, got {fs.len()}", pos };
     }
@@ -222,19 +286,34 @@ fun scalar(name, fs, pos) {
 
 fun likeRegex(p) {
     let mut out = ["(?is)^"];
+
     for ch in p.split("") {
         out.push(match ch { "%" => ".*", "_" => ".", _ => regex.escape(ch) });
     }
+
     out.push("$");
     return out.join("");
 }
 
 // NULLs first, then numbers, then strings.
 export fun compare(a, b) {
-    if a == b { return 0; }
-    if a == nil { return -1; }
-    if b == nil { return 1; }
+    if a == b {
+        return 0;
+    }
+
+    if a == nil {
+        return -1;
+    }
+
+    if b == nil {
+        return 1;
+    }
+
     let [ta, tb] = [type(a), type(b)];
-    if ta != tb { return ta == "number" ? -1 : 1; }
+
+    if ta != tb {
+        return ta == "number" ? -1 : 1;
+    }
+
     return a < b ? -1 : 1;
 }

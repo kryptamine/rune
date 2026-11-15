@@ -12,7 +12,10 @@ export fun load(dir, drafts = false) {
     let mut site = Site {};
 
     for f in fs.list(dir) {
-        if f.isDir || fs.ext(f.name) != ".md" { continue; }
+        if f.isDir || fs.ext(f.name) != ".md" {
+            continue;
+        }
+
         let path = fs.join(dir, f.name);
         let { meta, body } = fm.parse(fs.readText(path), path);
 
@@ -22,6 +25,7 @@ export fun load(dir, drafts = false) {
         }
 
         let { html, headings } = md.render(body);
+
         site.posts.push(Post {
             slug: fs.stem(f.name),
             title: meta?.title ?? headings[0]?.text ?? f.name,
@@ -61,10 +65,12 @@ export fun write(site, out) {
     let mut sections = [];
     let mut names = tags.keys();
     names.sort();
+
     for tag in names {
         let items = tags[tag].map(p => tpl.postLink(p)).join("\n");
         sections.push("<h2 id=\"{tag}\">#{tag}</h2>\n<ul>\n{items}\n</ul>");
     }
+
     fs.write(fs.join(out, "tags.html"), tpl.page({ title: "Tags", body: "<h1>Tags</h1>\n" + sections.join("\n") }));
 
     return 3 + site.posts.len();
@@ -72,6 +78,7 @@ export fun write(site, out) {
 
 fun byTag(posts) {
     let mut tags = map();
+
     for p in posts {
         for t in p.tags {
             let mut list = tags?.[t] ?? [];
@@ -79,5 +86,6 @@ fun byTag(posts) {
             tags[t] = list;
         }
     }
+
     return tags;
 }

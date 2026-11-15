@@ -17,7 +17,9 @@ impl Segment {
 
     fun added(mut self, n, alive) {
         self.size += n;
-        if alive { self.live += n; }
+        if alive {
+            self.live += n;
+        }
     }
 
     fun dropped(mut self, n) {
@@ -25,7 +27,10 @@ impl Segment {
     }
 
     fun read(mut self, at, n) {
-        if self.reader == nil { self.reader = fs.open(self.log); }
+        if self.reader == nil {
+            self.reader = fs.open(self.log);
+        }
+
         return self.reader.readAt(at, n);
     }
 
@@ -36,7 +41,9 @@ impl Segment {
     fun remove(self) {
         self.close();
         fs.remove(self.log);
-        if fs.exists(self.hint) { fs.remove(self.hint); }
+        if fs.exists(self.hint) {
+            fs.remove(self.hint);
+        }
     }
 }
 
@@ -54,14 +61,17 @@ fun writeDurably(path, data) {
 fun chunks(entries, max) {
     let mut out = [];
     let mut size = 0;
+
     for [key, loc] in entries {
         if !out || size + loc.recLen > max {
             out.push([]);
             size = 0;
         }
+
         out[-1].push([key, loc]);
         size += loc.recLen;
     }
+
     return out;
 }
 
@@ -84,12 +94,14 @@ impl Store {
         fs.mkdir(dir);
         let lock = try fs.lock(fs.join(dir, "LOCK")) catch e is IOError => throw e.code == "locked" ? KvError { message: "{dir} is open elsewhere" } : e;
         let mut db = Store { dir, maxSegment, sync, lock };
+
         try {
             db.boot();
         } catch e {
             lock.close();
             throw e;
         }
+
         return db;
     }
 
@@ -98,17 +110,22 @@ impl Store {
         let mut rec = { segments: 0, records: 0, hinted: 0, truncated: [], ms: 0 };
 
         for f in fs.list(self.dir) {
-            if f.name.endsWith(".tmp") { fs.remove(fs.join(self.dir, f.name)); }
+            if f.name.endsWith(".tmp") {
+                fs.remove(fs.join(self.dir, f.name));
+            }
         }
+
         let ids = fs.list(self.dir).filter(f => f.name.endsWith(".log")).map(f => int(fs.stem(f.name)));
 
         for i, id in ids {
             self.segs[id] = Segment.at(self.dir, id);
+
             if fs.exists(self.segs[id].hint) {
                 self.loadHint(id, rec);
             } else {
                 self.replay(id, i == ids.len() - 1, rec);
             }
+
             rec.segments++;
         }
 
@@ -121,18 +138,26 @@ impl Store {
     }
 
     fun openActive(mut self) {
-        if self.active !in self.segs { self.segs[self.active] = Segment.at(self.dir, self.active); }
+        if self.active !in self.segs {
+            self.segs[self.active] = Segment.at(self.dir, self.active);
+        }
+
         self.out = fs.open(self.segs[self.active].log, "a");
     }
 
     fun apply(mut self, key, loc, kind) {
         let old = self.keydir?.[key];
-        if old { self.segs[old.seg].dropped(old.recLen); }
+
+        if old {
+            self.segs[old.seg].dropped(old.recLen);
+        }
+
         if kind == codec.PUT {
             self.keydir[key] = loc;
         } else {
             self.keydir.delete(key);
         }
+
         self.segs[loc.seg].added(loc.recLen, kind == codec.PUT);
     }
 
@@ -143,12 +168,17 @@ impl Store {
         let mut at = 0;
         while at < data.len() {
             let r = codec.decode(data, at);
+
             if r is codec.Bad {
-                if !last { throw KvError { message: "{seg.name()}: {r.name.lower()} record at byte {at}" }; }
+                if !last {
+                    throw KvError { message: "{seg.name()}: {r.name.lower()} record at byte {at}" };
+                }
+
                 fs.truncate(seg.log, at);
                 rec.truncated.push({ file: seg.name(), at, dropped: data.len() - at, reason: r.name.lower() });
                 break;
             }
+
             self.apply(r.key, codec.Loc { seg: id, start: r.start, recLen: r.recLen, size: r.size }, r.kind);
             rec.records++;
             at += r.recLen;
@@ -167,18 +197,26 @@ impl Store {
     }
 
     fun write(mut self, kind, key, value) {
-        if type(key) != "string" || key == "" { throw KvError { message: "keys are non-empty strings, got {key}" }; }
+        if type(key) != "string" || key == "" {
+            throw KvError { message: "keys are non-empty strings, got {key}" };
+        }
+
         let rec = codec.encode(kind, key, value);
         let used = self.segs[self.active].size;
-        if used > 0 && used + rec.len() > self.maxSegment { self.rotate(); }
+
+        if used > 0 && used + rec.len() > self.maxSegment {
+            self.rotate();
+        }
 
         let loc = codec.Loc { seg: self.active, start: self.segs[self.active].size, recLen: rec.len(), size: value.len() };
         self.out.write(rec);
+
         if self.sync {
             self.out.sync();
         } else {
             self.out.flush();
         }
+
         self.writes++;
         self.apply(key, loc, kind);
     }
@@ -194,7 +232,10 @@ impl Store {
     }
 
     fun delete(mut self, key) {
-        if key !in self.keydir { return false; }
+        if key !in self.keydir {
+            return false;
+        }
+
         self.write(codec.DEL, key, b"");
         return true;
     }
@@ -219,10 +260,12 @@ impl Store {
     fun info(self) {
         let mut size = 0;
         let mut live = 0;
+
         for _, s in self.segs {
             size += s.size;
             live += s.live;
         }
+
         return { keys: self.keydir.len(), segments: self.segs.len(), size, live, dead: size - live, writes: self.writes };
     }
 
@@ -242,20 +285,28 @@ impl Store {
             self.active++;
             let mut log = bytes.buffer();
             let mut hints = bytes.buffer();
+
             for [key, loc] in chunk {
-                if loc.seg !in data { data[loc.seg] = fs.readBytes(self.segs[loc.seg].log); }
+                if loc.seg !in data {
+                    data[loc.seg] = fs.readBytes(self.segs[loc.seg].log);
+                }
+
                 let moved = codec.Loc { ...loc, seg: self.active, start: log.len() };
                 log.write(data[loc.seg][loc.start..loc.start + loc.recLen]);
                 codec.writeHint(hints, key, moved);
                 keydir[key] = moved;
             }
+
             let seg = Segment.at(self.dir, self.active);
             writeDurably(seg.log, log);
             writeDurably(seg.hint, hints);
             segs[self.active] = Segment { ...seg, size: log.len(), live: log.len() };
         }
 
-        for s in old { s.remove(); }
+        for s in old {
+            s.remove();
+        }
+
         self.segs = segs;
         self.keydir = keydir;
         self.active++;
@@ -265,7 +316,11 @@ impl Store {
 
     fun close(self) {
         self.out.close();
-        for _, s in self.segs { s.close(); }
+
+        for _, s in self.segs {
+            s.close();
+        }
+
         self.lock.close();
     }
 }

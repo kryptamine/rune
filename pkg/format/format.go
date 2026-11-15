@@ -1,6 +1,6 @@
 // Package format lays out rune source: indentation, spacing between
-// tokens and blank lines. Line breaks, comments and string literals stay
-// as written.
+// tokens, a line per statement and blank lines around blocks. Other line
+// breaks, comments and string literals stay as written.
 package format
 
 import (
@@ -74,6 +74,7 @@ func Source(src []byte) ([]byte, []error) {
 	}
 
 	atoms, tail := split(string(src), tokens)
+	layout(atoms)
 
 	p := &printer{frames: []frame{{}}}
 	for i := range atoms {
@@ -126,6 +127,76 @@ func split(s string, tokens []ast.Token) ([]atom, []comment) {
 	}
 
 	return atoms, parseGap(s[from:]).comments
+}
+
+// layout puts each statement on a line of its own, and blank lines
+// around a statement holding a block that spans lines.
+func layout(atoms []atom) {
+	type frame struct {
+		brace, multi bool
+		start        int
+	}
+	stack := []frame{{brace: true}}
+	for i := range atoms {
+		t := atoms[i].tok.TokenType
+		var next *atom
+		if i+1 < len(atoms) {
+			next = &atoms[i+1]
+		}
+
+		end := false
+		switch {
+		case opener(t):
+			stack = append(stack, frame{brace: t == ast.LEFT_BRACE, start: i + 1})
+			continue
+		case closer(t) && len(stack) > 1:
+			inner := stack[len(stack)-1]
+			stack = stack[:len(stack)-1]
+			stack[len(stack)-1].multi = stack[len(stack)-1].multi || inner.multi ||
+				t == ast.RIGHT_BRACE && atoms[i].before.breaks > 0
+			end = t == ast.RIGHT_BRACE && next != nil && next.before.breaks > 0 && !continuesBlock(next)
+		case t == ast.SEMICOLON:
+			end = true
+		}
+
+		top := &stack[len(stack)-1]
+		if !end || !top.brace {
+			continue
+		}
+		if t == ast.SEMICOLON && next != nil {
+			lineBreak(next, 1)
+			lineBreak(&atoms[top.start], 1)
+		}
+		if top.multi {
+			lineBreak(&atoms[top.start], 2)
+			if next != nil && !closer(next.tok.TokenType) {
+				lineBreak(next, 2)
+			}
+		}
+		top.start, top.multi = i+1, false
+	}
+}
+
+// continuesBlock reports whether a goes on with the expression or
+// statement that a } before it ends.
+func continuesBlock(a *atom) bool {
+	switch a.tok.TokenType {
+	case ast.ELSE, ast.CATCH, ast.SEMICOLON, ast.COMMA, ast.DOT, ast.QUESTION_DOT, ast.RIGHT_PAREN, ast.RIGHT_BRACKET, ast.RIGHT_BRACE:
+		return true
+	}
+	return !keyword(a) && a.role != operand && a.role != prefix
+}
+
+// lineBreak makes a start a line, after at least breaks-1 blank ones,
+// which go before the comments on lines of their own above it.
+func lineBreak(a *atom, breaks int) {
+	for i := range a.before.comments {
+		if c := &a.before.comments[i]; c.breaks > 0 {
+			c.breaks = max(c.breaks, breaks)
+			return
+		}
+	}
+	a.before.breaks = max(a.before.breaks, breaks)
 }
 
 // classify finds the role of a, given whether an operand ends before it.
