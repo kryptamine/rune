@@ -15,7 +15,7 @@ fs.append(notes, "ship v1\n");
 
 print(fs.lines(notes));                 // ["buy milk", "write docs", "ship v1"]
 print(fs.readText(notes).len());        // 28
-print(fs.readBytes(notes).slice(0, 3)); // b"buy"
+print(fs.readBytes(notes)[..3]); // b"buy"
 fs.removeAll(dir);
 ```
 

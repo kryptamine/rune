@@ -1,9 +1,1 @@
-fun f() { print("f"); }
-
-match 2 {
-    1 => print(1);
-    _ => f();
-}
-// expect: f
-
-print(match 1 { 1 => "a"; _ => "b" }); // expect: a
+match 1 { 1 => print(1); _ => {} } // Error at ';': Separate match arms with ','.

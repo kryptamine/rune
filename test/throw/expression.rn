@@ -33,7 +33,7 @@ try { kind(1); } catch e { print(e.message); } // expect: one
 try { kind(2); } catch e { print(e.message); } // expect: many
 
 match 5 {
-    5 => throw E { message: "stmt" };
+    5 => throw E { message: "stmt" },
     _ => {}
 }
 // expect runtime error: [line: 36] E: stmt

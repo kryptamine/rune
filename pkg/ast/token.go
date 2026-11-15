@@ -98,6 +98,7 @@ const (
 	// Operators
 	BANG
 	BANG_EQUAL
+	BANG_IN
 	EQUAL
 	EQUAL_EQUAL
 	LESS
@@ -300,6 +301,8 @@ func (tokenType TokenType) String() string {
 		return "BANG"
 	case BANG_EQUAL:
 		return "BANG_EQUAL"
+	case BANG_IN:
+		return "BANG_IN"
 	case LESS:
 		return "LESS"
 	case LESS_EQUAL:

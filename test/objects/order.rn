@@ -14,12 +14,12 @@ for k, v in o { print("{k}={v}"); }
 // Past eight keys a table is indexed; order and lookups stay the same.
 let mut big = {};
 for i in 0..12 { big["k{11 - i}"] = i; }
-print(big.keys().slice(0, 3)); // expect: ["k11", "k10", "k9"]
+print(big.keys()[..3]); // expect: ["k11", "k10", "k9"]
 print(big.k3);                 // expect: 8
 big.delete("k10");
 print(big.k9);               // expect: 2
 print(big.len());              // expect: 11
-print(big.has("k10"));         // expect: false
+print("k10" in big);         // expect: false
 big["k10"] = 0;
 print(big.keys()[-1]);         // expect: k10
 print(big.k0);                 // expect: 11

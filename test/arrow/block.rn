@@ -1,4 +1,4 @@
-let f = (n) => {
+let f = n => {
   if n > 0 { return "pos"; }
   return "non-pos";
 };
@@ -8,5 +8,5 @@ print(f(-1)); // expect: non-pos
 let none = () => {};
 print(none()); // expect: nil
 
-let obj = () => { a: 1 };
+let obj = () => ({ a: 1 });
 print(obj().a); // expect: 1

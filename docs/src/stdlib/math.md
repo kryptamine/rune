@@ -44,7 +44,7 @@ print(die >= 1 && die <= 6);   // true
 
 let colors = ["red", "green", "blue"];
 let pick = colors[math.floor(math.random() * colors.len())];
-print(colors.contains(pick));   // true
+print(pick in colors);   // true
 ```
 
 ## Constants

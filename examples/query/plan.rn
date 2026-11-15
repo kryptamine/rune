@@ -52,7 +52,7 @@ export fun plan(q, mut catalog) {
     for i, s in stages {
         steps.push(joinStep(s, placed.pushed[i]));
         let after = placed.after[i];
-        if after.len() > 0 steps.push(Step { label: "filter {ast.sql(ast.allOf(after))}", run: filter(after, expr.Ctx { scope: s.joined }) });
+        if after steps.push(Step { label: "filter {ast.sql(ast.allOf(after))}", run: filter(after, expr.Ctx { scope: s.joined }) });
     }
 
     let out = output(q, scope);
@@ -74,7 +74,7 @@ fun place(conds, base, stages) {
         }
         let i = stages.findIndex(s => s.joined.covers(c));
         if i < 0 {
-            let all = stages.len() == 0 ? base : stages[-1].joined;
+            let all = stages ? stages[-1].joined : base;
             all.check(c);
         }
 
@@ -91,12 +91,12 @@ fun place(conds, base, stages) {
 
 // filter keeps the rows for which all conds hold.
 fun filter(conds, ctx) {
-    if conds.len() == 0 return rows => rows;
+    if !conds return rows => rows;
     let ok = expr.compile(ast.allOf(conds), ctx);
     return rows => rows.filter(r => ok(r) == true);
 }
 
-fun whereText(conds) => conds.len() == 0 ? "" : " where {ast.sql(ast.allOf(conds))}";
+fun whereText(conds) => conds ? " where {ast.sql(ast.allOf(conds))}" : "";
 
 fun describe(ref) => ref.alias == ref.name ? ref.name : "{ref.name} {ref.alias}";
 
@@ -109,8 +109,8 @@ fun joinStep(s, pushed) {
 
     let parts = ast.conjuncts(j.on);
     let eq = parts.findIndex(e => sides(e, left, right) != nil);
-    let rest = eq < 0 ? parts : [...parts.slice(0, eq), ...parts.slice(eq + 1)];
-    let check = rest.len() == 0 ? nil : expr.compile(ast.allOf(rest), expr.Ctx { scope: joined });
+    let rest = eq < 0 ? parts : [...parts[..eq], ...parts[eq + 1..]];
+    let check = rest ? expr.compile(ast.allOf(rest), expr.Ctx { scope: joined }) : nil;
 
     let label = "{describe(j.table)} ({table.rows.len()} rows) on {ast.sql(j.on)}{whereText(pushed)}";
     let outer = j.left ? "left " : "";
@@ -172,7 +172,7 @@ fun output(q, scope) {
     let columns = items.map(columnName);
     let texts = items.map(it => ast.sql(it.expr));
     let aliased = map(items.filter(it => it.alias != nil).map(it => [it.alias, it.expr]));
-    let unalias = e => ast.rewrite(e, n => n is ast.Col && n.table == nil && aliased.has(n.name) && scope.find(n) < 0 ? aliased[n.name] : n);
+    let unalias = e => ast.rewrite(e, n => n is ast.Col && n.table == nil && n.name in aliased && scope.find(n) < 0 ? aliased[n.name] : n);
 
     let groupBy = q.groupBy.map(e => {
         let i = ordinal(e, items, "GROUP BY");
@@ -197,11 +197,11 @@ fun output(q, scope) {
 
     let mut steps = [];
     let mut ctx = expr.Ctx { scope };
-    if groupBy.len() > 0 || having != nil || calls.len() > 0 {
+    if groupBy || having != nil || calls {
         let keys = groupBy.map(e => expr.compile(e, ctx));
         let aggs = agg.specs(calls, scope);
-        let by = groupBy.len() == 0 ? "()" : groupBy.map(ast.sql).join(", ");
-        let computing = calls.len() == 0 ? "" : " computing " + calls.map(ast.sql).join(", ");
+        let by = groupBy ? groupBy.map(ast.sql).join(", ") : "()";
+        let computing = calls ? " computing " + calls.map(ast.sql).join(", ") : "";
         steps.push(Step { label: "group by {by}{computing}", run: rows => agg.aggregate(rows, keys, aggs) });
 
         ctx = expr.Ctx { scope, group: [...groupBy, ...calls].map(ast.sql) };
@@ -228,7 +228,7 @@ fun output(q, scope) {
             let mut out = [];
             for r in rows {
                 let k = string(sorted ? r[0] : r);
-                if seen.contains(k) continue;
+                if k in seen continue;
                 seen.add(k);
                 out.push(r);
             }
@@ -238,7 +238,7 @@ fun output(q, scope) {
 
     if sorted {
         steps.push(Step { label: "sort by {order.map(o => o.text + (o.desc ? " desc" : "")).join(", ")}", run: rows => {
-            let mut out = rows.slice(0);
+            let mut out = rows[..];
             out.sort((a, b) => {
                 for i, o in order {
                     let c = expr.compare(a[1][i], b[1][i]);
@@ -252,7 +252,7 @@ fun output(q, scope) {
 
     if q.limit != nil || q.offset > 0 {
         let end = q.limit == nil ? nil : q.offset + q.limit;
-        steps.push(Step { label: "limit {q.limit ?? "all"} offset {q.offset}", run: rows => end == nil ? rows.slice(q.offset) : rows.slice(q.offset, end) });
+        steps.push(Step { label: "limit {q.limit ?? "all"} offset {q.offset}", run: rows => end == nil ? rows[q.offset..] : rows[q.offset..end] });
     }
 
     return Plan { steps, columns };
@@ -274,7 +274,7 @@ fun expandStars(items, scope) {
         match it {
             ast.Star { table } => {
                 let fields = scope.fields.filter(f => table == nil || f.table == table);
-                if fields.len() == 0 throw ast.SqlError { message: "unknown table '{table}' in {table}.*" };
+                if !fields throw ast.SqlError { message: "unknown table '{table}' in {table}.*" };
                 for f in fields out.push(ast.Item { expr: ast.Col { table: f.table, name: f.name } });
             }
             _ => out.push(it),

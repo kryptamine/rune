@@ -33,8 +33,12 @@ func (s *Parser) matchExpr() (*ast.MatchExpr, error) {
 
 		arms = append(arms, arm)
 
-		// Only an expression needs a comma, or a semicolon, to end it.
-		if _, isExpr := arm.Body.(*ast.ExprStmt); !s.match(ast.COMMA) && isExpr && !s.match(ast.SEMICOLON) {
+		if s.check(ast.SEMICOLON) {
+			return nil, errors.NewSyntaxError(s.peek(), "Separate match arms with ','.")
+		}
+
+		// Only an expression needs a comma to end it.
+		if _, isExpr := arm.Body.(*ast.ExprStmt); !s.match(ast.COMMA) && isExpr {
 			break
 		}
 	}

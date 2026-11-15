@@ -1,0 +1,3 @@
+[line: 2] Error at '{': A '{' here starts a block; wrap an object in parentheses: ({ ... }).
+    2 | {x: 1}; // Error at '{': A '{' here starts a block; wrap an object in parentheses: ({ ... }).
+      | ^

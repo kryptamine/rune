@@ -20,16 +20,17 @@ print("https://x.io".startsWith("https://")); // true
 
 ## Searching and replacing
 
-`replace(old, new)` replaces all occurrences; `repeat(n)`, and `slice`,
-`reverse`, `contains`, `indexOf` work as for arrays.
+`replace(old, new)` replaces all occurrences; `repeat(n)`, `reverse` and
+`indexOf` work as for arrays. A substring is tested with `in` and cut out
+with a [slice](../language/strings.md), `s[a..b]`.
 
 ```rune
 print("2026-11-12".replace("-", "/"));   // 2026/11/12
 print("=".repeat(10));                   // ==========
-print("héllo".slice(1, 3));              // él
-print("héllo".slice(-2));                // lo
+print("héllo"[1..3]);              // él
+print("héllo"[-2..]);                // lo
 print("héllo".reverse());                // olléh
-print("hello world".contains("wor"));    // true
+print("wor" in "hello world");    // true
 print("héllo".indexOf("l"));             // 2
 print("hello".indexOf("z"));             // -1
 ```

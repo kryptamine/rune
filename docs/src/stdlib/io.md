@@ -2,8 +2,8 @@
 
 - `readLine()` — the next line of stdin without `\n` or `\r\n`, or `nil` at the end.
 - `readText()` — the rest of stdin.
-- `write(v)` — writes `v` to stdout as `print` does, without a newline.
-- `eprint(v)`, `ewrite(v)` — the same to stderr, with and without a newline.
+- `write(v, ...)` — writes to stdout as `print` does, without a newline.
+- `eprint(v, ...)`, `ewrite(v, ...)` — the same to stderr, with and without a newline.
 
 Reading stdin or writing stderr first flushes what was printed.
 

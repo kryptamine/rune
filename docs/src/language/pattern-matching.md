@@ -19,12 +19,13 @@ print(status(503)); // server error 503
 print(status(418)); // unknown
 ```
 
-An arm is `pattern => expression`, ended by `,` or `;`, `pattern => { block }`,
-or a bare `if`, `while`, `for` or `try` statement. `return`, `break`,
-`continue` and `throw` are expressions, so `pattern => return x,` works. As
-after an arrow function's `=>`, braces that look like an object are one:
-`1 => { a: 1 }` and `1 => { x }` give an object. A guard,
-`pattern if condition`, adds a test after the pattern matches.
+An arm is `pattern => expression`, `pattern => { block }`, or a bare `if`,
+`while`, `for` or `try` statement. Arms are separated by `,`, which a block
+or statement arm may leave out, and the last may have one too. `return`,
+`break`, `continue` and `throw` are expressions, so `pattern => return x,`
+works. As after an arrow function's `=>`, `{` starts a block: an object is
+`1 => ({ a: 1 })`. A guard, `pattern if condition`, adds a test after the
+pattern matches.
 
 ## Patterns
 
@@ -92,8 +93,8 @@ print(eval({ op: "+", a: 1, b: { op: "*", a: 2, b: 3 } })); // 7
 let event = { type: "click", "target id": "save" };
 
 match event {
-    { type: "click", "target id": id } => print("clicked " + id); // clicked save
-    { type: "key", key } => print("pressed " + key);
+    { type: "click", "target id": id } => print("clicked " + id), // clicked save
+    { type: "key", key } => print("pressed " + key),
     _ => {}
 }
 ```
@@ -161,8 +162,8 @@ rest. An arm may `return` from the enclosing function:
 ```rune
 fun handle(cmd) {
     match cmd {
-        "quit" => return "bye";
-        "help" => print("usage: add | list | quit");
+        "quit" => return "bye",
+        "help" => print("usage: add | list | quit"),
         _ => {}
     }
     return "continue";

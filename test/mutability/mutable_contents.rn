@@ -2,7 +2,7 @@ let mut arr = [[1], 2];
 arr[0][0] = 3;
 arr[1]++;
 arr.push(4);
-arr.sort(fun (a, b) { return 0; });
+arr.sort((a, b) => { return 0; });
 print(arr); // expect: [[3], 3, 4]
 let mut obj = {x: 1};
 obj.x += 1;

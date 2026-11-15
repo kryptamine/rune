@@ -34,8 +34,15 @@ var ExecResult = value.NewShape("ExecResult", []value.Field{
 })
 
 func writer(name string, newline bool, write func(*Stdio, []byte)) *Native {
-	return &Native{name, 1, 1, func(c *call) value.Value {
-		b := helpers.AppendValue(c.host.buf[:0], c.args[0])
+	return &Native{name, 0, -1, func(c *call) value.Value {
+		b := c.host.buf[:0]
+		if len(c.args) > 0 {
+			b = helpers.AppendValue(b, c.args[0])
+			for _, v := range c.args[1:] {
+				b = helpers.AppendValue(append(b, ' '), v)
+			}
+		}
+
 		if newline {
 			b = append(b, '\n')
 		}

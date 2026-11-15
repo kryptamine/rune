@@ -3,7 +3,7 @@ for x in pair("a", "b") { print(x); }
 // expect: a
 // expect: b
 
-let words = fun () { return "hi"; };
+let words = () => { return "hi"; };
 for c in words() { print(c); }
 // expect: h
 // expect: i

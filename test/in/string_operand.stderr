@@ -1,0 +1,3 @@
+[line: 1] TypeError: Left operand of 'in' must be a string for string, got number.
+    1 | print(1 in "abc"); // expect runtime error: [line: 1] TypeError: Left operand of 'in' must be a string for string, got number.
+      |         ^

@@ -29,7 +29,7 @@ export fun encode(kind, key, value) {
     let mut rec = bytes.buffer();
     rec.writeUint(body.crc32(), 4);
     rec.write(body);
-    return rec.bytes();
+    return rec[..];
 }
 
 // Torn and Corrupt end a scan: a torn record runs past the end of the data
@@ -43,11 +43,11 @@ export fun decode(b, at) {
     let [vlen, vat] = b.uvarint(kat) ?? return Bad.Torn;
     let end = vat + klen + vlen;
     if end > b.len() return Bad.Torn;
-    if b.slice(at + 4, end).crc32() != b.uint(at, 4) return Bad.Corrupt;
+    if b[at + 4..end].crc32() != b.uint(at, 4) return Bad.Corrupt;
 
     let kind = b[at + 4];
     if kind != PUT && kind != DEL return Bad.Corrupt;
-    return Record { kind, key: b.slice(vat, vat + klen).text(), start: at, recLen: end - at, size: vlen };
+    return Record { kind, key: b[vat..vat + klen].text(), start: at, recLen: end - at, size: vlen };
 }
 
 // Hint entry, one per live record of a compacted segment:
@@ -71,5 +71,5 @@ export fun decodeHint(b, at, seg) {
     let [size, kat] = b.uvarint(k) ?? return nil;
     let next = kat + klen;
     if next > b.len() return nil;
-    return Hint { key: b.slice(kat, next).text(), loc: Loc { seg, start, recLen, size }, next };
+    return Hint { key: b[kat..next].text(), loc: Loc { seg, start, recLen, size }, next };
 }

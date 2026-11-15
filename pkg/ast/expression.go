@@ -21,6 +21,7 @@ type ExprVisitor interface {
 	VisitFunctionExpr(functionExpr *FunctionExpr) (value.Value, error)
 	VisitUpdateExpr(updateExpr *UpdateExpr) (value.Value, error)
 	VisitRangeExpr(rangeExpr *RangeExpr) (value.Value, error)
+	VisitSliceExpr(sliceExpr *SliceExpr) (value.Value, error)
 	VisitStructExpr(structExpr *StructExpr) (value.Value, error)
 	VisitIsExpr(isExpr *IsExpr) (value.Value, error)
 	VisitMatchExpr(matchExpr *MatchExpr) (value.Value, error)
@@ -219,7 +220,7 @@ func (n *UpdateExpr) String() string {
 	return fmt.Sprintf("(%v %s)", n.Target, n.Operator.Lexeme)
 }
 
-// FunctionExpr is an anonymous function: fun (a, b) { ... }. Its Decl has
+// FunctionExpr is an arrow function: (a, b) => ... Its Decl has
 // an empty name and is never declared in any scope.
 type FunctionExpr struct {
 	Decl *FunctionStmt
@@ -439,7 +440,7 @@ type RangeExpr struct {
 	Inclusive bool
 }
 
-func NewRangeExpr(start Expr, end Expr, step Expr, operator Token) Expr {
+func NewRangeExpr(start Expr, end Expr, step Expr, operator Token) *RangeExpr {
 	return &RangeExpr{Start: start, End: end, Step: step, Operator: operator, Inclusive: operator.TokenType == DOT_DOT_EQUAL}
 }
 
@@ -453,6 +454,22 @@ func (n *RangeExpr) String() string {
 	}
 
 	return fmt.Sprintf("(%s %v %v)", n.Operator.Lexeme, n.Start, n.End)
+}
+
+// SliceExpr is target[range]. Only its Range may leave Start or End nil,
+// open.
+type SliceExpr struct {
+	Target   Expr
+	Range    *RangeExpr
+	Optional bool
+}
+
+func (n *SliceExpr) Accept(v ExprVisitor) (value.Value, error) {
+	return v.VisitSliceExpr(n)
+}
+
+func (n *SliceExpr) String() string {
+	return fmt.Sprintf("(slice %v %v)", n.Target, n.Range)
 }
 
 // ConditionalExpr is cond ? then : else.

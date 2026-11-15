@@ -6,7 +6,7 @@ fun make() {
     let tmp = "block";
     print(tmp); // expect: block
   }
-  let f = fun () { return x; };
+  let f = () => { return x; };
   {
     let other = "again";
     print(other); // expect: again

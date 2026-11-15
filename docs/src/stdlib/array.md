@@ -86,7 +86,7 @@ mixed.sort(); // TypeError: array.sort() without a comparator needs all numbers 
 
 - `every(f)`, `some(f)` — whether `f` is truthy for all or any element, stopping once that is known.
 - `find(f)` — the first element for which it is, or `nil`; `findIndex(f)` — its index, or `-1`.
-- `contains(item)`, `indexOf(item)` — by `==`, so arrays and objects compare by content; `indexOf` is `-1` if missing.
+- `indexOf(item)` — by `==`, so arrays and objects compare by content; `-1` if missing. Whether there is one at all is [`item in xs`](../language/values.md#membership).
 
 ```rune
 let users = [
@@ -99,22 +99,22 @@ print(users.every(u => u.admin));               // false
 print(users.find(u => !u.admin));               // {name: "bob", admin: false}
 print(users.find(u => u.name == "eve"));        // nil
 print(users.findIndex(u => u.name == "bob"));   // 1
-print([10, 20, 30].contains(20));               // true
+print(20 in [10, 20, 30]);               // true
 print([10, 20, 30].indexOf(99));                // -1
 print([[1, 2], [3, 4]].indexOf([3, 4]));        // 1
 ```
 
 ## Slicing and joining
 
-`slice(start[, end])` (negative bounds count from the end), `reverse()`,
-`repeat(n)` and `join(sep)` return new values. `repeat` makes an array of a
+`reverse()`, `repeat(n)` and `join(sep)` return new values, as does a
+[slice](../data/arrays.md), `xs[a..b]`. `repeat` makes an array of a
 given size; its elements are shared, not copied, so `[[]].repeat(3)` holds
 one array three times.
 
 ```rune
 let xs = [10, 20, 30, 40, 50];
-print(xs.slice(1, 3));   // [20, 30]
-print(xs.slice(-2));     // [40, 50]
+print(xs[1..3]);   // [20, 30]
+print(xs[-2..]);     // [40, 50]
 print(xs.reverse());     // [50, 40, 30, 20, 10]
 print([0].repeat(3));    // [0, 0, 0]
 print(xs);               // [10, 20, 30, 40, 50]

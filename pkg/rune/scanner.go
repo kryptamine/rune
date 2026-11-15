@@ -173,8 +173,15 @@ func (s *Scanner) scanToken() {
 			s.addToken(ast.EQUAL)
 		}
 	case '!':
-		s.addToken(helpers.If(s.match('='), ast.BANG_EQUAL, ast.BANG))
-		break
+		switch {
+		case s.match('='):
+			s.addToken(ast.BANG_EQUAL)
+		case s.peek() == 'i' && s.peekNext() == 'n' && !s.isAlphaNumeric(s.charAt(s.current+2)):
+			s.current += 2
+			s.addToken(ast.BANG_IN)
+		default:
+			s.addToken(ast.BANG)
+		}
 	case '<':
 		switch {
 		case s.match('<'):
@@ -536,13 +543,15 @@ func (s *Scanner) peek() rune {
 	return s.currentChar()
 }
 
-func (s *Scanner) peekNext() rune {
-	if s.current+1 >= len(s.source) {
+func (s *Scanner) charAt(i int) rune {
+	if i >= len(s.source) {
 		return rune(0)
 	}
 
-	return rune(s.source[s.current+1])
+	return rune(s.source[i])
 }
+
+func (s *Scanner) peekNext() rune { return s.charAt(s.current + 1) }
 
 func (s *Scanner) advance() rune {
 	char := s.currentChar()

@@ -8,7 +8,6 @@ import (
 )
 
 func (s *Parser) declaration() (ast.Stmt, error) {
-	// "fun (" starts an anonymous function expression, not a declaration.
 	if s.check(ast.FUN) && s.peekAt(1) == ast.IDENTIFIER {
 		s.advance()
 		return s.function("function")
@@ -449,9 +448,7 @@ func (s *Parser) statement() (ast.Stmt, error) {
 		return &ast.MatchStmt{Match: m}, nil
 	}
 
-	// "{ key: ..." can only be an object literal; anything else after "{" is a block.
-	if !s.isObjectLiteralStart() && s.match(ast.LEFT_BRACE) {
-		block, err := s.block()
+	if block, ok, err := s.braceBody(); ok {
 		if err != nil {
 			return nil, err
 		}
@@ -501,12 +498,17 @@ func (s *Parser) expressionStatement() (ast.Stmt, error) {
 	return ast.NewExprStmt(expr), nil
 }
 
-// braceBody parses a block unless "{" starts an object literal; ok
-// reports whether it did.
+// braceBody parses a block if "{" is next; ok reports whether it was.
 func (s *Parser) braceBody() (stmts []ast.Stmt, ok bool, err error) {
-	if s.isObjectLiteralStart() || !s.match(ast.LEFT_BRACE) {
+	if !s.check(ast.LEFT_BRACE) {
 		return nil, false, nil
 	}
+
+	if s.isObjectLiteralStart() {
+		return nil, true, errors.NewSyntaxError(s.peek(), "A '{' here starts a block; wrap an object in parentheses: ({ ... }).")
+	}
+
+	s.advance()
 
 	defer s.allowStructs(structsAll)()
 

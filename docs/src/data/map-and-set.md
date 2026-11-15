@@ -65,7 +65,7 @@ print(prices?.["kiwi"]); // nil
 print(prices["kiwi"]);   // KeyError: Key not found: "kiwi".
 ```
 
-Map methods: `get(k[, default])`, `set(k, v)`, `has(k)`, `delete(k)`
+Map methods: `get(k[, default])`, `set(k, v)`, `delete(k)`
 (whether it was there), `clear()`, and `keys()`, `values()`, `entries()`,
 new arrays. Like an array's in-place methods, `set` and `clear` return
 `nil`.
@@ -78,7 +78,7 @@ stock.set("plum", 7);
 
 print(stock.get("kiwi"));     // nil
 print(stock.get("kiwi", 0));  // 0
-print(stock.has("pear"));     // true
+print("pear" in stock);       // true
 print(stock.delete("pear"));  // true
 print(stock.delete("pear"));  // false
 print(stock.keys());          // ["apple", "plum"]
@@ -86,16 +86,15 @@ print(stock.values());        // [3, 7]
 print(stock.entries());       // [["apple", 3], ["plum", 7]]
 ```
 
-A set has `add(x)`, `contains(x)`, `delete`, `clear`, `values()`, and
-`union(s)`, `intersection(s)`, `difference(s)`, new sets. As everywhere,
-`has` tests a key (of an object or a map) and `contains` a value (of an
-array, a string or a set).
+A set has `add(x)`, `delete`, `clear`, `values()`, and
+`union(s)`, `intersection(s)`, `difference(s)`, new sets. `k in m` tests
+a key of a map and `x in s` an element of a set.
 
 ```rune
 let backend = set(["ann", "bob", "eve"]);
 let frontend = set(["bob", "kim"]);
 
-print(backend.contains("eve"));          // true
+print("eve" in backend);                 // true
 print(backend.union(frontend));          // set {"ann", "bob", "eve", "kim"}
 print(backend.intersection(frontend));   // set {"bob"}
 print(backend.difference(frontend));     // set {"ann", "eve"}

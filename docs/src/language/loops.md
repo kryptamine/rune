@@ -59,8 +59,9 @@ A body is a block, or a bare statement starting with a name or keyword:
 ## Ranges
 
 Count with `a..b` (end excluded) or `a..=b` (end included), optionally
-`step n`; a `for`-`in` walks it without building the array. Outside a loop
-a range is an array.
+`step n`; a `for`-`in` walks it, and `x in a..b` tests it, without building
+the array. Anywhere else a range is an array. In brackets it
+[slices](../data/arrays.md): `xs[1..]`.
 
 ```rune
 for i in 1..4 { print(i); }              // 1 2 3
@@ -68,6 +69,7 @@ for i in 1..=3 { print(i); }             // 1 2 3
 for i in 10..0 step -3 { print(i); }     // 10 7 4 1
 for x in 0..1 step 0.25 { print(x); }    // 0 0.25 0.5 0.75
 
+print(5 in 1..10);      // true
 print(1..4);            // [1, 2, 3]
 print(0..10 step 5);    // [0, 5]
 ```

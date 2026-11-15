@@ -388,8 +388,8 @@ func (v Value) IsUndefined() bool {
 	return v.p == otherTag() && v.n == uint64(Undefined)<<kindShift
 }
 
-// Truthy follows JS-like semantics: nil, false, 0 and "" are falsy,
-// everything else is truthy.
+// Truthy is false for nil, false, 0 and anything empty: a string, bytes,
+// a buffer, an array, an object, a map or a set.
 func (v Value) Truthy() bool {
 	switch v.p {
 	case nil:
@@ -402,7 +402,20 @@ func (v Value) Truthy() bool {
 		return v.n != 0
 	}
 
-	return Kind(v.n>>kindShift) != String || v.n&lenMask != 0
+	switch Kind(v.n >> kindShift) {
+	case String, Bytes:
+		return v.n&lenMask != 0
+	case Array:
+		return len(v.Arr()) != 0
+	case Object:
+		return v.Obj().Len() != 0
+	case Map, Set:
+		return v.HashMap().Len() != 0
+	case Buffer:
+		return len(v.Buf().Data) != 0
+	}
+
+	return true
 }
 
 // Num returns a number as a float; only meaningful when Kind() == Number.

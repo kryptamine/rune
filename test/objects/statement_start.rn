@@ -1,10 +1,2 @@
-// An object literal may start a statement; "{" alone still opens a block.
-{x: 1};
-{"k": 2}["k"];
-print({a: 1}["a"]); // expect: 1
-
-{
-  let b = 1;
-  print(b); // expect: 1
-}
-{}
+// "{" at the start of a statement always opens a block.
+{x: 1}; // Error at '{': A '{' here starts a block; wrap an object in parentheses: ({ ... }).

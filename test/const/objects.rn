@@ -21,7 +21,7 @@ print(Config {}.units.s); // expect: 1000
 // Every read shares the one object; a copy is a new one.
 let mut copy = { ...UNITS, h: 60 * UNITS.m };
 print(copy.h); // expect: 3600000
-print(UNITS.has("h")); // expect: false
+print("h" in UNITS); // expect: false
 
 // Enum variants, map() and set() are constants too.
 enum Color { Red, Green }

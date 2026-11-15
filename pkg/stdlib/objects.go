@@ -27,9 +27,6 @@ func objectEntries(o *value.Obj, pick func(k string, v value.Value) value.Value)
 }
 
 var objectMethods = []*Native{
-	objectMethod("object.has", 2, 2, func(c *call, o *value.Obj) value.Value {
-		return value.NewBool(o.Has(c.str(1)))
-	}),
 	objectMethod("object.get", 2, 3, func(c *call, o *value.Obj) value.Value {
 		if v, found := o.Get(c.str(1)); found {
 			return v

@@ -55,7 +55,7 @@ fun chunks(entries, max) {
     let mut out = [];
     let mut size = 0;
     for [key, loc] in entries {
-        if out.len() == 0 || size + loc.recLen > max {
+        if !out || size + loc.recLen > max {
             out.push([]);
             size = 0;
         }
@@ -113,7 +113,7 @@ impl Store {
         }
 
         // A compacted segment, the one with a hint, is never appended to
-        let last = ids.len() > 0 ? ids[-1] : 0;
+        let last = ids ? ids[-1] : 0;
         self.active = last > 0 && !fs.exists(self.segs[last].hint) ? last : last + 1;
         self.openActive();
         rec.ms = (time.now() - started) * 1000;
@@ -121,7 +121,7 @@ impl Store {
     }
 
     fun openActive(mut self) {
-        if !self.segs.has(self.active) self.segs[self.active] = Segment.at(self.dir, self.active);
+        if self.active !in self.segs self.segs[self.active] = Segment.at(self.dir, self.active);
         self.out = fs.open(self.segs[self.active].log, "a");
     }
 
@@ -194,12 +194,12 @@ impl Store {
     }
 
     fun delete(mut self, key) {
-        if !self.keydir.has(key) return false;
+        if key !in self.keydir return false;
         self.write(codec.DEL, key, b"");
         return true;
     }
 
-    fun has(self, key) => self.keydir.has(key);
+    fun has(self, key) => key in self.keydir;
 
     fun get(mut self, key, fallback = nil) {
         let loc = self.keydir?.[key] ?? return fallback;
@@ -243,9 +243,9 @@ impl Store {
             let mut log = bytes.buffer();
             let mut hints = bytes.buffer();
             for [key, loc] in chunk {
-                if !data.has(loc.seg) data[loc.seg] = fs.readBytes(self.segs[loc.seg].log);
+                if loc.seg !in data data[loc.seg] = fs.readBytes(self.segs[loc.seg].log);
                 let moved = codec.Loc { ...loc, seg: self.active, start: log.len() };
-                log.write(data[loc.seg].slice(loc.start, loc.start + loc.recLen));
+                log.write(data[loc.seg][loc.start..loc.start + loc.recLen]);
                 codec.writeHint(hints, key, moved);
                 keydir[key] = moved;
             }

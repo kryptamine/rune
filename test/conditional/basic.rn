@@ -4,7 +4,8 @@ print(x > 9 ? "a" : x > 4 ? "b" : "c"); // expect: b
 print((x > 9 ? 1 : 2) + 1); // expect: 3
 print(nil ? 1 : 0); // expect: 0
 print(0 ? 1 : 0); // expect: 0
-print([] ? 1 : 0); // expect: 1
+print([] ? 1 : 0); // expect: 0
+print([0] ? 1 : 0); // expect: 1
 
 let parity = n => n % 2 == 0 ? "even" : "odd";
 print([1, 2, 3].map(parity)); // expect: ["odd", "even", "odd"]

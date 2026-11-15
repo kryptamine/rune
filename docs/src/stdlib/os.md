@@ -15,7 +15,7 @@ print(os.env("APP_MODE"));      // test
 os.unsetEnv("APP_MODE");
 print(os.env("APP_MODE"));      // nil
 
-print(os.environ().has("PATH")); // true
+print("PATH" in os.environ()); // true
 let shell = os.platform == "windows" ? "cmd" : "sh";
 print(shell);                   // sh
 ```

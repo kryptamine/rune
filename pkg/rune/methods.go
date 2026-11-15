@@ -196,20 +196,17 @@ func mutatingCallError(name, owner string) string {
 	return "Cannot call mutating method " + method + ": the receiver is not a mutable variable, element or property."
 }
 
-// methodHints names the method meant by one other languages call so:
-// has tests a key, contains a value.
+// methodHints names the syntax Rune has for a method other languages have.
 var methodHints = map[string]string{
-	"set.has":         "contains",
-	"array.has":       "contains",
-	"string.has":      "contains",
-	"map.contains":    "has",
-	"object.contains": "has",
+	"contains": "test membership with 'x in xs'",
+	"has":      "test membership with 'x in xs'",
+	"slice":    "slice with 'xs[a..b]'",
 }
 
 func noMethod(tok *ast.Token, owner, name string) error {
 	msg := fmt.Sprintf("%s has no method '%s'", owner, name)
-	if hint, ok := methodHints[owner+"."+name]; ok {
-		msg += fmt.Sprintf("; did you mean '%s'?", hint)
+	if hint, ok := methodHints[name]; ok {
+		msg += "; " + hint + "."
 	} else {
 		msg += "."
 	}

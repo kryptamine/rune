@@ -257,18 +257,7 @@ var bufferInPlace = []*Native{
 	}),
 }
 
-var bufferMethods = slices.Concat(readers("buffer"), lenMethod("buffer"), []*Native{
-	// bytes copies the contents, or the part from start to end, which the
-	// buffer may change afterwards.
-	method("buffer.bytes", 1, 3, (*call).buffer, func(c *call, buf *value.ByteBuf) value.Value {
-		start, end := 0, len(buf.Data)
-		if c.has(1) {
-			start, end = sliceBounds(c, len(buf.Data))
-		}
-
-		return value.NewBytes(slices.Clone(buf.Data[start:end]))
-	}),
-})
+var bufferMethods = slices.Concat(readers("buffer"), lenMethod("buffer"))
 
 func newBuffer(c *call) value.Value {
 	buf := &value.ByteBuf{}

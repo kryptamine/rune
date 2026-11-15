@@ -3,7 +3,7 @@ struct Box { v }
 let mut fs = [];
 for i in 0..3 {
     match Box { v: i } {
-        Box { v } if v > 0 => fs.push(fun () { return v; }),
+        Box { v } if v > 0 => fs.push(() => { return v; }),
         _ => nil,
     }
 }
@@ -14,8 +14,8 @@ for f in fs print(f());
 
 fun guarded(x) {
     return match x {
-        n if fun () { return n > 1; }() => "big",
-        n => fun () { return n; },
+        n if (() => { return n > 1; })() => "big",
+        n => () => { return n; },
     };
 }
 

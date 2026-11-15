@@ -11,9 +11,9 @@ struct AggSpec { fn, arg, distinct }
 export fun specs(calls, scope) {
     return calls.map(e => {
         if e.args.len() != (e.star ? 0 : 1) throw ast.SqlError { message: "{e.name} takes one argument", pos: e.pos };
-        if !e.star && ast.aggregatesIn(e.args[0]).len() > 0 throw ast.SqlError { message: "aggregates cannot nest", pos: e.pos };
+        if !e.star && ast.aggregatesIn(e.args[0]) throw ast.SqlError { message: "aggregates cannot nest", pos: e.pos };
         return AggSpec {
-            fn: Agg(e.name[0] + e.name.slice(1).lower()),
+            fn: Agg(e.name[0] + e.name[1..].lower()),
             arg: e.star ? nil : expr.compile(e.args[0], expr.Ctx { scope }),
             distinct: e.distinct,
         };
@@ -72,7 +72,7 @@ export fun aggregate(rows, keys, aggs) {
         }
     }
 
-    if nk == 0 && groups.len() == 0 groups.push([[], fresh()]);
+    if nk == 0 && !groups groups.push([[], fresh()]);
 
     return groups.map(([ks, acc]) => [...ks, ...aggs.map((a, i) => finish(a, acc[i]))]);
 }
@@ -82,8 +82,8 @@ fun finish(a, v) {
         let xs = [...v];
         return match a.fn {
             Agg.Count => xs.len(),
-            Agg.Sum => xs.len() == 0 ? nil : xs.reduce((x, y) => x + y),
-            Agg.Avg => xs.len() == 0 ? nil : xs.reduce((x, y) => x + y) / xs.len(),
+            Agg.Sum => xs ? xs.reduce((x, y) => x + y) : nil,
+            Agg.Avg => xs ? xs.reduce((x, y) => x + y) / xs.len() : nil,
             Agg.Min => xs.reduce((x, y) => expr.compare(x, y) <= 0 ? x : y, nil),
             Agg.Max => xs.reduce((x, y) => expr.compare(x, y) >= 0 ? x : y, nil),
         };

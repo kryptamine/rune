@@ -86,6 +86,9 @@ const (
 	// it, a jump to the mismatch, instead of taking a target.
 	opTestProp // if R[B] is an object or struct with K[C]: R[A] = R[B].K[C], pc++
 	opRange    // R[A] = array of R[B]..R[B+1] step R[B+2], inclusive if X
+	opIn       // R[A] = R[B] in R[C], negated if Y
+	opInRange  // R[A] = R[B] in R[C]..R[C+1] step R[C+2], inclusive if X, negated if Y
+	opSlice    // R[A] = R[B][R[C]..R[C+1]]; X: 1 inclusive, 2 with a start, 4 with an end
 	opSpread   // append the elements of array R[B] to array R[A], or merge R[B] into object R[A]
 	// Unpack: R[A+i] = R[B][i] for i < n, and if X R[A+n] = R[B][n:]; C is
 	// n | required<<unpackShift, and an element past those required that is
@@ -259,7 +262,7 @@ var opNames = [...]string{
 	"CHECKDEFINED", "SETCELL!", "SETUPVAL!", "UNDEFINED",
 	"ADD", "SUB", "MUL", "DIV", "MOD", "ADDK", "SUBK", "MULK", "DIVK", "MODK", "CMP", "CMPK", "IS", "NEG", "NOT", "INCR", "BITWISE", "BITNOT",
 	"JMP", "JMPIF", "JMPCMP", "JMPCMPK", "JMPNOTTYPE", "JMPNIL", "JMPDEFINED", "JMPNOTLEN",
-	"ARRAY", "CONCAT", "OBJECT", "STRUCT", "UNDEF", "STRUCTSPREAD", "STRUCTFILL", "GETINDEX", "GETPROP", "GETINDEX?", "GETPROP?", "SETINDEX", "SETPROP", "SETOWNED", "CHECKPROP", "TESTPROP", "RANGE", "SPREAD", "UNPACK", "OMIT",
+	"ARRAY", "CONCAT", "OBJECT", "STRUCT", "UNDEF", "STRUCTSPREAD", "STRUCTFILL", "GETINDEX", "GETPROP", "GETINDEX?", "GETPROP?", "SETINDEX", "SETPROP", "SETOWNED", "CHECKPROP", "TESTPROP", "RANGE", "IN", "INRANGE", "SLICE", "SPREAD", "UNPACK", "OMIT",
 	"CLOSURE", "CALL", "CALLARRAY", "INVOKE", "METHOD", "RETURN", "RETURNNIL", "THROW", "RETHROW", "NOMATCH", "SAME", "TRY", "ENDTRY",
 	"FORRANGE", "FORRANGENEXT", "FORITER", "FORITERNEXT",
 }

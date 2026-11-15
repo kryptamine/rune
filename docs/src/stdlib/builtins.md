@@ -9,13 +9,16 @@ everything else lives in a namespace, used as `math.floor(x)`.
 
 ## print
 
-`print(v)` writes `v` to stdout followed by a newline: a string as it is,
-anything else as it would appear in an array. `io.write`, `io.eprint` and
-`io.ewrite` do the same without a newline or to stderr.
+`print(v, ...)` writes its arguments to stdout, separated by spaces and
+followed by a newline: a string as it is, anything else as it would appear
+in an array. `io.write`, `io.eprint` and `io.ewrite` do the same without a
+newline or to stderr.
 
 ```rune
 print("hi");             // hi
 print([1, "two", nil]);  // [1, "two", nil]
+print("total:", 3, [1]); // total: 3 [1]
+print();                 // (an empty line)
 ["a", "b"].map(print);
 // a
 // b

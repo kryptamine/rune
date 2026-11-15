@@ -1,7 +1,7 @@
 let m = map([["a", 1]]);
 let s = set([1]);
 print(m.get("a")); // expect: 1
-print(s.contains(1)); // expect: true
+print(1 in s); // expect: true
 
 let mut mm = m;
 mm.set("b", 2);
