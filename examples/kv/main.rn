@@ -1,0 +1,167 @@
+// Key-value store on append-only segment files (Bitcask-style): CRC-checked
+// records, crash recovery that drops a torn tail, compaction with hint files
+//
+//   ./rune run examples/kv/main.rn                          demo: writes, a crash, recovery, compaction, timings
+//   ./rune run examples/kv/main.rn <dir> put <key> <json>
+//   ./rune run examples/kv/main.rn <dir> get|del <key>
+//   ./rune run examples/kv/main.rn <dir> scan [prefix]
+//   ./rune run examples/kv/main.rn <dir> compact|stats
+//   ./rune run examples/kv/main.rn bench [n]
+
+import .store;
+import .codec;
+
+fun ms(since) => "%.1f ms".format((time.now() - since) * 1000);
+
+fun kb(n) => n < 1024 ? "{n} B" : "%.1f KB".format(n / 1024);
+
+fun show(info) => "{info.keys} keys, {info.segments} segments, {kb(info.size)} on disk, {kb(info.dead)} dead";
+
+fun files(dir) => fs.list(dir).map(f => "{f.name} {kb(f.size)}").join(", ");
+
+fun demo() {
+    let dir = fs.tempDir();
+    defer fs.removeAll(dir);
+    let opts = { maxSegment: 32 << 10 };
+
+    print("== writes");
+    let mut db = store.Store.open(dir, opts);
+    let mut t = time.now();
+    for i in 0..2000 db.put("user:%04d".format(i), { name: "user {i}", visits: 0, tags: i % 3 == 0 ? ["vip"] : [] });
+    for round in 1..=3 {
+        for i in 0..2000 step 7 db.put("user:%04d".format(i), { name: "user {i}", visits: round, tags: [] });
+    }
+    for i in 0..2000 step 5 db.delete("user:%04d".format(i));
+    db.put("config", { theme: "dark", limits: { rps: 100 } });
+    print("  {db.info().writes} writes in {ms(t)}");
+    print("  {show(db.info())}");
+    print("  user:0007 → {db.get("user:0007")}");
+    print("  user:0010 → {db.get("user:0010")} (deleted)");
+    print("  scan user:001 → {db.keys("user:001").join(" ")}");
+
+    print("\n== crash mid-write");
+    db.put("last", "acknowledged");
+    db.close();
+    let active = fs.list(dir).filter(f => f.name.endsWith(".log"))[-1];
+    let torn = codec.encode(codec.PUT, "lost", bytes(json.stringify("never acknowledged")));
+    fs.append(fs.join(dir, active.name), torn.slice(0, torn.len() - 6));
+    print("  appended {torn.len() - 6} of {torn.len()} bytes of a record to {active.name}");
+
+    db = store.Store.open(dir, opts);
+    for tr in db.recovery.truncated print("  recovery: {tr.reason} record at {tr.file}:{tr.at}, dropped {tr.dropped} bytes");
+    print("  replayed {db.recovery.records} records from {db.recovery.segments} segments in %.1f ms".format(db.recovery.ms));
+    print("  last → {db.get("last")}, lost → {db.get("lost")}");
+
+    print("\n== corruption in an old segment");
+    db.close();
+    let first = fs.join(dir, "000001.log");
+    let good = fs.readBytes(first);
+    let mut broken = bytes.buffer(good);
+    broken[100] ^= 0xFF;
+    fs.write(first, broken);
+    try store.Store.open(dir, opts) catch e is store.KvError => print("  open failed: {e.message}");
+    fs.write(first, good);
+
+    print("\n== a second writer");
+    db = store.Store.open(dir, opts);
+    try store.Store.open(dir, opts) catch e is store.KvError => print("  open failed: {e.message.replace(dir, "<dir>")}");
+
+    print("\n== compaction");
+    t = time.now();
+    let { before, after } = db.compact();
+    print("  before: {show(before)}");
+    print("  after:  {show(after)} ({ms(t)})");
+    print("  files:  {files(dir)}");
+    db.close();
+
+    t = time.now();
+    db = store.Store.open(dir, opts);
+    print("  reopen from {db.recovery.hinted} hints in {ms(t)}");
+    print("  user:0007 → {db.get("user:0007")}, keys: {db.len()}");
+    db.close();
+
+    print("");
+    bench(20000);
+}
+
+fun bench(n) {
+    let dir = fs.tempDir();
+    defer fs.removeAll(dir);
+    let mut db = store.Store.open(dir);
+    let keys = (0..n).map(i => "key:{i}");
+    let value = { id: 1, name: "a value of moderate size", tags: ["a", "b", "c"], score: 3.14 };
+
+    print("== bench, {n} keys");
+    let mut t = time.now();
+    for k in keys db.put(k, value);
+    let put = time.now() - t;
+    print("  put        %8.0f ops/s".format(n / put));
+
+    t = time.now();
+    for _ in 0..n db.get(keys[math.floor(math.random() * n)]);
+    print("  get        %8.0f ops/s".format(n / (time.now() - t)));
+
+    t = time.now();
+    for i in 0..1000 {
+        db.put(keys[i], value);
+        db.get(keys[i]);
+    }
+    print("  put+get    %8.0f ops/s".format(2000 / (time.now() - t)));
+
+    db.close();
+    t = time.now();
+    db = store.Store.open(dir);
+    print("  replay     %8.0f records/s".format(db.recovery.records / (time.now() - t)));
+
+    t = time.now();
+    db.compact();
+    print("  compact    %8.0f records/s".format(n / (time.now() - t)));
+    db.close();
+
+    t = time.now();
+    db = store.Store.open(dir);
+    print("  hint load  %8.0f keys/s".format(db.len() / (time.now() - t)));
+    db.close();
+
+    db = store.Store.open(dir, { sync: true });
+    t = time.now();
+    for i in 0..200 db.put(keys[i], value);
+    print("  put, fsync %8.0f ops/s".format(200 / (time.now() - t)));
+    db.close();
+}
+
+struct UsageError { message }
+
+fun cli(dir, cmd, rest) {
+    let mut db = store.Store.open(dir);
+    defer db.close();
+    return match [cmd, ...rest] {
+        ["put", key, value] => db.put(key, try json.parse(value) catch _ => value),
+        ["get", key] => {
+            if !db.has(key) return 1;
+            print(json.stringify(db.get(key)));
+        }
+        ["del", key] => db.delete(key) ? nil : 1,
+        ["scan", ...prefix] => {
+            for [k, v] in db.scan(prefix.join("")) print("{k}\t{json.stringify(v)}");
+        }
+        ["compact"] => print("{show(db.compact().after)}"),
+        ["stats"] => print(show(db.info())),
+        _ => throw UsageError { message: "unknown command '{[cmd, ...rest].join(" ")}'" },
+    };
+}
+
+fun main(args) {
+    try {
+        return match args {
+            [] => demo(),
+            ["bench"] => bench(20000),
+            ["bench", n] => bench(int(n)),
+            [dir, cmd, ...rest] => cli(dir, cmd, rest),
+            _ => throw UsageError { message: "usage: main.rn <dir> <command> ..." },
+        };
+    } catch e is UsageError | store.KvError {
+        io.eprint(e.message);
+        return 2;
+    }
+}

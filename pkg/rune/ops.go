@@ -96,17 +96,18 @@ func getIndex(token *ast.Token, target, index value.Value) (value.Value, error) 
 // by found instead of an error.
 func lookup(token *ast.Token, target, index value.Value) (value.Value, bool, error) {
 	switch target.Kind() {
-	case value.Array, value.String, value.Bytes:
+	case value.Array, value.String, value.Bytes, value.Buffer:
 		idx, ok, err := elementIndex(token, target, index)
 		switch {
 		case !ok || err != nil:
 			return value.NilValue, false, err
 		case target.IsString():
 			return value.NewString(helpers.CharAt(target.Str(), idx)), true, nil
-		case target.Kind() == value.Bytes:
-			return value.NewInt(int64(target.Bytes()[idx])), true, nil
-		default:
+		case target.Kind() == value.Array:
 			return target.Arr()[idx], true, nil
+		default:
+			b, _ := target.Binary()
+			return value.NewInt(int64(b[idx])), true, nil
 		}
 
 	case value.Object:
@@ -140,7 +141,7 @@ func lookup(token *ast.Token, target, index value.Value) (value.Value, bool, err
 	}
 
 	return value.NilValue, false, errors.NewRuntimeError(errors.TypeError, *token, fmt.Sprintf(
-		"Can only index arrays, strings, objects, structs, maps and bytes, got %s.", helpers.TypeName(target)))
+		"Can only index arrays, strings, objects, structs, maps, bytes and buffers, got %s.", helpers.TypeName(target)))
 }
 
 func setIndex(token *ast.Token, target, index, v value.Value) error {
@@ -177,6 +178,21 @@ func setIndex(token *ast.Token, target, index, v value.Value) error {
 	case value.Bytes:
 		return errors.NewRuntimeError(errors.TypeError, *token, "Bytes are immutable.")
 
+	case value.Buffer:
+		idx, ok, err := elementIndex(token, target, index)
+		if !ok {
+			return cmp.Or(err, outOfBounds(token, target, index))
+		}
+
+		b, isInt := value.ToInt(v)
+		if !isInt || b < 0 || b > 255 {
+			return errors.NewRuntimeError(errors.ValueError, *token, "A buffer holds bytes from 0 to 255, got "+helpers.Quoted(v)+".")
+		}
+
+		target.Buf().Data[idx] = byte(b)
+
+		return nil
+
 	case value.Struct:
 		if !index.IsString() {
 			return errors.NewRuntimeError(errors.TypeError, *token, "Struct fields must be accessed with string keys.")
@@ -186,7 +202,7 @@ func setIndex(token *ast.Token, target, index, v value.Value) error {
 
 	default:
 		return errors.NewRuntimeError(errors.TypeError, *token, fmt.Sprintf(
-			"Can only index arrays, strings, objects, structs, maps and bytes, got %s.", helpers.TypeName(target)))
+			"Can only index arrays, strings, objects, structs, maps, bytes and buffers, got %s.", helpers.TypeName(target)))
 	}
 }
 
@@ -226,11 +242,12 @@ func outOfBounds(token *ast.Token, target, v value.Value) error {
 
 // length is the number of elements of an array, or characters of a string.
 func length(target value.Value) int {
-	switch target.Kind() {
-	case value.Array:
+	if b, ok := target.Binary(); ok {
+		return len(b)
+	}
+
+	if target.Kind() == value.Array {
 		return len(target.Arr())
-	case value.Bytes:
-		return len(target.Bytes())
 	}
 
 	return utf8.RuneCountInString(target.Str())

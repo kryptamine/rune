@@ -91,10 +91,9 @@ func (p *Interpreter) cursorOf(v value.Value, hasKey bool, keyword *ast.Token) (
 
 			return value.NewString(ch), true
 		})}, nil
-	case value.Bytes:
-		b := v.Bytes()
-
+	case value.Bytes, value.Buffer:
 		return &cursor{next: indexed(func(i int) (value.Value, bool) {
+			b, _ := v.Binary()
 			if i >= len(b) {
 				return value.NilValue, false
 			}

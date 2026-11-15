@@ -1,0 +1,36 @@
+let b = b"\x01\x02\x03\x04\xff\xff\xff\xff";
+print(b.uint(0, 1));        // expect: 1
+print(b.uint(0, 2));        // expect: 513
+print(b.uint(0, 2, "be"));  // expect: 258
+print(b.uint(0, 4));        // expect: 67305985
+print(b.uint(4, 4));        // expect: 4294967295
+print(b.int(4, 4));         // expect: -1
+print(b.int(4, 2, "be"));   // expect: -1
+print(b"\xff\xff\xff\xff\xff\xff\xff\x7f".uint(0, 8) == math.MAX_INT); // expect: true
+print(b"\x00\x00\x00\x00\x00\x00\xf8\x3f".float(0));   // expect: 1.5
+print(b"\x3f\xc0\x00\x00".float(0, 4, "be"));          // expect: 1.5
+
+print(b"\xac\x02".uvarint(0));     // expect: [300, 2]
+print(b"\x00\xac\x02".uvarint(1)); // expect: [300, 3]
+print(b"\xac".uvarint(0));         // expect: nil
+print(b"\x03".varint(0));          // expect: [-2, 1]
+print(b"".uvarint(0));             // expect: nil
+
+print(b"hello".crc32());            // expect: 907060870
+print(b"".crc32());                 // expect: 0
+print(b"abc".sha256().hex());       // expect: ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad
+print(b"abc".sha1().hex());         // expect: a9993e364706816aba3e25717850c26c9cd0d89d
+print(b"abc".md5().hex());          // expect: 900150983cd24fb0d6963f7d28e17f72
+print(bytes.concat(b"a", b"b", b"c")); // expect: b"abc"
+print(bytes.concat());              // expect: b""
+
+fun fails(f) {
+  try { f(); } catch e { print(type(e) + ": " + e.message); }
+}
+fails(() => b"\x01".uint(0, 2));     // expect: IndexError: bytes.uint() cannot read 2 bytes at 0 of 1.
+fails(() => b"\x01".uint(-1, 1));    // expect: IndexError: bytes.uint() cannot read 1 bytes at -1 of 1.
+fails(() => b"\x01".uint(0, 3));     // expect: ValueError: bytes.uint() expects a size of 1, 2, 4 or 8, got 3.
+fails(() => b"\x01".uint(0, 1, "x")); // expect: ValueError: bytes.uint() expects byte order "le" or "be", got "x".
+fails(() => b"\x01".float(0, 2));    // expect: ValueError: bytes.float() expects a size of 4 or 8, got 2.
+fails(() => b"\x01".uvarint(5));     // expect: IndexError: bytes.uvarint() offset 5 is out of bounds of 1 bytes.
+fails(() => b"\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x01".uvarint(0)); // expect: ValueError: bytes.uvarint() varint at 0 overflows 64 bits.

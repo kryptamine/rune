@@ -81,6 +81,39 @@ var fsNatives = []*Native{
 
 		return value.NilValue
 	}},
+	{"fs.truncate", 2, 2, func(c *call) value.Value {
+		path, size := c.str(0), c.int(1)
+		switch {
+		case !c.ok():
+			return value.NilValue
+		case size < 0:
+			return c.fail(errors.ValueError, "expects a size of at least 0, got %d.", size)
+		}
+
+		c.check(os.Truncate(path, int64(size)))
+
+		return value.NilValue
+	}},
+	// lock opens path for writing, creating it, and takes an exclusive lock
+	// on it, which closing the stream releases.
+	{"fs.lock", 1, 1, func(c *call) value.Value {
+		path := c.str(0)
+		if !c.ok() {
+			return value.NilValue
+		}
+
+		f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE, 0o644)
+		if err != nil {
+			return c.ioFail(err)
+		}
+
+		if err := lockFile(f); err != nil {
+			f.Close()
+			return c.ioFail(&iofs.PathError{Op: "lock", Path: path, Err: err})
+		}
+
+		return c.host.open(fileStream(path, f, false))
+	}},
 	{"fs.exists", 1, 1, func(c *call) value.Value {
 		path := c.str(0)
 		if !c.ok() {
@@ -291,6 +324,8 @@ func (c *call) ioFail(err error) value.Value {
 func ioCode(err error) string {
 	// ENOTEMPTY is also ErrExist, so the errnos go first.
 	switch {
+	case stderrors.Is(err, errLocked):
+		return "locked"
 	case stderrors.Is(err, syscall.ENOTEMPTY):
 		return "notEmpty"
 	case stderrors.Is(err, syscall.EISDIR):

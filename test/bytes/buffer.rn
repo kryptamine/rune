@@ -1,0 +1,58 @@
+let mut buf = bytes.buffer();
+print(type(buf));   // expect: buffer
+print(buf);         // expect: buffer(b"")
+print(buf is buffer); // expect: true
+buf.write("ab");
+buf.write(b"\x00");
+buf.writeUint(258, 2);
+buf.writeUint(258, 2, "be");
+buf.writeInt(-1, 1);
+buf.writeUvarint(300);
+buf.writeVarint(-2);
+buf.writeFloat(1.5, 4, "be");
+print(buf);         // expect: buffer(b"ab\x00\x02\x01\x01\x02\xff\xac\x02\x03?\xc0\x00\x00")
+print(buf.len());   // expect: 15
+print(buf.uint(3, 2)); // expect: 258
+print(buf.uvarint(8)); // expect: [300, 10]
+print(buf.float(11, 4, "be")); // expect: 1.5
+
+buf[0] = 65;
+buf[-1] ^= 1;
+print(buf[0]);      // expect: 65
+print(buf[-1]);     // expect: 1
+
+let snap = buf.bytes();
+buf.clear();
+print(buf.len());   // expect: 0
+print(snap.len());  // expect: 15
+print(snap.slice(0, 2)); // expect: b"Ab"
+print(bytes.buffer(snap).bytes(1, 3)); // expect: b"b\x00"
+print(bytes.buffer("hi") == bytes.buffer(b"hi")); // expect: true
+print(bytes.buffer("hi").crc32() == b"hi".crc32()); // expect: true
+print([...bytes.buffer(b"\x01\x02")]); // expect: [1, 2]
+for i, x in bytes.buffer(b"AB") print("{i}:{x}");
+// expect: 0:65
+// expect: 1:66
+
+let mut nested = bytes.buffer();
+nested.write(bytes.buffer("xy"));
+print(nested.bytes()); // expect: b"xy"
+
+let path = fs.join(fs.tempDir(), "buf.bin");
+fs.write(path, nested);
+print(fs.readBytes(path)); // expect: b"xy"
+fs.removeAll(fs.dir(path));
+
+fun fails(f) {
+  try { f(); } catch e { print(type(e) + ": " + e.message); }
+}
+let mut b = bytes.buffer();
+fails(() => b.writeUint(256, 1));  // expect: ValueError: buffer.writeUint() cannot write 256 as an unsigned 1-byte integer.
+fails(() => b.writeUint(-1, 4));   // expect: ValueError: buffer.writeUint() cannot write -1 as an unsigned 4-byte integer.
+fails(() => b.writeInt(128, 1));   // expect: ValueError: buffer.writeInt() cannot write 128 as a signed 1-byte integer.
+fails(() => b.writeUvarint(-1));   // expect: ValueError: buffer.writeUvarint() cannot write -1 as an unsigned varint.
+fails(() => { b[0] = 1; });        // expect: IndexError: Index out of bounds: 0 of 0
+b.write("x");
+fails(() => { b[0] = 256; });      // expect: ValueError: A buffer holds bytes from 0 to 255, got 256.
+fails(() => { let mut m = map(); m[b] = 1; }); // expect: TypeError: Cannot use a buffer as a key.
+print(b.len());                    // expect: 1

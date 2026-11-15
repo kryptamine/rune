@@ -17,6 +17,8 @@ type Stream struct {
 	r      *bufio.Reader
 	w      *bufio.Writer
 	closer io.Closer
+	// file is the open file, nil for a body.
+	file   *os.File
 	closed bool
 }
 
@@ -50,6 +52,18 @@ func (s *Stream) readable() error {
 	return nil
 }
 
+// seekable checks that s is an open file, which readAt, seek and sync need.
+func (s *Stream) seekable() error {
+	switch {
+	case s.closed:
+		return errClosed
+	case s.file == nil:
+		return stderrors.New("stream is not a file")
+	}
+
+	return nil
+}
+
 func (s *Stream) writable() error {
 	switch {
 	case s.closed:
@@ -61,6 +75,15 @@ func (s *Stream) writable() error {
 	return nil
 }
 
+// flush writes out what s buffered, if it writes.
+func (s *Stream) flush() error {
+	if s.w == nil {
+		return nil
+	}
+
+	return s.w.Flush()
+}
+
 // Close flushes and closes s; closing it again does nothing.
 func (s *Stream) Close() error {
 	if s.closed {
@@ -69,12 +92,7 @@ func (s *Stream) Close() error {
 
 	s.closed = true
 
-	var err error
-	if s.w != nil {
-		err = s.w.Flush()
-	}
-
-	return stderrors.Join(err, s.closer.Close())
+	return stderrors.Join(s.flush(), s.closer.Close())
 }
 
 // open registers s with the host, which closes it at the end if the
@@ -124,14 +142,19 @@ func openFile(c *call) value.Value {
 		return c.ioFail(err)
 	}
 
-	s := &Stream{name: path, closer: f}
-	if mode == "r" {
+	return c.host.open(fileStream(path, f, mode == "r"))
+}
+
+// fileStream is a stream of f, for reading or for writing.
+func fileStream(path string, f *os.File, read bool) *Stream {
+	s := &Stream{name: path, closer: f, file: f}
+	if read {
 		s.r = bufio.NewReader(f)
 	} else {
 		s.w = bufio.NewWriter(f)
 	}
 
-	return c.host.open(s)
+	return s
 }
 
 func (c *call) stream(i int) *Stream {
@@ -235,7 +258,75 @@ var streamMethods = []*Native{
 		return value.NilValue
 	}),
 	streamMethod("stream.flush", 1, 1, (*Stream).writable, func(c *call, s *Stream) value.Value {
-		if err := s.w.Flush(); err != nil {
+		if err := s.flush(); err != nil {
+			return c.streamFail(s, err)
+		}
+
+		return value.NilValue
+	}),
+	// readAt reads up to n bytes at offset, past what is buffered; nil at
+	// or past the end.
+	streamMethod("stream.readAt", 3, 3, (*Stream).seekable, func(c *call, s *Stream) value.Value {
+		at, n := c.int(1), c.int(2)
+		switch {
+		case !c.ok():
+			return value.NilValue
+		case at < 0:
+			return c.fail(errors.ValueError, "expects an offset of at least 0, got %d.", at)
+		case n <= 0 || n > maxRead:
+			return c.fail(errors.ValueError, "expects a size from 1 to %d, got %d.", maxRead, n)
+		}
+
+		// A large read is cut to the file, so it does not allocate n.
+		if n > 1<<16 {
+			info, err := s.file.Stat()
+			if err != nil {
+				return c.streamFail(s, err)
+			}
+
+			n = int(max(0, min(int64(n), info.Size()-int64(at))))
+		}
+
+		buf := make([]byte, n)
+
+		got, err := s.file.ReadAt(buf, int64(at))
+		if err != nil && err != io.EOF {
+			return c.streamFail(s, err)
+		}
+
+		if got == 0 {
+			return value.NilValue
+		}
+
+		return value.NewBytes(buf[:got:got])
+	}),
+	// seek moves to offset from the start, flushing what is written first.
+	streamMethod("stream.seek", 2, 2, (*Stream).seekable, func(c *call, s *Stream) value.Value {
+		at := c.int(1)
+		switch {
+		case !c.ok():
+			return value.NilValue
+		case at < 0:
+			return c.fail(errors.ValueError, "expects an offset of at least 0, got %d.", at)
+		}
+
+		if err := s.flush(); err != nil {
+			return c.streamFail(s, err)
+		}
+
+		if _, err := s.file.Seek(int64(at), io.SeekStart); err != nil {
+			return c.streamFail(s, err)
+		}
+
+		if s.r != nil {
+			s.r.Reset(s.file)
+		}
+
+		return value.NilValue
+	}),
+	// sync flushes and has the system write the file to disk.
+	streamMethod("stream.sync", 1, 1, (*Stream).seekable, func(c *call, s *Stream) value.Value {
+		if err := stderrors.Join(s.flush(), s.file.Sync()); err != nil {
 			return c.streamFail(s, err)
 		}
 
@@ -254,15 +345,17 @@ var streamMethods = []*Native{
 
 // data is argument i as the bytes to write: a string's or bytes'.
 func (c *call) data(i int) []byte {
-	switch v := c.args[i]; v.Kind() {
-	case value.String:
+	v := c.args[i]
+	if v.IsString() {
 		// Writers only read it, so the string need not be copied.
 		return unsafe.Slice(unsafe.StringData(v.Str()), len(v.Str()))
-	case value.Bytes:
-		return v.Bytes()
 	}
 
-	c.typeError(i, "a string or bytes")
+	if b, ok := v.Binary(); ok {
+		return b
+	}
+
+	c.typeError(i, "a string, bytes or a buffer")
 
 	return nil
 }

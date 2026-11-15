@@ -33,6 +33,8 @@ const (
 	Bytes
 	// Stream is an open file or a body being read.
 	Stream
+	// Buffer is mutable binary data.
+	Buffer
 	// Enum is a variant of an enum type.
 	Enum
 	NumKinds
@@ -493,6 +495,27 @@ func NewBytes(b []byte) Value {
 
 // Bytes returns the payload of bytes, which must not be changed.
 func (v Value) Bytes() []byte { return unsafe.Slice((*byte)(v.p), int(v.n&lenMask)) }
+
+// ByteBuf is the payload of a buffer.
+type ByteBuf struct{ Data []byte }
+
+func NewBuffer(b *ByteBuf) Value { return Value{p: unsafe.Pointer(b), n: uint64(Buffer) << kindShift} }
+
+// Buf returns the payload of a buffer.
+func (v Value) Buf() *ByteBuf { return (*ByteBuf)(v.p) }
+
+// Binary returns what bytes or a buffer hold now, which a buffer may
+// change later; ok is false for any other value.
+func (v Value) Binary() (b []byte, ok bool) {
+	switch v.Kind() {
+	case Bytes:
+		return v.Bytes(), true
+	case Buffer:
+		return v.Buf().Data, true
+	}
+
+	return nil, false
+}
 
 // NewStream wraps x, a stream of package stdlib.
 func NewStream(x any) Value { return boxed(Stream, x) }

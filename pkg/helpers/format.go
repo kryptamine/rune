@@ -39,6 +39,8 @@ func TypeName(v value.Value) string {
 		return "bytes"
 	case value.Stream:
 		return "stream"
+	case value.Buffer:
+		return "buffer"
 	default:
 		return "function"
 	}
@@ -170,6 +172,8 @@ func stringify(v value.Value, seen map[uintptr]bool) string {
 		return stringifyTable(v, seen)
 	case value.Bytes:
 		return QuoteBytes(v.Bytes())
+	case value.Buffer:
+		return "buffer(" + QuoteBytes(v.Buf().Data) + ")"
 	case value.Stream:
 		return fmt.Sprint(v.Internal())
 	default:

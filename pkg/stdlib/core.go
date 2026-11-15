@@ -24,11 +24,12 @@ func length(c *call) value.Value {
 		return count(utf8.RuneCountInString(v.Str()))
 	case value.Map, value.Set:
 		return count(v.HashMap().Len())
-	case value.Bytes:
-		return count(len(v.Bytes()))
+	case value.Bytes, value.Buffer:
+		b, _ := v.Binary()
+		return count(len(b))
 	}
 
-	return c.typeError(0, "a string, an array, an object, a map, a set or bytes")
+	return c.typeError(0, "a string, an array, an object, a map, a set, bytes or a buffer")
 }
 
 // lenMethod is the len method of the type called name.
