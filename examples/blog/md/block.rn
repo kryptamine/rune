@@ -34,7 +34,11 @@ export fun render(src) {
             let lang = line[3..].trim();
             let mut code = [];
             i++;
-            while i < lines.len() && !lines[i].startsWith("```") { code.push(lines[i++]); }
+
+            while i < lines.len() && !lines[i].startsWith("```") {
+                code.push(lines[i++]);
+            }
+
             i++;
             let cls = lang == "" ? "" : " class=\"lang-{lang}\"";
             doc.html.push("<pre><code{cls}>{inline.escape(code.join("\n"))}</code></pre>");
@@ -42,6 +46,7 @@ export fun render(src) {
         }
 
         let h = regex.find(r"^(#{1,6})\s+(.*)$", line);
+
         if h != nil {
             let [hashes, text] = h.groups;
             let level = hashes.len();
@@ -60,27 +65,42 @@ export fun render(src) {
 
         if line.startsWith(">") {
             let mut quote = [];
-            while i < lines.len() && lines[i].startsWith(">") { quote.push(lines[i++][1..].trim()); }
+
+            while i < lines.len() && lines[i].startsWith(">") {
+                quote.push(lines[i++][1..].trim());
+            }
+
             doc.html.push("<blockquote><p>{inline.render(quote.join(" "))}</p></blockquote>");
             continue;
         }
 
         let item = listItem(line);
+
         if item != nil {
             let tag = item.kind.tag();
             let mut items = [];
+
             while i < lines.len() {
                 let it = listItem(lines[i]);
-                if it == nil || it.kind != item.kind { break; }
+
+                if it == nil || it.kind != item.kind {
+                    break;
+                }
+
                 items.push("<li>{inline.render(it.text)}</li>");
                 i++;
             }
+
             doc.html.push("<{tag}>{items.join("")}</{tag}>");
             continue;
         }
 
         let mut para = [];
-        while i < lines.len() && !startsBlock(lines[i]) { para.push(lines[i++].trim()); }
+
+        while i < lines.len() && !startsBlock(lines[i]) {
+            para.push(lines[i++].trim());
+        }
+
         doc.html.push("<p>{inline.render(para.join(" "))}</p>");
     }
 
@@ -89,7 +109,11 @@ export fun render(src) {
 
 fun listItem(line) {
     let m = regex.find(r"^\s*([-*]|\d+\.)\s+(.*)$", line);
-    if m == nil { return nil; }
+
+    if m == nil {
+        return nil;
+    }
+
     let [marker, text] = m.groups;
     return { kind: marker.endsWith(".") ? ListKind.Numbered : ListKind.Bullet, text };
 }

@@ -26,12 +26,14 @@ fun tokenize(src) {
 
     for m in regex.findAll(TOKEN_RE, src) {
         let { bad } = m.named;
+
         let kind = match m.named {
             { num } if num != nil => Kind.Num,
             { id } if id != nil => Kind.Id,
             { op } if op != nil => Kind.Op,
             _ => throw CalcError { message: "unexpected '{bad}'", pos: m.index },
         };
+
         tokens.push(Token { kind, text: m.text, pos: m.index });
     }
 
@@ -57,7 +59,11 @@ impl Parser {
 
     fun expect(mut self, text) {
         let t = self.next();
-        if t.text != text { throw CalcError { message: "expected '{text}', got '{t.text}'", pos: t.pos }; }
+
+        if t.text != text {
+            throw CalcError { message: "expected '{text}', got '{t.text}'", pos: t.pos };
+        }
+
         return t;
     }
 
@@ -74,10 +80,14 @@ impl Parser {
             let name = self.next().text;
             self.expect("(");
             let mut params = [];
+
             while self.peek().text != ")" {
                 params.push(self.next().text);
-                if self.peek().text == "," { self.next(); }
+                if self.peek().text == "," {
+                    self.next();
+                }
             }
+
             self.expect(")");
             self.expect("=");
             return Node.FunDef { name, params, body: self.expr(0) };
@@ -92,7 +102,10 @@ impl Parser {
         while true {
             let op = self.peek().text;
             let prec = PRECEDENCE?.[op] ?? -1;
-            if prec < minPrec || prec < 0 { break; }
+
+            if prec < minPrec || prec < 0 {
+                break;
+            }
 
             self.next();
             let nextMin = op in RIGHT_ASSOC ? prec : prec + 1;
@@ -116,10 +129,14 @@ impl Parser {
             Token { kind: Kind.Id, text: name } if self.peek().text == "(" => {
                 self.next();
                 let mut args = [];
+
                 while self.peek().text != ")" {
                     args.push(self.expr(0));
-                    if self.peek().text == "," { self.next(); }
+                    if self.peek().text == "," {
+                        self.next();
+                    }
                 }
+
                 self.expect(")");
                 return Node.Call { name, args };
             },
@@ -133,7 +150,11 @@ fun parse(src) {
     let mut p = Parser.new(src);
     let ast = p.statement();
     let end = p.peek();
-    if end.kind != Kind.Eof { throw CalcError { message: "unexpected '{end.text}'", pos: end.pos }; }
+
+    if end.kind != Kind.Eof {
+        throw CalcError { message: "unexpected '{end.text}'", pos: end.pos };
+    }
+
     return ast;
 }
 
@@ -160,6 +181,7 @@ impl Env {
             Node.Neg { expr } => -ev(expr),
             Node.Binary { op, left, right } => {
                 let [a, b] = [ev(left), ev(right)];
+
                 return match op {
                     "+" => a + b,
                     "-" => a - b,
@@ -184,10 +206,18 @@ impl Env {
 
     fun call(mut self, name, args) {
         let f = self.funs?.[name];
+
         if f != nil {
-            if args.len() != f.params.len() { throw CalcError { message: "{name} takes {f.params.len()} arguments, got {args.len()}" }; }
+            if args.len() != f.params.len() {
+                throw CalcError { message: "{name} takes {f.params.len()} arguments, got {args.len()}" };
+            }
+
             let mut locals = {};
-            for i, p in f.params { locals[p] = args[i]; }
+
+            for i, p in f.params {
+                locals[p] = args[i];
+            }
+
             return self.eval(f.body, locals);
         }
 
@@ -207,7 +237,9 @@ fun run(mut env, line) {
         print("{line.padEnd(32)} => {show(env.eval(parse(line)))}");
     } catch e is CalcError {
         print("{line.padEnd(32)} !! {e.message}");
-        if e.pos != nil { print(" ".repeat(e.pos) + "^"); }
+        if e.pos != nil {
+            print(" ".repeat(e.pos) + "^");
+        }
     } catch e is ValueError | TypeError {
         print("{line.padEnd(32)} !! {type(e)}: {e.message}");
     }
@@ -238,19 +270,28 @@ fun main(args) {
 
     if args?.[0] == "repl" {
         let mut line = io.readLine();
+
         while line != nil {
-            if line.trim() != "" { run(env, line); }
+            if line.trim() != "" {
+                run(env, line);
+            }
+
             line = io.readLine();
         }
+
         return;
     }
 
-    for line in DEMO { run(env, line); }
+    for line in DEMO {
+        run(env, line);
+    }
 
     let mut stats = map();
+
     for line in DEMO {
         let kind = try type(parse(line)) catch => continue;
         stats[kind] = (stats?.[kind] ?? 0) + 1;
     }
+
     print("\nparsed node kinds: {stats}");
 }

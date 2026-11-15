@@ -11,7 +11,11 @@ export struct Plan { steps, columns }
 impl Plan {
     fun execute(self) {
         let mut rows = [];
-        for s in self.steps { rows = (s.run)(rows); }
+
+        for s in self.steps {
+            rows = (s.run)(rows);
+        }
+
         return rows;
     }
 }
@@ -30,14 +34,19 @@ struct SortKey { column, expr, desc, text }
 export fun plan(q, mut catalog) {
     let refs = [q.from, ...q.joins.map(j => j.table)];
     let mut tables = [];
+
     for i, r in refs {
-        if refs.findIndex(x => x.alias == r.alias) != i { throw ast.SqlError { message: "table alias '{r.alias}' is used twice", pos: r.pos }; }
+        if refs.findIndex(x => x.alias == r.alias) != i {
+            throw ast.SqlError { message: "table alias '{r.alias}' is used twice", pos: r.pos };
+        }
+
         tables.push(catalog.load(r.name, r.pos));
     }
 
     let base = expr.Scope.of(q.from.alias, tables[0].columns);
     let mut stages = [];
     let mut scope = base;
+
     for i, j in q.joins {
         let right = expr.Scope.of(j.table.alias, tables[i + 1].columns);
         let joined = scope.plus(right);
@@ -49,10 +58,13 @@ export fun plan(q, mut catalog) {
     let first = tables[0];
     let scan = filter(placed.scan, expr.Ctx { scope: base });
     let mut steps = [Step { label: "scan {describe(q.from)} ({first.rows.len()} rows){whereText(placed.scan)}", run: _ => scan(first.rows) }];
+
     for i, s in stages {
         steps.push(joinStep(s, placed.pushed[i]));
         let after = placed.after[i];
-        if after { steps.push(Step { label: "filter {ast.sql(ast.allOf(after))}", run: filter(after, expr.Ctx { scope: s.joined }) }); }
+        if after {
+            steps.push(Step { label: "filter {ast.sql(ast.allOf(after))}", run: filter(after, expr.Ctx { scope: s.joined }) });
+        }
     }
 
     let out = output(q, scope);
@@ -66,13 +78,18 @@ fun place(conds, base, stages) {
 
     for c in conds {
         let a = ast.aggregatesIn(c)?.[0];
-        if a != nil { throw ast.SqlError { message: "aggregates go in HAVING, not WHERE", pos: a.pos }; }
+
+        if a != nil {
+            throw ast.SqlError { message: "aggregates go in HAVING, not WHERE", pos: a.pos };
+        }
 
         if base.covers(c) {
             scan.push(c);
             continue;
         }
+
         let i = stages.findIndex(s => s.joined.covers(c));
+
         if i < 0 {
             let all = stages ? stages[-1].joined : base;
             all.check(c);
@@ -91,7 +108,10 @@ fun place(conds, base, stages) {
 
 // filter keeps the rows for which all conds hold.
 fun filter(conds, ctx) {
-    if !conds { return rows => rows; }
+    if !conds {
+        return rows => rows;
+    }
+
     let ok = expr.compile(ast.allOf(conds), ctx);
     return rows => rows.filter(r => ok(r) == true);
 }
@@ -125,11 +145,17 @@ fun joinStep(s, pushed) {
     let [a, b] = sides(parts[eq], left, right);
     let lk = expr.compile(a, expr.Ctx { scope: left });
     let rk = expr.compile(b, expr.Ctx { scope: right });
+
     return Step { label: "{outer}hash join {label}", run: rows => {
         let mut index = map();
+
         for r in rightRows(table.rows) {
             let k = rk(r);
-            if k == nil { continue; }
+
+            if k == nil {
+                continue;
+            }
+
             let mut bucket = index?.[k];
             if bucket == nil {
                 index[k] = [r];
@@ -137,6 +163,7 @@ fun joinStep(s, pushed) {
                 bucket.push(r);
             }
         }
+
         return joinRows(rows, l => index?.[lk(l)] ?? [], check, pad);
     } };
 }
@@ -151,16 +178,26 @@ fun sides(e, left, right) => match e {
 // none does and the join is outer.
 fun joinRows(rows, candidates, check, pad) {
     let mut out = [];
+
     for l in rows {
         let mut hit = false;
+
         for r in candidates(l) {
             let row = [...l, ...r];
-            if check != nil && check(row) != true { continue; }
+
+            if check != nil && check(row) != true {
+                continue;
+            }
+
             out.push(row);
             hit = true;
         }
-        if !hit && pad != nil { out.push([...l, ...pad]); }
+
+        if !hit && pad != nil {
+            out.push([...l, ...pad]);
+        }
     }
+
     return out;
 }
 
@@ -178,10 +215,16 @@ fun output(q, scope) {
         let i = ordinal(e, items, "GROUP BY");
         let g = i == nil ? unalias(e) : items[i].expr;
         let a = ast.aggregatesIn(g)?.[0];
-        if a != nil { throw ast.SqlError { message: "aggregates cannot be in GROUP BY", pos: a.pos }; }
+
+        if a != nil {
+            throw ast.SqlError { message: "aggregates cannot be in GROUP BY", pos: a.pos };
+        }
+
         return g;
     });
+
     let having = q.having == nil ? nil : unalias(q.having);
+
     let order = q.orderBy.map(({ expr: e, desc }) => {
         let i = ordinal(e, items, "ORDER BY") ?? texts.indexOf(ast.sql(unalias(e)));
         return SortKey { column: i >= 0 ? i : nil, expr: unalias(e), desc, text: ast.sql(e) };
@@ -189,14 +232,18 @@ fun output(q, scope) {
 
     let mut calls = [];
     let computed = [...items.map(it => it.expr), ...(having == nil ? [] : [having]), ...order.filter(o => o.column == nil).map(o => o.expr)];
+
     for e in computed {
         for c in ast.aggregatesIn(e) {
-            if !calls.some(x => ast.sql(x) == ast.sql(c)) { calls.push(c); }
+            if !calls.some(x => ast.sql(x) == ast.sql(c)) {
+                calls.push(c);
+            }
         }
     }
 
     let mut steps = [];
     let mut ctx = expr.Ctx { scope };
+
     if groupBy || having != nil || calls {
         let keys = groupBy.map(e => expr.compile(e, ctx));
         let aggs = agg.specs(calls, scope);
@@ -205,20 +252,28 @@ fun output(q, scope) {
         steps.push(Step { label: "group by {by}{computing}", run: rows => agg.aggregate(rows, keys, aggs) });
 
         ctx = expr.Ctx { scope, group: [...groupBy, ...calls].map(ast.sql) };
-        if having != nil { steps.push(Step { label: "having {ast.sql(q.having)}", run: filter([having], ctx) }); }
+        if having != nil {
+            steps.push(Step { label: "having {ast.sql(q.having)}", run: filter([having], ctx) });
+        }
     }
 
     let project = items.map(it => expr.compile(it.expr, ctx));
     let keys = order.map(o => o.column == nil ? expr.compile(o.expr, ctx) : nil);
     let sorted = order.len() > 0;
     let stop = !sorted && !q.distinct && q.limit != nil ? q.offset + q.limit : -1;
+
     steps.push(Step { label: "project {columns.join(", ")}{stop >= 0 ? ", first {stop} rows" : ""}", run: rows => {
         let mut out = [];
+
         for r in rows {
-            if out.len() == stop { break; }
+            if out.len() == stop {
+                break;
+            }
+
             let row = project.map(f => f(r));
             out.push(sorted ? [row, order.map((o, i) => o.column != nil ? row[o.column] : (keys[i])(r))] : row);
         }
+
         return out;
     } });
 
@@ -226,12 +281,18 @@ fun output(q, scope) {
         steps.push(Step { label: "distinct", run: rows => {
             let mut seen = set();
             let mut out = [];
+
             for r in rows {
                 let k = string(sorted ? r[0] : r);
-                if k in seen { continue; }
+
+                if k in seen {
+                    continue;
+                }
+
                 seen.add(k);
                 out.push(r);
             }
+
             return out;
         } });
     }
@@ -239,13 +300,18 @@ fun output(q, scope) {
     if sorted {
         steps.push(Step { label: "sort by {order.map(o => o.text + (o.desc ? " desc" : "")).join(", ")}", run: rows => {
             let mut out = rows[..];
+
             out.sort((a, b) => {
                 for i, o in order {
                     let c = expr.compare(a[1][i], b[1][i]);
-                    if c != 0 { return o.desc ? -c : c; }
+                    if c != 0 {
+                        return o.desc ? -c : c;
+                    }
                 }
+
                 return 0;
             });
+
             return out.map(r => r[0]);
         } });
     }
@@ -260,26 +326,39 @@ fun output(q, scope) {
 
 // ordinal is the index of the output column a number names, or nil.
 fun ordinal(e, items, clause) {
-    if !(e is ast.Lit && e.value is number) { return nil; }
+    if !(e is ast.Lit && e.value is number) {
+        return nil;
+    }
+
     let n = e.value;
+
     if !math.isInt(n) || n < 1 || n > items.len() {
         throw ast.SqlError { message: "{clause} {n}: the query has {items.len()} column{items.len() == 1 ? "" : "s"}" };
     }
+
     return n - 1;
 }
 
 fun expandStars(items, scope) {
     let mut out = [];
+
     for it in items {
         match it {
             ast.Star { table } => {
                 let fields = scope.fields.filter(f => table == nil || f.table == table);
-                if !fields { throw ast.SqlError { message: "unknown table '{table}' in {table}.*" }; }
-                for f in fields { out.push(ast.Item { expr: ast.Col { table: f.table, name: f.name } }); }
+
+                if !fields {
+                    throw ast.SqlError { message: "unknown table '{table}' in {table}.*" };
+                }
+
+                for f in fields {
+                    out.push(ast.Item { expr: ast.Col { table: f.table, name: f.name } });
+                }
             },
             _ => out.push(it),
         }
     }
+
     return out;
 }
 

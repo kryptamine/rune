@@ -32,26 +32,31 @@ export fun generate(dir, orders) {
     let customers = 5000;
     let mut out = fs.open(fs.join(dir, "customers.csv"), "w");
     out.write("id,name,country,signup\n");
+
     for id in 1..customers + 1 {
         let suffix = rng.int(40) == 0 ? ", Jr." : "";
         let name = "{rng.pick(FIRST)} {rng.pick(LAST)}{suffix}";
         let signup = "2025-%02d-%02d".format(rng.int(12) + 1, rng.int(28) + 1);
         out.write([id, name, rng.pick(COUNTRIES), signup].map(table.quoteCsv).join(",") + "\n");
     }
+
     out.close();
 
     let products = 300;
     out = fs.open(fs.join(dir, "products.csv"), "w");
     out.write("id,name,category,price\n");
+
     for id in 1..products + 1 {
         let category = rng.pick(CATEGORIES);
         let price = (rng.int(150000) + 999) / 100;
         out.write("{id},{category[..1].upper()}{category[1..]} {rng.pick(MODELS)} {rng.int(9) + 1},{category},{price}\n");
     }
+
     out.close();
 
     out = fs.open(fs.join(dir, "orders.csv"), "w");
     out.write("id,customer_id,product_id,qty,status,created,coupon\n");
+
     for id in 1..orders + 1 {
         // a few customers never order: ids above 4900 are skipped
         let customer = rng.int(customers - 100) + 1;
@@ -59,6 +64,7 @@ export fun generate(dir, orders) {
         let coupon = rng.int(5) == 0 ? rng.pick(["WELCOME10", "BLACKFRIDAY", "VIP"]) : "";
         out.write("{id},{customer},{rng.int(products) + 1},{rng.int(4) + 1},{rng.pick(STATUSES)},{created},{coupon}\n");
     }
+
     out.close();
 }
 

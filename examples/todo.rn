@@ -1,4 +1,5 @@
 // Task tracker: tasks with tags, priorities and due dates, kept in a JSON file
+
 //
 //   ./rune run examples/todo.rn                          run a demo session against a temp file
 //   ./rune run examples/todo.rn add "pay rent" +home !high due:fri
@@ -45,8 +46,12 @@ fun parseDate(s, now) {
         try time.parse(s, DAY) catch e is ValueError => throw UsageError { message: "bad date '{s}'" };
         return s;
     }
+
     let rel = regex.find(r"^\+(\d+)d$", s);
-    if rel { return addDays(now, int(rel.groups[0])); }
+
+    if rel {
+        return addDays(now, int(rel.groups[0]));
+    }
 
     return match s {
         "today" => now,
@@ -61,6 +66,7 @@ fun parseDate(s, now) {
 
 fun relative(day, now) {
     let diff = daysBetween(now, day);
+
     return match diff {
         0 => "today",
         1 => "tomorrow",
@@ -79,7 +85,10 @@ struct Store { path, tasks = [], nextId = 1 }
 
 impl Store {
     fun load(path) {
-        if !fs.exists(path) { return Store { path }; }
+        if !fs.exists(path) {
+            return Store { path };
+        }
+
         let data = json.parse(fs.readText(path));
         return Store { path, tasks: data.tasks.map(o => Task({ ...o, priority: Priority(o.priority) })), nextId: data.nextId };
     }
@@ -98,7 +107,11 @@ impl Store {
 
     fun find(self, id) {
         let i = self.tasks.findIndex(t => t.id == id);
-        if i < 0 { throw UsageError { message: "no task #{id}" }; }
+
+        if i < 0 {
+            throw UsageError { message: "no task #{id}" };
+        }
+
         return i;
     }
 
@@ -126,26 +139,48 @@ fun parseTask(words, now) {
         }
     }
 
-    if text { task.text = text.join(" "); }
+    if text {
+        task.text = text.join(" ");
+    }
+
     return task;
 }
 
 fun ids(args) {
-    if !args { throw UsageError { message: "which task? give an id" }; }
+    if !args {
+        throw UsageError { message: "which task? give an id" };
+    }
+
     return args.map(a => {
-        if !regex.test(r"^\d+$", a) { throw UsageError { message: "bad id '{a}'" }; }
+        if !regex.test(r"^\d+$", a) {
+            throw UsageError { message: "bad id '{a}'" };
+        }
+
         return int(a);
     });
 }
 
 fun byUrgency(a, b) {
-    if (a.completed == nil) != (b.completed == nil) { return a.completed == nil ? -1 : 1; }
+    if (a.completed == nil) != (b.completed == nil) {
+        return a.completed == nil ? -1 : 1;
+    }
+
     if a.due != b.due {
-        if a.due == nil { return 1; }
-        if b.due == nil { return -1; }
+        if a.due == nil {
+            return 1;
+        }
+
+        if b.due == nil {
+            return -1;
+        }
+
         return a.due < b.due ? -1 : 1;
     }
-    if a.priority != b.priority { return int(b.priority) - int(a.priority); }
+
+    if a.priority != b.priority {
+        return int(b.priority) - int(a.priority);
+    }
+
     return a.id - b.id;
 }
 
@@ -173,10 +208,15 @@ fun list(store, args, now) {
         print("  nothing to do");
         return;
     }
-    for t in shown { print("  " + show(t, now)); }
+
+    for t in shown {
+        print("  " + show(t, now));
+    }
 
     let hidden = store.tasks.len() - shown.len();
-    if hidden > 0 { print("  ({hidden} more, --all to show)"); }
+    if hidden > 0 {
+        print("  ({hidden} more, --all to show)");
+    }
 }
 
 fun stats(store, now) {
@@ -185,8 +225,11 @@ fun stats(store, now) {
     let late = open.filter(t => t.due != nil && t.due < now);
 
     let mut byTag = map();
+
     for t in open {
-        for tag in t.tags { byTag[tag] = (byTag?.[tag] ?? 0) + 1; }
+        for tag in t.tags {
+            byTag[tag] = (byTag?.[tag] ?? 0) + 1;
+        }
     }
 
     let weekAgo = addDays(now, -7);
@@ -195,14 +238,20 @@ fun stats(store, now) {
     print("  open %d, done %d, overdue %d, done this week %d".format(open.len(), done, late.len(), week));
     let mut rows = byTag.entries();
     rows.sort(([_, a], [_, b]) => b - a);
-    for [tag, n] in rows { print("  %-10s %s %d".format("+" + tag, "#".repeat(n), n)); }
+    for [tag, n] in rows {
+        print("  %-10s %s %d".format("+" + tag, "#".repeat(n), n));
+    }
 }
 
 fun run(mut store, [cmd = "list", ...args], now) {
     match cmd {
         "add" => {
             let task = parseTask(args, now);
-            if task?.text == nil { throw UsageError { message: "a task needs some text" }; }
+
+            if task?.text == nil {
+                throw UsageError { message: "a task needs some text" };
+            }
+
             let id = store.add({ ...task, created: now });
             print("  added #{id}");
         },
@@ -229,6 +278,7 @@ fun run(mut store, [cmd = "list", ...args], now) {
         "help" => print(usage()),
         _ => throw UsageError { message: "unknown command '{cmd}'" },
     }
+
     return cmd in ["list", "ls", "stats", "help"] ? nil : store;
 }
 
@@ -249,7 +299,11 @@ fun exec(path, args, now) {
 
 fun demo() {
     let dir = fs.tempDir();
-    defer { fs.removeAll(dir); }
+
+    defer {
+        fs.removeAll(dir);
+    }
+
     let path = fs.join(dir, "todo.json");
     let now = today();
     let session = [
@@ -272,13 +326,18 @@ fun demo() {
         exec(path, line.split(" "), now);
         print("");
     }
+
     print("stored in {path}:");
     print(fs.readText(path));
 }
 
 fun main(args) {
     try {
-        if !args { demo(); } else { exec(defaultPath(), args, today()); }
+        if !args {
+            demo();
+        } else {
+            exec(defaultPath(), args, today());
+        }
     } catch e is UsageError {
         io.eprint("todo: {e.message}");
         io.eprint(usage());

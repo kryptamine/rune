@@ -2,11 +2,14 @@ exit: 0
 -- stdout --
 import ..md.block;
 import .x as y;
+
 export fun add(a, b = 1, ...rest) {
     return a + b;
 }
+
 fun main() {
-    let x = -1; let y = - -x;
+    let x = -1;
+    let y = - -x;
     let z = x++ + ++y;
     let o = { a: 1, "b": 2, [k]: 3, ...rest };
     let e = {};
@@ -15,18 +18,22 @@ fun main() {
         line {x}
           indented
         """;
+
     if a &&
         b {
         print(1);
     }
+
     if a
         && b {
         print(2);
     }
+
     let r = xs
         .map(x => x * 2)
         .filter(x => x > 1);
     let q = c ? 1 : { a: 2 };
+
     let m = match v {
         Point { x, y: 0 } => x,
         [a, ..._] | [] => 0,
@@ -34,13 +41,46 @@ fun main() {
             print(v);
         }
     };
-    for i in 10..=0 step -2 { print(i); }
+
+    for i in 10..=0 step -2 {
+        print(i);
+    }
+
     let { a, mut b = 2, ...others } = obj;
     let [p, _, ...ps] = arr;
     a?.b?.[0]?.(1);
-    let f = a => { return !a; };
+
+    let f = a => {
+        return !a;
+    };
+
     print(~x, !(a), -(b));
     // trailing comment block
+}
+
+fun blocks() {
+    let a = 1;
+
+    xs.each(x => {
+        p(x);
+    });
+
+    let b = 2; // after b
+
+    // before if
+    if b {
+        p(b);
+    } else {
+        p(a);
+    }
+
+    try {
+        t();
+    } catch e {
+        p(e);
+    }
+
+    let c = 3;
 }
 // end
 -- stderr --
