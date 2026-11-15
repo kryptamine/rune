@@ -21,10 +21,10 @@ fun run(f) {
   }
 }
 
-run(fun () { parse(nil); }); // expect: parse: bad number <- TypeError
-run(fun () { [1][5]; }); // expect: lookup: Index out of bounds: 5 of 1
-run(fun () { ({}).k; }); // expect: lookup: Undefined property 'k'.
-run(fun () { throw Note { text: "boom" }; }); // expect: other: Note
+run(() => { parse(nil); }); // expect: parse: bad number <- TypeError
+run(() => { [1][5]; }); // expect: lookup: Index out of bounds: 5 of 1
+run(() => { ({}).k; }); // expect: lookup: Undefined property 'k'.
+run(() => { throw Note { text: "boom" }; }); // expect: other: Note
 
 try {
   try {
@@ -49,7 +49,7 @@ for i in 0..2 {
   try {
     [][i];
   } catch e is IndexError {
-    fs.push(fun () { return e.message; });
+    fs.push(() => { return e.message; });
   }
 }
 print(fs[0]()); // expect: Index out of bounds: 0 of 0

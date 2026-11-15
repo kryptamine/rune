@@ -158,13 +158,6 @@ func keysOf(m *value.HashMap) value.Value {
 }
 
 // The methods both tables have.
-func hasKey(c *call, m *value.HashMap) value.Value {
-	_, found, err := m.Get(c.args[1])
-	c.keyErr(err)
-
-	return value.NewBool(found)
-}
-
 func deleteKey(c *call, m *value.HashMap) value.Value {
 	found, err := m.Delete(c.args[1])
 	c.keyErr(err)
@@ -198,7 +191,6 @@ var mapMethods = []*Native{
 
 		return v
 	}),
-	mapMethod("map.has", 2, 2, hasKey),
 	mapMethod("map.keys", 1, 1, func(_ *call, m *value.HashMap) value.Value { return keysOf(m) }),
 	mapMethod("map.values", 1, 1, func(_ *call, m *value.HashMap) value.Value {
 		return collect(m, func(_, v value.Value) value.Value { return v })
@@ -256,7 +248,6 @@ var setInPlace = []*Native{
 }
 
 var setMethods = []*Native{
-	setMethod("set.contains", 2, 2, hasKey),
 	setMethod("set.values", 1, 1, func(_ *call, m *value.HashMap) value.Value { return keysOf(m) }),
 	setOp("set.union", func(bool) bool { return true }, true),
 	setOp("set.intersection", func(in bool) bool { return in }, false),

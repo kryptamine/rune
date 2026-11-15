@@ -54,7 +54,7 @@ impl Stats {
     }
 
     fun percentiles(self, ...ps) {
-        let mut xs = self.latencies.slice(0);
+        let mut xs = self.latencies[..];
         xs.sort();
         return ps.map(p => xs[math.min(xs.len() - 1, math.floor(xs.len() * p / 100))]);
     }
@@ -105,7 +105,7 @@ impl Report {
         let mut rows = [];
         for ip, { hits, paths } in self.clients rows.push({ ip, hits, distinct: paths.len() });
         rows.sort((a, b) => b.hits - a.hits);
-        return rows.slice(0, n);
+        return rows[..n];
     }
 }
 
@@ -151,7 +151,7 @@ fun table(headers, rows) {
 }
 
 fun printReport(r) {
-    print("== {r.total} requests, {r.skipped.len()} malformed lines skipped" + (r.skipped.len() > 0 ? " (lines {r.skipped.slice(0, 5).join(", ")})" : ""));
+    print("== {r.total} requests, {r.skipped.len()} malformed lines skipped" + (r.skipped ? " (lines {r.skipped[..5].join(", ")})" : ""));
     print("");
 
     let mut rows = [];
@@ -267,7 +267,7 @@ fun run(path, flags) {
         let report = analyze(path);
         printReport(report);
 
-        if flags.contains("-j") {
+        if "-j" in flags {
             let out = fs.join(fs.dir(path), "report.json");
             fs.write(out, toJson(report));
             print("\njson report: {out}");
@@ -284,7 +284,7 @@ fun main(args) {
     let started = time.now();
     defer print("\ndone in %.1f ms".format((time.now() - started) * 1000));
 
-    let [path, ...flags] = args.len() > 0 ? args : [nil];
+    let [path, ...flags] = args || [nil];
     if path != nil return run(path, flags);
 
     let tmp = fs.tempDir();

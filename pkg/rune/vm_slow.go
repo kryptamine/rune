@@ -211,6 +211,30 @@ func (p *Interpreter) slow(in Instr) error {
 
 		return err
 
+	case opIn:
+		b, err := contains(tok, regs[in.b()], regs[in.c()])
+		if err == nil {
+			regs[in.a()] = value.NewBool(b != in.y())
+		}
+
+		return err
+
+	case opInRange:
+		r, err := rangeOf(regs[in.c():], in.x() != 0, tok)
+		if err == nil {
+			regs[in.a()] = value.NewBool(r.contains(regs[in.b()]) != in.y())
+		}
+
+		return err
+
+	case opSlice:
+		v, err := slice(tok, regs[in.b()], regs[in.c()], regs[in.c()+1], in.x())
+		if err == nil {
+			regs[in.a()] = v
+		}
+
+		return err
+
 	case opClosure:
 		proto := f.protos[in.c()]
 		cl := &Closure{proto: proto}

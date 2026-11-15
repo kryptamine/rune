@@ -1,0 +1,1 @@
+print([1][1.0..]); // expect runtime error: [line: 1] TypeError: Slice start must be an integer, got number.

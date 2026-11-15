@@ -146,7 +146,7 @@ fun bounded(v, min, max, path, mut out, unit = string) {
 
 fun checkStr({ min, max, pattern, like, oneOf }, v, path, mut out) {
     if !want("string", v, path, out) return nil;
-    if oneOf != nil && !oneOf.contains(v) {
+    if oneOf != nil && v !in oneOf {
         return fail(out, path, "{show(v)} is not one of {oneOf.join(", ")}" + suggest(v, oneOf));
     }
     if v.len() < min return fail(out, path, min == 1 ? "must not be empty" : "shorter than {min} characters");
@@ -161,7 +161,7 @@ fun checkUrl({ schemes }, v, path, mut out) {
     if !want("string", v, path, out) return nil;
     let m = regex.find(URL_RE, v) ?? return fail(out, path, "{show(v)} is not a URL");
     let { scheme, port } = m.named;
-    if !schemes.contains(scheme) return fail(out, path, "scheme {scheme} is not allowed, use {schemes.join(" or ")}");
+    if scheme !in schemes return fail(out, path, "scheme {scheme} is not allowed, use {schemes.join(" or ")}");
     if port != nil && !validPort(int(port)) return fail(out, path, "port {port} is out of range 1-65535");
     return v;
 }
@@ -189,7 +189,7 @@ fun checkList({ of, min, max, unique }, v, path, mut out) {
 
         let [key, keyAt] = unique == true ? [item, at] : [item is object ? item.get(unique) : nil, [...at, unique]];
         if !(key is string || key is number) continue;
-        if seen.has(key) {
+        if key in seen {
             fail(out, keyAt, "duplicate {show(key)}, first at {fmtPath(seen[key])}");
         } else {
             seen[key] = keyAt;
@@ -224,15 +224,15 @@ fun checkObj({ fields, strict }, v, path, mut out) {
             continue;
         }
         match s {
-            Opt { of, default } if default != nil => result[field] = check(of, default, at, out);
+            Opt { of, default } if default != nil => result[field] = check(of, default, at, out),
             _ is Opt | Deprecated => {}
-            _ => fail(out, at, "missing required field");
+            _ => fail(out, at, "missing required field"),
         }
     }
 
     if strict {
         for k in v.keys() {
-            if !fields.has(k) fail(out, [...path, k], "unknown field" + suggest(k, fields.keys()));
+            if k !in fields fail(out, [...path, k], "unknown field" + suggest(k, fields.keys()));
         }
     }
     return result;
@@ -260,10 +260,10 @@ fun knownUpstreams(cfg, mut out) {
     for i, route in cfg?.routes ?? [] {
         let up = route?.upstream ?? continue;
         used.add(up);
-        if !names.contains(up) fail(out, ["routes", i, "upstream"], "no upstream named {show(up)}" + suggest(up, names));
+        if up !in names fail(out, ["routes", i, "upstream"], "no upstream named {show(up)}" + suggest(up, names));
     }
     for n in names {
-        if !used.contains(n) warn(out, ["upstreams", n], "not used by any route");
+        if n !in used warn(out, ["upstreams", n], "not used by any route");
     }
 }
 
@@ -360,7 +360,7 @@ fun fmtPath(path) {
 
 fun show(v) {
     let s = "%q".format(v);
-    return s.len() > 40 ? s.slice(0, 37) + "..." : s;
+    return s.len() > 40 ? s[..37] + "..." : s;
 }
 
 fun suggest(word, options) {
@@ -447,7 +447,7 @@ fun run([cmd = "help", path = nil, ...flags]) {
         print(usage());
         return 0;
     }
-    if !["check", "migrate", "normalize"].contains(cmd) throw UsageError { message: "unknown command '{cmd}'" };
+    if cmd !in ["check", "migrate", "normalize"] throw UsageError { message: "unknown command '{cmd}'" };
     if path == nil throw UsageError { message: "{cmd}: which file?" };
 
     let raw = load(path);
@@ -461,10 +461,10 @@ fun run([cmd = "help", path = nil, ...flags]) {
         }
         "migrate" => {
             for n in notes io.eprint("  {n}");
-            if notes.len() == 0 io.eprint("  already at version {LATEST}");
-            if !flags.contains("-w") {
+            if !notes io.eprint("  already at version {LATEST}");
+            if "-w" !in flags {
                 print(json.stringify(cfg, 2));
-            } else if notes.len() > 0 {
+            } else if notes {
                 fs.write(path + ".tmp", json.stringify(cfg, 2) + "\n");
                 fs.rename(path + ".tmp", path);
                 io.eprint("  wrote {path}");
@@ -579,7 +579,7 @@ fun demo() {
 
 fun main(args) {
     try {
-        if args.len() == 0 demo(); else return run(args);
+        if !args demo(); else return run(args);
     } catch e is UsageError {
         io.eprint("validate: {e.message}");
         io.eprint(usage());

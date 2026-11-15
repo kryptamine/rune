@@ -10,13 +10,17 @@ print("ticket #" + string(ticket));    // ticket #42
 print("ticket #" + ticket);         // TypeError: Operands must be two numbers, two strings or two bytes.
 ```
 
-A string indexes by character, a negative index from the end, `s.len()`
-counts characters, and `<`, `<=`, `>`, `>=` compare strings by their
-characters' code points:
+A string indexes and [slices](../data/arrays.md) by character, a negative
+index from the end, `s.len()` counts characters, `sub in s` finds a
+substring, and `<`, `<=`, `>`, `>=` compare strings by their characters'
+code points:
 
 ```rune
 print("héllo"[1]);       // é
 print("héllo"[-1]);      // o
+print("héllo"[1..3]);    // él
+print("héllo"[..-1]);    // héll
+print("ll" in "héllo");  // true
 print("héllo".len());    // 5
 print("ann" < "bob");    // true
 print("Zed" < "ann");    // true

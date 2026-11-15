@@ -90,7 +90,7 @@ func assigns(e ast.Expr) bool {
 		return assigns(n.Value) || slices.ContainsFunc(n.Catches, func(c ast.CatchClause) bool { return assigns(c.Value) })
 	case *ast.JumpExpr:
 		r, ok := n.Stmt.(*ast.ReturnStmt)
-		return ok && r.Value != nil && assigns(r.Value)
+		return ok && assigns(r.Value)
 	case *ast.UnaryExpr:
 		return assigns(n.Right)
 	case *ast.CallExpr:
@@ -114,7 +114,11 @@ func assigns(e ast.Expr) bool {
 	case *ast.IndexExpr:
 		return assigns(n.Array) || assigns(n.Index)
 	case *ast.RangeExpr:
-		return assigns(n.Start) || assigns(n.End) || n.Step != nil && assigns(n.Step)
+		return assigns(n.Start) || assigns(n.End) || assigns(n.Step)
+	case *ast.SliceExpr:
+		return assigns(n.Target) || assigns(n.Range.Start) || assigns(n.Range.End)
+	case nil:
+		return false
 	}
 
 	return true
@@ -274,6 +278,8 @@ func (fs *funcState) expr(e ast.Expr, dst int32) {
 		fs.emit(ins{op: opIs, a: dst, b: v, c: fs.exprAny(n.Type)}, &n.Token)
 	case *ast.IndexExpr:
 		fs.index(n, dst)
+	case *ast.SliceExpr:
+		fs.slice(n, dst)
 	case *ast.SetIndexExpr:
 		fs.move(dst, fs.setIndex(n))
 	case *ast.UpdateExpr:
@@ -551,6 +557,11 @@ func (fs *funcState) assign(n *ast.AssignExpr) int32 {
 func (fs *funcState) binary(n *ast.BinaryExpr, dst int32) {
 	op := &n.Operator
 
+	if t := op.TokenType; t == ast.IN || t == ast.BANG_IN {
+		fs.in(n, dst)
+		return
+	}
+
 	// A fold that fails is left to fail at run time.
 	if v, ok := literalOf(n); ok {
 		fs.emit(ins{op: opLoadK, a: dst, c: fs.constant(v)}, nil)
@@ -727,159 +738,6 @@ func (fs *funcState) invoke(n *ast.CallExpr, prop *ast.IndexExpr, dst int32) {
 	}
 
 	fs.move(dst, base)
-}
-
-// nilJump makes the optional chain being compiled nil if R[r] is.
-func (fs *funcState) nilJump(r int32) {
-	fs.chain = append(fs.chain, fs.emit(ins{op: opJmpNil, a: r, y: 1}, nil))
-}
-
-func (fs *funcState) optional(n *ast.OptionalExpr, dst int32) {
-	outer := fs.chain
-	fs.chain = nil
-
-	fs.expr(n.Expr, dst)
-
-	jumps := fs.chain
-	fs.chain = outer
-
-	end := fs.emit(ins{op: opJmp}, nil)
-	fs.patch(jumps)
-	fs.emit(ins{op: opLoadK, a: dst, c: fs.constant(value.NilValue)}, nil)
-	fs.patch([]int{end})
-}
-
-func (fs *funcState) index(n *ast.IndexExpr, dst int32) {
-	if n.Export != nil {
-		fs.varExpr(n.Export, dst)
-		return
-	}
-
-	if n.Member != nil {
-		fs.emit(ins{op: opLoadK, a: dst, c: fs.constant(*n.Member)}, nil)
-		return
-	}
-
-	if n.Property {
-		t := fs.exprAny(n.Array)
-		if n.Optional {
-			fs.nilJump(t)
-		}
-
-		fs.emit(ins{op: pick(n.Optional, opGetPropOpt, opGetProp), a: dst, b: t, c: fs.constant(value.NewString(n.Token.Lexeme))}, &n.Token)
-
-		return
-	}
-
-	t := fs.operand(n.Array, n.Index)
-	if n.Optional {
-		fs.nilJump(t)
-	}
-
-	i := fs.exprAny(n.Index)
-	fs.emit(ins{op: pick(n.Optional, opGetIndexOpt, opGetIndex), a: dst, b: t, c: i}, &n.Token)
-}
-
-// setIndex returns the register holding the assigned value.
-func (fs *funcState) setIndex(n *ast.SetIndexExpr) int32 {
-	pl := fs.place(n.Array, n.Index, n.Property, &n.Token, n.Value)
-
-	if n.Op != nil || !fs.simple(n.Value) {
-		pl.check()
-	}
-
-	if n.Op == nil {
-		v := fs.exprAny(n.Value)
-		pl.store(v)
-
-		return v
-	}
-
-	// The old value is read before the right-hand side runs, as in
-	// "a[i] = a[i] op v".
-	old := fs.alloc()
-	pl.load(old)
-
-	v := fs.exprAny(n.Value)
-	fs.emit(binaryIns(n.Op.TokenType, old, old, v), n.Op)
-	pl.store(old)
-
-	return old
-}
-
-// simple reports whether e is a literal or a plain local.
-func (fs *funcState) simple(e ast.Expr) bool {
-	switch n := unwrap(e).(type) {
-	case *ast.LiteralExpr:
-		return true
-	case *ast.VarExpr:
-		if isConst(n) {
-			return true
-		}
-
-		kind, _ := fs.lookup(n.Local)
-		return kind == varLocal
-	}
-
-	return false
-}
-
-func (fs *funcState) update(n *ast.UpdateExpr, dst int32) {
-	op := &n.Operator
-	incr := ins{op: opIncr, x: uint8(boolNum(op.TokenType == ast.MINUS_MINUS))}
-
-	if t, ok := n.Target.(*ast.VarExpr); ok {
-		kind, r := fs.lookup(t.Local)
-
-		if kind == varLocal {
-			fs.checkDefined(t.Local, r, &t.Name)
-
-			if !n.Prefix {
-				fs.move(dst, r)
-			}
-
-			incr.a, incr.b = r, r
-			fs.emit(incr, op)
-
-			if n.Prefix {
-				fs.move(dst, r)
-			}
-
-			return
-		}
-
-		old := fs.alloc()
-		fs.varExpr(t, old)
-
-		v := old
-		if !n.Prefix {
-			v = fs.alloc()
-		}
-
-		incr.a, incr.b = v, old
-		fs.emit(incr, op)
-		fs.store(kind, r, v, false, &t.Name)
-		fs.move(dst, old)
-
-		return
-	}
-
-	target := n.Target.(*ast.IndexExpr)
-	pl := fs.place(target.Array, target.Index, target.Property, &target.Token)
-	pl.check()
-
-	old := fs.alloc()
-	pl.load(old)
-
-	v := old
-	if !n.Prefix {
-		v = fs.alloc()
-	}
-
-	incr.a, incr.b = v, old
-	fs.emit(incr, op)
-	pl.store(v)
-	fs.move(dst, old)
 }
 
 // jumpIf emits a test of e that jumps when its truthiness is sense and

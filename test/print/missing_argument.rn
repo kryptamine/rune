@@ -1,1 +1,0 @@
-print(); // expect runtime error: [line: 1] ArgumentError: print() expects 1 argument, got 0.

@@ -204,7 +204,7 @@ impl Position {
 
         let mut rights = 0;
         for i, ch in "KQkq" {
-            if castling.contains(ch) rights |= 1 << i;
+            if ch in castling rights |= 1 << i;
         }
 
         let epSquare = ep == "-" ? 0 : sq("abcdefgh".indexOf(ep[0]), int(ep[1]) - 1);
@@ -623,7 +623,7 @@ impl Search {
         let mut line = [];
         while line.len() < depth {
             let m = self.tt?.[self.pos.hash]?.move ?? 0;
-            if m == 0 || !self.pos.legalMoves().contains(m) break;
+            if m == 0 || m !in self.pos.legalMoves() break;
             line.push(m);
             self.pos.make(m);
             if self.pos.isRepetition() break;
@@ -664,7 +664,7 @@ fun search(pos, seconds = 5, maxDepth = 64, report = printInfo) {
 }
 
 fun gameOver(mut pos) {
-    if pos.legalMoves().len() == 0 return pos.inCheck() ? (pos.side == 1 ? "black wins by mate" : "white wins by mate") : "stalemate";
+    if !pos.legalMoves() return pos.inCheck() ? (pos.side == 1 ? "black wins by mate" : "white wins by mate") : "stalemate";
     if pos.half >= 100 return "draw by the fifty-move rule";
     if pos.isRepetition() return "draw by repetition";
     return nil;
@@ -776,7 +776,7 @@ fun main(args) {
         let { rest: free, depth, seconds } = options(rest);
         match command {
             "demo" => demo(),
-            "perft" => perftCommand(int(free?.[0] ?? "4"), free.slice(1).join(" ") || START_FEN),
+            "perft" => perftCommand(int(free?.[0] ?? "4"), free[1..].join(" ") || START_FEN),
             "go" => {
                 let pos = Position.fromFen(free.join(" ") || START_FEN);
                 print(pos.show());

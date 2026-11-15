@@ -7,8 +7,7 @@ import (
 
 type refPair struct{ l, r uintptr }
 
-// IsTruthy follows JS-like semantics: nil, false, 0 and "" are falsy,
-// everything else (including arrays, objects and functions) is truthy.
+// IsTruthy is false for nil, false, 0 and empty values; see Value.Truthy.
 func IsTruthy(v value.Value) bool { return v.Truthy() }
 
 // IsEqual compares arrays, objects and structs structurally and everything else by value

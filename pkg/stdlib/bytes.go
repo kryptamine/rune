@@ -42,13 +42,6 @@ var bytesMethods = []*Native{
 
 		return value.NewArray(out)
 	}},
-	// slice shares the bytes, which never change.
-	{"bytes.slice", 2, 3, func(c *call) value.Value {
-		b := c.bytes(0)
-		start, end := sliceBounds(c, len(b))
-
-		return value.NewBytes(b[start:end:end])
-	}},
 	{"bytes.indexOf", 2, 2, func(c *call) value.Value {
 		return count(bytes.Index(c.bytes(0), c.bytes(1)))
 	}},

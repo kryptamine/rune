@@ -9,9 +9,9 @@ print("rune".startsWith("ru")); // expect: true
 print("rune".endsWith("ne")); // expect: true
 print("a-b-c".replace("-", "+")); // expect: a+b+c
 print("ab".repeat(3)); // expect: ababab
-print("héllo".contains("llo")); // expect: true
+print("llo" in "héllo"); // expect: true
 print("héllo".indexOf("llo")); // expect: 2
 print("abc".indexOf("z")); // expect: -1
-print("héllo".slice(1, 3)); // expect: él
-print("héllo".slice(-3)); // expect: llo
+print("héllo"[1..3]); // expect: él
+print("héllo"[-3..]); // expect: llo
 print("héj".reverse()); // expect: jéh

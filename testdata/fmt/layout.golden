@@ -38,7 +38,7 @@ fun main() {
     let { a, mut b = 2, ...others } = obj;
     let [p, _, ...ps] = arr;
     a?.b?.[0]?.(1);
-    let f = fun (a) { return !a; };
+    let f = a => { return !a; };
     print(~x, !(a), -(b));
     // trailing comment block
 }

@@ -41,7 +41,7 @@ function does; the declaration ends with `;`. Methods take this form too.
 
 ```rune
 fun square(x) => x * x;
-fun origin() => { x: 0, y: 0 };
+fun origin() => ({ x: 0, y: 0 });
 
 struct Money { cents }
 
@@ -55,25 +55,21 @@ print(origin());                 // {x: 0, y: 0}
 print(Money.of(4.99).format());  // $4.99
 ```
 
-## Anonymous Functions
+## Arrow Functions
 
-`fun` without a name is an expression, so functions can be passed around inline.
-
-```rune
-let prices = [120, 45, 300];
-print(prices.map(fun (p) { return p * 2; })); // [240, 90, 600]
-```
-
-Arrow functions are shorthand: an expression body is returned, a block body works like `fun`'s.
+A function without a name is an arrow function, an expression, so
+functions can be passed around inline. An expression body is returned; a
+block body works like `fun`'s.
 
 ```rune
 let add = (a, b) => a + b;
 let double = x => x * 2;
 let log = msg => { print("[log] " + msg); };
 
-print(add(2, 3));  // 5
-print(double(21)); // 42
-log("started");    // [log] started
+print(add(2, 3));                     // 5
+print(double(21));                    // 42
+print([120, 45, 300].map(double));    // [240, 90, 600]
+log("started");                       // [log] started
 ```
 
 A single plain parameter needs no parentheses. Parameters may be `mut` or
@@ -89,15 +85,19 @@ let bump = (mut n) => { n += 1; return n; };
 print(bump(1)); // 2
 ```
 
-A body in braces is an object when it looks like one: `() => { a: 1 }` and
-`x => { x }` return an object.
+After `=>` a `{` always starts a block, here and in a `fun`'s expression
+body or a match arm; an object to return goes in parentheses:
 
 ```rune
-let origin = () => { x: 0, y: 0 };
-let wrap = name => { name };
+let origin = () => ({ x: 0, y: 0 });
+let wrap = name => ({ name });
 
 print(origin());     // {x: 0, y: 0}
 print(wrap("ann"));  // {name: "ann"}
+```
+
+```rune
+let wrap = name => { name }; // Error at '{': A '{' here starts a block; wrap an object in parentheses: ({ ... }).
 ```
 
 ## Default Parameters

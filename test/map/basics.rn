@@ -14,7 +14,7 @@ print(m[1]);   // expect: uno
 print(m.get(2));          // expect: nil
 print(m.get(2, "none"));  // expect: none
 print(m?.[2]);            // expect: nil
-print(m.has("1"));        // expect: true
+print("1" in m);        // expect: true
 print(m.delete("1"));     // expect: true
 print(m.delete("1"));     // expect: false
 print(m.keys());          // expect: [1, true, nil]

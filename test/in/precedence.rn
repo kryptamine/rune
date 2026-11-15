@@ -1,0 +1,6 @@
+let xs = [2, false];
+print(1 + 1 in xs); // expect: true
+print(1 in xs == false); // expect: true
+print(1 in xs ? "y" : "n"); // expect: n
+print(!(1 in xs)); // expect: true
+print(nil ?? 2 in xs); // expect: true

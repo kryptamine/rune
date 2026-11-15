@@ -95,7 +95,7 @@ impl Parser {
             if prec < minPrec || prec < 0 break;
 
             self.next();
-            let nextMin = RIGHT_ASSOC.contains(op) ? prec : prec + 1;
+            let nextMin = op in RIGHT_ASSOC ? prec : prec + 1;
             left = Node.Binary { op, left, right: self.expr(nextMin) };
         }
 

@@ -1,6 +1,6 @@
 fun kind() { return type("abc"); }
 print(kind()); // expect: string
-type = fun (x) { return 42; };
+type = x => { return 42; };
 print(kind()); // expect: 42
 print(type("z")); // expect: 42
 

@@ -1,0 +1,1 @@
+print([1..]); // Error at '..': A range needs an end; only a slice, as in xs[1..], may leave it open.

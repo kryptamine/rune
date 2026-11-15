@@ -12,6 +12,6 @@ fun area(s) {
 }
 
 match Shape.Dot {  // Error at 'match': Match does not cover Shape.Square; add arms or '_ =>'.
-  Shape.Dot => print("dot");
-  x is Shape.Circle => print(x);
+  Shape.Dot => print("dot"),
+  x is Shape.Circle => print(x),
 }

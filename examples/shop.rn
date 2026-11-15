@@ -86,28 +86,28 @@ fun section(title) {
 }
 
 fun showCarts(carts) {
-    if carts.len() == 0 {
+    if !carts {
         print("no carts");
         return;
     }
     for cart in carts {
         print("cart #{cart.id}: {cart.totalQuantity} items, {money(cart.total)} → {money(cart.discountedTotal)}");
-        let mut top = cart.products.slice(0);
+        let mut top = cart.products[..];
         top.sort((a, b) => b.discountedTotal - a.discountedTotal);
-        for { title, quantity, price, discountPercentage } in top.slice(0, 3) {
-            print("  %-28s %2d × %9s  -%4.1f%%".format(title.slice(0, 28), quantity, money(price), discountPercentage));
+        for { title, quantity, price, discountPercentage } in top[..3] {
+            print("  %-28s %2d × %9s  -%4.1f%%".format(title[..28], quantity, money(price), discountPercentage));
         }
     }
 }
 
 fun showProducts(query, { products, total }) {
     print("\"{query}\": {total} found, showing {products.len()}");
-    let mut byRating = products.slice(0);
+    let mut byRating = products[..];
     byRating.sort((a, b) => b.rating - a.rating);
     for { id, title, price, rating, stock } in byRating {
         let stars = "★".repeat(math.round(rating)) + "☆".repeat(5 - math.round(rating));
         let low = stock < 10 ? "  low stock: {stock}" : "";
-        print("  #%-4d %-32s %9s  %s{low}".format(id, title.slice(0, 32), money(price), stars));
+        print("  #%-4d %-32s %9s  %s{low}".format(id, title[..32], money(price), stars));
     }
 }
 

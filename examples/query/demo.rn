@@ -46,7 +46,7 @@ export fun generate(dir, orders) {
     for id in 1..products + 1 {
         let category = rng.pick(CATEGORIES);
         let price = (rng.int(150000) + 999) / 100;
-        out.write("{id},{category.slice(0, 1).upper()}{category.slice(1)} {rng.pick(MODELS)} {rng.int(9) + 1},{category},{price}\n");
+        out.write("{id},{category[..1].upper()}{category[1..]} {rng.pick(MODELS)} {rng.int(9) + 1},{category},{price}\n");
     }
     out.close();
 

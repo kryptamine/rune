@@ -1,0 +1,3 @@
+[line: 1] TypeError: Right operand of 'in' must be an array, a string, an object, a map, a set, bytes or a range, got number.
+    1 | print(1 in 5); // expect runtime error: [line: 1] TypeError: Right operand of 'in' must be an array, a string, an object, a map, a set, bytes or a range, got number.
+      |         ^

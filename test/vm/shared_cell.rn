@@ -22,7 +22,7 @@ print(f()); // expect: 7
 
 fun counter() {
   let mut c = 0;
-  return fun () { c += 1; return c; };
+  return () => { c += 1; return c; };
 }
 let a = counter();
 let b = counter();

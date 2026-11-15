@@ -3,6 +3,7 @@
 `bytes` are immutable binary data: a `b"..."` literal, which takes
 `\xNN` escapes and no interpolation, or `bytes(v)` of a string (its UTF-8),
 an array of integers from 0 to 255, or bytes. `b[i]` is the integer byte,
+`b[a..b]` a slice sharing the data, `x in b` finds a byte or bytes,
 `b.len()` the size; `+` joins and `<` compares bytes, `==` by content, and
 `for i, x in b` walks them. Bytes are hashable, and print as a literal.
 
@@ -49,15 +50,14 @@ print(bytes.fromBase64("aGk="));   // b"hi"
 ## Methods
 
 `text()` (the bytes as UTF-8 text, as a stream's `readText()` reads it;
-anything else is a `ValueError`), `toArray()`, `slice(start[, end])`
-(sharing the data), `indexOf(sub)` (`-1` if missing), `concat(b, ...)`,
+anything else is a `ValueError`), `toArray()`, `indexOf(sub)` (`-1` if missing), `concat(b, ...)`,
 `hex()` and `base64()`.
 
 ```rune
 let data = b"hello";
 print(data.text());                  // hello
 print(data.toArray());               // [104, 101, 108, 108, 111]
-print(data.slice(1, 3));             // b"el"
+print(data[1..3]);             // b"el"
 print(data.indexOf(b"ll"));          // 2
 print(data.concat(b", ", b"world")); // b"hello, world"
 print(data.base64());                // aGVsbG8=
@@ -86,7 +86,7 @@ print(b.uint(0, 2, "be"));    // 10752
 print(b.int(2, 2));           // -1
 print(b.uvarint(4));          // [300, 6]
 print(b"hello".crc32());      // 907060870
-print(b"abc".sha256().hex().slice(0, 16)); // ba7816bf8f01cfea
+print(b"abc".sha256().hex()[..16]); // ba7816bf8f01cfea
 ```
 
 ## Buffers
@@ -100,7 +100,7 @@ bytes works on it too. Like an array, it needs a `let mut` to change.
 - `write(data)` — appends a string, bytes or a buffer;
 - `writeUint(x, size[, order])`, `writeInt(x, size[, order])`, `writeFloat(x[, size[, order]])`, `writeUvarint(x)`, `writeVarint(x)` — append a number, the counterparts of the reads above; a number that does not fit is a `ValueError`;
 - `clear()` empties it; `len()`;
-- `bytes([start[, end]])` — a copy as bytes, which later writes leave alone.
+- `buf[a..b]` — a copy as bytes, which later writes leave alone; `buf[..]` copies it all.
 
 `fs.write`, `fs.append` and a stream's `write` take a buffer as they
 take bytes.
@@ -117,5 +117,5 @@ print(rec.uvarint(1));       // [300, 3]
 let mut out = bytes.buffer();
 out.writeUint(rec.len(), 4, "be");
 out.write(rec);
-print(out.bytes().hex());    // 0000000602ac026b6579
+print(out[..].hex());    // 0000000602ac026b6579
 ```

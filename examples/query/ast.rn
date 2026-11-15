@@ -34,7 +34,7 @@ export struct Select {
 
 export let AGGREGATES = set(["COUNT", "SUM", "AVG", "MIN", "MAX"]);
 
-export fun isAggregate(e) => e is Call && AGGREGATES.contains(e.name);
+export fun isAggregate(e) => e is Call && e.name in AGGREGATES;
 
 export fun sql(e) => match e {
     Lit { value: nil } => "NULL",

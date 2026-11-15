@@ -65,7 +65,7 @@ fun showDemo() {
 }
 
 fun main(args) {
-    if args.len() == 0 return showDemo();
+    if !args return showDemo();
 
     let mut dir = ".";
     let mut format = "table";
@@ -79,7 +79,7 @@ fun main(args) {
         }
         i++;
     }
-    if !output.FORMATS.contains(format) return usage();
+    if format !in output.FORMATS return usage();
 
     let mut catalog = table.Catalog.new(dir);
 

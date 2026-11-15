@@ -133,7 +133,7 @@ print(area(Shape.Square { side: 2 })); // 4
 
 ```rune
 enum Shape { Circle { r }, Square { side }, Dot }
-match Shape.Dot { Shape.Dot => print("dot"); } // Error at 'match': Match does not cover Shape.Circle, Shape.Square; add arms or '_ =>'.
+match Shape.Dot { Shape.Dot => print("dot") } // Error at 'match': Match does not cover Shape.Circle, Shape.Square; add arms or '_ =>'.
 ```
 
 ## Methods

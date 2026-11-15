@@ -107,9 +107,23 @@ func (s *Parser) rangeExpr() (ast.Expr, error) {
 		return expr, err
 	}
 
-	operator := s.previous()
+	return s.rangeAfter(expr, s.previous())
+}
 
-	end, err := s.nullish()
+// rangeAfter parses the rest of a range after its operator. Its end may
+// be left open before "]", for a slice; the resolver rejects it elsewhere.
+func (s *Parser) rangeAfter(start ast.Expr, operator ast.Token) (ast.Expr, error) {
+	if s.check(ast.RIGHT_BRACKET) && operator.TokenType == ast.DOT_DOT {
+		return ast.NewRangeExpr(start, nil, nil, operator), nil
+	}
+
+	return s.rangeRest(start, operator, s.nullish)
+}
+
+// rangeRest parses the end and step of a range after its operator, each
+// an operand.
+func (s *Parser) rangeRest(start ast.Expr, operator ast.Token, operand func() (ast.Expr, error)) (ast.Expr, error) {
+	end, err := operand()
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +134,7 @@ func (s *Parser) rangeExpr() (ast.Expr, error) {
 	if s.check(ast.IDENTIFIER) && s.peek().Lexeme == "step" {
 		s.advance()
 
-		if step, err = s.nullish(); err != nil {
+		if step, err = operand(); err != nil {
 			return nil, err
 		}
 	}
@@ -129,7 +143,7 @@ func (s *Parser) rangeExpr() (ast.Expr, error) {
 		return nil, errors.NewSyntaxError(s.peek(), "Ranges cannot be chained.")
 	}
 
-	return ast.NewRangeExpr(expr, end, step, operator), nil
+	return ast.NewRangeExpr(start, end, step, operator), nil
 }
 
 // nullish parses a ?? b, which is b only if a is nil.
@@ -193,7 +207,7 @@ func (s *Parser) equality() (ast.Expr, error) {
 		return nil, err
 	}
 
-	for s.match(ast.BANG_EQUAL, ast.EQUAL_EQUAL, ast.IS) {
+	for s.match(ast.BANG_EQUAL, ast.EQUAL_EQUAL, ast.IS, ast.IN, ast.BANG_IN) {
 		operator := s.previous()
 
 		right, err := s.equalityOperand(operator)
@@ -218,7 +232,17 @@ func (s *Parser) equalityOperand(operator ast.Token) (ast.Expr, error) {
 		return s.typeName()
 	}
 
-	return s.comparison()
+	right, err := s.comparison()
+	if err != nil || operator.TokenType != ast.IN && operator.TokenType != ast.BANG_IN {
+		return right, err
+	}
+
+	// x in a..b tests the range, which binds looser than in.
+	if !s.match(ast.DOT_DOT, ast.DOT_DOT_EQUAL) {
+		return right, nil
+	}
+
+	return s.rangeRest(right, s.previous(), s.comparison)
 }
 
 func (s *Parser) comparison() (ast.Expr, error) {
@@ -437,102 +461,6 @@ func (s *Parser) expressionWithStructs(mode structMode) (ast.Expr, error) {
 	return s.expression()
 }
 
-func (s *Parser) call() (ast.Expr, error) {
-	expr, err := s.primary()
-	if err != nil {
-		return nil, err
-	}
-
-	chain := false
-
-	for {
-		optional := s.match(ast.QUESTION_DOT)
-		chain = chain || optional
-
-		switch {
-		case s.match(ast.LEFT_PAREN):
-			expr, err = s.finishCall(expr, optional)
-		case s.match(ast.LEFT_BRACKET):
-			expr, err = s.finishIndex(expr, optional)
-		case optional || s.match(ast.DOT):
-			expr, err = s.property(expr, optional)
-		case chain:
-			return &ast.OptionalExpr{Expr: expr}, nil
-		default:
-			return expr, nil
-		}
-
-		if err != nil {
-			return nil, err
-		}
-	}
-}
-
-// finishIndex parses the rest of arr[i] after "[".
-func (s *Parser) finishIndex(expr ast.Expr, optional bool) (ast.Expr, error) {
-	index, err := s.expressionWithStructs(structsAll)
-	if err != nil {
-		return nil, err
-	}
-
-	if _, err = s.consume(ast.RIGHT_BRACKET, "Expect ']' after index."); err != nil {
-		return nil, err
-	}
-
-	return &ast.IndexExpr{Array: expr, Index: index, Token: s.previous(), Optional: optional}, nil
-}
-
-// property parses the name of obj.name, sugar for obj["name"], after the dot.
-func (s *Parser) property(expr ast.Expr, optional bool) (ast.Expr, error) {
-	name, err := s.consume(ast.IDENTIFIER, "Expect property name after '"+s.previous().Lexeme+"'.")
-	if err != nil {
-		return nil, err
-	}
-
-	return ast.NewPropertyExpr(expr, name, optional), nil
-}
-
-// item parses an element of a list, or ...expr if spread allows it.
-func (s *Parser) item(spread bool) (ast.Expr, error) {
-	if !spread || !s.match(ast.DOT_DOT_DOT) {
-		return s.expressionWithStructs(structsAll)
-	}
-
-	tok := s.previous()
-
-	e, err := s.expressionWithStructs(structsAll)
-	if err != nil {
-		return nil, err
-	}
-
-	return &ast.SpreadExpr{Token: tok, Expr: e}, nil
-}
-
-func (s *Parser) finishCall(expr ast.Expr, optional bool) (ast.Expr, error) {
-	args := []ast.Expr{}
-
-	if !s.check(ast.RIGHT_PAREN) {
-		for {
-			arg, err := s.item(true)
-			if err != nil {
-				return nil, err
-			}
-			args = append(args, arg)
-
-			if !s.match(ast.COMMA) {
-				break
-			}
-		}
-	}
-
-	_, err := s.consume(ast.RIGHT_PAREN, "Expect ')' after arguments.")
-	if err != nil {
-		return nil, err
-	}
-
-	return &ast.CallExpr{Token: s.previous(), Callee: expr, Args: args, Optional: optional}, nil
-}
-
 func (s *Parser) primary() (ast.Expr, error) {
 	if s.match(ast.LEFT_BRACE) {
 		return s.objectLiteral()
@@ -543,7 +471,7 @@ func (s *Parser) primary() (ast.Expr, error) {
 	}
 
 	if s.check(ast.FUN) && s.peekAt(1) == ast.LEFT_PAREN {
-		return s.functionExpr()
+		return nil, errors.NewSyntaxError(s.peek(), "Write an anonymous function as an arrow: (params) => body.")
 	}
 
 	if s.match(ast.MATCH) {
@@ -847,22 +775,6 @@ func (s *Parser) arrayLiteral() (ast.Expr, error) {
 	return ast.NewArrayExpr(ast.ARRAY, items), nil
 }
 
-// functionExpr parses an anonymous function: fun (params) { body } or
-// fun (params) => expression.
-func (s *Parser) functionExpr() (ast.Expr, error) {
-	defer s.allowStructs(structsAll)()
-
-	name := anonName(s.advance())
-	s.advance()
-
-	decl, _, err := s.functionRest(name)
-	if err != nil {
-		return nil, err
-	}
-
-	return ast.NewFunctionExpr(decl), nil
-}
-
 // arrowFunction parses (params) => body or param => body; ok is false,
 // with nothing consumed, if the tokens ahead are not one.
 func (s *Parser) arrowFunction() (fn ast.Expr, ok bool, err error) {
@@ -916,8 +828,9 @@ func anonName(at ast.Token) ast.Token {
 	return name
 }
 
-// isObjectLiteralStart reports whether the upcoming tokens are "{" and
-// a property name and ":", or "...".
+// isObjectLiteralStart reports whether the upcoming tokens can only
+// start an object literal: "{" and a property name and ":", a shorthand
+// property, "..." or a computed key.
 func (s *Parser) isObjectLiteralStart() bool {
 	if !s.check(ast.LEFT_BRACE) {
 		return false

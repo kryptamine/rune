@@ -44,7 +44,7 @@ fun demo() {
     db.close();
     let active = fs.list(dir).filter(f => f.name.endsWith(".log"))[-1];
     let torn = codec.encode(codec.PUT, "lost", bytes(json.stringify("never acknowledged")));
-    fs.append(fs.join(dir, active.name), torn.slice(0, torn.len() - 6));
+    fs.append(fs.join(dir, active.name), torn[..torn.len() - 6]);
     print("  appended {torn.len() - 6} of {torn.len()} bytes of a record to {active.name}");
 
     db = store.Store.open(dir, opts);

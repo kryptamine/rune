@@ -1,7 +1,7 @@
 struct Point { x, y }
 
 fun maker(x) {
-  return fun (y) { return Point { x: x, y: y }; };
+  return y => { return Point { x: x, y: y }; };
 }
 
 print(maker(1)(2)); // expect: Point {x: 1, y: 2}

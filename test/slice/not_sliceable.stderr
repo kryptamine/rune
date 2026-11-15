@@ -1,0 +1,3 @@
+[line: 1] TypeError: Cannot slice object; only an array, a string, bytes or a buffer.
+    1 | print({ a: 1 }[0..]); // expect runtime error: [line: 1] TypeError: Cannot slice object; only an array, a string, bytes or a buffer.
+      |                 ^

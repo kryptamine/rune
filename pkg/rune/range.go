@@ -120,3 +120,38 @@ func (r numRange) array(tok *ast.Token) (value.Value, error) {
 		out = append(out, x)
 	}
 }
+
+// contains reports whether x is one of the range's numbers, as for its
+// array, without making it.
+func (r numRange) contains(x value.Value) bool {
+	if !x.IsNumber() {
+		return false
+	}
+
+	if !r.start.IsInt() {
+		n, ok := value.FloatToInt(math.Round((x.Num() - r.start.Float()) / r.step.Float()))
+		if !ok || n < 0 {
+			return false
+		}
+
+		y, ok := r.at(n)
+
+		return ok && y.Float() == x.Num()
+	}
+
+	xi, ok := value.ToInt(x)
+	if !ok {
+		return false
+	}
+
+	d, ok := value.SubInt(xi, r.start.Int())
+	step := r.step.Int()
+
+	if !ok || d%step != 0 || d/step < 0 {
+		return false
+	}
+
+	_, ok = r.at(d / step)
+
+	return ok
+}

@@ -45,38 +45,78 @@ print("a" is string); // TypeError: Right operand of 'is' must be a type, got st
 
 ## Truthiness
 
-Falsy values are `nil`, `false`, `0` and `""`; everything else, including empty
-arrays and objects, is truthy.
+Falsy values are `nil`, `false`, `0` and anything empty: `""`, `[]`, `{}`,
+an empty map, set, bytes or buffer. Everything else is truthy.
 
 ```rune
-for v in [nil, false, 0, "", [], {}, "0"] {
+for v in [nil, false, 0, "", [], {}, map(), "0", [0], { a: nil }] {
     print("%q is %s".format(v, v ? "truthy" : "falsy"));
 }
 // nil is falsy
 // false is falsy
 // 0 is falsy
 // "" is falsy
-// [] is truthy
-// {} is truthy
+// [] is falsy
+// {} is falsy
+// map {} is falsy
 // "0" is truthy
+// [0] is truthy
+// {a: nil} is truthy
 ```
 
-So `||` gives a fallback for an empty string, and an empty array needs `.len()`:
+So an emptiness check needs no `.len()`, and `||` gives a fallback for an
+empty value:
 
 ```rune
-let user = { name: "ann", nickname: "" };
+let user = { name: "ann", nickname: "", tags: [] };
 print(user.nickname || user.name);   // ann
+print(user.tags || ["guest"]);       // ["guest"]
 
-let cart = [];
-if cart { print("has a cart"); }     // has a cart
-if cart.len() == 0 { print("cart is empty"); }  // cart is empty
+let mut cart = [];
+if !cart { print("cart is empty"); } // cart is empty
+cart.push("tea");
+while cart { print(cart.pop()); }    // tea
+```
+
+## Membership
+
+`x in xs` tests that `xs` holds `x`: an element of an array (by `==`), a
+substring of a string, a key of an object, a map or a set, a byte or
+bytes in bytes or a buffer. `x !in xs` is its negation. `in` has the
+precedence of `==`.
+
+```rune
+let roles = ["admin", "ops"];
+print("ops" in roles);                  // true
+print("dev" !in roles);                 // true
+print("ell" in "hello");                // true
+print("port" in { port: 80 });          // true
+print(404 in map([[404, "Not Found"]])); // true
+print(0x89 in b"\x89PNG");              // true
+```
+
+A range is tested without making its array, so `x in 0..n` costs the same
+for any `n`; the step counts:
+
+```rune
+let code = 503;
+print(code in 500..600);         // true
+print(4 in 0..10 step 2);        // true
+print(2.5 in 1..=3);             // false
+```
+
+Anything else on the right is a `TypeError`, and so is a left side the
+right one cannot hold, such as a number in a string:
+
+```rune
+print(1 in "123"); // TypeError: Left operand of 'in' must be a string for string, got number.
 ```
 
 ## Equality
 
 `==` compares numbers (an integer with a float too), strings, bytes, booleans and `nil` by value, functions and streams by identity,
 and arrays, objects, maps and sets structurally (element by element, cycles included), so
-`[1, 2] == [1, 2]` is `true`. `contains` and `indexOf` use the same equality.
+`[1, 2] == [1, 2]` is `true`. `in` and `indexOf` use the same equality.
 Values of different types are never equal: `1 == "1"` is `false`.
 
 ```rune
@@ -87,7 +127,7 @@ print(1 == "1");                                    // false
 print(nil == false);                                // false
 
 let seen = [{ id: 1 }, { id: 2 }];
-print(seen.contains({ id: 2 }));                    // true
+print({ id: 2 } in seen);                    // true
 print(seen.indexOf({ id: 2 }));                     // 1
 
 let validate = order => order.qty > 0;

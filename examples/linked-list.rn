@@ -1,9 +1,9 @@
 // Linked List
 
-fun createNode(data) => {
+fun createNode(data) => ({
     data: data,
     next: nil,
-};
+});
 
 fun createList(arr) {
     let mut head = nil;

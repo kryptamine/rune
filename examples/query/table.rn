@@ -66,7 +66,7 @@ fun loadCsv(path) {
 }
 
 fun splitCsv(line) {
-    if !line.contains("\"") return line.split(",");
+    if "\"" !in line return line.split(",");
 
     let mut cells = [];
     let mut cell = [];
@@ -102,5 +102,5 @@ fun splitCsv(line) {
 
 export fun quoteCsv(v) {
     let s = v == nil ? "" : string(v);
-    return s.contains(",") || s.contains("\"") ? "\"" + s.replace("\"", "\"\"") + "\"" : s;
+    return "," in s || "\"" in s ? "\"" + s.replace("\"", "\"\"") + "\"" : s;
 }

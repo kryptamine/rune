@@ -16,7 +16,7 @@ print(grid[1][0]);   // 3
 ```
 
 An index must be an integer from `-xs.len()` to `xs.len() - 1`; a negative one
-counts from the end, as in strings, bytes, `slice` and `remove`. One out of
+counts from the end, as in strings, bytes, slices and `remove`. One out of
 bounds is an `IndexError`, for reading and writing alike. To grow an array,
 `push` to it.
 
@@ -24,6 +24,23 @@ bounds is an `IndexError`, for reading and writing alike. To grow an array,
 let langs = ["go", "rust", "rune"];
 print(langs[-1]); // rune
 print(langs[3]);  // IndexError: Index out of bounds: 3 of 3
+```
+
+`xs[a..b]` is a new array of the elements from `a` up to `b`, `xs[a..=b]`
+up to `b` included; either bound may be left out, and a negative one
+counts from the end. Bounds past either end are clamped, so a slice is
+never an error but may be empty. `x in xs` tests for an element (see
+[Membership](../language/values.md#membership)).
+
+```rune
+let xs = [10, 20, 30, 40, 50];
+print(xs[1..3]);    // [20, 30]
+print(xs[1..=3]);   // [20, 30, 40]
+print(xs[..2]);     // [10, 20]
+print(xs[-2..]);    // [40, 50]
+print(xs[..-1]);    // [10, 20, 30, 40]
+print(xs[3..99]);   // [40, 50]
+print(30 in xs);    // true
 ```
 
 Writing an element needs a mutable variable (see [Variables](../language/variables.md)):
@@ -58,7 +75,7 @@ print([1, 2] == [2, 1]);           // false
 
 Arrays are references: assigning an array or passing it to a function does
 not copy it, so `push`, `pop` and index assignment are visible through every
-reference. `[...xs]` or `xs.slice(0)` makes a copy.
+reference. `[...xs]` or `xs[..]` makes a copy.
 
 ```rune
 let a = [1, 2];
@@ -72,12 +89,12 @@ print(a); // [1, 2, 3]
 print(c); // [1, 2, 3, 4]
 ```
 
-`slice`, `map`, `filter`, `sort`, `join` and the rest are
+`map`, `filter`, `sort`, `join` and the rest are
 [array methods](../stdlib/array.md).
 
 ```rune
 let prices = [12, 5, 30, 8];
-print(prices.slice(1, 3));               // [5, 30]
+print(prices.map(p => p * 2));           // [24, 10, 60, 16]
 print(prices.filter(p => p > 10));       // [12, 30]
 print(prices.reduce((a, b) => a + b));   // 55
 ```

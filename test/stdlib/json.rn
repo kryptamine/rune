@@ -7,7 +7,7 @@ struct P { x, y = 2 }
 print(json.stringify(P { x: 1 })); // expect: {"x":1,"y":2}
 print(json.parse(json.stringify([{k: "é"}])) == [{k: "é"}]); // expect: true
 
-try { json.stringify(fun () {}); } catch e is TypeError { print(e.message); } // expect: json.stringify() cannot encode function.
+try { json.stringify(() => {}); } catch e is TypeError { print(e.message); } // expect: json.stringify() cannot encode function.
 try { json.stringify(math.INF); } catch e is ValueError { print(e.message); } // expect: json.stringify() cannot encode a non-finite number.
 
 let mut xs = [];

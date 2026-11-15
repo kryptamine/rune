@@ -31,9 +31,7 @@ func (p *Resolver) VisitMatchExpr(expr *ast.MatchExpr) (value.Value, error) {
 			p.define(b.Name)
 		}
 
-		if arm.Guard != nil {
-			p.resolveExpr(arm.Guard)
-		}
+		p.resolveExpr(arm.Guard)
 
 		p.resolveStmt(arm.Body)
 		p.endScope()

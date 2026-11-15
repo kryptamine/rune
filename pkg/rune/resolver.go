@@ -172,9 +172,7 @@ func (p *Resolver) VisitVarStmt(stmt *ast.VarStmt) error {
 	stmt.Local = p.declare(stmt.Binding)
 	p.trackLocal(stmt.Binding, stmt.Local)
 
-	if stmt.Initializer != nil {
-		p.resolveExpr(stmt.Initializer)
-	}
+	p.resolveExpr(stmt.Initializer)
 
 	p.define(stmt.Name)
 
@@ -202,9 +200,7 @@ func (p *Resolver) resolveDestructure(stmt ast.Stmt, initializer ast.Expr) {
 	p.resolveExpr(initializer)
 
 	for _, v := range vars {
-		if v.Default != nil {
-			p.resolveExpr(v.Default)
-		}
+		p.resolveExpr(v.Default)
 
 		p.define(v.Name)
 	}
@@ -376,9 +372,7 @@ func (p *Resolver) VisitReturnStmt(returnStmt *ast.ReturnStmt) error {
 		p.error(returnStmt.Keyword, "Cannot return from top-level code.")
 	}
 
-	if returnStmt.Value != nil {
-		p.resolveExpr(returnStmt.Value)
-	}
+	p.resolveExpr(returnStmt.Value)
 
 	return nil
 }
@@ -436,9 +430,7 @@ func (p *Resolver) resolveCatch(c *ast.CatchClause) {
 
 	p.resolveStmts(c.Body)
 
-	if c.Value != nil {
-		p.resolveExpr(c.Value)
-	}
+	p.resolveExpr(c.Value)
 }
 
 func (p *Resolver) VisitAssignExpr(expr *ast.AssignExpr) (value.Value, error) {
@@ -633,12 +625,23 @@ func (p *Resolver) VisitSetIndexExpr(expr *ast.SetIndexExpr) (value.Value, error
 }
 
 func (p *Resolver) VisitRangeExpr(expr *ast.RangeExpr) (value.Value, error) {
+	if expr.End == nil {
+		p.error(expr.Operator, "A range needs an end; only a slice, as in xs[1..], may leave it open.")
+		return value.NilValue, nil
+	}
+
 	p.resolveExpr(expr.Start)
 	p.resolveExpr(expr.End)
 
-	if expr.Step != nil {
-		p.resolveExpr(expr.Step)
-	}
+	p.resolveExpr(expr.Step)
+
+	return value.NilValue, nil
+}
+
+func (p *Resolver) VisitSliceExpr(expr *ast.SliceExpr) (value.Value, error) {
+	p.resolveExpr(expr.Target)
+	p.resolveExpr(expr.Range.Start)
+	p.resolveExpr(expr.Range.End)
 
 	return value.NilValue, nil
 }
@@ -812,8 +815,11 @@ func (p *Resolver) resolveStmt(stmt ast.Stmt) {
 	_ = stmt.Accept(p)
 }
 
+// resolveExpr resolves expr, which may be absent.
 func (p *Resolver) resolveExpr(expr ast.Expr) {
-	_, _ = expr.Accept(p)
+	if expr != nil {
+		_, _ = expr.Accept(p)
+	}
 }
 
 func (p *Resolver) beginScope() {
@@ -836,9 +842,7 @@ func (p *Resolver) resolveFn(fn *ast.FunctionStmt) {
 	p.beginScope()
 
 	for i, param := range fn.Parameters {
-		if fn.Defaults[i] != nil {
-			p.resolveExpr(fn.Defaults[i])
-		}
+		p.resolveExpr(fn.Defaults[i])
 
 		fn.Parameters[i].Local = p.declare(param)
 		p.define(param.Name)

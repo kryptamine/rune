@@ -1,6 +1,6 @@
 let mut o = {b: 1, a: 2};
-print(o.has("a"));          // expect: true
-print(o.has("z"));          // expect: false
+print("a" in o);          // expect: true
+print("z" in o);          // expect: false
 print(o.get("a"));          // expect: 2
 print(o.get("z"));          // expect: nil
 print(o.get("z", 0));       // expect: 0

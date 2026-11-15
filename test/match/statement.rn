@@ -43,9 +43,9 @@ print(match 1 { 1 => { let a = 1; } }); // expect: nil
 // A bare statement is an arm body too, ending with its own ';'.
 fun classify(n) {
     match n {
-        0 => print("zero");
-        1 => return "one";
-        2 => throw Oops { code: 2 };
+        0 => print("zero"),
+        1 => return "one",
+        2 => throw Oops { code: 2 },
         n => if n > 5 print("big"); else print("small");
     }
 
@@ -67,9 +67,9 @@ try {
 }
 
 for i in 0..5 match i {
-    1 => continue;
-    3 => break;
-    _ => print(i);
+    1 => continue,
+    3 => break,
+    _ => print(i),
 }
 // expect: 0
 // expect: 2

@@ -8,8 +8,8 @@ for x in a {
   }
 }
 print(out.len());          // expect: 18
-print(out.slice(0, 3));    // expect: [11, 12, 13]
-print(out.slice(3, 6));    // expect: [120, 22, 23]
+print(out[..3]);    // expect: [11, 12, 13]
+print(out[3..6]);    // expect: [120, 22, 23]
 
 let mut seen = [];
 for x in [1, 2, 3] {

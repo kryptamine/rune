@@ -4,13 +4,13 @@ export struct FrontMatterError { message, path, line }
 
 export fun parse(src, path) {
     let lines = src.split("\n");
-    if lines.len() == 0 || lines[0].trim() != "---" return { meta: {}, body: src };
+    if !lines || lines[0].trim() != "---" return { meta: {}, body: src };
 
     let mut meta = {};
     for i in 1..lines.len() {
         let line = lines[i];
         if line.trim() == "---" {
-            return { meta, body: lines.slice(i + 1).join("\n") };
+            return { meta, body: lines[i + 1..].join("\n") };
         }
         let m = regex.find(r"^(\w+):\s*(.*)$", line)
             ?? throw FrontMatterError { message: "expected 'key: value'", path, line: i + 1 };
@@ -23,7 +23,7 @@ export fun parse(src, path) {
 
 fun parseValue(v) {
     if v.startsWith("[") && v.endsWith("]") {
-        return v.slice(1, -1).split(",").map(s => s.trim()).filter(s => s != "");
+        return v[1..-1].split(",").map(s => s.trim()).filter(s => s != "");
     }
     return match v {
         "true" => true,
