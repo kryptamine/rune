@@ -1,7 +1,7 @@
 struct C { n = 0 }
 impl C {
   fun get(self) { return self.n; }
-  fun incr(mut self) { self.n++; }
+  fun incr(mut self) { self.n += 1; }
 }
 struct R { c }
 fun mk() { return R { c: C { n: 7 } }; }

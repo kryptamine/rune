@@ -1,7 +1,7 @@
 struct Counter { n = 0 }
 
 impl Counter {
-  fun incr(mut self) { self.n++; }
+  fun incr(mut self) { self.n += 1; }
   fun get(mut self) { return self.n; }
 }
 

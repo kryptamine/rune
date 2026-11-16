@@ -2,5 +2,5 @@ let mut a;
 print(a); // expect: nil
 a = 1;
 a += 1;
-a++;
+a += 1;
 print(a); // expect: 3

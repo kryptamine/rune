@@ -10,11 +10,10 @@ let name = "ann";
 let mut visits = 0;
 
 visits += 1;
-visits++;
-print("{name} visited {visits} times");    // ann visited 2 times
+print("{name} visited {visits} times");    // ann visited 1 times
 ```
 
-Changing a `let` variable, with `=`, `+=`, `++` or any other assignment, is
+Changing a `let` variable, with `=`, `+=` or any other assignment, is
 caught at compile time, before the program runs:
 
 ```rune

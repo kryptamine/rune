@@ -15,7 +15,7 @@ for x in [1, 2] { for y in [3, 4] { print(x * y); } }
 // expect: 8
 
 let mut i = 0;
-while i < 3 { i++; }
+while i < 3 { i += 1; }
 print(i); // expect: 3
 
 if true { print("yes"); } else { print("no"); } // expect: yes

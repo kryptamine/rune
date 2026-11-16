@@ -24,13 +24,13 @@ print(1 is number);     // expect: true
 print(1.5 is number);   // expect: true
 
 let mut i = 0;
-i++;
+i += 1;
 i += 2;
 print(i);           // expect: 3
 print(math.isInt(i)); // expect: true
 
 let mut f = 0.5;
-f++;
+f += 1;
 print(f);           // expect: 1.5
 
 let xs = [10, 20, 30];

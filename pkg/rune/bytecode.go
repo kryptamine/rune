@@ -49,7 +49,7 @@ const (
 	opIs      // R[A] = R[B] is R[C], negated with Y
 	opNeg     // R[A] = -R[B]
 	opNot     // R[A] = !R[B]
-	opIncr    // R[A] = R[B] + 1, or - 1 if X
+	opIncr    // R[A] = R[B] + 1, or - 1 if X is value.OpSub
 	opBitwise // R[A] = R[B] <X> R[C], X a value.Bit
 	opBitNot  // R[A] = ^R[B]
 

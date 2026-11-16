@@ -122,7 +122,7 @@ print(own); // expect: ["b", "c"]
 
 // An owned struct goes back after its mut self calls.
 struct Counter { n = 0 }
-impl Counter { fun incr(mut self) { self.n++; } }
+impl Counter { fun incr(mut self) { self.n += 1; } }
 fun twice(mut c) { c.incr(); c.incr(); }
 let mut c = Counter {};
 let c0 = c;

@@ -5,16 +5,16 @@ error: Invalid assignment target.
 2 | xs[0..1] = [3]; // Error at '=': Invalid assignment target.
   |          ^
 
-error: Invalid increment target.
- --> errors.rn:3:8
+error: Invalid assignment target.
+ --> errors.rn:3:9
   |
 2 | xs[0..1] = [3]; // Error at '=': Invalid assignment target.
-3 | xs[0..]++; // Error at '++': Invalid increment target.
-  |        ^^
+3 | xs[0..] += 1; // Error at '+=': Invalid assignment target.
+  |         ^^
 
 error: A slice takes no step.
  --> errors.rn:4:11
   |
-3 | xs[0..]++; // Error at '++': Invalid increment target.
+3 | xs[0..] += 1; // Error at '+=': Invalid assignment target.
 4 | print(xs[0..2 step 1]); // Error at '..': A slice takes no step.
   |           ^^

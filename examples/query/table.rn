@@ -100,7 +100,7 @@ fun splitCsv(line) {
             if c == "\"" {
                 if chars?.[i + 1] == "\"" {
                     cell.push("\"");
-                    i++;
+                    i += 1;
                 } else {
                     quoted = false;
                 }
@@ -116,7 +116,7 @@ fun splitCsv(line) {
             cell.push(c);
         }
 
-        i++;
+        i += 1;
     }
 
     cells.push(cell.join(""));

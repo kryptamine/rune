@@ -101,7 +101,7 @@ impl Store {
 
     fun add(mut self, task) {
         self.tasks.push(Task({ ...task, id: self.nextId }));
-        self.nextId++;
+        self.nextId += 1;
         return self.nextId - 1;
     }
 

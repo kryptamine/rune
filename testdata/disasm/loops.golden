@@ -5,7 +5,7 @@ exit: 0
     1  LOADK         2 0 1
     2  LOADK         1 0 2
     3  JMP           0 0 5
-    4  ADDK          1 1 3
+    4  INCR          1 1 0
     5  JMPCMPK       1 4 4  x=0 y=true
     6  LOADK         3 0 2
     7  LOADK         4 0 5

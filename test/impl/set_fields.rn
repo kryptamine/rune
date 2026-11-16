@@ -5,7 +5,7 @@ impl Point {
     self.x += dx;
     self.y = self.y + dy;
     self["x"] *= 2;
-    self.y++;
+    self.y += 1;
   }
 }
 

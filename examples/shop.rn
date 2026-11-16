@@ -24,7 +24,7 @@ impl Client {
         let r = self.send("POST", "/auth/refresh", { refreshToken: self.refreshToken });
         self.token = r.accessToken;
         self.refreshToken = r.refreshToken;
-        self.refreshes++;
+        self.refreshes += 1;
     }
 
     fun expire(mut self) {

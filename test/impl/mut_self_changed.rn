@@ -4,7 +4,7 @@ struct P { i = 0 }
 
 impl P {
   fun list(mut self, f) { let a = f(); self.i += 10; return a; }
-  fun item(mut self) { self.i++; return self.i; }
+  fun item(mut self) { self.i += 1; return self.i; }
   fun nested(mut self) { return self.list(() => self.item()); }
   fun apart(mut self) {
     let add = () => self.item();

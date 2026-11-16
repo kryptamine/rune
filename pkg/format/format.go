@@ -30,12 +30,11 @@ const (
 	other role = iota
 	operand
 	prefix
-	postfix
 	// path is a part of an import, after the keyword.
 	path
 )
 
-func (a *atom) ended() bool { return a.role == operand || a.role == postfix }
+func (a *atom) ended() bool { return a.role == operand }
 
 // gap is what precedes an atom: comments, and the newlines before each.
 type gap struct {
@@ -215,11 +214,6 @@ func classify(a *atom, ended bool) role {
 	case ast.NUMBER, ast.STRING, ast.BYTES, ast.TRUE, ast.FALSE, ast.NIL,
 		ast.RIGHT_PAREN, ast.RIGHT_BRACKET, ast.RIGHT_BRACE:
 		return operand
-	case ast.PLUS_PLUS, ast.MINUS_MINUS:
-		if ended && a.before.breaks == 0 {
-			return postfix
-		}
-		return prefix
 	case ast.MINUS:
 		if ended {
 			return other
@@ -370,9 +364,7 @@ func (p *printer) spaceBefore(a *atom) bool {
 	case a.role == path:
 		return pt == ast.IMPORT || isWord(a, "as") || isWord(prev, "as")
 	case prev.role == prefix:
-		return pt == ast.MINUS && (t == ast.MINUS || t == ast.MINUS_MINUS)
-	case a.role == postfix:
-		return false
+		return pt == ast.MINUS && t == ast.MINUS
 	case t == ast.COMMA, t == ast.SEMICOLON, t == ast.RIGHT_PAREN, t == ast.RIGHT_BRACKET:
 		return false
 	case t == ast.RIGHT_BRACE:

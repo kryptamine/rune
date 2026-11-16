@@ -657,23 +657,6 @@ func (p *Resolver) VisitSliceExpr(expr *ast.SliceExpr) (value.Value, error) {
 	return value.NilValue, nil
 }
 
-func (p *Resolver) VisitUpdateExpr(expr *ast.UpdateExpr) (value.Value, error) {
-	p.resolveExpr(expr.Target)
-
-	switch t := expr.Target.(type) {
-	case *ast.VarExpr:
-		p.requireMutable(t.Name, "assign to")
-	case *ast.IndexExpr:
-		if q := p.qualifier(t.Array); q != "" {
-			p.memberAssign(q, t.Array, t.Token)
-		} else {
-			p.requireMutableRoot(t.Array)
-		}
-	}
-
-	return value.NilValue, nil
-}
-
 func (p *Resolver) VisitObjectExpr(expr *ast.ObjectExpr) (value.Value, error) {
 	for _, pair := range expr.Pairs {
 		p.resolveExpr(pair.Value)

@@ -19,7 +19,6 @@ type ExprVisitor interface {
 	VisitSetIndexExpr(setIndexExpr *SetIndexExpr) (value.Value, error)
 	VisitObjectExpr(objectExpr *ObjectExpr) (value.Value, error)
 	VisitFunctionExpr(functionExpr *FunctionExpr) (value.Value, error)
-	VisitUpdateExpr(updateExpr *UpdateExpr) (value.Value, error)
 	VisitRangeExpr(rangeExpr *RangeExpr) (value.Value, error)
 	VisitSliceExpr(sliceExpr *SliceExpr) (value.Value, error)
 	VisitStructExpr(structExpr *StructExpr) (value.Value, error)
@@ -211,29 +210,6 @@ type SetIndexExpr struct {
 
 func NewSetIndexExpr(target *IndexExpr, value Expr, op *Token) Expr {
 	return &SetIndexExpr{Array: target.Array, Index: target.Index, Value: value, Token: target.Token, Op: op, Property: target.Property}
-}
-
-// UpdateExpr is ++x, x++, --x or x--. Target is a *VarExpr or *IndexExpr.
-type UpdateExpr struct {
-	Target   Expr
-	Operator Token
-	Prefix   bool
-}
-
-func NewUpdateExpr(target Expr, operator Token, prefix bool) Expr {
-	return &UpdateExpr{Target: target, Operator: operator, Prefix: prefix}
-}
-
-func (n *UpdateExpr) Accept(v ExprVisitor) (value.Value, error) {
-	return v.VisitUpdateExpr(n)
-}
-
-func (n *UpdateExpr) String() string {
-	if n.Prefix {
-		return fmt.Sprintf("(%s %v)", n.Operator.Lexeme, n.Target)
-	}
-
-	return fmt.Sprintf("(%v %s)", n.Target, n.Operator.Lexeme)
 }
 
 // FunctionExpr is an arrow function: (a, b) => ... Its Decl has

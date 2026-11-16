@@ -51,7 +51,6 @@ print(number(" -0b101 ")); // expect: -5
 print(number("1_000.5")); // expect: 1000.5
 
 struct User { name, role = "guest" }
-print(object());                               // expect: {}
 print(object(map([["b", 1], ["a", 2]])));      // expect: {b: 1, a: 2}
 print(object([["x", 1], ["y", [2]]]));         // expect: {x: 1, y: [2]}
 try { object({ a: 1 }); } catch e is TypeError { print(e.message); }     // expect: object() expects a map or an array of pairs as argument 1, got object.

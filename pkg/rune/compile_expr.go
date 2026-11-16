@@ -259,7 +259,7 @@ func fresh(e ast.Expr) bool {
 		return isConst(n) || n.Moves && n.Local.Param == 0
 	case *ast.LiteralExpr, *ast.ArrayExpr, *ast.ObjectExpr, *ast.StructExpr, *ast.CallExpr,
 		*ast.BinaryExpr, *ast.UnaryExpr, *ast.InterpolationExpr, *ast.RangeExpr, *ast.FunctionExpr,
-		*ast.SliceExpr, *ast.IsExpr, *ast.UpdateExpr:
+		*ast.SliceExpr, *ast.IsExpr:
 		return true
 	case *ast.LogicalExpr:
 		return fresh(n.Left) && fresh(n.Right)
@@ -385,8 +385,6 @@ func (fs *funcState) expr(e ast.Expr, dst int32) {
 		fs.slice(n, dst)
 	case *ast.SetIndexExpr:
 		fs.move(dst, fs.setIndex(n))
-	case *ast.UpdateExpr:
-		fs.update(n, dst)
 	case *ast.RangeExpr:
 		base := fs.rangeParts(n)
 		fs.emit(ins{op: opRange, a: dst, b: base, x: uint8(boolNum(n.Inclusive))}, &n.Operator)
@@ -554,8 +552,6 @@ func writesEarly(e ast.Expr) bool {
 	switch n := unwrap(e).(type) {
 	case *ast.LogicalExpr, *ast.AssignExpr, *ast.SetIndexExpr, *ast.ThrowExpr, *ast.TryExpr:
 		return true
-	case *ast.UpdateExpr:
-		return !n.Prefix
 	case *ast.IfExpr, *ast.MatchExpr:
 		return slices.ContainsFunc(values(n), writesEarly)
 	}
@@ -669,7 +665,7 @@ func (fs *funcState) binary(n *ast.BinaryExpr, dst int32) {
 		l := fs.operand(left)
 
 		if isArith {
-			fs.emit(ins{op: arithOp(arith, true), a: dst, b: l, c: k}, op)
+			fs.emit(arithConstIns(arith, dst, l, k, rc), op)
 		} else {
 			fs.emit(ins{op: opCmpK, x: kcmp, a: dst, b: l, c: k}, op)
 		}

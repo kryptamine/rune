@@ -56,7 +56,7 @@ impl Parser {
         let t = self.tokens[self.i];
 
         if t.kind != Kind.Eof {
-            self.i++;
+            self.i += 1;
         }
 
         return t;
@@ -264,7 +264,7 @@ impl Parser {
             return ast.Like { expr, pattern: self.expr(5), not };
         }
 
-        self.i--;
+        self.i -= 1;
         self.fail("expected IN, BETWEEN or LIKE after NOT");
     }
 
@@ -284,7 +284,7 @@ impl Parser {
             Token { kind: Kind.Id, text, word, pos } if word !in RESERVED => self.reference(text, word, pos),
             _ => {
                 if t.kind != Kind.Eof {
-                    self.i--;
+                    self.i -= 1;
                 }
 
                 self.fail("expected an expression");

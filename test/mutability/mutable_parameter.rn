@@ -7,7 +7,7 @@ fun fill(mut arr, n) {
 let mut a = [0];
 print(fill(a, 7)); // expect: nil
 print(a); // expect: nil
-let f = (mut x) => { x++; return x; };
+let f = (mut x) => { x += 1; return x; };
 let mut n = 1;
 print(f(n)); // expect: 2
 print(n); // expect: 2

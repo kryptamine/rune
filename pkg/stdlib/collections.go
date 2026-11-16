@@ -106,8 +106,8 @@ var collectionNatives = []*Native{
 
 		return c.result(value.NewMap(m))
 	}},
-	{"object", 0, 1, func(c *call) value.Value {
-		if c.has(0) && c.args[0].Kind() != value.Map && c.args[0].Kind() != value.Array {
+	{"object", 1, 1, func(c *call) value.Value {
+		if c.args[0].Kind() != value.Map && c.args[0].Kind() != value.Array {
 			return c.typeError(0, "a map or an array of pairs")
 		}
 

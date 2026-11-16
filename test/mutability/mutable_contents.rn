@@ -1,6 +1,6 @@
 let mut arr = [[1], 2];
 arr[0][0] = 3;
-arr[1]++;
+arr[1] += 1;
 arr.push(4);
 arr.sort((a, b) => { return 0; });
 print(arr); // expect: [[3], 3, 4]

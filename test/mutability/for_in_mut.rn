@@ -10,7 +10,7 @@ for i, mut x in nums {
 print(nums); // expect: [50, 60]
 let mut o = {a: 1};
 for k, mut v in o {
-  v++;
+  v += 1;
   print(v); // expect: 2
 }
 print(o); // expect: {a: 2}

@@ -1,7 +1,7 @@
 struct Counter { n = 0 }
 
 impl Counter {
-  fun incr(mut self) { self.n++; }
+  fun incr(mut self) { self.n += 1; }
   fun add(mut self, k) {
     self.n += k;
     return self.n;
@@ -37,6 +37,7 @@ print(g.n); // expect: 2
 
 let mut i = 0;
 let mut xs = [Counter {}, Counter {}];
-xs[i++].incr();
+xs[i].incr();
+i += 1;
 print(i); // expect: 1
 print(xs); // expect: [Counter {n: 1}, Counter {n: 0}]

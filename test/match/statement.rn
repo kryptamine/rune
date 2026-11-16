@@ -7,7 +7,7 @@ print(log); // expect: ["pushed"]
 
 let mut i = 0;
 while true {
-    i++;
+    i += 1;
     match i {
         1 => { continue; },
         4 => { break; },

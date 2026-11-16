@@ -49,7 +49,7 @@ func (p *Interpreter) slow(in Instr) error {
 		return err
 
 	case opIncr:
-		v, err := increment(tok, regs[in.b()], int64(1-2*int(in.x())))
+		v, err := arith(tok, value.Arith(in.x()), regs[in.b()], value.NewInt(1))
 		if err == nil {
 			regs[in.a()] = v
 		}

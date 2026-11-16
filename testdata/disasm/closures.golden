@@ -33,7 +33,7 @@ counter: arity 0, 2 registers, 0 upvalues
 
 inc: arity 0, 2 registers, 1 upvalues
     0  GETUPVAL      1 0 0
-    1  ADDK          0 1 0
+    1  INCR          0 1 0
     2  SETUPVAL      0 0 0
     3  GETUPVAL      0 0 0
     4  RETURN        0 0 0  x=1 y=false

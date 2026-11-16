@@ -3,7 +3,7 @@
 struct P { x = 0, y = 0 }
 
 impl P {
-  fun bump(mut self) { self.x++; }
+  fun bump(mut self) { self.x += 1; }
   fun get(self) { return self.x; }
   fun setX(mut self, v) { self.x = v; }
   fun setY(mut self, v) { self.y = v; }

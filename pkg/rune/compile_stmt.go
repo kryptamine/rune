@@ -128,7 +128,7 @@ func (fs *funcState) scoped(body func()) {
 func (fs *funcState) stmt(stmt ast.Stmt) {
 	switch s := stmt.(type) {
 	case *ast.ExprStmt:
-		fs.exprStmt(s.Expr)
+		fs.exprAny(s.Expr)
 	case *ast.VarStmt:
 		fs.varStmt(s)
 	case *ast.PatternStmt:
@@ -192,19 +192,6 @@ func (fs *funcState) returnStmt(s *ast.ReturnStmt) {
 	}
 
 	fs.emit(ret, nil)
-}
-
-// exprStmt drops the value, so x++ needs no copy of the old x.
-func (fs *funcState) exprStmt(e ast.Expr) {
-	if u, ok := e.(*ast.UpdateExpr); ok {
-		prefix := *u
-		prefix.Prefix = true
-		fs.update(&prefix, noReg)
-
-		return
-	}
-
-	fs.exprAny(e)
 }
 
 // leaveLoop leaves the trys and defers a break or continue jumps out of.

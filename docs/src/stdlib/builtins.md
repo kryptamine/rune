@@ -135,7 +135,7 @@ int(1e300); // ValueError: int() cannot convert 1e+300 to an integer.
 
 ## object
 
-`object()` makes an empty object. `object(src)` makes one from a map or an
+`object(src)` makes an object from a map or an
 array of `[key, value]` pairs; the keys must be strings. To copy an object
 or a struct into a new object, use [spread](../language/spread-and-rest.md):
 `{ ...src }`.

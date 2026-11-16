@@ -8,12 +8,12 @@ error: Cannot assign to a member of namespace 'math'.
  --> set_member.rn:2:6
   |
 1 | math.PI = 3; // Error at 'PI': Cannot assign to a member of namespace 'math'.
-2 | math.PI++; // Error at 'PI': Cannot assign to a member of namespace 'math'.
+2 | math.PI += 1; // Error at 'PI': Cannot assign to a member of namespace 'math'.
   |      ^^
 
 error: Cannot assign to a member of namespace 'module'.
  --> set_member.rn:3:8
   |
-2 | math.PI++; // Error at 'PI': Cannot assign to a member of namespace 'math'.
+2 | math.PI += 1; // Error at 'PI': Cannot assign to a member of namespace 'math'.
 3 | module.dir = "x"; // Error at 'dir': Cannot assign to a member of namespace 'module'.
   |        ^^^
