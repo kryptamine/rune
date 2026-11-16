@@ -119,11 +119,11 @@ func (p *Resolver) writable(recv ast.Expr) bool {
 	case *ast.VarExpr:
 		return r.Module == nil && r.Local != nil && p.isMutable(r.Name.Lexeme)
 	case *ast.IndexExpr:
-		if r.Optional || r.Member != nil || r.Export != nil {
+		if r.Member != nil {
 			return false
 		}
 
-		root := rootVar(r.Array)
+		root := rootVar(r)
 
 		switch {
 		case root == nil:
@@ -145,23 +145,14 @@ func selfParam(fn *ast.FunctionStmt) (self, mut bool) {
 	return self, self && fn.Parameters[0].Mutable
 }
 
-// methodKind marks what the methods sharing a name do to their receiver.
-type methodKind uint8
-
-const (
-	inPlace methodKind = 1 << iota
-	mutSelf
-	plain
-)
-
 // methodKinds classifies the method names of the built-in types and the
 // program, so that a call known to mutate its receiver is checked at
 // compile time.
-func methodKinds(files []*fileAST) map[string]methodKind {
-	kinds := map[string]methodKind{}
+func methodKinds(files []*fileAST) map[string]ast.MethodKind {
+	kinds := map[string]ast.MethodKind{}
 
 	for _, m := range stdlib.Methods {
-		kinds[m.Name] |= helpers.If(m.InPlace, inPlace, plain)
+		kinds[m.Name] |= helpers.If(m.InPlace, ast.InPlace, ast.Plain)
 	}
 
 	for _, f := range files {
@@ -169,7 +160,7 @@ func methodKinds(files []*fileAST) map[string]methodKind {
 			if impl, ok := stmt.(*ast.ImplStmt); ok {
 				for _, m := range impl.Methods {
 					_, isMut := selfParam(m.Fn)
-					kinds[m.Fn.Name.Lexeme] |= helpers.If(isMut, mutSelf, plain)
+					kinds[m.Fn.Name.Lexeme] |= helpers.If(isMut, ast.MutSelf, ast.Plain)
 				}
 			}
 		}
@@ -184,11 +175,12 @@ func methodKinds(files []*fileAST) map[string]methodKind {
 func (p *Resolver) checkMutation(call *ast.CallExpr, prop *ast.IndexExpr) {
 	call.Writable = p.writable(prop.Array)
 	kind := p.methodKinds[prop.Token.Lexeme]
+	call.Methods = kind
 
 	if name := p.immutableRoot(prop.Array); name != "" {
 		call.Frozen = true
 
-		if kind != 0 && kind&plain == 0 {
+		if kind != 0 && kind&ast.Plain == 0 {
 			p.immutable(rootVar(prop.Array).Name, "Cannot mutate immutable variable '"+name+"'.")
 		}
 
@@ -203,7 +195,7 @@ func (p *Resolver) checkMutation(call *ast.CallExpr, prop *ast.IndexExpr) {
 		if m := value.FindMethod(shape.Methods, prop.Token.Lexeme); m != nil && m.Mut {
 			p.error(prop.Token, mutatingCallError(m.Name, shape.Name))
 		}
-	} else if kind == mutSelf {
+	} else if kind == ast.MutSelf {
 		p.error(prop.Token, mutatingCallError(prop.Token.Lexeme, ""))
 	}
 }

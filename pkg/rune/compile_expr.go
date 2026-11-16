@@ -27,7 +27,6 @@ func (fs *funcState) exprAny(e ast.Expr) int32 {
 
 		if kind, r := fs.lookup(n.Local); kind == varLocal {
 			fs.checkDefined(n.Local, r, &n.Name)
-			fs.leak(n)
 
 			return r
 		}
@@ -210,6 +209,80 @@ func literalOf(e ast.Expr) (value.Value, bool) {
 // noReg is the destination of a value nobody reads.
 const noReg = -1
 
+// copyExpr is expr for a value that goes on to be held: one another
+// holder may have is shared.
+func (fs *funcState) copyExpr(e ast.Expr, dst int32) {
+	fs.expr(e, dst)
+	fs.share(e, dst)
+}
+
+// share marks the value of e in r as held twice, unless e made it. The
+// read of a local or an element that e compiled to does it, if last.
+func (fs *funcState) share(e ast.Expr, r int32) {
+	if fresh(e) {
+		return
+	}
+
+	if n := len(fs.code); n > 0 {
+		last := &fs.code[n-1]
+
+		switch e := unwrap(e).(type) {
+		case *ast.VarExpr:
+			if kind, v := fs.lookup(e.Local); kind == varLocal && last.op == opMove && last.a == r && last.b == v {
+				last.op = opCopy
+				return
+			}
+		case *ast.IndexExpr:
+			if (last.op == opGetProp || last.op == opGetIndex) && last.a == r && !e.Optional && e.Export == nil && e.Member == nil {
+				last.y = 1
+				return
+			}
+		}
+	}
+
+	fs.emit(ins{op: opShare, a: r}, nil)
+}
+
+// fresh reports whether e makes its value, so nothing else holds it: a
+// constant is shared for good, a function returns what it holds as
+// shared, and a variable read last gives its value up.
+func fresh(e ast.Expr) bool {
+	if e == nil {
+		return true
+	}
+
+	switch n := unwrap(e).(type) {
+	case *ast.VarExpr:
+		return isConst(n) || n.Moves
+	case *ast.LiteralExpr, *ast.ArrayExpr, *ast.ObjectExpr, *ast.StructExpr, *ast.CallExpr,
+		*ast.BinaryExpr, *ast.UnaryExpr, *ast.InterpolationExpr, *ast.RangeExpr, *ast.FunctionExpr,
+		*ast.SliceExpr, *ast.IsExpr, *ast.UpdateExpr:
+		return true
+	case *ast.LogicalExpr:
+		return fresh(n.Left) && fresh(n.Right)
+	case *ast.ConditionalExpr:
+		return fresh(n.Then) && fresh(n.Else)
+	}
+
+	return false
+}
+
+// arg compiles an argument: a parameter keeps it unshared, unless read
+// from a cell, which the call can change while the parameter holds it.
+func (fs *funcState) arg(e ast.Expr, dst int32) {
+	if fs.inCell(e) {
+		fs.copyExpr(e, dst)
+	} else {
+		fs.expr(e, dst)
+	}
+}
+
+// sameRoot reports whether a and b are read from one variable.
+func sameRoot(a, b ast.Expr) bool {
+	ra, rb := rootVar(a), rootVar(b)
+	return ra != nil && rb != nil && ra.Local != nil && ra.Local == rb.Local
+}
+
 func (fs *funcState) move(dst, src int32) {
 	if dst != src && dst != noReg {
 		fs.emit(ins{op: opMove, a: dst, b: src}, nil)
@@ -252,13 +325,13 @@ func (fs *funcState) expr(e ast.Expr, dst int32) {
 	case *ast.CallExpr:
 		fs.call(n, dst)
 	case *ast.ArrayExpr:
-		fs.literal(dst, len(n.Items), func(i int) ast.Expr { return n.Items[i] }, arrayChunk)
+		fs.literal(dst, len(n.Items), true, func(i int) ast.Expr { return n.Items[i] }, arrayChunk)
 	case *ast.InterpolationExpr:
-		fs.literal(dst, len(n.Parts), func(i int) ast.Expr { return n.Parts[i] }, func(from, to int, base int32) ins {
+		fs.literal(dst, len(n.Parts), false, func(i int) ast.Expr { return n.Parts[i] }, func(from, to int, base int32) ins {
 			return ins{op: opConcat, b: base, c: int32(to - from)}
 		})
 	case *ast.ObjectExpr:
-		fs.literal(dst, len(n.Pairs), func(i int) ast.Expr { return n.Pairs[i].Value }, func(from, to int, base int32) ins {
+		fs.literal(dst, len(n.Pairs), true, func(i int) ast.Expr { return n.Pairs[i].Value }, func(from, to int, base int32) ins {
 			keys := make([]string, 0, to-from)
 			for _, pair := range n.Pairs[from:to] {
 				keys = append(keys, pair.Key)
@@ -318,7 +391,7 @@ func arrayChunk(from, to int, base int32) ins {
 // longer one is built a chunk at a time, each adding to the first (X).
 const literalChunk = 256
 
-func (fs *funcState) literal(dst int32, n int, item func(i int) ast.Expr, build func(from, to int, base int32) ins) {
+func (fs *funcState) literal(dst int32, n int, copies bool, item func(i int) ast.Expr, build func(from, to int, base int32) ins) {
 	for i := range n {
 		if ast.Standalone(item(i)) {
 			fs.piecewiseLiteral(dst, n, item, build)
@@ -336,7 +409,11 @@ func (fs *funcState) literal(dst int32, n int, item func(i int) ast.Expr, build 
 		base := fs.free
 
 		for i := from; i < to; i++ {
-			fs.expr(item(i), fs.alloc())
+			if copies {
+				fs.copyExpr(item(i), fs.alloc())
+			} else {
+				fs.expr(item(i), fs.alloc())
+			}
 		}
 
 		in := build(from, to, base)
@@ -371,13 +448,13 @@ func (fs *funcState) piecewiseLiteral(dst int32, n int, item func(i int) ast.Exp
 		case *ast.ComputedExpr:
 			k, v := fs.alloc(), fs.alloc()
 			fs.expr(it.Key, k)
-			fs.expr(it.Value, v)
+			fs.copyExpr(it.Value, v)
 			fs.emit(ins{op: opSetIndex, a: target, b: k, c: v}, &it.Bracket)
 			from++
 		default:
 			to := from
 			for to < n && to-from < literalChunk && !ast.Standalone(item(to)) {
-				fs.expr(item(to), fs.alloc())
+				fs.copyExpr(item(to), fs.alloc())
 				to++
 			}
 
@@ -412,14 +489,13 @@ func (fs *funcState) structLiteral(n *ast.StructExpr, dst int32) {
 
 	for _, pair := range n.Pairs {
 		given[pair.Slot] = true
-		fs.expr(pair.Value, base+int32(pair.Slot))
+		fs.copyExpr(pair.Value, base+int32(pair.Slot))
 	}
 
 	for i := range shape.Fields {
 		if !given[i] {
 			def, _ := shape.Default(i)
-			op := helpers.If(value.Mutable(def), opLoadFresh, opLoadK)
-			fs.emit(ins{op: op, a: base + int32(i), c: fs.constant(def)}, nil)
+			fs.emit(ins{op: opLoadK, a: base + int32(i), c: fs.constant(def)}, nil)
 		}
 	}
 
@@ -435,7 +511,7 @@ func (fs *funcState) spreadStruct(n *ast.StructExpr, base, dst int32) {
 	for _, pair := range n.Pairs {
 		sp, ok := pair.Value.(*ast.SpreadExpr)
 		if !ok {
-			fs.expr(pair.Value, base+int32(pair.Slot))
+			fs.copyExpr(pair.Value, base+int32(pair.Slot))
 			continue
 		}
 
@@ -468,13 +544,6 @@ func (fs *funcState) checkDefined(l *ast.Local, r int32, name *ast.Token) {
 	}
 }
 
-// leak clears the flag of an owned variable whose value the read n lets go.
-func (fs *funcState) leak(n *ast.VarExpr) {
-	if n.Leaks {
-		fs.ownership(fs.locals[n.Local]+1, nil)
-	}
-}
-
 func (fs *funcState) varExpr(n *ast.VarExpr, dst int32) {
 	if v, ok := literalOf(n); ok {
 		fs.emit(ins{op: opLoadK, a: dst, c: fs.constant(v)}, nil)
@@ -485,7 +554,6 @@ func (fs *funcState) varExpr(n *ast.VarExpr, dst int32) {
 	case varLocal:
 		fs.checkDefined(n.Local, r, &n.Name)
 		fs.move(dst, r)
-		fs.leak(n)
 	case varCell:
 		fs.emit(ins{op: opGetCell, a: dst, b: r}, &n.Name)
 	case varUpval:
@@ -516,12 +584,12 @@ func (fs *funcState) store(kind varKind, r, v int32, checked bool, name *ast.Tok
 
 func (fs *funcState) assignLocal(n *ast.AssignExpr, r int32) {
 	if !writesEarly(n.Value) {
-		fs.expr(n.Value, r)
+		fs.copyExpr(n.Value, r)
 		return
 	}
 
 	t := fs.alloc()
-	fs.expr(n.Value, t)
+	fs.copyExpr(n.Value, t)
 	fs.move(r, t)
 }
 
@@ -533,21 +601,14 @@ func (fs *funcState) assign(n *ast.AssignExpr) int32 {
 	if kind == varLocal && !checked {
 		fs.assignLocal(n, r)
 
-		if n.Local.Owned {
-			fs.ownership(r+1, n.Value)
-		}
-
 		return r
 	}
 
 	v := fs.exprAny(n.Value)
+	fs.share(n.Value, v)
 	fs.store(kind, r, v, checked, &n.Name)
 
 	if kind == varLocal {
-		if n.Local.Owned {
-			fs.ownership(r+1, n.Value)
-		}
-
 		return r
 	}
 
@@ -640,6 +701,8 @@ func (fs *funcState) call(n *ast.CallExpr, dst int32) {
 		return
 	}
 
+	places := fs.inouts(n)
+
 	// The callee goes in dst when nothing above it is in use.
 	base := dst
 	if dst < fs.nactive || dst+1 != fs.free {
@@ -653,11 +716,15 @@ func (fs *funcState) call(n *ast.CallExpr, dst int32) {
 	}
 
 	if !spread {
-		for _, arg := range n.Args {
-			fs.expr(arg, fs.alloc())
+		for i, arg := range n.Args {
+			if places != nil && places[i] != nil {
+				fs.inoutArg(n, nil, places, i, fs.alloc())
+			} else {
+				fs.arg(arg, fs.alloc())
+			}
 		}
 
-		fs.emit(ins{op: opCall, a: base, b: int32(len(n.Args))}, &n.Token)
+		fs.inoutCall(ins{op: opCall, a: base, b: int32(len(n.Args))}, places, places, base+1, &n.Token)
 		fs.move(dst, base)
 
 		return
@@ -668,7 +735,7 @@ func (fs *funcState) call(n *ast.CallExpr, dst int32) {
 	if sp, ok := n.Args[0].(*ast.SpreadExpr); ok && len(n.Args) == 1 {
 		fs.expr(sp.Expr, args)
 	} else {
-		fs.literal(args, len(n.Args), func(i int) ast.Expr { return n.Args[i] }, arrayChunk)
+		fs.literal(args, len(n.Args), false, func(i int) ast.Expr { return n.Args[i] }, arrayChunk)
 	}
 
 	fs.emit(ins{op: opCallArray, a: base}, &n.Token)
@@ -676,67 +743,63 @@ func (fs *funcState) call(n *ast.CallExpr, dst int32) {
 }
 
 // invoke calls method prop of its receiver, which goes in the register
-// after the callee's. A writable receiver gets self back after a mutating
-// method returns.
+// after the callee's. A writable receiver is an inout place, as bit 0 of
+// the write-backs: a mutating method or an in-place one that copied it
+// puts it back.
 func (fs *funcState) invoke(n *ast.CallExpr, prop *ast.IndexExpr, dst int32) {
 	var lv *lval
 	if n.Writable {
 		lv = fs.ref(prop.Array, n.Args...)
 	}
 
-	g := fs.guard(lv)
+	places := fs.inouts(n)
 
 	base := dst
 	if dst < fs.nactive || dst+1 != fs.free {
 		base = fs.alloc()
 	}
 
-	// A place that cannot take the new self fails at the write-back,
-	// which only a mutating method reaches.
 	self := fs.alloc()
 	if lv != nil {
 		lv.load(self)
+
+		if fs.inCell(lv.e) {
+			fs.emit(ins{op: opShare, a: self}, nil)
+		}
 	} else {
 		fs.expr(prop.Array, self)
 	}
-
-	g.keep(self)
 
 	if prop.Optional {
 		fs.nilJump(self)
 	}
 
-	for _, arg := range n.Args {
-		fs.expr(arg, fs.alloc())
+	for i, arg := range n.Args {
+		switch {
+		case places != nil && places[i] != nil:
+			fs.inoutArg(n, prop.Array, places, i, fs.alloc())
+		case n.Methods&ast.InPlace != 0 || sameRoot(arg, prop.Array):
+			fs.copyExpr(arg, fs.alloc())
+		default:
+			fs.arg(arg, fs.alloc())
+		}
 	}
 
-	// An owned variable passes its flag and takes it back from the
-	// register after self.
-	owned := lv != nil && lv.v != nil && lv.v.Lends
-	if owned {
-		if len(n.Args) == 0 {
-			fs.alloc()
-		}
+	// The receiver is the first place; only a mut self goes back on an
+	// error.
+	var all, guarded []*lval
+	if lv != nil || places != nil {
+		all = append([]*lval{lv}, places...)
+		guarded = all
 
-		fs.emit(ins{op: opMove, a: base, b: fs.locals[lv.v.Local] + 1}, nil)
+		if n.Methods&ast.MutSelf == 0 {
+			guarded = append([]*lval{nil}, places...)
+		}
 	}
 
 	name := fs.constant(value.NewString(prop.Token.Lexeme))
-	x := uint8(boolNum(n.Frozen)) | uint8(boolNum(owned))<<1
-	fs.emit(ins{op: opInvoke, a: base, b: int32(len(n.Args)), c: name, x: x, y: uint8(boolNum(n.Writable))}, &prop.Token)
-
-	if lv != nil {
-		skip := fs.emit(ins{op: opJmp}, &prop.Token)
-
-		if owned {
-			fs.emit(ins{op: opMove, a: fs.locals[lv.v.Local] + 1, b: self + 1}, &prop.Token)
-		}
-
-		g.check(&prop.Token)
-		lv.writeBack()
-		fs.patch([]int{skip})
-	}
-
+	call := ins{op: opInvoke, a: base, b: int32(len(n.Args)), c: name, x: uint8(boolNum(n.Frozen)), y: uint8(boolNum(n.Writable))}
+	fs.inoutCall(call, all, guarded, self, &prop.Token)
 	fs.move(dst, base)
 }
 

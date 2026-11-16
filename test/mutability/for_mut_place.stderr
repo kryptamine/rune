@@ -1,0 +1,35 @@
+error: Cannot write 'for mut' variable 'row' back into immutable variable 'grid'.
+ --> for_mut_place.rn:2:16
+  |
+1 | let grid = [[0]];
+2 | for mut row in grid {} // [line: 2] Error at 'grid': Cannot write 'for mut' variable 'row' back into immutable variable 'grid'.
+  |                ^^^^
+  |
+  = hint: declare it as 'mut grid' on line 1
+
+error: A 'for mut' loop walks a mutable variable, element or property, which it writes back into.
+ --> for_mut_place.rn:3:9
+  |
+2 | for mut row in grid {} // [line: 2] Error at 'grid': Cannot write 'for mut' variable 'row' back into immutable variable 'grid'.
+3 | for mut i in 0..3 {} // [line: 3] Error at 'i': A 'for mut' loop walks a mutable variable, element or property, which it writes back into.
+  |         ^
+  |
+  = hint: put the collection in a 'let mut' variable and loop over that
+
+error: A for-in key cannot be mut.
+ --> for_mut_place.rn:5:9
+  |
+4 | let mut g = [1];
+5 | for mut k, v in g {} // [line: 5] Error at 'k': A for-in key cannot be mut.
+  |         ^
+  |
+  = hint: copy it into a 'let mut' variable in the body
+
+error: Cannot write 'for mut' variable 'x' back into immutable variable 'xs'.
+ --> for_mut_place.rn:6:29
+  |
+5 | for mut k, v in g {} // [line: 5] Error at 'k': A for-in key cannot be mut.
+6 | fun rows(xs) { for mut x in xs {} } // [line: 6] Error at 'xs': Cannot write 'for mut' variable 'x' back into immutable variable 'xs'.
+  |                             ^^
+  |
+  = hint: declare it as 'mut xs' on line 6

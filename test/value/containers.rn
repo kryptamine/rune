@@ -1,0 +1,172 @@
+// Objects copy.
+let o1 = { a: 1 };
+let mut o2 = o1;
+o2.a = 2;
+o2["b"] = 3;
+o2.c = 4;
+print(o1); // expect: {a: 1}
+print(o2); // expect: {a: 2, b: 3, c: 4}
+let mut o3 = o2;
+o3.delete("a");
+print(o2); // expect: {a: 2, b: 3, c: 4}
+print(o3); // expect: {b: 3, c: 4}
+
+// Maps copy.
+let mut m1 = map();
+m1["a"] = 1;
+let mut m2 = m1;
+m2["a"] = 2;
+m2["b"] = 3;
+print(m1); // expect: map {"a": 1}
+print(m2); // expect: map {"a": 2, "b": 3}
+let mut m3 = m2;
+m3.delete("a");
+let mut m4 = m2;
+m4.clear();
+print(m2); // expect: map {"a": 2, "b": 3}
+print([m3, m4]); // expect: [map {"b": 3}, map {}]
+
+// Sets copy.
+let mut s1 = set([1]);
+let mut s2 = s1;
+s2.add(2);
+let mut s3 = s2;
+s3.delete(1);
+let mut s4 = s2;
+s4.clear();
+print(s1); // expect: set {1}
+print(s2); // expect: set {1, 2}
+print([s3, s4]); // expect: [set {2}, set {}]
+
+// Buffers copy.
+let mut b1 = bytes.buffer("ab");
+let mut b2 = b1;
+b2.write("c");
+b2[0] = 120;
+let mut b3 = b1;
+b3.writeUint(1, 1);
+let mut b4 = b1;
+b4.clear();
+print(b1); // expect: buffer(b"ab")
+print(b2); // expect: buffer(b"xbc")
+print([b3, b4]); // expect: [buffer(b"ab\x01"), buffer(b"")]
+
+// A function without mut cannot change its argument.
+fun touch(o, m, s, b) {
+    let mut o2 = o;
+    let mut m2 = m;
+    let mut s2 = s;
+    let mut b2 = b;
+    o2.x = 1;
+    m2["x"] = 1;
+    s2.add("x");
+    b2.write("x");
+}
+let mut po = {};
+let mut pm = map();
+let mut ps = set();
+let mut pb = bytes.buffer();
+touch(po, pm, ps, pb);
+print([po, pm, ps, pb]); // expect: [{}, map {}, set {}, buffer(b"")]
+
+// A mut parameter writes back.
+fun put(mut o, mut m, mut s, mut b) {
+    o.x = 1;
+    m["x"] = 1;
+    s.add("x");
+    b.write("x");
+}
+put(po, pm, ps, pb);
+print([po, pm, ps, pb]); // expect: [{x: 1}, map {"x": 1}, set {"x"}, buffer(b"x")]
+
+// Nested places through objects and maps.
+let mut users = [{ name: "ann", tags: [] }];
+let first = users[0];
+users[0].name = "bob";
+users[0].tags.push("x");
+print(first); // expect: {name: "ann", tags: []}
+print(users); // expect: [{name: "bob", tags: ["x"]}]
+
+let mut byId = map();
+byId[1] = { name: "ann", seen: set() };
+let snap = byId;
+let one = byId[1];
+byId[1].name = "bob";
+byId[1].seen.add(5);
+byId[1]["n"] = 0;
+byId[1].n += 2;
+print(snap); // expect: map {1: {name: "ann", seen: set {}}}
+print(one); // expect: {name: "ann", seen: set {}}
+print(byId); // expect: map {1: {name: "bob", seen: set {5}, n: 2}}
+
+let mut cfg = { a: { b: { c: 1 } } };
+let ca = cfg.a;
+let cb = cfg.a.b;
+cfg.a.b.c++;
+cfg.a.b.d = 0;
+print(ca); // expect: {b: {c: 1}}
+print(cb); // expect: {c: 1}
+print(cfg); // expect: {a: {b: {c: 2, d: 0}}}
+
+// Storing into a container copies.
+let mut inner = { v: 1 };
+let mut box = map();
+box["k"] = inner;
+let lit = { inner };
+inner.v = 2;
+print(box); // expect: map {"k": {v: 1}}
+print(lit); // expect: {inner: {v: 1}}
+
+// Methods that hand out values give copies.
+let mut nest = map({ a: { v: 1 } });
+let mut vals = nest.values();
+vals[0].v = 9;
+let mut ents = nest.entries();
+ents[0][1].v = 8;
+let mut ov = { a: { v: 1 } }.values();
+ov[0].v = 7;
+print(nest); // expect: map {"a": {v: 1}}
+print(ov); // expect: [{v: 7}]
+
+// A loop iterates the container as it was.
+let mut it = { a: [1], b: [2] };
+for k, v in it {
+    it.b.push(3);
+    it.c = 0;
+    print(v); // expect: [1]
+    break;
+}
+print(it); // expect: {a: [1], b: [2, 3], c: 0}
+let mut mi = map({ a: 1 });
+for k, v in mi {
+    mi["b"] = 2;
+}
+print(mi); // expect: map {"a": 1, "b": 2}
+let mut si = set([1]);
+for x in si {
+    si.add(2);
+}
+print(si); // expect: set {1, 2}
+
+// Spread and destructuring copy.
+let mut src = { xs: [1] };
+let spread = { ...src };
+let { xs } = src;
+src.xs.push(2);
+print(spread); // expect: {xs: [1]}
+print(xs); // expect: [1]
+
+// Constants never change.
+const CONF = { a: { b: 1 } };
+let mut conf = CONF;
+conf.a.b = 2;
+print(CONF); // expect: {a: {b: 1}}
+print(conf); // expect: {a: {b: 2}}
+
+// Two values never share a container.
+let mut cache = [];
+let mut ha = { store: cache };
+let hb = { store: cache };
+ha.store.push(1);
+print(hb.store); // expect: []
+print(cache); // expect: []

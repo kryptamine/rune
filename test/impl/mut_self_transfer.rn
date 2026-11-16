@@ -39,7 +39,7 @@ fun aliased() {
 
 aliased();
 
-// A parameter starts as a copy of the argument.
+// A mut parameter goes back to the argument.
 fun bump(mut c, times) {
     for i in 0..times { c.incr(); }
     return c.n;
@@ -47,14 +47,15 @@ fun bump(mut c, times) {
 
 fun params() {
     let mut c = C { n: 10 };
-    print("{bump(c, 3)} {c.n}"); // expect: 13 10
+    let d = c;
+    print("{bump(c, 3)} {c.n}"); // expect: 13 13
     c.incr();
-    print("{bump(c, 1)} {c.n}"); // expect: 12 11
+    print("{bump(c, 1)} {c.n} {d.n}"); // expect: 15 15 10
 }
 
 params();
 
-// A method that lets self go gives the variable a shared struct.
+// A method that keeps self keeps it as it was then.
 fun leaky() {
     let mut c = C {};
     c.incr();
@@ -65,22 +66,22 @@ fun leaky() {
 
 leaky();
 
-// An error leaves the variable as it was before the call.
+// An error leaves what the method changed, as for a mut parameter.
 fun failing() {
     let mut c = C {};
     c.incr();
     try { c.fail(); } catch e { print(e.message); } // expect: x
-    print(c.n); // expect: 1
+    print(c.n); // expect: 99
     try { c.incr(); c.fail(); } catch e {}
-    print(c.n); // expect: 2
+    print(c.n); // expect: 99
     c.noop();
     c.incr();
-    print(c.n); // expect: 3
+    print(c.n); // expect: 100
 }
 
 failing();
 
-// Top-level variables own their structs too.
+// Top-level variables too.
 let mut t = C {};
 t.incr();
 let u = t;
@@ -89,7 +90,8 @@ t.retag("t");
 print("{t} {u}"); // expect: C {n: 3, tag: "t"} C {n: 1, tag: "c"}
 
 // Recursion passes copies down.
-fun down(mut c, depth) {
+fun down(from, depth) {
+    let mut c = from;
     c.incr();
     if depth > 0 { down(c, depth - 1); }
     c.incr();
@@ -118,7 +120,7 @@ fun boxed() {
 
 boxed();
 
-// A try in a caller further out does not see the struct.
+// An error in another function leaves the caller's variable alone.
 fun inner() {
     let mut c = C {};
     c.incr();
@@ -134,7 +136,7 @@ fun outer() {
 
 outer();
 
-// An error in a method that lets self go is traced to the call.
+// An error in a method that keeps self is traced to the call.
 impl C {
   fun bad(mut self) { kept.push(self); return self + 0; }
 }

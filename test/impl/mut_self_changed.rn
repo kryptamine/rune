@@ -1,5 +1,5 @@
-// A variable changed while a mut method of its value runs would lose the
-// change at the write-back, so that is an error.
+// A mut self goes back when its method returns, over a change the method
+// made to the variable another way, as a mut parameter does.
 struct P { i = 0 }
 
 impl P {
@@ -22,15 +22,9 @@ fun bump() { g.item(); }
 impl P {
   fun viaGlobal(mut self) { bump(); self.i += 100; }
 }
-try { g.viaGlobal(); } catch e { print(e.message); } // expect: 'g' changed while its mut method 'viaGlobal' ran; that change would be lost.
-print(g.i); // expect: 1
-
-struct Box { p }
-impl Box {
-  fun go(mut self) { self.p.list(() => self.p.item()); }
-}
-let mut b = Box { p: P {} };
-try { b.go(); } catch e { print(e.message); } // expect: 'self' changed while its mut method 'list' ran; that change would be lost.
+g.viaGlobal();
+print(g.i); // expect: 100
 
 let mut p = P {};
-p.nested(); // expect runtime error: [line: 8] ValueError: 'self' changed while its mut method 'list' ran; that change would be lost.
+print(p.nested()); // expect: 1
+print(p.i); // expect: 10

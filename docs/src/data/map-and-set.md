@@ -2,7 +2,8 @@
 
 A map holds values by key, a set unique values. Unlike an object, whose
 keys are strings, their keys may be any hashable value; like an object,
-they keep keys in the order they were first added.
+they keep keys in the order they were first added. Like every value, a map
+or a set is [copied](../language/values.md#copies) where it goes.
 
 ```rune
 let mut stock = map();
@@ -113,19 +114,12 @@ for name, n in stock {
 // plum: 7
 ```
 
-A loop may set existing keys and delete them, but adding one is a
-`ValueError`; walk `m.keys()` to change it freely.
-
-```rune
-let mut counts = map({ a: 1 });
-for k in counts {
-    counts[k + "!"] = 0; // ValueError: Cannot add to a map while iterating over it.
-}
-```
+A loop walks the map or set as it was when the loop began, so the body
+may change it freely:
 
 ```rune
 let mut counts = map({ a: 1, b: 2 });
-for k in counts.keys() {
+for k in counts {
     counts[k + "!"] = 0;
 }
 print(counts); // map {"a": 1, "b": 2, "a!": 0, "b!": 0}
@@ -135,7 +129,7 @@ print(counts); // map {"a": 1, "b": 2, "a!": 0, "b!": 0}
 
 `==` compares entries in any order. `[...s]` spreads a set into an array;
 `json.stringify` writes a set as an array and a map of string keys as an
-object, in order. Both are references, like arrays.
+object, in order.
 
 ```rune
 print(map({ a: 1, b: 2 }) == map({ b: 2, a: 1 })); // true

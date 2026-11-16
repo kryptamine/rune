@@ -84,17 +84,22 @@ impl Report {
         self.total++;
 
         let key = "{e.method} {e.path}";
-        let mut s = self.endpoints?.[key] ?? Stats.new();
-        s.add(e);
-        self.endpoints[key] = s;
+
+        if key !in self.endpoints {
+            self.endpoints[key] = Stats.new();
+        }
+
+        self.endpoints[key].add(e);
 
         let cls = statusClass(e.status);
         self.statuses[cls] = (self.statuses?.[cls] ?? 0) + 1;
 
-        let mut c = self.clients?.[e.ip] ?? { hits: 0, paths: set() };
-        c.hits++;
-        c.paths.add(e.path);
-        self.clients[e.ip] = c;
+        if e.ip !in self.clients {
+            self.clients[e.ip] = { hits: 0, paths: set() };
+        }
+
+        self.clients[e.ip].hits++;
+        self.clients[e.ip].paths.add(e.path);
 
         self.slowest.push(e);
         self.slowest.sort((a, b) => b.latency - a.latency);

@@ -20,15 +20,19 @@ print(User { name, role: "admin" }); // User {name: "bob", role: "admin", tags: 
 
 A default is a constant: a literal or operators on literals (`60 * 60`), a
 [`const`](../language/variables.md#constants), a variant of an
-[enum](enums.md) of the file, an array or object of them, `map()` or `set()`. Each struct made gets its own copy of an array, object, map or
-set, so `tags = []` is never shared:
+[enum](enums.md) of the file, an array or object of them, `map()` or
+`set()`. Like every value it is [copied](../language/values.md#copies), so
+`tags = []` is never shared:
 
 ```rune
 struct User { name, tags = [] }
+impl User {
+  fun tag(mut self, t) { self.tags.push(t); }
+}
 
 let mut ann = User { name: "ann" };
 let bob = User { name: "bob" };
-ann.tags.push("admin");
+ann.tag("admin");
 print(ann.tags); // ["admin"]
 print(bob.tags); // []
 ```
@@ -85,13 +89,17 @@ let mut ann = User { name: "ann" };
 ann.role = "admin"; // TypeError: Cannot set field 'role' of User outside its mut self methods.
 ```
 
-A struct held in another struct's field is changed by the outer
-struct's methods, calling the inner one's: `self.pos.move(1)` in a
-method of the outer struct; `self.pos.x = 1` there, or `acc.pos.move(1)`
-outside it, is an error.
+A struct owns its fields, and what they hold: an array, object, map or
+set in a field, or another struct, is part of it. Its `mut self` methods
+change them in place (`self.tags.push(x)`, `self.pos.x = 1`,
+`self.pos.move(1)`); anywhere else that is the same error as setting the
+field.
 
-The rule is shallow: an array, object, map or set in a field is not
-part of the struct, so `ann.tags.push("x")` changes it in place.
+```rune
+struct User { name, tags = [] }
+let mut ann = User { name: "ann" };
+ann.tags.push("x"); // TypeError: Cannot set field 'tags' of User outside its mut self methods.
+```
 
 ## Updating with spread
 

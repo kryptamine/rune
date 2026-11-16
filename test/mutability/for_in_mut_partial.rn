@@ -1,4 +1,4 @@
-for mut i, x in [[1]] {
-  i = 1;
+let mut rows = [[1]];
+for i, x in rows {
   x[0] = 2; // [line: 3] Error at 'x': Cannot mutate immutable variable 'x'.
 }

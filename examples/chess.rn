@@ -929,7 +929,7 @@ fun demo() {
     ];
 
     for { name, fen, counts } in suites {
-        let pos = Position.fromFen(fen);
+        let mut pos = Position.fromFen(fen);
         for i, want in counts {
             let start = time.now();
             let got = perft(pos, i + 1);

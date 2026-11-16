@@ -1,7 +1,9 @@
 package rune
 
 import (
+	"fmt"
 	"io"
+	"runtime"
 	"testing"
 )
 
@@ -32,8 +34,49 @@ var benchSources = map[string]string{
 	"format":   `let mut n = 0; for i in 0..20000 { n += "%-8s|%5.2f|%03d".format("ab", 3.14159, i).len(); }`,
 }
 
+var containerSources = map[string]string{
+	"build":      `let mut a = []; for i in 0..5000 { a.push(i); }`,
+	"buildcopy":  `let mut a = []; for i in 0..2000 { let mut b = a; b.push(i); a = b; }`,
+	"copymut":    `let mut a = []; for i in 0..2000 { a.push(i); } let mut s = 0; for i in 0..200 { let mut b = a; b[0] = i; s += a[0] + b[0]; }`,
+	"passread":   `fun sum(xs) { let mut s = 0; for x in xs { s += x; } return s; } let mut a = []; for i in 0..2000 { a.push(i); } let mut t = 0; for i in 0..50 { t += sum(a); }`,
+	"passreturn": `fun add(xs, x) { let mut ys = xs; ys.push(x); return ys; } let mut a = []; for i in 0..2000 { a = add(a, i); }`,
+	"mutparam":   `fun add(mut xs, x) { xs.push(x); } let mut a = []; for i in 0..2000 { add(a, i); }`,
+	"grid":       `let mut g = []; for i in 0..200 { let mut r = []; for j in 0..200 { r.push(0); } g.push(r); } for i in 0..200 { for j in 0..200 { g[i][j] = i + j; } }`,
+	"forrow":     `let mut g = []; for i in 0..200 { let mut r = []; for j in 0..200 { r.push(0); } g.push(r); } for i, mut r in g { if i % 7 == 0 { continue; } for j in 0..200 { r[j] = i + j; } if i == 190 { break; } }`,
+	"objfield":   `let mut o = {xs: []}; for i in 0..2000 { o.xs.push(0); } for i in 0..2000 { o.xs[i] = i; }`,
+	"deep":       `let mut o = {rows: []}; for i in 0..100 { o.rows.push({xs: []}); for j in 0..100 { o.rows[i].xs.push(0); } } for i in 0..100 { for j in 0..100 { o.rows[i].xs[j] = i + j; } }`,
+	"mapfill":    `let mut m = map(); for i in 0..5000 { m[i] = i; }`,
+	"mapparam":   `fun put(mut m, k) { m[k] = k; } let mut m = map(); for i in 0..2000 { put(m, i); }`,
+	"setfill":    `let mut s = set(); for i in 0..5000 { s.add(i); }`,
+	"structarr":  `struct B { xs } impl B { fun add(mut self, x) { self.xs.push(x); } fun set(mut self, i, x) { self.xs[i] = x; } } let mut b = B { xs: [] }; for i in 0..2000 { b.add(i); } for i in 0..2000 { b.set(i, i * 2); }`,
+}
+
+func TestBenchSources(t *testing.T) {
+	for _, sources := range []map[string]string{benchSources, containerSources} {
+		for name, src := range sources {
+			t.Run(name, func(t *testing.T) {
+				prog, errs := loadSource([]byte(src))
+				if len(errs) > 0 {
+					t.Fatal(errs)
+				}
+				if err := NewInterpreter(testStdio(io.Discard)).Run(prog, nil); err != nil {
+					t.Fatal(err)
+				}
+			})
+		}
+	}
+}
+
 func BenchmarkPrograms(b *testing.B) {
-	for name, src := range benchSources {
+	runBenchSources(b, benchSources)
+}
+
+func BenchmarkContainers(b *testing.B) {
+	runBenchSources(b, containerSources)
+}
+
+func runBenchSources(b *testing.B, sources map[string]string) {
+	for name, src := range sources {
 		b.Run(name, func(b *testing.B) {
 			prog, errs := loadSource([]byte(src))
 			if len(errs) > 0 {
@@ -49,4 +92,94 @@ func BenchmarkPrograms(b *testing.B) {
 			}
 		})
 	}
+}
+
+// A copy of the array takes 16KB; reads of it take none.
+func TestReadsDoNotCopy(t *testing.T) {
+	src := `fun sum(xs) { let mut s = 0; for x in xs { s += x; } return s; }
+		let mut a = []; for i in 0..1000 { a.push(i); }
+		let o = {a};
+		for k in 0..%d { let b = a; sum(b); let c = o.a; let [h, ...t] = c[..1]; a.len(); a.filter(x => false); }
+		a.push(0);`
+
+	if one, many := allocated(t, src, 1), allocated(t, src, 101); many-one > 100<<10 {
+		t.Fatalf("reads copy: %d bytes for 1 pass, %d for 101", one, many)
+	}
+}
+
+// Each pass makes one 16KB array; a copy of it would take as much again.
+func TestMovesDoNotCopy(t *testing.T) {
+	for name, src := range map[string]string{
+		"return":   `fun build() { let mut r = [0].repeat(1000); return r; } for k in 0..%d { let mut xs = build(); xs[0] = 1; }`,
+		"let":      `for k in 0..%d { let mut a = [0].repeat(1000); let mut b = a; b[0] = 1; }`,
+		"assign":   `for k in 0..%d { let mut a = [0].repeat(1000); let mut b = []; b = a; b[0] = 1; }`,
+		"rebind":   `let mut a = [0].repeat(1000); for k in 0..%d { let mut b = a; b[0] = k; a = b; let c = [0].repeat(1000); }`,
+		"pass":     `fun first(xs) { return xs[0]; } for k in 0..%d { let mut a = [0].repeat(1000); first(a); a[0] = 1; }`,
+		"passlast": `fun put(mut xs) { xs[0] = 1; } for k in 0..%d { let mut a = [0].repeat(1000); let mut b = a; put(b); }`,
+		"cond":     `fun pick(c) { let mut a = [0].repeat(1000); let mut b = [1]; return c ? a : b; } for k in 0..%d { let mut xs = pick(k %% 2 == 0); xs[0] = 1; }`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			if one, many := allocated(t, src, 1), allocated(t, src, 101); many-one > 100*20<<10 {
+				t.Fatalf("copies: %d bytes for 1 pass, %d for 101", one, many)
+			}
+		})
+	}
+}
+
+// A container a pass hands from variable to variable is never copied.
+func TestContainerMovesDoNotCopy(t *testing.T) {
+	for name, src := range map[string]string{
+		"object": `let mut a = {}; for i in 0..1000 { a[string(i)] = i; } for k in 0..%d { let mut b = a; b["0"] = k; a = b; }`,
+		"map":    `let mut a = map(); for i in 0..1000 { a[i] = i; } for k in 0..%d { let mut b = a; b[0] = k; a = b; }`,
+		"set":    `let mut a = set(); for i in 0..1000 { a.add(i); } for k in 0..%d { let mut b = a; b.delete(k); a = b; }`,
+		"buffer": `let mut a = bytes.buffer(); for i in 0..1000 { a.writeUint(0, 8); } for k in 0..%d { let mut b = a; b[0] = k %% 256; a = b; }`,
+		"struct": `struct B { xs = [] } impl B { fun set(mut self, i, x) { self.xs[i] = x; } fun add(mut self, x) { self.xs.push(x); } } let mut b = B {}; for i in 0..1000 { b.add(i); } for k in 0..%d { b.set(0, k); }`,
+		"path":   `let mut o = { m: map({ a: {} }) }; for i in 0..1000 { o.m["a"][string(i)] = i; } for k in 0..%d { o.m["a"]["0"] = k; o.m["a"].delete("1"); }`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			if one, many := allocated(t, src, 1), allocated(t, src, 101); many > one+20<<10 {
+				t.Fatalf("copies: %d bytes for 1 pass, %d for 101", one, many)
+			}
+		})
+	}
+}
+
+// A grid of 100 rows of 100 takes some 170KB; writes along paths no
+// other holder shares take none.
+func TestPathWritesInPlace(t *testing.T) {
+	src := `let mut g = []; for i in 0..100 { g.push([0].repeat(100)); }
+		let mut o = { g };
+		for k in 0..%d { for i in 0..100 { g[i][k %% 100] = k; g[i][0] += 1; g[i][1]++; o.g[i][0] = k; } g[0].push(k); g[0].pop(); }`
+
+	if one, many := allocated(t, src, 1), allocated(t, src, 101); many > one+50<<10 {
+		t.Fatalf("path writes copy: %d bytes for 1 pass, %d for 101", one, many)
+	}
+}
+
+// So do the write-backs of mut parameters and of for mut.
+func TestInoutWritesInPlace(t *testing.T) {
+	src := `fun bump(mut row, k) { row[0] = k; row[1] += 1; }
+		let mut g = []; for i in 0..100 { g.push([0].repeat(100)); }
+		for k in 0..%d { for i, mut row in g { row[k %% 100] = k; bump(row, k); } bump(g[k %% 100], k); }`
+
+	if one, many := allocated(t, src, 1), allocated(t, src, 101); many > one+50<<10 {
+		t.Fatalf("inout writes copy: %d bytes for 1 pass, %d for 101", one, many)
+	}
+}
+
+// allocated is how many bytes src, with its %d for the passes, takes.
+func allocated(t *testing.T, src string, passes int) uint64 {
+	prog, errs := loadSource([]byte(fmt.Sprintf(src, passes)))
+	if len(errs) > 0 {
+		t.Fatal(errs)
+	}
+
+	var before, after runtime.MemStats
+	runtime.ReadMemStats(&before)
+	if err := NewInterpreter(testStdio(io.Discard)).Run(prog, nil); err != nil {
+		t.Fatal(err)
+	}
+	runtime.ReadMemStats(&after)
+
+	return after.TotalAlloc - before.TotalAlloc
 }

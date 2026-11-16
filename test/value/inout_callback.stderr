@@ -1,0 +1,8 @@
+TypeError: Mut parameter 'x' of <anonymous> takes a mutable variable, element or property.
+ --> inout_callback.rn:1:11
+  |
+1 | print([1].map((mut x) => x)); // expect runtime error: [line: 1] TypeError: Mut parameter 'x' of <anonymous> takes a mutable variable, element or property.
+  |           ^^^
+
+  at array.map (native)
+  at <script> (inout_callback.rn:1)

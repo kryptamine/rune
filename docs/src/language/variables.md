@@ -32,7 +32,9 @@ be changed either: index and property assignment (`a[0] = 1`, `o.x += 1`,
 methods (`push`, `pop`, `sort`, `reverse`, `set.add`, `delete`, `clear`,
 ...) and of `mut self` methods are compile errors. Taking an in-place
 method as a value is a runtime `TypeError`. Methods that return a new value
-(`append`, `map`, ...) work as usual.
+(`append`, `map`, ...) work as usual. As every value is
+[copied](values.md#copies), nothing else can change it either: what a
+`let` holds never changes.
 
 ```rune
 let config = { db: { hosts: ["db1"] } };
@@ -55,7 +57,10 @@ print(scores);                  // [70, 95, 80]
 ## Parameters and Loop Variables
 
 Function parameters, `for`-`in` variables, `catch` variables and functions are
-immutable too. Parameters and `for`-`in` variables are made mutable with `mut`:
+immutable too. A `mut` parameter or `for`-`in` variable writes its value back
+where it came from: the caller's argument (see
+[Functions](functions.md#mut-parameters)) or the element of the collection
+(see [Loops](loops.md#for-mut)).
 
 ```rune
 fun addTag(mut tags, tag) {
@@ -77,15 +82,14 @@ fun retry(attempts) {
 }
 ```
 
-The check is static and follows the variable, not the value: an array held by
-an immutable variable still changes when it is mutated through another,
-mutable reference (`let mut b = a;` or a `mut` parameter).
+A container is a value too, so `let mut b = a;` gives `b` a copy of its
+own: changing `b` leaves `a` as it was (see [Copies](values.md#copies)).
 
 ```rune
 let scores = [70, 95];
-let mut alias = scores;
-alias.push(80);
-print(scores);    // [70, 95, 80]
+let mut copy = scores;
+copy.push(80);
+print(scores);    // [70, 95]
 ```
 
 ## Constants
@@ -120,10 +124,8 @@ const LIMIT = 10;
 LIMIT = 20;    // Error at 'LIMIT': Cannot assign to constant 'LIMIT'.
 ```
 
-A constant array or object is one value, shared by every read. Like
-one held by a `let` it cannot be changed through its name, but still
-changes through a mutable reference to it. Spreads and computed keys
-are not constant.
+A constant never changes: each read is a copy of it. Spreads and computed
+keys are not constant.
 
 In a [pattern](pattern-matching.md#patterns) a constant's name tests for
 its value; an array or object constant cannot be one.

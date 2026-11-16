@@ -28,7 +28,7 @@ counter: arity 0, 2 registers, 0 upvalues
     2  LOADK         1 0 1
     3  SETCELL       0 1 0
     4  CLOSURE       1 0 0
-    5  RETURN        1 0 0
+    5  RETURN        1 0 0  x=1 y=false
     6  RETURNNIL     0 0 0
 
 inc: arity 0, 2 registers, 1 upvalues
@@ -36,7 +36,7 @@ inc: arity 0, 2 registers, 1 upvalues
     1  ADDK          0 1 0
     2  SETUPVAL      0 0 0
     3  GETUPVAL      0 0 0
-    4  RETURN        0 0 0
+    4  RETURN        0 0 0  x=1 y=false
     5  RETURNNIL     0 0 0
 
 <anonymous>: arity 2, 3 registers, 0 upvalues

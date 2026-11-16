@@ -50,7 +50,7 @@ print([..."abc"]); // TypeError: Cannot spread string into an array.
 
 ## Rest Parameters
 
-A last parameter `...name` (or `...mut name`) takes the arguments after the
+A last parameter `...name` takes the arguments after the
 others as an array, possibly empty.
 
 ```rune

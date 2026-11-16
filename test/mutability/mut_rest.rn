@@ -1,0 +1,1 @@
+fun grow(...mut xs) {} // [line: 1] Error at 'xs': A rest parameter cannot be mut.

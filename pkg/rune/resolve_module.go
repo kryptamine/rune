@@ -49,6 +49,10 @@ func newModuleScope(file stdlib.Namespace) *moduleScope {
 func (p *Resolver) ResolveModules(files []*fileAST) []error {
 	p.modules = make([]*moduleScope, len(files))
 	p.methodKinds = methodKinds(files)
+	p.methodInout = methodInout(files)
+	for _, f := range files {
+		p.anyInout |= f.inout
+	}
 
 	for _, f := range files {
 		p.mod = newModuleScope(newFileNamespace(p.root, f.path))
@@ -62,12 +66,13 @@ func (p *Resolver) ResolveModules(files []*fileAST) []error {
 
 		for _, stmt := range f.exports {
 			for _, name := range declaredNames(stmt) {
-				p.mod.exports[name] = p.mod.topLevel[name]
+				if l := p.mod.topLevel[name]; l != nil {
+					l.Exported = true
+					p.mod.exports[name] = l
+				}
 			}
 		}
 	}
-
-	p.ownVars()
 
 	return p.errors
 }

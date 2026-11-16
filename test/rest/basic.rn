@@ -19,10 +19,11 @@ print([1, 2].map((...a) => a)); // expect: [[1], [2]]
 fun keep(...r) { return () => r; }
 print(keep(1, 2)()); // expect: [1, 2]
 
-fun grow(...mut xs) {
-  xs.push(0);
-  return xs;
+fun grow(...xs) {
+  let mut ys = xs;
+  ys.push(0);
+  return ys;
 }
 print(grow(1)); // expect: [1, 0]
 
-head(); // expect runtime error: [line: 28] ArgumentError: Expected at least 1 argument but got 0.
+head(); // expect runtime error: [line: 29] ArgumentError: Expected at least 1 argument but got 0.

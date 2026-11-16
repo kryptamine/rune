@@ -234,7 +234,10 @@ func (s *Parser) functionRest(name ast.Token) (fn *ast.FunctionStmt, expr bool, 
 		return nil, false, err
 	}
 
-	return params.function(name, body), expr, nil
+	fn = params.function(name, body)
+	s.inout |= argInout(fn)
+
+	return fn, expr, nil
 }
 
 // params is a parameter list; patterns destructure pattern parameters
@@ -326,6 +329,10 @@ func (s *Parser) paramDefault(rest bool) (ast.Expr, error) {
 func (s *Parser) parameter(i int, rest bool) (ast.Binding, ast.Stmt, error) {
 	if rest {
 		param, err := s.binding("Expect parameter name.")
+		if err == nil && param.Mutable {
+			err = errors.NewSyntaxError(param.Name, "A rest parameter cannot be mut.")
+		}
+
 		return param, nil, err
 	}
 

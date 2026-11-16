@@ -1,0 +1,44 @@
+error: Mut parameter 'tags' takes a mutable variable, element or property.
+ --> mut_argument.rn:2:18
+  |
+1 | fun addTag(mut tags, tag) { tags.push(tag); }
+2 | addTag(["x"], "y"); // [line: 2] Error at ')': Mut parameter 'tags' takes a mutable variable, element or property.
+  |                  ^
+  |
+  = hint: put the value in a 'let mut' variable and pass that
+
+error: Cannot pass immutable variable 'fixed' to mut parameter 'tags'.
+ --> mut_argument.rn:4:8
+  |
+3 | let fixed = [];
+4 | addTag(fixed, 1); // [line: 4] Error at 'fixed': Cannot pass immutable variable 'fixed' to mut parameter 'tags'.
+  |        ^^^^^
+  |
+  = hint: declare it as 'mut fixed' on line 3
+
+error: Cannot pass immutable variable 'xs' to mut parameter 'tags'.
+ --> mut_argument.rn:5:23
+  |
+4 | addTag(fixed, 1); // [line: 4] Error at 'fixed': Cannot pass immutable variable 'fixed' to mut parameter 'tags'.
+5 | fun pass(xs) { addTag(xs, 1); } // [line: 5] Error at 'xs': Cannot pass immutable variable 'xs' to mut parameter 'tags'.
+  |                       ^^
+  |
+  = hint: declare it as 'mut xs' on line 5
+
+error: Cannot pass immutable variable 'o' to mut parameter 'tags'.
+ --> mut_argument.rn:7:8
+  |
+6 | let o = { xs: [] };
+7 | addTag(o.xs, 1); // [line: 7] Error at 'o': Cannot pass immutable variable 'o' to mut parameter 'tags'.
+  |        ^
+  |
+  = hint: declare it as 'mut o' on line 6
+
+error: Mut parameter 'tags' takes a mutable variable, element or property.
+ --> mut_argument.rn:8:19
+  |
+7 | addTag(o.xs, 1); // [line: 7] Error at 'o': Cannot pass immutable variable 'o' to mut parameter 'tags'.
+8 | addTag(pass([]), 1); // [line: 8] Error at ')': Mut parameter 'tags' takes a mutable variable, element or property.
+  |                   ^
+  |
+  = hint: put the value in a 'let mut' variable and pass that

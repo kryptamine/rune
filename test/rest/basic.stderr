@@ -1,5 +1,5 @@
 ArgumentError: Expected at least 1 argument but got 0.
-  --> basic.rn:28:6
+  --> basic.rn:29:6
    |
-28 | head(); // expect runtime error: [line: 28] ArgumentError: Expected at least 1 argument but got 0.
+29 | head(); // expect runtime error: [line: 29] ArgumentError: Expected at least 1 argument but got 0.
    |      ^

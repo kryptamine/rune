@@ -50,6 +50,7 @@ Language chapters in order.
 
 - [values](language/values.md): `nil`, booleans, 64-bit [numbers](language/numbers.md) (integers and floats), Unicode [strings](language/strings.md) with interpolation `"x = {x}"`
 - [variables](language/variables.md) immutable by default: `let`, `let mut`, compile-time `const`
+- every value is [copied](language/values.md#copies) where it goes, containers too, lazily; `mut` parameters change the caller's variable
 - `if`/`else`, `? :`, [loops](language/loops.md) `while` and `for x in ...` over arrays, strings, objects and ranges `a..b`
 - [functions](language/functions.md): closures, defaults, arrows `x => x * 2`, expression bodies `fun sq(x) => x * x;`
 - [spread and rest](language/spread-and-rest.md), [destructuring](language/destructuring.md): `let [head, ...tail] = xs;`

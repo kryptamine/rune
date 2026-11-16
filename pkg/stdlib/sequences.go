@@ -23,7 +23,7 @@ var arraySequenceMethods = []*Native{
 			return c.fail(errors.ValueError, "result is too large.")
 		}
 
-		return value.NewArray(slices.Repeat(items, n))
+		return sharedArray(slices.Repeat(items, n))
 	}},
 	{"array.indexOf", 2, 2, func(c *call) value.Value {
 		return count(arrayIndex(c))

@@ -1,0 +1,6 @@
+fun addTag(mut tags, tag) { tags.push(tag); }
+let f = [addTag][0];
+let mut xs = [];
+f(xs, 1);
+print(xs); // expect: [1]
+f([], 2); // expect runtime error: [line: 6] TypeError: Mut parameter 'tags' of addTag takes a mutable variable, element or property.

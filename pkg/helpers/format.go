@@ -6,7 +6,6 @@ import (
 	"rune/pkg/value"
 	"strconv"
 	"strings"
-	"unsafe"
 )
 
 // TypeName returns the language-level name of a runtime value's type,
@@ -46,13 +45,6 @@ func TypeName(v value.Value) string {
 	}
 }
 
-// Stringify renders a runtime value the way the language prints it.
-// Strings inside containers are quoted, so ["1", 1] and [1, 1] differ.
-// A container that contains itself is printed as [...] or {...}.
-func Stringify(v value.Value) string {
-	return stringify(v, nil)
-}
-
 var quoter = strings.NewReplacer(`\`, `\\`, `"`, `\"`, "\n", `\n`, "\t", `\t`, "\r", `\r`)
 
 // quote writes s as a string literal the scanner accepts.
@@ -72,20 +64,20 @@ func isIdentifier(s string) bool {
 }
 
 // Quoted renders v as print does inside a container, strings quoted.
-func Quoted(v value.Value) string { return element(v, nil) }
+func Quoted(v value.Value) string { return element(v) }
 
 // element renders a value nested in a container.
-func element(v value.Value, seen map[uintptr]bool) string {
+func element(v value.Value) string {
 	if v.IsString() {
 		return quote(v.Str())
 	}
 
-	return stringify(v, seen)
+	return Stringify(v)
 }
 
-// stringify tracks the containers on the current path in seen, so shared
-// (but acyclic) values still print in full.
-func stringify(v value.Value, seen map[uintptr]bool) string {
+// Stringify renders a runtime value the way the language prints it.
+// Strings inside containers are quoted, so ["1", 1] and [1, 1] differ.
+func Stringify(v value.Value) string {
 	switch v.Kind() {
 	case value.Nil:
 		return "nil"
@@ -97,42 +89,14 @@ func stringify(v value.Value, seen map[uintptr]bool) string {
 		return v.Str()
 	case value.Array:
 		arr := v.Arr()
-		if len(arr) == 0 {
-			return "[]"
-		}
-
-		ptr := uintptr(unsafe.Pointer(v.ArrRef()))
-		if seen[ptr] {
-			return "[...]"
-		}
-
-		if seen == nil {
-			seen = map[uintptr]bool{}
-		}
-
-		seen[ptr] = true
-		defer delete(seen, ptr)
-
 		items := make([]string, len(arr))
 		for i, item := range arr {
-			items[i] = element(item, seen)
+			items[i] = element(item)
 		}
 
 		return "[" + strings.Join(items, ", ") + "]"
 	case value.Object:
 		obj := v.Obj()
-		ptr := uintptr(unsafe.Pointer(obj))
-		if seen[ptr] {
-			return "{...}"
-		}
-
-		if seen == nil {
-			seen = map[uintptr]bool{}
-		}
-
-		seen[ptr] = true
-		defer delete(seen, ptr)
-
 		pairs := make([]string, 0, obj.Len())
 		for key, x := range obj.All() {
 			name := key
@@ -140,27 +104,15 @@ func stringify(v value.Value, seen map[uintptr]bool) string {
 				name = quote(key)
 			}
 
-			pairs = append(pairs, name+": "+element(x, seen))
+			pairs = append(pairs, name+": "+element(x))
 		}
 
 		return "{" + strings.Join(pairs, ", ") + "}"
 	case value.Struct:
 		shape := v.Shape()
-		ptr := uintptr(v.Ptr())
-		if seen[ptr] {
-			return shape.Name + " {...}"
-		}
-
-		if seen == nil {
-			seen = map[uintptr]bool{}
-		}
-
-		seen[ptr] = true
-		defer delete(seen, ptr)
-
 		pairs := make([]string, len(shape.Fields))
 		for i, f := range v.Fields() {
-			pairs[i] = shape.Fields[i] + ": " + element(f, seen)
+			pairs[i] = shape.Fields[i] + ": " + element(f)
 		}
 
 		return shape.Name + " {" + strings.Join(pairs, ", ") + "}"
@@ -169,7 +121,7 @@ func stringify(v value.Value, seen map[uintptr]bool) string {
 	case value.Enum:
 		return v.Variant().String()
 	case value.Map, value.Set:
-		return stringifyTable(v, seen)
+		return stringifyTable(v)
 	case value.Bytes:
 		return QuoteBytes(v.Bytes())
 	case value.Buffer:
@@ -181,32 +133,20 @@ func stringify(v value.Value, seen map[uintptr]bool) string {
 	}
 }
 
-func stringifyTable(v value.Value, seen map[uintptr]bool) string {
+func stringifyTable(v value.Value) string {
 	m := v.HashMap()
 	name := TypeName(v)
-
-	ptr := uintptr(v.Ptr())
-	if seen[ptr] {
-		return name + " {...}"
-	}
 
 	if m.Len() == 0 {
 		return name + " {}"
 	}
 
-	if seen == nil {
-		seen = map[uintptr]bool{}
-	}
-
-	seen[ptr] = true
-	defer delete(seen, ptr)
-
 	items := make([]string, 0, m.Len())
 	m.Each(func(k, x value.Value) bool {
 		if v.Kind() == value.Set {
-			items = append(items, element(k, seen))
+			items = append(items, element(k))
 		} else {
-			items = append(items, element(k, seen)+": "+element(x, seen))
+			items = append(items, element(k)+": "+element(x))
 		}
 
 		return true

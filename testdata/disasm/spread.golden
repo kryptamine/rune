@@ -34,6 +34,6 @@ f: arity 1+, 7 registers, 0 upvalues
     9  SPREAD        4 3 0
    10  MOVE          5 2 0
    11  ARRAY         4 5 1  x=1 y=false
-   12  RETURN        4 0 0
+   12  RETURN        4 0 0  x=1 y=false
    13  RETURNNIL     0 0 0
 -- stderr --

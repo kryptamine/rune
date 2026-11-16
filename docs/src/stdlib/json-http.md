@@ -37,7 +37,7 @@ objects (keys in order), structs (fields in order), sets (as arrays) and maps
 of string keys (as objects, in order), compactly unless `indent`, a number
 of spaces or a string of spaces and tabs, at most 10, puts each element
 on its own line. A function is a
-`TypeError`, a non-finite number or a cycle a `ValueError`.
+`TypeError`, a non-finite number or a value nested over 1000 deep a `ValueError`.
 
 ```rune
 struct Order { id, total, items = [] }

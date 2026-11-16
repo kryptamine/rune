@@ -1,11 +1,6 @@
 package helpers
 
-import (
-	"rune/pkg/value"
-	"unsafe"
-)
-
-type refPair struct{ l, r uintptr }
+import "rune/pkg/value"
 
 // IsTruthy is false for nil, false, 0 and empty values; see Value.Truthy.
 func IsTruthy(v value.Value) bool { return v.Truthy() }
@@ -13,12 +8,13 @@ func IsTruthy(v value.Value) bool { return v.Truthy() }
 // IsEqual compares arrays, objects and structs structurally and everything else by value
 // (functions by identity). Values of different kinds are never equal.
 func IsEqual(left, right value.Value) bool {
-	return isEqual(left, right, nil)
-}
-
-func isEqual(left, right value.Value, seen map[refPair]bool) bool {
 	if left.Kind() != right.Kind() {
 		return false
+	}
+
+	// A copy not yet written is the same container; NaN is no number's equal.
+	if left == right && left.Kind() != value.Number {
+		return true
 	}
 
 	switch left.Kind() {
@@ -31,29 +27,13 @@ func isEqual(left, right value.Value, seen map[refPair]bool) bool {
 	case value.String:
 		return left.Str() == right.Str()
 	case value.Array:
-		l, r := left.ArrRef(), right.ArrRef()
-		if l == r {
-			return true
-		}
-
-		if len(*l) != len(*r) {
+		l, r := left.Arr(), right.Arr()
+		if len(l) != len(r) {
 			return false
 		}
 
-		pair := refPair{uintptr(unsafe.Pointer(l)), uintptr(unsafe.Pointer(r))}
-		if seen[pair] {
-			return true
-		}
-
-		if seen == nil {
-			seen = map[refPair]bool{}
-		}
-
-		seen[pair] = true
-		defer delete(seen, pair)
-
-		for i := range *l {
-			if !isEqual((*l)[i], (*r)[i], seen) {
+		for i := range l {
+			if !IsEqual(l[i], r[i]) {
 				return false
 			}
 		}
@@ -65,21 +45,9 @@ func isEqual(left, right value.Value, seen map[refPair]bool) bool {
 			return false
 		}
 
-		pair := refPair{uintptr(unsafe.Pointer(l)), uintptr(unsafe.Pointer(r))}
-		if pair.l == pair.r || seen[pair] {
-			return true
-		}
-
-		if seen == nil {
-			seen = map[refPair]bool{}
-		}
-
-		seen[pair] = true
-		defer delete(seen, pair)
-
 		for k, lv := range l.All() {
 			rv, ok := r.Get(k)
-			if !ok || !isEqual(lv, rv, seen) {
+			if !ok || !IsEqual(lv, rv) {
 				return false
 			}
 		}
@@ -90,21 +58,9 @@ func isEqual(left, right value.Value, seen map[refPair]bool) bool {
 			return false
 		}
 
-		pair := refPair{uintptr(left.Ptr()), uintptr(right.Ptr())}
-		if pair.l == pair.r || seen[pair] {
-			return true
-		}
-
-		if seen == nil {
-			seen = map[refPair]bool{}
-		}
-
-		seen[pair] = true
-		defer delete(seen, pair)
-
 		r := right.Fields()
 		for i, lv := range left.Fields() {
-			if !isEqual(lv, r[i], seen) {
+			if !IsEqual(lv, r[i]) {
 				return false
 			}
 		}
@@ -118,7 +74,7 @@ func isEqual(left, right value.Value, seen map[refPair]bool) bool {
 
 		return string(l) == string(r)
 	case value.Map, value.Set:
-		return tablesEqual(left, right, seen)
+		return tablesEqual(left.HashMap(), right.HashMap())
 	default:
 		return left.Fn() == right.Fn()
 	}
@@ -126,33 +82,16 @@ func isEqual(left, right value.Value, seen map[refPair]bool) bool {
 
 // tablesEqual compares maps by keys and values, sets by elements, in any
 // order.
-func tablesEqual(left, right value.Value, seen map[refPair]bool) bool {
-	l, r := left.HashMap(), right.HashMap()
-	if l == r {
-		return true
-	}
-
+func tablesEqual(l, r *value.HashMap) bool {
 	if l.Len() != r.Len() {
 		return false
 	}
-
-	pair := refPair{uintptr(left.Ptr()), uintptr(right.Ptr())}
-	if seen[pair] {
-		return true
-	}
-
-	if seen == nil {
-		seen = map[refPair]bool{}
-	}
-
-	seen[pair] = true
-	defer delete(seen, pair)
 
 	equal := true
 
 	l.Each(func(k, lv value.Value) bool {
 		rv, ok, _ := r.Get(k)
-		equal = ok && isEqual(lv, rv, seen)
+		equal = ok && IsEqual(lv, rv)
 
 		return equal
 	})

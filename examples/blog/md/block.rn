@@ -4,8 +4,6 @@ import .inline;
 
 export struct Heading { level, text, id }
 
-struct Doc { html = [], headings = [] }
-
 enum ListKind { Bullet, Numbered }
 
 impl ListKind {
@@ -19,7 +17,7 @@ export fun slug(s) => regex.replace(r"[^a-z0-9]+", s.lower(), "-").trim("-");
 
 export fun render(src) {
     let lines = src.split("\n");
-    let mut doc = Doc {};
+    let mut doc = { html: [], headings: [] };
     let mut i = 0;
 
     while i < lines.len() {

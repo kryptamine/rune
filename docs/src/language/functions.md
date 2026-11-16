@@ -72,17 +72,14 @@ print([120, 45, 300].map(double));    // [240, 90, 600]
 log("started");                       // [log] started
 ```
 
-A single plain parameter needs no parentheses. Parameters may be `mut` or
-[patterns](destructuring.md):
+A single plain parameter needs no parentheses. Parameters may be
+[`mut`](#mut-parameters) or [patterns](destructuring.md):
 
 ```rune
 let users = [{ name: "ann", age: 31 }, { name: "bob", age: 17 }];
 
 print(users.map(({ name }) => name));                    // ["ann", "bob"]
 print(users.filter(u => u.age >= 18).map(u => u.name));  // ["ann"]
-
-let bump = (mut n) => { n += 1; return n; };
-print(bump(1)); // 2
 ```
 
 After `=>` a `{` always starts a block, here and in a `fun`'s expression
@@ -127,7 +124,7 @@ print(greet("ann"));          // hi ann!
 print(greet("ann", "hello")); // hello ann.
 print(greet("ann", nil));     // nil ann.
 
-fun tag(item, mut tags = []) { tags.push(item); return tags; }
+fun tag(item, tags = []) { let mut all = tags; all.push(item); return all; }
 print(tag("a")); // ["a"]
 print(tag("b")); // ["b"]
 ```
@@ -146,3 +143,47 @@ let inc = (n, by = 1) => n + by;
 print(inc(5));     // 6
 print(inc(5, 10)); // 15
 ```
+
+## Mut Parameters
+
+A parameter is a copy of its argument, so a function cannot change the
+caller's value. A `mut` parameter is the one way to: the function works on
+its own value, and when the call ends, by a return, a throw or the end of
+the body, the value goes back to the place the caller passed.
+
+```rune
+fun addTag(mut tags, tag) { tags.push(tag); }
+
+let mut tags = ["new"];
+addTag(tags, "sale");
+print(tags); // ["new", "sale"]
+
+let mut user = { name: "ann", tags: [] };
+addTag(user.tags, "admin");
+print(user.tags); // ["admin"]
+```
+
+The argument must be a mutable place: a `let mut` variable, a `mut`
+parameter, or an element or property on a path from one. The place is
+found once, before the call. A copy taken from it earlier keeps its value.
+
+```rune
+addTag(["x"], "y"); // Error at ')': Mut parameter 'tags' takes a mutable variable, element or property.
+
+let fixed = [];
+addTag(fixed, "y"); // Error at 'fixed': Cannot pass immutable variable 'fixed' to mut parameter 'tags'.
+```
+
+A call through a function value, a method or a callback checks this when
+it runs: a function whose `mut` parameter gets no mutable place fails with
+a `TypeError`. A native such as `map` passes none.
+
+```rune
+let f = [addTag][0];
+let mut xs = [];
+f(xs, 1);   // xs is [1]
+f([], 2);   // TypeError: Mut parameter 'tags' of addTag takes a mutable variable, element or property.
+```
+
+A rest parameter cannot be `mut`. A `mut` parameter left to its default
+writes back nothing.

@@ -13,14 +13,17 @@ type Op uint8
 // the running closure. Jump targets are absolute, in C.
 // A and B take up to 16 bits, C up to 20.
 const (
-	opMove      Op = iota // R[A] = R[B]
-	opLoadK               // R[A] = K[C]
-	opLoadFresh           // R[A] = a deep copy of K[C]
-	opNewCell             // R[A] = cell(R[B])
-	opGetCell             // R[A] = cell R[B], which must be defined
-	opSetCell             // cell R[A] = R[B]
-	opGetUpval            // R[A] = U[B], which must be defined
-	opSetUpval            // U[B] = R[A]
+	opMove     Op = iota // R[A] = R[B]
+	opCopy               // R[A] = R[B], shared
+	opLoadK              // R[A] = K[C]
+	opShare              // mark R[A] as held twice, so a write copies it first
+	opShareIf            // share R[A] if R[B], which holds it, is shared, or with X&frozenStruct a struct
+	opUnshare            // if R[A] is shared, R[A] = a copy of its own and pc += X
+	opNewCell            // R[A] = cell(R[B])
+	opGetCell            // R[A] = cell R[B], which must be defined
+	opSetCell            // cell R[A] = R[B]
+	opGetUpval           // R[A] = U[B], which must be defined
+	opSetUpval           // U[B] = R[A]
 	// The checked forms fail on a top-level variable not yet defined.
 	opCheckDefined // R[A] must be defined
 	opSetCellChecked
@@ -67,20 +70,17 @@ const (
 	opUndef        // R[A..A+B-1] = undefined
 	opStructSpread // R[A...] = the fields of R[B], a struct of type K[C] or an object of some of its fields
 	opStructFill   // R[A] = struct of type K[C] with fields R[B...], defaults for the undefined
-	opGetIndex     // R[A] = R[B][R[C]]
-	opGetProp      // R[A] = R[B].K[C]; with X one missing from an object or struct is undefined
+	// The gets share what they read with Y.
+	opGetIndex // R[A] = R[B][R[C]]
+	opGetProp  // R[A] = R[B].K[C]; with X one missing from an object or struct is undefined
 	// The optional forms give nil for a missing element, property or field.
 	opGetIndexOpt
 	opGetPropOpt
-	// The sets take a struct only with Y, for a mut self, copying it into
-	// R[A]; with X they resume past the jump that follows, over code
-	// writing R[A] back.
-	opSetIndex // R[A][R[B]] = R[C]
-	opSetProp  // R[A].K[B] = R[C]
-	// SetOwned is SetProp on a mut self that never lets its struct go,
-	// with a flag in R[A+1] set once R[A] is a struct of its own, which it
-	// changes in place; until then it copies the struct.
-	opSetOwned
+	// The sets take a struct only with Y, on a path from a mut self. One
+	// on a shared target copies it into R[A] and, with X, resumes past
+	// the jump that follows, over code writing R[A] back.
+	opSetIndex  // R[A][R[B]] = R[C]
+	opSetProp   // R[A].K[B] = R[C]
 	opCheckProp // R[A] must take property K[B]: an object, or with Y a struct with that field
 	// TestProp needs four operands, so it skips over the instruction after
 	// it, a jump to the mismatch, instead of taking a target.
@@ -109,24 +109,45 @@ const (
 	// back starts with an instruction taking it, which other mutating
 	// methods resume past.
 	opInvoke
-	opMethod    // methods[C] = R[A]
-	opReturn    // return R[A]
-	opReturnNil // return nil
-	opThrow     // throw R[A]
-	opRethrow   // throw the caught error in R[A] again
-	opNoMatch   // fail: no match arm matches R[A]
-	opSame      // fail unless R[A] is still R[B]: variable K[C] changed while a mut method of its value ran
-	opTry       // catch errors at C, into R[A] if Y, and the error into R[A+1] if X
-	opEndTry    // drop B handlers
+	opMethod // methods[C] = R[A]
+	// A call with X&inoutSite is followed by a jump over code that
+	// writes back the arguments A of the jump has bits for, R[A+1+i] for
+	// bit i, guarded by JmpNoInout; an invoke's receiver is bit 0. A
+	// function with mut parameters resumes after the jump, a method
+	// without mut self B past it, and gives the frame their bits.
+	opJmpNoInout // pc = C unless the last call wrote back bit B
+	opReturn     // return R[A], shared with X
+	opReturnNil  // return nil
+	opThrow      // throw R[A]
+	opRethrow    // throw the caught error in R[A] again
+	opNoMatch    // fail: no match arm matches R[A]
+	opTry        // catch errors at C, into R[A] if Y, and the error into R[A+1] if X
+	opEndTry     // drop B handlers
 
 	// A for-in over a range keeps start, end, step and the step count in
 	// R[A..A+3]; it binds the index to R[A+4] and the number to R[A+5].
 	opForRange     // check R[A..A+2] and zero R[A+3]
 	opForRangeNext // bind the next number and pc = C, unless done (X: inclusive)
 	// Any other for-in keeps a cursor in R[A] and binds R[A+1] and R[A+2].
-	opForIter     // R[A] = cursor over R[A] (X: binds a key)
+	opForIter     // R[A] = cursor over R[A] (X&1: binds a key, X&forMut: a for mut, alone with Y)
 	opForIterNext // bind the next pair and pc = C, unless done
 )
+
+// inoutSite is the bit of X of a call followed by write-backs.
+const inoutSite = 4
+
+// A of the jump after an inout site has a bit for the receiver and each
+// argument a mut parameter takes.
+const _ uint16 = 1 << maxArity
+
+// frozenStruct is the bit of X of a ShareIf on a path off a mut self: a
+// struct there takes no field set, so what it holds is shared, and a
+// write fails at the SetProp putting the copy back into the struct.
+const frozenStruct = 1
+
+// forMut is the bit of X of a ForIter of a for mut, which with Y does not
+// share the collection, which the body never reads.
+const forMut = 2
 
 // Comparisons, in X of opCmp and the conditional jumps.
 const (
@@ -199,17 +220,21 @@ type Proto struct {
 	// exact is the argument count the inlined call takes: arity, or -1
 	// with a rest parameter, so it checks one field.
 	exact int
-	// selfReg is the register of an owned mut self, its flag in the next,
-	// or 0. The code then starts with the two instructions that set them,
-	// which a call passing the struct as the method's own skips.
-	selfReg int
-	nregs   int
-	code    []Instr
-	toks    []*ast.Token
-	consts  []value.Value
-	protos  []*Proto
-	keys    [][]string
-	upvals  []upvalDesc
+	// inout has a bit for each mut parameter, mut self included, whose
+	// register holds its value for the caller to write back when the call
+	// ends. restore lists those in cells, which go back to their registers
+	// on a return and on an unwind past the prologue, the code making them.
+	inout    uint32
+	restore  []int
+	prologue int
+	params   []string
+	nregs    int
+	code     []Instr
+	toks     []*ast.Token
+	consts   []value.Value
+	protos   []*Proto
+	keys     [][]string
+	upvals   []upvalDesc
 }
 
 // accepts reports whether f takes n arguments.
@@ -261,12 +286,12 @@ type methodTable struct {
 }
 
 var opNames = [...]string{
-	"MOVE", "LOADK", "LOADFRESH", "NEWCELL", "GETCELL", "SETCELL", "GETUPVAL", "SETUPVAL",
+	"MOVE", "COPY", "LOADK", "SHARE", "SHAREIF", "UNSHARE", "NEWCELL", "GETCELL", "SETCELL", "GETUPVAL", "SETUPVAL",
 	"CHECKDEFINED", "SETCELL!", "SETUPVAL!", "UNDEFINED",
 	"ADD", "SUB", "MUL", "DIV", "MOD", "ADDK", "SUBK", "MULK", "DIVK", "MODK", "CMP", "CMPK", "IS", "NEG", "NOT", "INCR", "BITWISE", "BITNOT",
 	"JMP", "JMPIF", "JMPCMP", "JMPCMPK", "JMPNOTTYPE", "JMPNIL", "JMPDEFINED", "JMPNOTLEN",
-	"ARRAY", "CONCAT", "OBJECT", "STRUCT", "UNDEF", "STRUCTSPREAD", "STRUCTFILL", "GETINDEX", "GETPROP", "GETINDEX?", "GETPROP?", "SETINDEX", "SETPROP", "SETOWNED", "CHECKPROP", "TESTPROP", "RANGE", "IN", "INRANGE", "SLICE", "SPREAD", "UNPACK", "OMIT",
-	"CLOSURE", "CALL", "CALLARRAY", "INVOKE", "METHOD", "RETURN", "RETURNNIL", "THROW", "RETHROW", "NOMATCH", "SAME", "TRY", "ENDTRY",
+	"ARRAY", "CONCAT", "OBJECT", "STRUCT", "UNDEF", "STRUCTSPREAD", "STRUCTFILL", "GETINDEX", "GETPROP", "GETINDEX?", "GETPROP?", "SETINDEX", "SETPROP", "CHECKPROP", "TESTPROP", "RANGE", "IN", "INRANGE", "SLICE", "SPREAD", "UNPACK", "OMIT",
+	"CLOSURE", "CALL", "CALLARRAY", "INVOKE", "METHOD", "JMPNOINOUT", "RETURN", "RETURNNIL", "THROW", "RETHROW", "NOMATCH", "TRY", "ENDTRY",
 	"FORRANGE", "FORRANGENEXT", "FORITER", "FORITERNEXT",
 }
 

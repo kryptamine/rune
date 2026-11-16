@@ -124,6 +124,9 @@ func (p *Interpreter) slow(in Instr) error {
 		v, err := getIndex(tok, regs[in.b()], regs[in.c()])
 		if err == nil {
 			regs[in.a()] = v
+			if in.y() {
+				value.Share(v)
+			}
 		}
 
 		return err
@@ -140,6 +143,9 @@ func (p *Interpreter) slow(in Instr) error {
 		v, err := p.property(tok, regs[in.b()], consts[in.c()], missingProp(in))
 		if err == nil {
 			regs[in.a()] = v
+			if in.y() {
+				value.Share(v)
+			}
 		}
 
 		return err
@@ -168,19 +174,22 @@ func (p *Interpreter) slow(in Instr) error {
 
 		regs[in.a()] = v
 
-	case opSetIndex, opSetProp, opSetOwned:
+	case opSetIndex, opSetProp:
 		t, key := regs[in.a()], setKey(in, regs, consts)
+		field := t.Kind() == value.Struct && in.y()
 
 		switch {
-		case t.Kind() == value.Struct && (in.y() || in.op() == opSetOwned):
-			v, err := setField(tok, t, key, regs[in.c()])
-			if err == nil {
-				regs[in.a()] = v
+		case field || in.op() == opSetIndex || t.Kind() == value.Object:
+			if t.Shared() {
+				t = value.Unshare(t)
+				regs[in.a()] = t
 				fr.pc += int(in.x())
 			}
 
-			return err
-		case in.op() == opSetIndex:
+			if field {
+				return setField(tok, t, key, regs[in.c()])
+			}
+
 			return setIndex(tok, t, key, regs[in.c()])
 		default:
 			// SetProp gets here only for a target that is not an object.
@@ -227,9 +236,17 @@ func (p *Interpreter) slow(in Instr) error {
 
 		return err
 
+	case opUnshare:
+		regs[in.a()] = value.Unshare(regs[in.a()])
+		fr.pc += int(in.x())
+
 	case opSlice:
 		v, err := slice(tok, regs[in.b()], regs[in.c()], regs[in.c()+1], in.x())
 		if err == nil {
+			if v.Kind() == value.Array {
+				value.ShareAll(v.Arr())
+			}
+
 			regs[in.a()] = v
 		}
 
@@ -254,7 +271,7 @@ func (p *Interpreter) slow(in Instr) error {
 		regs[in.a()] = value.NewFunction(cl)
 
 	case opCall:
-		return p.callAt(fr.base+in.a(), in.b(), tok)
+		return p.callAt(fr.base+in.a(), in.b(), tok, fr.siteInout(in))
 
 	case opInvoke:
 		return p.invoke(fr, in, tok)
@@ -273,7 +290,7 @@ func (p *Interpreter) slow(in Instr) error {
 		p.grow(at + 1 + len(items))
 		copy(p.stack[at+1:], items)
 
-		return p.callAt(at, len(items), tok)
+		return p.callAt(at, len(items), tok, 0)
 
 	case opSpread:
 		return spread(tok, regs[in.a()], regs[in.b()])
@@ -285,6 +302,7 @@ func (p *Interpreter) slow(in Instr) error {
 		}
 
 		arr, n, req := src.Arr(), in.c()&maxUnpack, in.c()>>unpackShift
+		value.ShareAll(arr)
 
 		rest := in.x() != 0
 		if len(arr) < req || !rest && !in.y() && len(arr) > n {
@@ -319,9 +337,6 @@ func (p *Interpreter) slow(in Instr) error {
 	case opNoMatch:
 		return errors.NewRuntimeError(errors.ValueError, *tok, "No match arm for "+helpers.Quoted(regs[in.a()])+".")
 
-	case opSame:
-		return errors.NewRuntimeError(errors.ValueError, *tok, fmt.Sprintf("'%s' changed while its mut method '%s' ran; that change would be lost.", consts[in.c()].Str(), tok.Lexeme))
-
 	case opRethrow:
 		return *regs[in.a()].Internal().(*errors.RuntimeError)
 
@@ -336,7 +351,20 @@ func (p *Interpreter) slow(in Instr) error {
 		regs[in.a()+3] = value.NewInt(0)
 
 	case opForIter:
-		c, err := p.cursorOf(regs[in.a()], in.x() != 0, tok)
+		v := regs[in.a()]
+		if in.x()&forMut != 0 {
+			if k := v.Kind(); k != value.Array && k != value.Object && k != value.Map {
+				return errors.NewRuntimeError(errors.TypeError, *tok, "A 'for mut' loop writes back into an array, object or map, not "+helpers.TypeName(v)+".")
+			}
+		}
+
+		// The loop walks the array as it was: a write in the body copies
+		// it. A for mut has it to itself, if nothing else can read it.
+		if !in.y() {
+			value.Share(v)
+		}
+
+		c, err := p.cursorOf(v, in.x()&1 != 0, tok)
 		if err == nil {
 			regs[in.a()] = value.NewInternal(c)
 		}
@@ -361,8 +389,9 @@ func (p *Interpreter) slow(in Instr) error {
 }
 
 // callAt calls the function at stack[at] with the n arguments after it,
-// leaving the result there unless it pushes a frame.
-func (p *Interpreter) callAt(at, n int, tok *ast.Token) error {
+// leaving the result there unless it pushes a frame; a closure called
+// directly writes back the arguments inout has bits for.
+func (p *Interpreter) callAt(at, n int, tok *ast.Token, inout uint32) error {
 	fn := p.stack[at]
 	if fn.Kind() == value.Type {
 		v, err := convert(tok, fn.TypeShape(), p.stack[at+1:at+1+n])
@@ -379,7 +408,7 @@ func (p *Interpreter) callAt(at, n int, tok *ast.Token) error {
 
 	switch f := fn.Fn().(type) {
 	case *Closure:
-		return p.enter(f, at+1, n, tok)
+		return p.enter(f, at+1, n, tok, inout)
 	case *BoundMethod:
 		if !f.fn.proto.accepts(n + 1) {
 			return argumentError(f.fn.proto, n+1, 1, tok)
@@ -389,7 +418,7 @@ func (p *Interpreter) callAt(at, n int, tok *ast.Token) error {
 		copy(p.stack[at+2:], p.stack[at+1:at+1+n])
 		p.stack[at], p.stack[at+1] = value.NewFunction(f.fn), f.recv
 
-		return p.enter(f.fn, at+1, n+1, tok)
+		return p.enter(f.fn, at+1, n+1, tok, 0)
 	case *BoundNative:
 		p.grow(at + 2 + n)
 		copy(p.stack[at+2:], p.stack[at+1:at+1+n])
@@ -448,11 +477,11 @@ func spread(tok *ast.Token, dst, src value.Value) error {
 	switch src.Kind() {
 	case value.Object:
 		for k, v := range src.Obj().All() {
-			obj.Set(k, v)
+			obj.Set(k, value.Share(v))
 		}
 	case value.Struct:
 		for k, v := range src.FieldPairs() {
-			obj.Set(k, v)
+			obj.Set(k, value.Share(v))
 		}
 	default:
 		return spreadError(tok, src, "an object")
@@ -466,6 +495,7 @@ func spread(tok *ast.Token, dst, src value.Value) error {
 func spreadItems(items []value.Value, src value.Value) ([]value.Value, bool) {
 	switch src.Kind() {
 	case value.Array:
+		value.ShareAll(src.Arr())
 		return append(items, src.Arr()...), true
 	case value.Set:
 		src.HashMap().Each(func(k, _ value.Value) bool {
@@ -500,6 +530,7 @@ func spreadFields(tok *ast.Token, shape *value.Shape, fields []value.Value, src 
 		return spreadError(tok, src, shape.Name)
 	}
 
+	value.ShareAll(src.Fields())
 	copy(fields, src.Fields())
 
 	return nil
@@ -522,7 +553,7 @@ func omit(tok *ast.Token, src value.Value, keys []string) (value.Value, error) {
 	obj := value.NewObj(0)
 	for k, v := range all {
 		if !slices.Contains(keys, k) {
-			obj.Set(k, v)
+			obj.Set(k, value.Share(v))
 		}
 	}
 

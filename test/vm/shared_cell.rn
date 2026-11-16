@@ -16,9 +16,11 @@ fun outer(mut x) {
   }
   return mid();
 }
-let f = outer(5);
+let mut five = 5;
+let f = outer(five);
 print(f()); // expect: 6
 print(f()); // expect: 7
+print(five); // expect: 5
 
 fun counter() {
   let mut c = 0;

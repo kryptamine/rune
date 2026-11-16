@@ -90,6 +90,8 @@ func (p *Interpreter) methodValue(tok *ast.Token, t value.Value, m *value.Method
 			"Cannot take in-place method '%s' of %s as a value.", m.Name, owner))
 	}
 
+	value.Share(t)
+
 	if nat, ok := p.methods[m.ID].Fn().(*stdlib.Native); ok {
 		return value.NewFunction(&BoundNative{recv: t, fn: nat}), nil
 	}
@@ -135,34 +137,40 @@ func (p *Interpreter) invoke(fr *frame, in Instr, tok *ast.Token) error {
 
 	fn := p.methods[m.ID]
 	if nat, ok := fn.Fn().(*stdlib.Native); ok {
-		return p.callNativeMethod(at, n, nat, tok)
-	}
-
-	f := (*Closure)(fn.Ptr()).proto
-	if !f.accepts(n + 1) {
-		return argumentError(f, n+1, 1, tok)
-	}
-
-	// A mutating method resumes past the jump over its write-back, and
-	// one without an owned self past the instruction taking its flag.
-	if m.Mut {
-		fr.pc++
-
-		if in.x()&2 != 0 && f.selfReg == 0 {
-			fr.pc++
+		// An in-place method on a shared receiver changes a copy of its
+		// own, which then goes back where the receiver was read from.
+		copied := m.InPlace && t.Shared()
+		if copied {
+			p.stack[at+1] = value.Unshare(t)
 		}
+
+		caller := len(p.frames) - 1
+		if err := p.callNativeMethod(at, n, nat, tok); err != nil {
+			return err
+		}
+
+		if copied && in.y() {
+			p.frames[caller].skipToWriteBacks(1)
+		}
+
+		return nil
+	}
+
+	cl := (*Closure)(fn.Ptr())
+	if !cl.proto.accepts(n + 1) {
+		return argumentError(cl.proto, n+1, 1, tok)
 	}
 
 	p.stack[at] = fn
 
-	return p.callAt(at, n+1, tok)
+	return p.callAt(at, n+1, tok, fr.siteInout(in))
 }
 
 // callWithout calls the function at stack[at] with the n arguments after
 // the receiver.
 func (p *Interpreter) callWithout(at, n int, tok *ast.Token) error {
 	copy(p.stack[at+1:], p.stack[at+2:at+2+n])
-	return p.callAt(at, n, tok)
+	return p.callAt(at, n, tok, 0)
 }
 
 func missingMember(tok *ast.Token, t value.Value, name string, ms []value.Method) error {

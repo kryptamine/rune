@@ -1,0 +1,6 @@
+TypeError: Cannot set field 'items' of Box outside its mut self methods.
+ --> mutable_contents.rn:8:3
+  |
+7 | print(b); // expect: Box {items: [1, 2]}
+8 | b.items.push(3); // expect runtime error: [line: 8] TypeError: Cannot set field 'items' of Box outside its mut self methods.
+  |   ^^^^^

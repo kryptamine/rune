@@ -113,8 +113,8 @@ print([[1, 2], [3, 4]].indexOf([3, 4]));        // 1
 
 `repeat(n)` and `join(sep)` return new values, as does a
 [slice](../data/arrays.md), `xs[a..b]`. `repeat` makes an array of a
-given size; its elements are shared, not copied, so `[[]].repeat(3)` holds
-one array three times.
+given size; each element is a copy, so changing one of `[[]].repeat(3)`
+leaves the others.
 
 ```rune
 let xs = [10, 20, 30, 40, 50];

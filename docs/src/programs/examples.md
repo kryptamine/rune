@@ -146,4 +146,4 @@ rune run examples/fetch.rn
 
 - [`fib.rn`](https://github.com/kryptamine/rune/blob/master/examples/fib.rn) — Fibonacci numbers, recursion
 - [`bubble-sort.rn`](https://github.com/kryptamine/rune/blob/master/examples/bubble-sort.rn) — loops and in-place array updates
-- [`linked-list.rn`](https://github.com/kryptamine/rune/blob/master/examples/linked-list.rn) — a linked list built from objects
+- [`linked-list.rn`](https://github.com/kryptamine/rune/blob/master/examples/linked-list.rn) — a linked list on indices into one array of nodes

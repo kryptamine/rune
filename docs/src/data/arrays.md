@@ -73,21 +73,42 @@ print([1, [2, 3]] == [1, [2, 3]]); // true
 print([1, 2] == [2, 1]);           // false
 ```
 
-Arrays are references: assigning an array or passing it to a function does
-not copy it, so `push`, `pop` and index assignment are visible through every
-reference. `[...xs]` makes a copy.
+Arrays are values, like numbers and strings: assigning one, passing it to
+a function, returning it or storing it in an element or a property gives
+an independent copy. `push`, `pop` and index assignment change only the
+array they are called on.
 
 ```rune
 let a = [1, 2];
 let mut b = a;
 b.push(3);
-print(a); // [1, 2, 3]
+print(a); // [1, 2]
+print(b); // [1, 2, 3]
 
-let mut c = [...a];
-c.push(4);
-print(a); // [1, 2, 3]
-print(c); // [1, 2, 3, 4]
+fun grow(xs) { let mut ys = xs; ys.push(0); return ys; }
+print(grow(a)); // [1, 2, 0]
+print(a);       // [1, 2]
 ```
+
+A copy costs nothing until it is written: the array is copied on its first
+change, and only if something else still holds it.
+
+A write along a path, as in `grid[0][1] = 9` or `grid[0].push(9)`, changes
+only the array at the end of it: a copy taken earlier of any array on the
+way keeps its value.
+
+```rune
+let mut grid = [[0, 0], [0, 0]];
+let row = grid[0];
+let before = grid;
+grid[0][1] = 9;
+print(row);    // [0, 0]
+print(before); // [[0, 0], [0, 0]]
+print(grid);   // [[0, 9], [0, 0]]
+```
+
+A function changes the caller's array only through a
+[`mut` parameter](../language/functions.md#mut-parameters).
 
 `map`, `filter`, `sort`, `join` and the rest are
 [array methods](../stdlib/array.md).

@@ -7,6 +7,7 @@ import (
 	"rune/pkg/helpers"
 	"rune/pkg/stdlib"
 	"rune/pkg/value"
+	"slices"
 )
 
 type localVar struct {
@@ -61,12 +62,18 @@ type Resolver struct {
 	nmethods int
 	// impls holds the impl blocks at the top level of a file.
 	impls       map[*ast.ImplStmt]bool
-	methodKinds map[string]methodKind
-	// self records the uses of the self of the method being resolved,
-	// selves those of every method of the file.
-	self   *varUses
-	selves []*varUses
-	locals map[*ast.Local]*varUses
+	methodKinds map[string]ast.MethodKind
+	// methodInout has, for each method name, a bit for each argument a
+	// mut parameter of a method of that name takes.
+	methodInout map[string]uint32
+	// anyInout has a bit for each argument a mut parameter of some
+	// function of the program takes.
+	anyInout uint32
+	// walked holds the variables the for mut loops being resolved write
+	// back into.
+	walked []*ast.Local
+	// fns holds the function each fun, or let of an arrow function, binds.
+	fns map[*ast.Local]*ast.FunctionStmt
 	// consts holds the constants of the file being resolved, and how far
 	// each one's value is; constDecls finds them by declaration.
 	consts     map[*ast.VarStmt]constState
@@ -86,7 +93,7 @@ func NewResolver() *Resolver {
 		cases:      map[*value.Shape]*ast.Local{},
 		fieldNames: stdlib.FieldNames(),
 		impls:      map[*ast.ImplStmt]bool{},
-		locals:     map[*ast.Local]*varUses{},
+		fns:        map[*ast.Local]*ast.FunctionStmt{},
 		nmethods:   len(stdlib.Methods),
 		hints:      map[ast.Token]string{},
 	}
@@ -108,6 +115,10 @@ func (p *Resolver) resolveTopLevel(stmts []ast.Stmt) {
 			p.mod.globalMutable[b.Name.Lexeme] = b.Mutable
 			p.mod.topLevel[b.Name.Lexeme] = &ast.Local{TopLevel: true}
 			p.declareMain(b.Name, fn)
+
+			if fn != nil {
+				p.fns[p.mod.topLevel[b.Name.Lexeme]] = fn
+			}
 		}
 
 		if s, ok := stmt.(*ast.StructStmt); ok {
@@ -170,7 +181,10 @@ func (p *Resolver) VisitVarStmt(stmt *ast.VarStmt) error {
 	}
 
 	stmt.Local = p.declare(stmt.Binding)
-	p.trackLocal(stmt.Binding, stmt.Local)
+
+	if f, ok := stmt.Initializer.(*ast.FunctionExpr); ok && !stmt.Mutable {
+		p.fns[stmt.Local] = f.Decl
+	}
 
 	p.resolveExpr(stmt.Initializer)
 
@@ -245,7 +259,6 @@ func (p *Resolver) VisitVarExpr(expr *ast.VarExpr) (value.Value, error) {
 	}
 
 	expr.Local, _ = p.use(expr.Name, "read")
-	p.useVar(expr, false)
 
 	return value.NilValue, nil
 }
@@ -295,9 +308,23 @@ func (p *Resolver) VisitWhileStmt(whileStmt *ast.WhileStmt) error {
 func (p *Resolver) VisitForInStmt(stmt *ast.ForInStmt) error {
 	p.resolveExpr(stmt.Iterable)
 
+	if stmt.Value.Mutable {
+		p.requirePlace(stmt)
+
+		if root := rootVar(stmt.Iterable); root != nil && root.Local != nil {
+			p.walked = append(p.walked, root.Local)
+			defer func() { p.walked = p.walked[:len(p.walked)-1] }()
+		}
+	}
+
 	p.beginScope()
 
 	if stmt.Key != nil {
+		if stmt.Key.Mutable {
+			err := errors.NewSyntaxError(stmt.Key.Name, "A for-in key cannot be mut.")
+			p.errors = append(p.errors, errors.WithHint(err, "copy it into a 'let mut' variable in the body"))
+		}
+
 		stmt.Key.Local = p.declare(*stmt.Key)
 		p.define(stmt.Key.Name)
 	}
@@ -353,6 +380,7 @@ func (p *Resolver) VisitFunctionExpr(expr *ast.FunctionExpr) (value.Value, error
 
 func (p *Resolver) VisitFunctionStmt(fnStmt *ast.FunctionStmt) error {
 	fnStmt.Local = p.declare(fnStmt.Binding)
+	p.fns[fnStmt.Local] = fnStmt
 	p.fix(fnStmt.Name)
 	p.define(fnStmt.Name)
 	p.resolveFn(fnStmt)
@@ -449,7 +477,9 @@ func (p *Resolver) VisitAssignExpr(expr *ast.AssignExpr) (value.Value, error) {
 		p.requireMutable(expr.Name, "assign to")
 	}
 
-	p.useAssign(expr)
+	if expr.Local != nil && slices.Contains(p.walked, expr.Local) {
+		p.error(expr.Name, "Cannot assign to '"+expr.Name.Lexeme+"' inside a 'for mut' loop over it.")
+	}
 
 	return value.NilValue, nil
 }
@@ -469,9 +499,10 @@ func (p *Resolver) VisitCallExpr(callExpr *ast.CallExpr) (value.Value, error) {
 	}
 
 	if prop, ok := callExpr.Callee.(*ast.IndexExpr); ok && isMethodCall(prop) {
-		p.useCall(prop)
 		p.checkMutation(callExpr, prop)
 	}
+
+	p.inout(callExpr)
 
 	return value.NilValue, nil
 }
@@ -569,8 +600,6 @@ func (p *Resolver) VisitIndexExpr(expr *ast.IndexExpr) (value.Value, error) {
 	p.resolveExpr(expr.Index)
 	p.resolveVariant(expr)
 
-	p.useProp(expr)
-
 	return value.NilValue, nil
 }
 
@@ -648,8 +677,6 @@ func (p *Resolver) VisitSetIndexExpr(expr *ast.SetIndexExpr) (value.Value, error
 	p.resolveExpr(expr.Index)
 	p.resolveExpr(expr.Value)
 	p.requireMutableRoot(expr.Array)
-	p.useVar(expr.Array, true)
-
 	return value.NilValue, nil
 }
 
@@ -875,7 +902,6 @@ func (p *Resolver) resolveFn(fn *ast.FunctionStmt) {
 
 		fn.Parameters[i].Local = p.declare(param)
 		p.define(param.Name)
-		p.trackLocal(param, fn.Parameters[i].Local)
 	}
 
 	p.resolveStmts(fn.Body)

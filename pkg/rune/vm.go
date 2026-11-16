@@ -54,11 +54,26 @@ reload:
 		case opMove:
 			*at(regs, in.a()) = *at(regs, in.b())
 
+		case opCopy:
+			v := *at(regs, in.b())
+			*at(regs, in.a()) = v
+			value.Share(v)
+
 		case opLoadK:
 			*at(regs, in.a()) = *at(consts, in.c())
 
-		case opLoadFresh:
-			*at(regs, in.a()) = value.Fresh(*at(consts, in.c()))
+		case opShare:
+			value.Share(*at(regs, in.a()))
+
+		case opShareIf:
+			if t := at(regs, in.b()); t.Shared() || in.x()&frozenStruct != 0 && t.Kind() == value.Struct {
+				value.Share(*at(regs, in.a()))
+			}
+
+		case opUnshare:
+			if at(regs, in.a()).Shared() {
+				goto slow
+			}
 
 		case opGetCell:
 			v := (*Cell)(at(regs, in.b()).Ptr()).v
@@ -317,6 +332,13 @@ reload:
 				goto tick
 			}
 
+		case opJmpNoInout:
+			if bit := uint32(1) << in.b(); fr.inout&bit != 0 {
+				fr.inout &^= bit
+			} else {
+				pc = in.c()
+			}
+
 		case opJmpIf:
 			if at(regs, in.a()).Truthy() == in.y() {
 				pc = in.c()
@@ -419,12 +441,19 @@ reload:
 		case opGetIndex:
 			if t, i := *at(regs, in.b()), *at(regs, in.c()); t.Kind() == value.Array && i.IsInt() {
 				if arr, idx := t.Arr(), i.Int(); uint64(idx) < uint64(len(arr)) {
-					*at(regs, in.a()) = arr[idx]
+					v := arr[idx]
+					*at(regs, in.a()) = v
+					if in.y() {
+						value.Share(v)
+					}
 					continue
 				}
 			} else if t.Kind() == value.Object && i.IsString() {
 				if v, ok := t.Obj().Interned(i); ok {
 					*at(regs, in.a()) = v
+					if in.y() {
+						value.Share(v)
+					}
 					continue
 				}
 			}
@@ -432,12 +461,12 @@ reload:
 			goto slow
 
 		case opSetIndex:
-			if t, i := *at(regs, in.a()), *at(regs, in.b()); t.Kind() == value.Array && i.IsInt() {
+			if t, i := *at(regs, in.a()), *at(regs, in.b()); t.Kind() == value.Array && i.IsInt() && !t.Shared() {
 				if arr, idx := t.Arr(), i.Int(); uint64(idx) < uint64(len(arr)) {
 					arr[idx] = *at(regs, in.c())
 					continue
 				}
-			} else if t.Kind() == value.Object && i.IsString() {
+			} else if t.Kind() == value.Object && i.IsString() && !t.Shared() {
 				if t.Obj().SetInterned(i, *at(regs, in.c())) {
 					continue
 				}
@@ -450,11 +479,17 @@ reload:
 			if k := t.Kind(); k == value.Struct {
 				if v, ok := t.InternedField(*at(consts, in.c())); ok {
 					*at(regs, in.a()) = v
+					if in.y() {
+						value.Share(v)
+					}
 					continue
 				}
 			} else if k == value.Object {
 				if v, ok := t.Obj().Interned(*at(consts, in.c())); ok {
 					*at(regs, in.a()) = v
+					if in.y() {
+						value.Share(v)
+					}
 					continue
 				}
 
@@ -463,6 +498,9 @@ reload:
 
 				if v, ok := t.Obj().Get(at(consts, in.c()).Str()); ok {
 					*dst = v
+					if in.y() {
+						value.Share(v)
+					}
 					goto reload
 				}
 			}
@@ -471,7 +509,7 @@ reload:
 
 		case opSetProp:
 			t := *at(regs, in.a())
-			if k := t.Kind(); k == value.Object {
+			if k := t.Kind(); k == value.Object && !t.Shared() {
 				if t.Obj().SetInterned(*at(consts, in.b()), *at(regs, in.c())) {
 					continue
 				}
@@ -484,35 +522,12 @@ reload:
 				goto slow
 			}
 
-			if slot := t.InternedSlot(*at(consts, in.b())); slot >= 0 {
-				fr.pc = pc + int(in.x())
-				dst := at(regs, in.a())
-				*dst = t.With(slot, *at(regs, in.c()))
-
-				goto reload
+			if slot := t.InternedSlot(*at(consts, in.b())); slot >= 0 && !t.Shared() {
+				t.Fields()[slot] = *at(regs, in.c())
+				continue
 			}
 
 			goto slow
-
-		case opSetOwned:
-			t := *at(regs, in.a())
-			slot := t.InternedSlot(*at(consts, in.b()))
-			if slot < 0 {
-				goto slow
-			}
-
-			if own := at(regs, in.a()+1); *own != value.True {
-				t = t.Clone()
-				*at(regs, in.a()) = t
-				*own = value.True
-			}
-
-			t.Fields()[slot] = *at(regs, in.c())
-
-		case opSame:
-			if *at(regs, in.a()) != *at(regs, in.b()) {
-				goto slow
-			}
 
 		case opCheckProp:
 			t := *at(regs, in.a())
@@ -547,6 +562,16 @@ reload:
 
 			fr.pc = pc
 
+			// It takes every argument, so its mut parameters write back
+			// all their bits, after the jump that follows.
+			if m := f.proto.inout; m != 0 {
+				if m&^fr.siteInout(in) != 0 {
+					goto slow
+				}
+
+				fr.skipToWriteBacks(m)
+			}
+
 			base := fr.base + in.a() + 1
 			if need := base + f.proto.nregs; need > len(p.stack) {
 				p.grow(need)
@@ -577,7 +602,7 @@ reload:
 
 			fn := p.methods[m.ID]
 			if fn.TypeID() != closureID {
-				if m.InPlace && in.x()&1 != 0 {
+				if m.InPlace && (in.x()&1 != 0 || at(regs, in.a()+1).Shared()) {
 					goto slow
 				}
 
@@ -603,23 +628,14 @@ reload:
 				goto slow
 			}
 
-			// enter, inlined as for opCall; a mutating method resumes past
-			// the jump over its write-back. An error must not leave the
-			// caller a struct half changed, so the method takes the
-			// caller's own only if no try is open in the caller.
+			// enter, inlined as for opCall.
 			fr.pc = pc
-			entry := 0
-
-			if m.Mut {
-				fr.pc++
-
-				if in.x()&2 != 0 {
-					if f.proto.selfReg == 0 {
-						fr.pc++
-					} else if n := len(p.handlers); *at(regs, in.a()) == value.True && (n == 0 || p.handlers[n-1].frame < len(p.frames)-1) {
-						entry = 2
-					}
+			if m := f.proto.inout; m != 0 {
+				if m&^fr.siteInout(in) != 0 {
+					goto slow
 				}
+
+				fr.skipToWriteBacks(m)
 			}
 
 			*at(regs, in.a()) = fn
@@ -629,12 +645,7 @@ reload:
 				p.grow(need)
 			}
 
-			if entry != 0 {
-				self := base + f.proto.selfReg
-				p.stack[self], p.stack[self+1] = p.stack[base], value.True
-			}
-
-			p.frames = append(p.frames, frame{cl: f, pc: entry, base: base})
+			p.frames = append(p.frames, frame{cl: f, base: base})
 
 			goto reload
 
@@ -642,6 +653,9 @@ reload:
 			var v value.Value
 			if in.op() == opReturn {
 				v = *at(regs, in.a())
+				if in.x() != 0 {
+					value.Share(v)
+				}
 			}
 
 			top := len(p.frames) - 1

@@ -2,6 +2,7 @@ package value
 
 import (
 	"iter"
+	"maps"
 	"slices"
 	"unsafe"
 )
@@ -9,9 +10,10 @@ import (
 // Obj is the table of an Object: string keys in the order they were
 // first added. Small tables are scanned; larger ones keep an index.
 type Obj struct {
-	keys  []string
-	vals  []Value
-	index map[string]int
+	keys   []string
+	shared bool
+	vals   []Value
+	index  map[string]int
 }
 
 const indexedObj = 8
@@ -131,6 +133,10 @@ func (o *Obj) Delete(k string) (found bool) {
 	}
 
 	return true
+}
+
+func (o *Obj) clone() *Obj {
+	return &Obj{keys: slices.Clone(o.keys), vals: slices.Clone(o.vals), index: maps.Clone(o.index)}
 }
 
 func (o *Obj) reindex(from int) {

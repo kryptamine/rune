@@ -1,0 +1,58 @@
+// A write by a path changes only the value there.
+let mut grid = [[0, 0], [0, 0]];
+let row = grid[0];
+grid[0][0] = 9;
+print(row); // expect: [0, 0]
+print(grid); // expect: [[9, 0], [0, 0]]
+
+let g2 = grid;
+grid[1][1] = 9;
+print(g2); // expect: [[9, 0], [0, 0]]
+print(grid); // expect: [[9, 0], [0, 9]]
+
+// Compound operators and increments.
+let g3 = grid;
+grid[0][1] += 5;
+grid[1][0]++;
+print(g3); // expect: [[9, 0], [0, 9]]
+print(grid); // expect: [[9, 5], [1, 9]]
+
+// In-place methods.
+let mut a = [[1]];
+let mut b = a;
+b[0].push(2);
+print(a); // expect: [[1]]
+print(b); // expect: [[1, 2]]
+
+// Deeper paths, through objects.
+let mut o = { a: { b: [[0]] } };
+let ob = o.a.b;
+let ob0 = o.a.b[0];
+o.a.b[0][0] += 1;
+print(ob); // expect: [[0]]
+print(ob0); // expect: [0]
+print(o.a.b); // expect: [[1]]
+
+let mut deep = [[[0]]];
+let d1 = deep[0];
+deep[0][0][0] = 7;
+deep[0][0].push(8);
+print(d1); // expect: [[0]]
+print(deep); // expect: [[[7, 8]]]
+
+// The right-hand side can share a level of the path.
+let mut h = [[0]];
+let mut keep = [];
+h[0][0] = (keep = h)[0][0] + 1;
+print(keep); // expect: [[0]]
+print(h); // expect: [[1]]
+
+fun inner() {
+    let mut m = [[0], [0]];
+    let mut saved = [];
+    let save = () => { saved = m; return 5; };
+    m[1][0] = save();
+    print(saved); // expect: [[0], [0]]
+    print(m); // expect: [[0], [5]]
+}
+inner();

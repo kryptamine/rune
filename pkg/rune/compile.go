@@ -22,20 +22,15 @@ type funcState struct {
 	free    int32
 	code    []ins
 	loops   []*loop
-	// unwinds holds what leaving the code being compiled passes: nil for
-	// the handler of a try, a defer's body for a defer.
-	unwinds []ast.Stmt
+	// unwinds holds what leaving the code being compiled passes, nil for
+	// the handler of a try.
+	unwinds []*unwind
 	// chain holds the jumps of the ?. of the optional chain being compiled.
 	chain []int
 	// defined holds the top-level variables whose declaration the script
 	// has passed, so reading them needs no check.
 	defined map[*ast.Local]bool
 	unit    *unit
-	// A mut self lives outside register 0 when a closure captures it,
-	// in a cell there if selfCell, or when it is owned, in register
-	// selfReg; returns put it back into register 0 for the caller.
-	selfCell bool
-	selfReg  int32
 }
 
 // unit is what the functions of a program share: each name's one string,
@@ -77,6 +72,7 @@ func compile(stmts []ast.Stmt, builtins []namedLocal, main *ast.FunctionStmt, me
 		fs.declareStructs(stmts)
 		fs.declareTopLevel(stmts, builtins)
 		fs.declareMethods(stmts)
+		markMoves(stmts)
 		fs.stmts(stmts)
 
 		if main == nil {
@@ -234,10 +230,6 @@ func (fs *funcState) declareTopLevelVar(l *ast.Local, name string) {
 	}
 
 	fs.declareAs(l, v)
-
-	if l.Owned {
-		fs.ownership(fs.declare(nil), nil)
-	}
 }
 
 // declareAs binds l to a register holding v, in a cell if l is captured.
@@ -275,12 +267,6 @@ func (fs *funcState) functionNamed(decl *ast.FunctionStmt, name string, mutSelf 
 		regs[i] = f.declare(param.Local)
 	}
 
-	f.selfCell = mutSelf != nil && mutSelf.Captured
-	if mutSelf != nil && mutSelf.Owned {
-		f.selfReg = f.own(mutSelf, 0)
-		f.proto.selfReg = int(f.selfReg)
-	}
-
 	for i, param := range decl.Parameters {
 		if decl.Defaults[i] != nil {
 			skip := f.emit(ins{op: opJmpDefined, a: regs[i]}, nil)
@@ -289,16 +275,31 @@ func (fs *funcState) functionNamed(decl *ast.FunctionStmt, name string, mutSelf 
 		}
 
 		if param.Local.Captured {
+			// A closure may keep it past the call.
+			if !param.Mutable {
+				f.emit(ins{op: opShare, a: regs[i]}, nil)
+			}
+
 			f.emit(ins{op: opNewCell, a: regs[i], b: regs[i]}, nil)
 		}
 	}
 
+	f.proto.inout = decl.Inout()
+	if mutSelf != nil {
+		f.proto.inout |= 1
+	}
+
 	for i, param := range decl.Parameters {
-		if param.Local.Owned && param.Local != mutSelf {
-			f.own(param.Local, regs[i])
+		f.proto.params = append(f.proto.params, param.Name.Lexeme)
+
+		if f.proto.inout&(1<<i) != 0 && param.Local.Captured {
+			f.proto.restore = append(f.proto.restore, int(regs[i]))
 		}
 	}
 
+	f.proto.prologue = len(f.code)
+
+	markMoves(decl.Body)
 	f.stmts(decl.Body)
 	f.returnSelf()
 	f.emit(ins{op: opReturnNil}, nil)
@@ -309,25 +310,12 @@ func (fs *funcState) functionNamed(decl *ast.FunctionStmt, name string, mutSelf 
 	return int32(len(fs.proto.protos) - 1)
 }
 
-// own moves the owned parameter l from register src to one of its own,
-// followed by its flag, and returns it.
-func (fs *funcState) own(l *ast.Local, src int32) int32 {
-	r := fs.declare(l)
-	fs.emit(ins{op: opMove, a: r, b: src}, nil)
-	fs.ownership(fs.declare(nil), nil)
-
-	return r
-}
-
-// returnSelf puts a mut self kept elsewhere back into register 0 before
-// a return, an owned one with its flag in register 1.
+// returnSelf puts the mut parameters in cells, self included, back into
+// their registers before a return. A closure may keep one, so it is shared.
 func (fs *funcState) returnSelf() {
-	switch {
-	case fs.selfCell:
-		fs.emit(ins{op: opGetCell, a: 0, b: 0}, nil)
-	case fs.selfReg != 0:
-		fs.move(0, fs.selfReg)
-		fs.move(1, fs.selfReg+1)
+	for _, r := range fs.proto.restore {
+		fs.emit(ins{op: opGetCell, a: int32(r), b: int32(r)}, nil)
+		fs.emit(ins{op: opShare, a: int32(r)}, nil)
 	}
 }
 
@@ -402,6 +390,9 @@ func (fs *funcState) constant(v value.Value) int32 {
 	if k, ok := fs.consts[key]; ok {
 		return k
 	}
+
+	// A constant is every read of it, so a write copies it first.
+	value.ShareDeep(v)
 
 	k := int32(len(fs.proto.consts))
 	fs.proto.consts = append(fs.proto.consts, v.Detach())

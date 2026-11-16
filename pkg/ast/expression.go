@@ -64,13 +64,11 @@ type Local struct {
 	Captured bool
 	// TopLevel is set for a declaration outside any block or function.
 	TopLevel bool
-	// Owned is set by the resolver on a mutable variable, or mut self,
-	// that tracks whether it holds a struct of its own, which it changes
-	// in place.
-	Owned bool
 	// MutSelf is set on the self of a mut self method, the only variable
 	// whose struct can have its fields set.
 	MutSelf bool
+	// Exported is set on a variable another module can read.
+	Exported bool
 	// Const is the value every read of a constant folds to, if IsConst.
 	Const   value.Value
 	IsConst bool
@@ -113,10 +111,9 @@ type VarExpr struct {
 	Name   Token
 	Case   *Token
 	Local  *Local
-	// Leaks is set on a read of an owned variable that lets its value go,
-	// Lends on one that calls a method which may mutate it.
-	Leaks bool
-	Lends bool
+	// Moves is set on a read of a variable that holds its value alone
+	// and is dead after it, so a copy takes the value unshared.
+	Moves bool
 }
 
 func NewVarExpr(name Token) Expr {
@@ -141,6 +138,17 @@ func NewGroupingExpr(expr Expr) Expr {
 	return &GroupingExpr{Expr: expr}
 }
 
+// MethodKind marks what the methods sharing a name do to their receiver.
+type MethodKind uint8
+
+const (
+	// InPlace methods are built-in ones that change it, and may keep
+	// their arguments.
+	InPlace MethodKind = 1 << iota
+	MutSelf
+	Plain
+)
+
 // CallExpr is callee(args); Optional is set for callee?.(args). For a
 // method call, Writable is set when the receiver can take the new self a
 // mutating method leaves, and Frozen when an immutable variable holds it,
@@ -152,6 +160,11 @@ type CallExpr struct {
 	Optional bool
 	Writable bool
 	Frozen   bool
+	// Methods tells what the methods of a method call's name do.
+	Methods MethodKind
+	// Inout has a bit for each argument that a mut parameter of the
+	// function called may write back to.
+	Inout uint32
 }
 
 type ArrayExpr struct {

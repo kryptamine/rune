@@ -6,6 +6,8 @@ fun fill(mut arr, n) {
 }
 let mut a = [0];
 print(fill(a, 7)); // expect: nil
-print(a); // expect: [7, 7]
+print(a); // expect: nil
 let f = (mut x) => { x++; return x; };
-print(f(1)); // expect: 2
+let mut n = 1;
+print(f(n)); // expect: 2
+print(n); // expect: 2

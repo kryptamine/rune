@@ -9,7 +9,8 @@ export struct Post { slug, title, date, tags = [], draft = false, html, headings
 export struct Site { posts = [], skipped = [] }
 
 export fun load(dir, drafts = false) {
-    let mut site = Site {};
+    let mut posts = [];
+    let mut skipped = [];
 
     for f in fs.list(dir) {
         if f.isDir || fs.ext(f.name) != ".md" {
@@ -20,13 +21,13 @@ export fun load(dir, drafts = false) {
         let { meta, body } = fm.parse(fs.readText(path), path);
 
         if meta?.draft == true && !drafts {
-            site.skipped.push(f.name);
+            skipped.push(f.name);
             continue;
         }
 
         let { html, headings } = md.render(body);
 
-        site.posts.push(Post {
+        posts.push(Post {
             slug: fs.stem(f.name),
             title: meta?.title ?? headings[0]?.text ?? f.name,
             date: meta?.date ?? "0000-00-00",
@@ -38,8 +39,8 @@ export fun load(dir, drafts = false) {
         });
     }
 
-    site.posts.sort((a, b) => a.date < b.date ? 1 : a.date > b.date ? -1 : 0);
-    return site;
+    posts.sort((a, b) => a.date < b.date ? 1 : a.date > b.date ? -1 : 0);
+    return Site { posts, skipped };
 }
 
 export fun write(site, out) {
@@ -81,9 +82,11 @@ fun byTag(posts) {
 
     for p in posts {
         for t in p.tags {
-            let mut list = tags?.[t] ?? [];
-            list.push(p);
-            tags[t] = list;
+            if t !in tags {
+                tags[t] = [];
+            }
+
+            tags[t].push(p);
         }
     }
 

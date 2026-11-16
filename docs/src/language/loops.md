@@ -96,6 +96,38 @@ print(handlers[0]());    // clicked save
 print(handlers[1]());    // clicked load
 ```
 
+## for mut
+
+`for mut x in xs` gives each iteration its own copy of the element, and
+writes it back into `xs` when the iteration ends: at the end of the body,
+on `continue`, `break`, `return` and on a throw. It walks arrays and the
+values of objects and maps.
+
+```rune
+let mut grid = [[0, 0], [0, 0]];
+for i, mut row in grid { row[i] = 1; }
+print(grid);    // [[1, 0], [0, 1]]
+
+let mut prices = { apple: 1, pear: 2 };
+for k, mut v in prices { v *= 10; }
+print(prices);  // {apple: 10, pear: 20}
+```
+
+The collection must be a mutable place, as for a
+[`mut` parameter](functions.md#mut-parameters), found once before the
+loop. The loop walks it as it was when the loop started; a write the body
+makes to it directly is overwritten by the write-back of that element.
+The body cannot assign the variable the collection is read from, and a
+key cannot be `mut`.
+
+```rune
+let mut xs = [[0]];
+for mut x in xs { xs = []; } // Error at 'xs': Cannot assign to 'xs' inside a 'for mut' loop over it.
+let rows = [[0]];
+for mut row in rows {}  // Error at 'rows': Cannot write 'for mut' variable 'row' back into immutable variable 'rows'.
+for mut i in 0..3 {}    // Error at 'i': A 'for mut' loop walks a mutable variable, element or property, which it writes back into.
+```
+
 ## while
 
 Anything else is a `while`:

@@ -1,0 +1,131 @@
+// A mut parameter goes back to the argument.
+fun addTag(mut tags, tag) { tags.push(tag); }
+let mut tags = ["new"];
+addTag(tags, "sale");
+print(tags); // expect: ["new", "sale"]
+
+fun bump(mut n) { n += 1; }
+let mut count = 1;
+bump(count);
+print(count); // expect: 2
+
+fun reset(mut xs) { xs = []; }
+reset(tags);
+print(tags); // expect: []
+
+// A copy taken before the call keeps its value.
+let mut a = [1];
+let b = a;
+addTag(a, 2);
+print(b); // expect: [1]
+print(a); // expect: [1, 2]
+
+// Elements and properties go back along their path.
+let mut grid = [[0], [1]];
+let g = grid;
+addTag(grid[1], 5);
+print(grid); // expect: [[0], [1, 5]]
+print(g); // expect: [[0], [1]]
+
+let mut user = { name: "ann", tags: [] };
+addTag(user.tags, "admin");
+print(user.tags); // expect: ["admin"]
+
+struct User { name, tags = [] }
+impl User { fun tag(mut self, t) { addTag(self.tags, t); } }
+let mut ann = User { name: "ann" };
+ann.tag("x");
+print(ann.tags); // expect: ["x"]
+
+let mut deep = { rows: [[1]] };
+let mut i = 0;
+addTag(deep.rows[i], 2);
+print(deep); // expect: {rows: [[1, 2]]}
+
+// A throw writes back too.
+fun fail(mut xs) {
+    xs.push("half");
+    xs = ["replaced"];
+    throw Error("no");
+}
+
+let mut done = ["start"];
+try { fail(done); } catch e { print(done); } // expect: ["replaced"]
+
+fun failNested() {
+    let mut xs = [0];
+    defer { print(xs); } // expect: ["replaced"]
+    fail(xs);
+}
+try { failNested(); } catch e {}
+
+let mut seen = [];
+fun failOuter() { fail(seen); }
+try { failOuter(); } catch e {}
+print(seen); // expect: ["replaced"]
+
+// A mut parameter a closure captures goes back, on a return and on a throw.
+let mut later = [];
+fun keep(mut xs) {
+    let add = () => xs.push(1);
+    add();
+    later.push(add);
+}
+let mut kept = [];
+keep(kept);
+print(kept); // expect: [1]
+later[0]();
+print(kept); // expect: [1]
+
+fun keepFail(mut xs) {
+    let add = () => xs.push(2);
+    add();
+    throw Error("no");
+}
+try { keepFail(kept); } catch e {}
+print(kept); // expect: [1, 2]
+
+// Through a function value and a method.
+let f = [addTag][0];
+let mut viaValue = [];
+f(viaValue, 1);
+print(viaValue); // expect: [1]
+
+impl User {
+    fun tagInto(self, mut out) { out.push(self.name); }
+    fun move(mut self, mut out) { out.push(self.tags.len()); self.tags = []; }
+}
+let mut names = [];
+ann.tagInto(names);
+print(names); // expect: ["ann"]
+ann.move(names);
+print(names); // expect: ["ann", 1]
+print(ann.tags); // expect: []
+
+// Two arguments read from one variable are each a copy.
+fun both(mut xs, ys) { xs.push(9); return ys; }
+let mut same = [1];
+print(both(same, same)); // expect: [1]
+print(same); // expect: [1, 9]
+
+fun swap(mut x, mut y) { let t = x; x = y; y = t; }
+let mut pair = [1, 2];
+swap(pair[0], pair[1]);
+print(pair); // expect: [2, 1]
+
+// A default is no argument to write back.
+fun tagged(item, mut tags = []) { tags.push(item); return tags; }
+print(tagged("a")); // expect: ["a"]
+let mut own = ["b"];
+tagged("c", own);
+print(own); // expect: ["b", "c"]
+
+// An owned struct goes back after its mut self calls.
+struct Counter { n = 0 }
+impl Counter { fun incr(mut self) { self.n++; } }
+fun twice(mut c) { c.incr(); c.incr(); }
+let mut c = Counter {};
+let c0 = c;
+twice(c);
+print(c.n); // expect: 2
+print(c0.n); // expect: 0

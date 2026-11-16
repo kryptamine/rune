@@ -23,22 +23,23 @@ func (fs *funcState) stmts(stmts []ast.Stmt) {
 // the way out of rest, and if rest fails, before the error goes on up.
 func (fs *funcState) deferStmt(d *ast.DeferStmt, rest []ast.Stmt) {
 	at := fs.nactive
-	try := fs.handled(ins{op: opTry, a: at, x: 1}, d.Body, func() { fs.stmts(rest) })
-	fs.runDefer(d.Body)
-	end := fs.emit(ins{op: opJmp}, nil)
+	run := func() { fs.runDefer(d.Body) }
+	try := fs.handled(ins{op: opTry, a: at, x: 1}, &unwind{leave: run, try: true}, func() { fs.stmts(rest) })
+	run()
+	fs.rethrowAfter(try, at, run)
+}
 
-	fs.onError(try, at, func() {
-		fs.declare(nil)
-		fs.declare(nil) // the error
-		fs.runDefer(d.Body)
-		fs.emit(ins{op: opRethrow, a: at + 1}, nil)
-	})
-	fs.patch([]int{end})
+// unwind is what leaving the code being compiled passes, besides the
+// handler of a try: code to run on the way out, under a handler of its
+// own if try, which goes first.
+type unwind struct {
+	leave func()
+	try   bool
 }
 
 // handled emits try and compiles body under its handler, with entry on
 // unwinds; it returns try's index, for onError.
-func (fs *funcState) handled(try ins, entry ast.Stmt, body func()) int {
+func (fs *funcState) handled(try ins, entry *unwind, body func()) int {
 	at := fs.emit(try, nil)
 
 	fs.unwinds = append(fs.unwinds, entry)
@@ -61,6 +62,20 @@ func (fs *funcState) onError(try int, at int32, handle func()) {
 	fs.nactive, fs.free = nactive, free
 }
 
+// rethrowAfter jumps over a handler compiled where the try at index try
+// resumes, which runs handle and passes the error on up.
+func (fs *funcState) rethrowAfter(try int, at int32, handle func()) {
+	end := fs.emit(ins{op: opJmp}, nil)
+
+	fs.onError(try, at, func() {
+		fs.declare(nil)
+		fs.declare(nil) // the error
+		handle()
+		fs.emit(ins{op: opRethrow, a: at + 1}, nil)
+	})
+	fs.patch([]int{end})
+}
+
 func (fs *funcState) runDefer(body ast.Stmt) { fs.scoped(func() { fs.stmt(body) }) }
 
 // runDefers runs the bodies of the defers above unwinds[depth], each after
@@ -70,9 +85,14 @@ func (fs *funcState) runDefers(depth int) (handlers int) {
 	fs.nactive = free
 
 	for i := len(fs.unwinds) - 1; i >= depth; i-- {
-		body := fs.unwinds[i]
-		if body == nil {
+		u := fs.unwinds[i]
+		if u == nil {
 			handlers++
+			continue
+		}
+
+		if !u.try {
+			u.leave()
 			continue
 		}
 
@@ -81,7 +101,7 @@ func (fs *funcState) runDefers(depth int) (handlers int) {
 
 		unwinds := fs.unwinds
 		fs.unwinds = unwinds[:i:i]
-		fs.runDefer(body)
+		u.leave()
 		fs.unwinds = unwinds
 	}
 
@@ -150,7 +170,7 @@ func (fs *funcState) returnStmt(s *ast.ReturnStmt) {
 
 	v := fs.exprAny(s.Value)
 
-	if v < fs.nactive && slices.ContainsFunc(fs.unwinds, func(s ast.Stmt) bool { return s != nil }) {
+	if v < fs.nactive && slices.ContainsFunc(fs.unwinds, func(u *unwind) bool { return u != nil }) {
 		t := fs.alloc()
 		fs.move(t, v)
 		v = t
@@ -158,14 +178,8 @@ func (fs *funcState) returnStmt(s *ast.ReturnStmt) {
 
 	fs.runDefers(0)
 
-	// Register 1 takes the flag of an owned self.
-	if fs.selfReg != 0 && v == 1 {
-		v = fs.alloc()
-		fs.move(v, 1)
-	}
-
 	fs.returnSelf()
-	fs.emit(ins{op: opReturn, a: v}, nil)
+	fs.emit(ins{op: opReturn, a: v, x: uint8(boolNum(!fresh(s.Value)))}, nil)
 }
 
 // exprStmt drops the value, so x++ needs no copy of the old x.
@@ -203,22 +217,18 @@ func (fs *funcState) varStmt(s *ast.VarStmt) {
 	if !l.TopLevel && !l.Captured {
 		r := fs.alloc()
 		fs.exprOrNil(s.Initializer, r)
+		fs.share(s.Initializer, r)
 		fs.free = r
 		fs.declare(l)
-
-		if l.Owned {
-			fs.ownership(fs.declare(nil), s.Initializer)
-		}
 
 		return
 	}
 
 	fs.predeclare(l)
-	fs.initialize(l, func(dst int32) { fs.exprOrNil(s.Initializer, dst) })
-
-	if l.Owned {
-		fs.ownership(fs.locals[l]+1, s.Initializer)
-	}
+	fs.initialize(l, func(dst int32) {
+		fs.exprOrNil(s.Initializer, dst)
+		fs.share(s.Initializer, dst)
+	})
 }
 
 func (fs *funcState) destructure(s *ast.DestructureStmt) {
@@ -236,6 +246,7 @@ func (fs *funcState) destructure(s *ast.DestructureStmt) {
 		fs.initialize(f.Local, func(dst int32) {
 			fs.emit(ins{op: opGetProp, a: dst, b: src, c: fs.constant(value.NewString(f.Key.Lexeme)), x: uint8(boolNum(f.Default != nil))}, &f.Key)
 			fs.orDefault(dst, f.Default)
+			fs.emit(ins{op: opShare, a: dst}, nil)
 		})
 	}
 
@@ -304,7 +315,7 @@ func (fs *funcState) orDefault(dst int32, def ast.Expr) {
 	}
 
 	skip := fs.emit(ins{op: opJmpDefined, a: dst}, nil)
-	fs.expr(def, dst)
+	fs.copyExpr(def, dst)
 	fs.patch([]int{skip})
 }
 
@@ -422,6 +433,8 @@ func (fs *funcState) forIn(s *ast.ForInStmt) {
 	fs.scoped(func() {
 		var base int32
 
+		var coll *lval
+
 		var key, val int32
 
 		next := ins{op: opForIterNext}
@@ -435,6 +448,14 @@ func (fs *funcState) forIn(s *ast.ForInStmt) {
 
 			key, val = fs.declare(nil), fs.declare(nil)
 			next = ins{op: opForRangeNext, a: base, x: uint8(boolNum(r.Inclusive))}
+		} else if s.Value.Mutable {
+			coll = fs.collection(s)
+			base = fs.declare(nil)
+			fs.move(base, coll.reg)
+			fs.emit(ins{op: opForIter, a: base, x: 1 | forMut, y: uint8(boolNum(fs.alone(s, coll)))}, &s.Keyword)
+
+			key, val = fs.declare(nil), fs.declare(nil)
+			next.a = base
 		} else {
 			base = fs.declare(nil)
 			fs.expr(s.Iterable, base)
@@ -453,10 +474,20 @@ func (fs *funcState) forIn(s *ast.ForInStmt) {
 		bind(s.Key, key)
 		bind(&s.Value, val)
 
+		// A for mut's key is the cursor's, which a cell may take over.
+		at := key
+		if coll != nil && s.Key != nil && s.Key.Local.Captured {
+			at = fs.declare(nil)
+		}
+
 		enter := fs.emit(ins{op: opJmp}, nil)
 		body := fs.here()
 
+		var handler func()
+
 		l := fs.loop(func() {
+			fs.move(at, key)
+
 			for _, b := range []*ast.Binding{s.Key, &s.Value} {
 				if b != nil && b.Local.Captured {
 					r := fs.locals[b.Local]
@@ -464,7 +495,12 @@ func (fs *funcState) forIn(s *ast.ForInStmt) {
 				}
 			}
 
-			fs.stmt(s.Body)
+			if coll == nil {
+				fs.stmt(s.Body)
+				return
+			}
+
+			handler = fs.writeBackLoop(s, coll, at, val)
 		})
 
 		fs.patch([]int{enter})
@@ -473,6 +509,9 @@ func (fs *funcState) forIn(s *ast.ForInStmt) {
 		next.c = body
 		fs.emit(next, &s.Keyword)
 		fs.patch(l.breaks)
+		if handler != nil {
+			handler()
+		}
 	})
 }
 

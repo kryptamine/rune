@@ -1,0 +1,6 @@
+let grid = [[0]];
+for mut row in grid {} // [line: 2] Error at 'grid': Cannot write 'for mut' variable 'row' back into immutable variable 'grid'.
+for mut i in 0..3 {} // [line: 3] Error at 'i': A 'for mut' loop walks a mutable variable, element or property, which it writes back into.
+let mut g = [1];
+for mut k, v in g {} // [line: 5] Error at 'k': A for-in key cannot be mut.
+fun rows(xs) { for mut x in xs {} } // [line: 6] Error at 'xs': Cannot write 'for mut' variable 'x' back into immutable variable 'xs'.

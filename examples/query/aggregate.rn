@@ -28,7 +28,6 @@ export fun specs(calls, scope) {
 
 export fun aggregate(rows, keys, aggs) {
     let nk = keys.len();
-    let na = aggs.len();
     let mut slots = map();
     let mut groups = [];
 
@@ -54,41 +53,7 @@ export fun aggregate(rows, keys, aggs) {
             slots[k] = g;
         }
 
-        let mut acc = groups[g][1];
-        for i in 0..na {
-            let a = aggs[i];
-
-            if a.arg == nil {
-                acc[i]++;
-                continue;
-            }
-
-            let v = (a.arg)(r);
-
-            if v == nil {
-                continue;
-            }
-
-            if a.distinct {
-                acc[i].add(v);
-                continue;
-            }
-
-            match a.fn {
-                Agg.Count => acc[i]++,
-                Agg.Sum => acc[i] = (acc[i] ?? 0) + v,
-                Agg.Avg => {
-                    acc[i][0] += v;
-                    acc[i][1]++;
-                },
-                Agg.Min => { if acc[i] == nil || expr.compare(v, acc[i]) < 0 {
-                    acc[i] = v;
-                } },
-                Agg.Max => { if acc[i] == nil || expr.compare(v, acc[i]) > 0 {
-                    acc[i] = v;
-                } }
-            }
-        }
+        accumulate(groups[g][1], aggs, r);
     }
 
     if nk == 0 && !groups {
@@ -96,6 +61,44 @@ export fun aggregate(rows, keys, aggs) {
     }
 
     return groups.map(([ks, acc]) => [...ks, ...aggs.map((a, i) => finish(a, acc[i]))]);
+}
+
+// accumulate adds row r to the accumulators acc of its group.
+fun accumulate(mut acc, aggs, r) {
+    for i in 0..aggs.len() {
+        let a = aggs[i];
+
+        if a.arg == nil {
+            acc[i]++;
+            continue;
+        }
+
+        let v = (a.arg)(r);
+
+        if v == nil {
+            continue;
+        }
+
+        if a.distinct {
+            acc[i].add(v);
+            continue;
+        }
+
+        match a.fn {
+            Agg.Count => acc[i]++,
+            Agg.Sum => acc[i] = (acc[i] ?? 0) + v,
+            Agg.Avg => {
+                acc[i][0] += v;
+                acc[i][1]++;
+            },
+            Agg.Min => { if acc[i] == nil || expr.compare(v, acc[i]) < 0 {
+                acc[i] = v;
+            } },
+            Agg.Max => { if acc[i] == nil || expr.compare(v, acc[i]) > 0 {
+                acc[i] = v;
+            } }
+        }
+    }
 }
 
 fun finish(a, v) {
