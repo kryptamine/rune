@@ -5,7 +5,7 @@ import "rune/pkg/value"
 // IsTruthy is false for nil, false, 0 and empty values; see Value.Truthy.
 func IsTruthy(v value.Value) bool { return v.Truthy() }
 
-// IsEqual compares arrays, objects and structs structurally and everything else by value
+// IsEqual compares arrays, maps and structs structurally and everything else by value
 // (functions by identity). Values of different kinds are never equal.
 func IsEqual(left, right value.Value) bool {
 	if left.Kind() != right.Kind() {
@@ -34,20 +34,6 @@ func IsEqual(left, right value.Value) bool {
 
 		for i := range l {
 			if !IsEqual(l[i], r[i]) {
-				return false
-			}
-		}
-
-		return true
-	case value.Object:
-		l, r := left.Obj(), right.Obj()
-		if l.Len() != r.Len() {
-			return false
-		}
-
-		for k, lv := range l.All() {
-			rv, ok := r.Get(k)
-			if !ok || !IsEqual(lv, rv) {
 				return false
 			}
 		}

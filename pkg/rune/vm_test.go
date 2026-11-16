@@ -47,7 +47,7 @@ func TestInterrupt(t *testing.T) {
 	srcs := map[string]string{
 		"while":     `while true {}`,
 		"for":       `for i in 0..1e18 {}`,
-		"object":    `let o = {a: 1}; while true { for k in o {} }`,
+		"map":       `let o = ["a": 1]; while true { for k in o {} }`,
 		"recursion": `fun f(n) { if n < 2 { return n; } return f(n - 1) + f(n - 2); } f(100);`,
 		"try":       `while true { try { while true {} } catch e {} }`,
 		"native":    `[1].map(x => { while true {} });`,

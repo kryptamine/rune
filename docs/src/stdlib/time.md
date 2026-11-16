@@ -54,16 +54,16 @@ print("{d.day}.{d.month}.{d.year}");       // 12.11.2026
 print(time.date(t, "Europe/Kyiv").hour);   // 16
 ```
 
-`time.make(d[, zone])` goes the other way: the time of the `Date` `d` (or
-of an object with its fields), in `zone`, or else `d.zone`. A field past
+`time.make(d[, zone])` goes the other way: the time of the `Date` `d`, in
+`zone`, or else `d.zone`. A field past
 its range carries over, so `day: 32` of December is January 1.
 `weekday` and `yearDay` are ignored.
 
 ```rune
-print(time.make({ year: 2026, month: 11, day: 12, hour: 14, minute: 30, zone: "UTC" }));
+print(time.make(Date { year: 2026, month: 11, day: 12, hour: 14, minute: 30, zone: "UTC" }));
 // 1794493800
 
-let newYear = time.make({ year: 2026, month: 12, day: 32, zone: "UTC" });
+let newYear = time.make(Date { year: 2026, month: 12, day: 32, zone: "UTC" });
 print(time.format(newYear, "%Y-%m-%d", "UTC"));   // 2027-01-01
 ```
 

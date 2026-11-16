@@ -22,12 +22,14 @@ let ticket = 42;
 print("ticket #" + ticket);    // TypeError: Operands must be two numbers, two strings or two bytes.
 ```
 
-Any expression works inside `{}`: arithmetic, property access, method
+Any expression works inside `{}`: arithmetic, field access, method
 calls, even an [`if` expression](conditionals.md#if-as-an-expression). The
 value is shown the way [`print`](values.md#printing) shows it.
 
 ```rune
-let order = { item: "tea", qty: 3, price: 2.5, tags: ["gift"] };
+struct Order { item, qty, price, tags }
+
+let order = Order { item: "tea", qty: 3, price: 2.5, tags: ["gift"] };
 
 print("{order.qty} x {order.item}");                         // 3 x tea
 print("total: {order.qty * order.price}");                   // total: 7.5
@@ -151,14 +153,14 @@ A raw multi-line string is the easiest way to embed JSON, which is full of
 
 ```rune
 let body = r"""{"id": 7, "tags": ["new"]}""";
-print(json.parse(body).id);    // 7
+print(json.parse(body)["id"]);    // 7
 ```
 
 In a plain string, the `{` of JSON would start interpolation, so it must be
 written `\{`:
 
 ```rune
-print(json.parse("\{\"ok\": true}").ok);    // true
+print(json.parse("\{\"ok\": true}")["ok"]);    // true
 ```
 
 A line indented less than the closing quotes is an error, unless it is

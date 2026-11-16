@@ -51,7 +51,9 @@ print(classify(30));    // adult
 known, so the right side runs only when needed:
 
 ```rune
-let user = { name: "ann", banned: false, orders: 3 };
+struct User { name, banned, orders }
+
+let user = User { name: "ann", banned: false, orders: 3 };
 
 if user && !user.banned && user.orders > 0 {
     print("{user.name} can leave a review");
@@ -122,15 +124,6 @@ let grade = if score >= 90 {
     "B, {gap} points to A"
 };
 print(grade);    // B, 18 points to A
-```
-
-After `if`, a `{` always starts a block. To give an object, wrap it in
-parentheses:
-
-```rune
-let ok = true;
-let response = if ok { ({ code: 200 }) } else { ({ code: 500 }) };
-print(response);    // {code: 200}
 ```
 
 The bodies of `while`, `for` and `defer` give no value: their last

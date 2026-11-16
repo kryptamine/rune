@@ -13,9 +13,9 @@ fun f(v) { return v + 1; }
   let mut a = [y, w];
   a = [a[1], a[0]];
   print(a); // expect: [4, 5]
-  let mut o = {v: 1};
-  o.v += o.v * 10;
-  print(o.v); // expect: 11
+  let mut o = ["v": 1];
+  o["v"] += o["v"] * 10;
+  print(o["v"]); // expect: 11
   let mut s = "a";
   s = s + s + s;
   print(s); // expect: aaa

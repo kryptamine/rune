@@ -7,7 +7,6 @@ import (
 
 func TestContainersKeepSharedFlagAtOneOffset(t *testing.T) {
 	for name, at := range map[string]uintptr{
-		"Obj":     unsafe.Offsetof(Obj{}.shared),
 		"HashMap": unsafe.Offsetof(HashMap{}.shared),
 		"ByteBuf": unsafe.Offsetof(ByteBuf{}.shared),
 	} {

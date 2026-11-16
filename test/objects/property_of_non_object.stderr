@@ -1,6 +1,0 @@
-TypeError: Cannot read property 'size' of number.
- --> property_of_non_object.rn:2:9
-  |
-1 | let n = 1;
-2 | print(n.size); // expect runtime error: [line: 2] TypeError: Cannot read property 'size' of number.
-  |         ^^^^

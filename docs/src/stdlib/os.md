@@ -6,7 +6,7 @@ The environment, other programs, and the exit code.
 |---|---|
 | `os.env(name)` | the value of an environment variable, or `nil` |
 | `os.setEnv(name, value)`, `os.unsetEnv(name)` | set or remove a variable |
-| `os.environ()` | all variables, as an object |
+| `os.environ()` | all variables, as a map |
 | `os.platform` | `"darwin"`, `"linux"`, `"windows"`, ... |
 | `os.exec(cmd[, args[, opts]])` | runs a command and waits for it |
 | `os.exit([code])` | ends the program |
@@ -61,22 +61,21 @@ try {
 }
 ```
 
-`opts` is an `ExecOptions { input, dir, env }`, or an object with any of
-those keys:
+`opts` is an `ExecOptions { input, dir, env }`; every field is optional:
 
 - `input` — a string fed to the command's stdin;
 - `dir` — the directory to run it in;
-- `env` — an object of variables to add to the current environment.
+- `env` — a map of variables to add to the current environment.
 
 ```rune
-let up = os.exec("tr", ["a-z", "A-Z"], { input: "shout\n" });
+let up = os.exec("tr", ["a-z", "A-Z"], ExecOptions { input: "shout\n" });
 print(up.stdout.trim());      // SHOUT
 
-let here = os.exec("pwd", [], { dir: "/tmp" });
+let here = os.exec("pwd", [], ExecOptions { dir: "/tmp" });
 print(here.stdout.trim());    // /tmp
 
-let greet = os.exec("sh", ["-c", "echo $GREETING, $USER_NAME"], {
-    env: { GREETING: "hi", USER_NAME: "ann" },
+let greet = os.exec("sh", ["-c", "echo $GREETING, $USER_NAME"], ExecOptions {
+    env: ["GREETING": "hi", "USER_NAME": "ann"],
 });
 print(greet.stdout.trim());   // hi, ann
 ```

@@ -16,5 +16,6 @@ let n = "outer";
 print(match 1 { n => n }); // expect: 1
 print(n);                  // expect: outer
 
-let o = { "full name": "ann", age: 3 };
-print(match o { { "full name": who, age: 3 | 4 } => who, _ => "?" }); // expect: ann
+struct Person { name, age }
+let o = Person { name: "ann", age: 3 };
+print(match o { { name: who, age: 3 | 4 } => who, _ => "?" }); // expect: ann

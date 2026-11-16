@@ -1,3 +1,0 @@
-struct S { f }
-let s = S { f: x => x };
-let o = { ...s }; // expect runtime error: [line: 3] TypeError: Property 'f' of an object cannot hold a function.

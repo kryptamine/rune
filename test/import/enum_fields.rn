@@ -16,4 +16,4 @@ for x in xs {
 
 print(xs[1] is s.Shape.Rect);       // expect: true
 print(xs[1] is s.Shape);            // expect: true
-print(s.Shape.Rect { ...{ w: 2, h: 2 } }); // expect: Shape.Rect {w: 2, h: 2}
+print(s.Shape.Rect { ...["w": 2, "h": 2] }); // expect: Shape.Rect {w: 2, h: 2}

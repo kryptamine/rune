@@ -1,0 +1,6 @@
+error: Expect property name after '.'.
+ --> dot_missing_name.rn:2:9
+  |
+1 | let m = [:];
+2 | print(m.); // [line: 2] Error at ')': Expect property name after '.'.
+  |         ^

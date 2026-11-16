@@ -51,13 +51,10 @@ var timeNatives = []*Native{
 		return dateOf(t.In(loc), zone)
 	}},
 	{"time.make", 1, 2, func(c *call) value.Value {
-		d, err := Convert(c.token, Date, c.args[0])
-		if err != nil {
-			c.err = err
+		f, ok := c.structArg(0, Date)
+		if !ok {
 			return value.NilValue
 		}
-
-		f := d.Fields()
 
 		var ymdhm [dateSecond]int
 		for i := range ymdhm {

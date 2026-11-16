@@ -1,4 +1,5 @@
-let mut people = [{name: "bob", age: 25}, {name: "ann", age: 31}];
+struct Person { name, age }
+let mut people = [Person { name: "bob", age: 25 }, Person { name: "ann", age: 31 }];
 let names = people.map(({ name }) => name);
 print(names); // expect: ["bob", "ann"]
 

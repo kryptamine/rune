@@ -8,9 +8,9 @@ for i, mut x in nums {
   // expect: 60
 }
 print(nums); // expect: [50, 60]
-let mut o = {a: 1};
+let mut o = ["a": 1];
 for k, mut v in o {
   v += 1;
   print(v); // expect: 2
 }
-print(o); // expect: {a: 2}
+print(o); // expect: ["a": 2]

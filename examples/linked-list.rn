@@ -3,6 +3,8 @@
 // Nodes live in one array and link by index: a value never refers to
 // another, so a list is a pool of nodes plus the index of its head.
 
+struct Node { data, next }
+
 struct List { nodes = [], head = nil }
 
 impl List {
@@ -19,7 +21,7 @@ impl List {
     }
 
     fun prepend(mut self, data) {
-        self.nodes.push({ data, next: self.head });
+        self.nodes.push(Node { data, next: self.head });
         self.head = self.nodes.len() - 1;
     }
 

@@ -1,0 +1,2 @@
+let m = ["a": 1];
+print(m.a); // expect runtime error: [line: 2] TypeError: Cannot read property 'a' of map.

@@ -1,0 +1,6 @@
+TypeError: Cannot read property 'size' of number.
+ --> read_non_struct.rn:2:9
+  |
+1 | let n = 1;
+2 | print(n.size); // expect runtime error: [line: 2] TypeError: Cannot read property 'size' of number.
+  |         ^^^^

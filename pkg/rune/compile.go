@@ -34,7 +34,7 @@ type funcState struct {
 }
 
 // unit is what the functions of a program share: each name's one string,
-// which string constants and object keys equal to it reuse so the VM can
+// which string constants and field names equal to it reuse so the VM can
 // match a field or property by pointer.
 type unit struct {
 	names map[string]string
@@ -363,15 +363,13 @@ func (fs *funcState) declare(l *ast.Local) int32 {
 	return r
 }
 
-// keyList adds the property names of an object literal or pattern.
-// keyList adds keys to the key lists; toks locates them, or is nil.
-func (fs *funcState) keyList(keys []string, toks []ast.Token) int32 {
+// keyList adds the field names of a record pattern to the key lists.
+func (fs *funcState) keyList(keys []string) int32 {
 	for i, k := range keys {
 		keys[i] = fs.unit.intern(k)
 	}
 
 	fs.proto.keys = append(fs.proto.keys, keys)
-	fs.proto.keyToks = append(fs.proto.keyToks, toks)
 	return int32(len(fs.proto.keys) - 1)
 }
 
@@ -391,7 +389,7 @@ func (fs *funcState) constant(v value.Value) int32 {
 	case value.String:
 		key.str = v.Str()
 		v = value.NewString(fs.unit.intern(key.str))
-	case value.Function, value.Type, value.Enum, value.Struct, value.Array, value.Object, value.Map, value.Set:
+	case value.Function, value.Type, value.Enum, value.Struct, value.Array, value.Map, value.Set:
 		key.ptr = v.Ptr()
 	}
 

@@ -1,0 +1,8 @@
+struct Point { x, y }
+
+impl Point {
+  fun set(mut self, k, v) { self[k] = v; }
+}
+
+let mut p = Point { x: 1, y: 2 };
+print(p["x"]); // expect runtime error: [line: 8] TypeError: Can only index arrays, strings, maps, bytes and buffers, got Point.

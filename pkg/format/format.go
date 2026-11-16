@@ -40,8 +40,8 @@ const (
 func (a *atom) ended() bool { return a.role == operand }
 
 // gap is what precedes an atom: comments, and the newlines before each.
-// brace is what a { opens: a block, a match body, or neither, as for an
-// object.
+// brace is what a { opens: a block, a match body, or neither, as for a
+// struct literal.
 type brace int
 
 const (

@@ -1,5 +1,5 @@
-error: Expect property name in pattern.
+error: Expect field name in pattern.
  --> empty.rn:1:5
   |
-1 | let {} = {}; // Error at '{': Expect property name in pattern.
+1 | let {} = nil; // Error at '{': Expect field name in pattern.
   |     ^

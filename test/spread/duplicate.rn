@@ -1,2 +1,3 @@
-let o = {};
-print({ a: 1, ...o, a: 2 }); // Error at 'a': Duplicate property name.
+struct P { a }
+let p = P { a: 0 };
+print(P { a: 1, ...p, a: 2 }); // Error at 'a': Duplicate field name.

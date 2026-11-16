@@ -1,7 +1,7 @@
 error: Only an if or while condition can bind variables with 'is'.
  --> binding_errors.rn:2:17
   |
-1 | let v = { a: 1 };
+1 | let v = nil;
 2 | let ok = v is { a }; // Error at 'a': Only an if or while condition can bind variables with 'is'.
   |                 ^
 

@@ -12,7 +12,7 @@ syn keyword runeSelf self
 syn match runeAs "\<as\>"
 
 syn keyword runeNamespace string math regex bytes json http time fs io os
-syn keyword runeBuiltin print object number int map set
+syn keyword runeBuiltin print number int map set
 
 syn keyword runeBuiltinType TypeError ArgumentError ValueError IndexError KeyError NameError IOError
 syn keyword runeBuiltinType FileInfo ExecOptions ExecResult Match HttpOptions HttpResponse Date

@@ -1,16 +1,16 @@
 error: Variable with this name already declared in this scope.
- --> redeclare.rn:2:7
+ --> redeclare.rn:3:7
   |
-1 | let { x, x: y } = { x: 1 };
-2 | let { y } = { y: 1 }; // Error at 'y': Variable with this name already declared in this scope.
+2 | let { x, x: y } = P { x: 1, y: 2 };
+3 | let { y } = P { x: 1, y: 2 }; // Error at 'y': Variable with this name already declared in this scope.
   |       ^
   |
-  = hint: 'y' is first declared on line 1; rename one of them
+  = hint: 'y' is first declared on line 2; rename one of them
 
 error: Variable with this name already declared in this scope.
- --> redeclare.rn:4:9
+ --> redeclare.rn:5:9
   |
-4 | fun f({ a }, a) {} // Error at 'a': Variable with this name already declared in this scope.
+5 | fun f({ a }, a) {} // Error at 'a': Variable with this name already declared in this scope.
   |         ^
   |
-  = hint: 'a' is first declared on line 4; rename one of them
+  = hint: 'a' is first declared on line 5; rename one of them

@@ -45,7 +45,7 @@ func (e *Unhashable) Error() string { return "Cannot use " + e.What + " as a key
 func unhashable(k Value) error { return &Unhashable{kindNames[k.Kind()]} }
 
 var kindNames = [NumKinds]string{
-	Array: "an array", Object: "an object", Map: "a map", Set: "a set", Stream: "a stream", Buffer: "a buffer",
+	Array: "an array", Map: "a map", Set: "a set", Stream: "a stream", Buffer: "a buffer",
 	Internal: "an internal value", Undefined: "an undefined value",
 }
 

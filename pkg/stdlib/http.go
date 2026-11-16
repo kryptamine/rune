@@ -45,14 +45,14 @@ var httpNatives = []*Native{
 			return value.NilValue
 		}
 
-		headers := value.NewObj(len(res.Header))
+		headers := value.NewHashMap(len(res.Header))
 		for _, k := range slices.Sorted(maps.Keys(res.Header)) {
-			headers.Set(strings.ToLower(k), value.NewString(strings.Join(res.Header[k], ", ")))
+			_ = headers.Set(value.NewString(strings.ToLower(k)), value.NewString(strings.Join(res.Header[k], ", ")))
 		}
 
 		v, fields := value.NewStruct(HttpResponse)
 		fields[0] = count(res.StatusCode)
-		fields[1] = value.NewObject(headers)
+		fields[1] = value.NewMap(headers)
 
 		if opts.stream {
 			fields[2] = c.host.open(&Stream{name: url, r: bufio.NewReader(body), closer: body})
@@ -67,14 +67,14 @@ var httpNatives = []*Native{
 
 // httpOpts is an HttpOptions read for a request.
 type httpOpts struct {
-	headers *value.Obj
+	headers [][2]string
 	body    io.Reader
 	timeout time.Duration
 	stream  bool
 }
 
 func defaultHTTPOpts() httpOpts {
-	return httpOpts{headers: value.NewObj(0), timeout: defaultTimeout}
+	return httpOpts{timeout: defaultTimeout}
 }
 
 // httpOptions reads argument i, if given, as an HttpOptions.
@@ -84,16 +84,13 @@ func (c *call) httpOptions(i int) httpOpts {
 		return o
 	}
 
-	v, err := Convert(c.token, HttpOptions, c.args[i])
-	if err != nil {
-		c.err = err
+	f, ok := c.structArg(i, HttpOptions)
+	if !ok {
 		return o
 	}
 
-	f := v.Fields()
-
-	if h, ok := c.option(HttpOptions, f, 0, value.Object, "an object"); ok {
-		o.headers = h.Obj()
+	if h, ok := c.option(HttpOptions, f, 0, value.Map, "a map"); ok {
+		o.headers = c.stringEntries(h.HashMap(), "header")
 	}
 
 	if b := f[1]; b.Kind() == value.Bytes {
@@ -168,16 +165,11 @@ func (c *call) send(ctx context.Context, method, url string, o httpOpts) *http.R
 		return nil
 	}
 
-	for k, v := range o.headers.All() {
-		if !v.IsString() {
-			c.fail(errors.TypeError, "expects header '%s' to be a string, got %s.", k, helpers.TypeName(v))
-			return nil
-		}
-
-		if strings.EqualFold(k, "host") {
-			req.Host = v.Str()
+	for _, kv := range o.headers {
+		if strings.EqualFold(kv[0], "host") {
+			req.Host = kv[1]
 		} else {
-			req.Header.Set(k, v.Str())
+			req.Header.Set(kv[0], kv[1])
 		}
 	}
 

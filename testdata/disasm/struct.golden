@@ -1,6 +1,6 @@
 exit: 0
 -- stdout --
-<script>: arity 1, 9 registers, 0 upvalues
+<script>: arity 1, 12 registers, 0 upvalues
     0  LOADK         1 0 0
     1  LOADK         2 0 1
     2  LOADK         3 0 1
@@ -19,10 +19,12 @@ exit: 0
    15  IS            6 3 7
    16  CALL          5 1 1
    17  MOVE          5 4 0
-   18  MOVE          6 1 0
-   19  LOADK         8 0 7
-   20  OBJECT        7 8 0
-   21  CALL          6 1 1
-   22  CALL          5 1 1
-   23  RETURNNIL     0 0 0
+   18  UNDEF         7 2 0
+   19  LOADK         10 0 5
+   20  LOADK         11 0 7
+   21  MAP           9 10 1
+   22  STRUCTSPREAD  7 9 0
+   23  STRUCTFILL    6 7 0
+   24  CALL          5 1 1
+   25  RETURNNIL     0 0 0
 -- stderr --

@@ -5,6 +5,4 @@ impl Point {
 }
 
 let mut p = Point { x: 1, y: 2 };
-p.set("x", 3);
-print(p); // expect: Point {x: 3, y: 2}
-p["x"] = 1; // expect runtime error: [line: 10] TypeError: Cannot set field 'x' of Point outside its mut self methods.
+p.set("x", 3); // expect runtime error: [line: 4] TypeError: Can only index arrays, strings, maps, bytes and buffers, got Point.

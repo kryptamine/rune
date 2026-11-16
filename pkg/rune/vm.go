@@ -418,29 +418,11 @@ reload:
 			}
 
 		case opTestProp:
-			t := *at(regs, in.b())
-			if k := t.Kind(); k == value.Struct {
+			if t := *at(regs, in.b()); t.Kind() == value.Struct {
 				if v, ok := t.InternedField(*at(consts, in.c())); ok {
 					*at(regs, in.a()) = v
 					pc++
 				}
-			} else if k == value.Object {
-				if v, ok := t.Obj().Interned(*at(consts, in.c())); ok {
-					*at(regs, in.a()) = v
-					pc++
-
-					continue
-				}
-
-				fr.pc = pc
-				dst := at(regs, in.a())
-
-				if v, ok := t.Obj().Get(at(consts, in.c()).Str()); ok {
-					*dst = v
-					fr.pc++
-				}
-
-				goto reload
 			}
 
 		case opGetIndex:
@@ -453,13 +435,16 @@ reload:
 					}
 					continue
 				}
-			} else if t.Kind() == value.Object && i.IsString() {
-				if v, ok := t.Obj().Interned(i); ok {
-					*at(regs, in.a()) = v
+			} else if t.Kind() == value.Map {
+				fr.pc = pc
+				dst := at(regs, in.a())
+
+				if v, ok, err := t.HashMap().Get(i); ok && err == nil {
+					*dst = v
 					if in&getShares != 0 {
 						shareGot(in, t, v)
 					}
-					continue
+					goto reload
 				}
 			}
 
@@ -471,9 +456,11 @@ reload:
 					arr[idx] = *at(regs, in.c())
 					continue
 				}
-			} else if t.Kind() == value.Object && i.IsString() && !t.Shared() {
-				if t.Obj().SetInterned(i, *at(regs, in.c())) {
-					continue
+			} else if t.Kind() == value.Map && !t.Shared() {
+				fr.pc = pc
+
+				if t.HashMap().Set(i, *at(regs, in.c())) == nil {
+					goto reload
 				}
 			}
 
@@ -489,44 +476,13 @@ reload:
 					}
 					continue
 				}
-			} else if k == value.Object {
-				if v, ok := t.Obj().Interned(*at(consts, in.c())); ok {
-					*at(regs, in.a()) = v
-					if in&getShares != 0 {
-						shareGot(in, t, v)
-					}
-					continue
-				}
-
-				fr.pc = pc
-				dst := at(regs, in.a())
-
-				if v, ok := t.Obj().Get(at(consts, in.c()).Str()); ok {
-					*dst = v
-					if in&getShares != 0 {
-						shareGot(in, t, v)
-					}
-					goto reload
-				}
 			}
 
 			goto slow
 
 		case opSetProp:
 			t := *at(regs, in.a())
-			if k := t.Kind(); k == value.Object && !t.Shared() {
-				if t.Obj().SetInterned(*at(consts, in.b()), *at(regs, in.c())) {
-					continue
-				}
-
-				if !t.Obj().Set(at(consts, in.b()).Str(), *at(regs, in.c())) {
-					goto slow
-				}
-
-				fr.pc = pc
-
-				goto reload
-			} else if k != value.Struct || !in.y() {
+			if t.Kind() != value.Struct || !in.y() {
 				goto slow
 			}
 
@@ -538,10 +494,7 @@ reload:
 			goto slow
 
 		case opCheckProp:
-			t := *at(regs, in.a())
-			if k := t.Kind(); k == value.Object {
-				continue
-			} else if k == value.Struct && in.y() {
+			if t := *at(regs, in.a()); t.Kind() == value.Struct && in.y() {
 				if t.InternedSlot(*at(consts, in.b())) >= 0 {
 					continue
 				}

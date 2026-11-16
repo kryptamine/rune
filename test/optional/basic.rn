@@ -1,4 +1,6 @@
-let o = { a: { b: 1 }, n: nil, xs: [10, 20] };
+struct A { b }
+struct O { a, n, xs }
+let o = O { a: A { b: 1 }, n: nil, xs: [10, 20] };
 let f = x => x * 2;
 
 print(o?.a?.b); // expect: 1

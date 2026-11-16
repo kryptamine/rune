@@ -1,0 +1,1 @@
+let { ...r = nil } = nil; // Error at '=': A rest element or _ cannot have a default.

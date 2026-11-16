@@ -1,0 +1,6 @@
+TypeError: Cannot read property 'x' of number.
+ --> not_struct.rn:2:10
+  |
+1 | let n = 5;
+2 | print(n?.x); // expect runtime error: [line: 2] TypeError: Cannot read property 'x' of number.
+  |          ^

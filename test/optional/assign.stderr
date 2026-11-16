@@ -1,13 +1,13 @@
 error: Invalid assignment target.
- --> assign.rn:2:6
+ --> assign.rn:3:6
   |
-1 | let mut o = { a: nil };
-2 | o?.a = 1; // Error at '=': Invalid assignment target.
+2 | let mut o = O { a: nil };
+3 | o?.a = 1; // Error at '=': Invalid assignment target.
   |      ^
 
 error: Invalid assignment target.
- --> assign.rn:3:6
+ --> assign.rn:4:6
   |
-2 | o?.a = 1; // Error at '=': Invalid assignment target.
-3 | o?.a += 1; // Error at '+=': Invalid assignment target.
+3 | o?.a = 1; // Error at '=': Invalid assignment target.
+4 | o?.a += 1; // Error at '+=': Invalid assignment target.
   |      ^^

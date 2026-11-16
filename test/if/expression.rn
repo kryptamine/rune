@@ -29,7 +29,7 @@ fun log(v) { calls.push(v); v }
 if log(true) { log("then") } else { log("else") }
 print(calls); // expect: [true, "then"]
 
-print({ a: if x == 5 { 1 } else { 2 } }); // expect: {a: 1}
+print(["a": if x == 5 { 1 } else { 2 }]); // expect: ["a": 1]
 print(0..(if x > 2 { 3 } else { 1 })); // expect: [0, 1, 2]
 print("{if x > 0 { "pos" } else { "neg" }}"); // expect: pos
 
@@ -40,8 +40,8 @@ struct P { x }
 let p = if x > 0 { P { x } } else { nil };
 print(p); // expect: P {x: 5}
 
-let obj = if x > 0 { ({ x }) } else { ({}) };
-print(obj); // expect: {x: 5}
+let m = if x > 0 { ["x": x] } else { [:] };
+print(m); // expect: ["x": 5]
 
 let mut src = [1];
 let copy = if true { src } else { [] };

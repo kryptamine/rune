@@ -1,5 +1,0 @@
-TypeError: Cannot spread array into an object.
- --> not_object.rn:1:9
-  |
-1 | print({ ...[1] }); // expect runtime error: [line: 1] TypeError: Cannot spread array into an object.
-  |         ^^^

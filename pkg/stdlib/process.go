@@ -104,14 +104,14 @@ var osNatives = []*Native{
 	}},
 	{"os.environ", 0, 0, func(*call) value.Value {
 		env := slices.Sorted(slices.Values(os.Environ()))
-		obj := value.NewObj(len(env))
+		m := value.NewHashMap(len(env))
 
 		for _, kv := range env {
 			k, v, _ := strings.Cut(kv, "=")
-			obj.Set(k, value.NewString(v))
+			_ = m.Set(value.NewString(k), value.NewString(v))
 		}
 
-		return value.NewObject(obj)
+		return value.NewMap(m)
 	}},
 	{"os.exit", 0, 1, func(c *call) value.Value {
 		code := 0
@@ -190,15 +190,12 @@ func (c *call) envCheck(err error) {
 	}
 }
 
-// execOptions applies argument 3, an ExecOptions or an object of its fields, to cmd.
+// execOptions applies argument 3, an ExecOptions, to cmd.
 func (c *call) execOptions(cmd *exec.Cmd) {
-	opts, err := Convert(c.token, ExecOptions, c.args[2])
-	if err != nil {
-		c.err = err
+	f, ok := c.structArg(2, ExecOptions)
+	if !ok {
 		return
 	}
-
-	f := opts.Fields()
 
 	if input, ok := c.option(ExecOptions, f, 0, value.String, "a string"); ok {
 		cmd.Stdin = strings.NewReader(input.Str())
@@ -208,31 +205,11 @@ func (c *call) execOptions(cmd *exec.Cmd) {
 		cmd.Dir = dir.Str()
 	}
 
-	if env, ok := c.option(ExecOptions, f, 2, value.Object, "an object"); ok {
+	if env, ok := c.option(ExecOptions, f, 2, value.Map, "a map"); ok {
 		cmd.Env = os.Environ()
 
-		for name, v := range env.Obj().All() {
-			if !v.IsString() {
-				c.fail(errors.TypeError, "expects env '%s' to be a string, got %s.", name, helpers.TypeName(v))
-				return
-			}
-
-			cmd.Env = append(cmd.Env, name+"="+v.Str())
+		for _, kv := range c.stringEntries(env.HashMap(), "env") {
+			cmd.Env = append(cmd.Env, kv[0]+"="+kv[1])
 		}
 	}
-}
-
-// option returns field i of an options struct of shape if it is set; it must be of kind.
-func (c *call) option(shape *value.Shape, fields []value.Value, i int, kind value.Kind, want string) (value.Value, bool) {
-	v := fields[i]
-	if v.IsNil() || !c.ok() {
-		return v, false
-	}
-
-	if v.Kind() != kind {
-		c.fail(errors.TypeError, "expects %s.%s to be %s, got %s.", shape.Name, shape.Fields[i], want, helpers.TypeName(v))
-		return v, false
-	}
-
-	return v, true
 }

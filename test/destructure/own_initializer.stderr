@@ -1,6 +1,6 @@
 error: Cannot read local variable in its own initializer.
- --> own_initializer.rn:2:20
+ --> own_initializer.rn:3:22
   |
-1 | {
-2 |   let { a } = { a: a }; // Error at 'a': Cannot read local variable in its own initializer.
-  |                    ^
+2 | {
+3 |   let { a } = A { a: a }; // Error at 'a': Cannot read local variable in its own initializer.
+  |                      ^

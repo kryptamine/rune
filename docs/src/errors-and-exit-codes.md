@@ -62,25 +62,27 @@ it, the program stops, and the report also lists the calls the error
 passed through, innermost first:
 
 ```rune
+struct Order { price, qty }
+
 fun total(order) {
     order.price * order.qty
 }
 
-let orders = [{ price: 10, qty: 2 }, 5];
+let orders = [Order { price: 10, qty: 2 }, 5];
 print(orders.map(total));
 ```
 
 ```
 TypeError: Cannot read property 'price' of number.
- --> main.rn:2:11
+ --> main.rn:4:11
   |
-1 | fun total(order) {
-2 |     order.price * order.qty
+3 | fun total(order) {
+4 |     order.price * order.qty
   |           ^^^^^
 
-  at total (main.rn:2)
+  at total (main.rn:4)
   at array.map (native)
-  at <script> (main.rn:6)
+  at <script> (main.rn:8)
 ```
 
 The first word, here `TypeError`, is the error's type. [Error

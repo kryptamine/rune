@@ -8,16 +8,16 @@ print(nil is nil); // expect: true
 print(1 is number); // expect: true
 print("s" is string); // expect: true
 print([] is array); // expect: true
-print({} is object); // expect: true
+print([:] is map); // expect: true
 print(int is function); // expect: true
 print((() => {}) is function); // expect: true
 
-print({ ...p }.len()); // expect: 2
-print({ ...Empty {} }.len()); // expect: 0
+print(map(p).len()); // expect: 2
+print(map(Empty {}).len()); // expect: 0
 
-let mut o = { ...p };
-print(o); // expect: {x: 1, y: 0}
-o.x = 5;
+let mut o = map(p);
+print(o); // expect: ["x": 1, "y": 0]
+o["x"] = 5;
 print(p.x); // expect: 1
-print({ ...p } == p); // expect: false
-print(Point { ...{ ...p } } == p); // expect: true
+print(map(p) == p); // expect: false
+print(Point { ...map(p) } == p); // expect: true

@@ -1,4 +1,5 @@
-let mut node = { v: 1, next: { v: 2, next: nil } };
+struct Node { v, next }
+let mut node = Node { v: 1, next: Node { v: 2, next: nil } };
 
 while node?.v {
   print(node.v);

@@ -154,9 +154,9 @@ func NewWhileStmt(condition Expr, body Stmt) Stmt {
 	return &WhileStmt{Condition: condition, Body: body}
 }
 
-// ForInStmt iterates over an array (elements), a string (characters) or an
-// object (keys, in sorted order). With two variables, Key gets the index
-// (or the object key) and Value the element. Each iteration binds them anew.
+// ForInStmt iterates over an array (elements), a string (characters), a
+// map (keys) and more. With two variables, Key gets the index (or the map
+// key) and Value the element. Each iteration binds them anew.
 type ForInStmt struct {
 	Keyword  Token
 	Key      *Binding

@@ -29,9 +29,11 @@ fun captured(x, n = 2) { return () => x * n; }
 print(captured(3)()); // expect: 6
 print(captured(3, 5)()); // expect: 15
 
-fun point({ x, y } = { x: 0, y: 0 }) { return [x, y]; }
+struct Point { x, y }
+
+fun point({ x, y } = Point { x: 0, y: 0 }) { return [x, y]; }
 print(point()); // expect: [0, 0]
-print(point({ x: 1, y: 2 })); // expect: [1, 2]
+print(point(Point { x: 1, y: 2 })); // expect: [1, 2]
 
 fun pair([a, b] = [1, 2]) { return a + b; }
 print(pair()); // expect: 3

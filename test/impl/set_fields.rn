@@ -4,7 +4,7 @@ impl Point {
   fun move(mut self, dx, dy) {
     self.x += dx;
     self.y = self.y + dy;
-    self["x"] *= 2;
+    self.x *= 2;
     self.y += 1;
   }
 }

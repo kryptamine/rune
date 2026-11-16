@@ -8,5 +8,5 @@ print(l.to.y); // expect: 4
 let ps = [Point { x: 1, y: 1 }, Point { x: 2, y: 2 }];
 print(ps[1].x); // expect: 2
 
-let o = { "p": Point { x: 5, y: 6 } };
-print(o.p.y); // expect: 6
+let o = ["p": Point { x: 5, y: 6 }];
+print(o["p"].y); // expect: 6

@@ -1,6 +1,0 @@
-TypeError: Struct fields must be accessed with string keys.
- --> number_index.rn:4:10
-  |
-3 | let p = Point { x: 1, y: 2 };
-4 | print(p[0]); // expect runtime error: [line: 4] TypeError: Struct fields must be accessed with string keys.
-  |          ^

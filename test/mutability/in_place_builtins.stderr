@@ -37,8 +37,8 @@ error: Cannot mutate immutable variable 'a'.
 error: Cannot mutate immutable variable 'o'.
  --> in_place_builtins.rn:7:1
   |
-6 | let o = { xs: [] };
-7 | o.xs.push(1); // Error at 'o': Cannot mutate immutable variable 'o'.
+6 | let o = ["xs": []];
+7 | o["xs"].push(1); // Error at 'o': Cannot mutate immutable variable 'o'.
   | ^
   |
   = hint: declare it as 'mut o' on line 6
@@ -46,8 +46,8 @@ error: Cannot mutate immutable variable 'o'.
 error: Cannot mutate immutable variable 'o'.
  --> in_place_builtins.rn:8:2
   |
-7 | o.xs.push(1); // Error at 'o': Cannot mutate immutable variable 'o'.
-8 | (o?.xs).push(1); // Error at 'o': Cannot mutate immutable variable 'o'.
+7 | o["xs"].push(1); // Error at 'o': Cannot mutate immutable variable 'o'.
+8 | (o?.["xs"]).push(1); // Error at 'o': Cannot mutate immutable variable 'o'.
   |  ^
   |
   = hint: declare it as 'mut o' on line 6
@@ -55,7 +55,7 @@ error: Cannot mutate immutable variable 'o'.
 error: Cannot mutate immutable variable 'o'.
  --> in_place_builtins.rn:9:1
   |
-8 | (o?.xs).push(1); // Error at 'o': Cannot mutate immutable variable 'o'.
+8 | (o?.["xs"]).push(1); // Error at 'o': Cannot mutate immutable variable 'o'.
 9 | o.delete("xs"); // Error at 'o': Cannot mutate immutable variable 'o'.
   | ^
   |

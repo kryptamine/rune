@@ -1,1 +1,1 @@
-print({ a: 1 }[0..]); // expect runtime error: [line: 1] TypeError: Cannot slice object; only an array, a string, bytes or a buffer.
+print(["a": 1][0..]); // expect runtime error: [line: 1] TypeError: Cannot slice map; only an array, a string, bytes or a buffer.

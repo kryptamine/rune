@@ -7,4 +7,3 @@ impl Handler {
 let h = Handler { on: x => x * 2 };
 print((h.on)(4)); // expect: 8
 print(h.fire(5)); // expect: 10
-print(h["on"](2)); // expect: 4

@@ -1,7 +1,6 @@
 package stdlib
 
 import (
-	"iter"
 	"rune/pkg/errors"
 	"rune/pkg/helpers"
 	"rune/pkg/value"
@@ -40,42 +39,6 @@ func (c *call) keyErr(err error) bool {
 	return err == nil
 }
 
-// entries walks argument i, if given, as key/value pairs: those of a map,
-// an object or a struct, or an array of [key, value] pairs.
-func (c *call) entries(i int) iter.Seq2[value.Value, value.Value] {
-	return func(yield func(k, v value.Value) bool) {
-		if !c.has(i) {
-			return
-		}
-
-		switch src := c.args[i]; src.Kind() {
-		case value.Map:
-			src.HashMap().Each(yield)
-		case value.Object:
-			for k, v := range src.Obj().All() {
-				if !yield(value.NewString(k), v) {
-					return
-				}
-			}
-		case value.Struct:
-			for k, v := range src.FieldPairs() {
-				if !yield(value.NewString(k), v) {
-					return
-				}
-			}
-		case value.Array:
-			for _, p := range src.Arr() {
-				k, v, ok := c.pair(p)
-				if !ok || !yield(k, v) {
-					return
-				}
-			}
-		default:
-			c.typeError(i, "a map, an object, a struct or an array of pairs")
-		}
-	}
-}
-
 // result is v, unless the call failed.
 func (c *call) result(v value.Value) value.Value {
 	if !c.ok() {
@@ -96,35 +59,26 @@ func (c *call) pair(v value.Value) (k, x value.Value, ok bool) {
 }
 
 var collectionNatives = []*Native{
-	{"map", 0, 1, func(c *call) value.Value {
+	{"map", 1, 1, func(c *call) value.Value {
 		m := value.NewHashMap(0)
-		for k, v := range c.entries(0) {
-			if !c.keyErr(m.Set(k, value.Share(v))) {
-				break
+
+		switch src := c.args[0]; src.Kind() {
+		case value.Struct:
+			for k, v := range src.FieldPairs() {
+				_ = m.Set(value.NewString(k), value.Share(v))
 			}
+		case value.Array:
+			for _, p := range src.Arr() {
+				k, v, ok := c.pair(p)
+				if !ok || !c.keyErr(m.Set(k, value.Share(v))) {
+					break
+				}
+			}
+		default:
+			return c.typeError(0, "a struct or an array of pairs")
 		}
 
 		return c.result(value.NewMap(m))
-	}},
-	{"object", 1, 1, func(c *call) value.Value {
-		if c.args[0].Kind() != value.Map && c.args[0].Kind() != value.Array {
-			return c.typeError(0, "a map or an array of pairs")
-		}
-
-		obj := value.NewObj(0)
-		for k, v := range c.entries(0) {
-			if !k.IsString() {
-				c.fail(errors.TypeError, "expects string keys, got %s.", helpers.Quoted(k))
-				break
-			}
-
-			if !obj.Set(k.Str(), value.Share(v)) {
-				c.fail(errors.TypeError, "%s", helpers.FunctionProperty(k.Str()))
-				break
-			}
-		}
-
-		return c.result(value.NewObject(obj))
 	}},
 	{"set", 0, 1, func(c *call) value.Value {
 		if !c.has(0) {

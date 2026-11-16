@@ -11,10 +11,3 @@ error: Cannot assign to '_'.
 2 | print(_); // Error at '_': Cannot read '_'.
 3 | _ = 2; // Error at '_': Cannot assign to '_'.
   | ^
-
-error: Cannot read '_'.
- --> read.rn:4:11
-  |
-3 | _ = 2; // Error at '_': Cannot assign to '_'.
-4 | let o = { _ }; // Error at '_': Cannot read '_'.
-  |           ^

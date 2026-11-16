@@ -1,7 +1,7 @@
-let xs = [1, [2], { a: 3 }];
+let xs = [1, [2], ["a": 3]];
 print(1 in xs); // expect: true
 print([2] in xs); // expect: true
-print({ a: 3 } in xs); // expect: true
+print(["a": 3] in xs); // expect: true
 print(4 in xs); // expect: false
 print(4 !in xs); // expect: true
 print(1.0 in xs); // expect: true
@@ -10,13 +10,13 @@ print("ell" in "hello"); // expect: true
 print("" in ""); // expect: true
 print("z" !in "hello"); // expect: true
 
-let o = { k: nil };
+let o = ["k": nil];
 print("k" in o); // expect: true
 print("v" in o); // expect: false
 
 struct P { x }
-print(P { x: 1 } in map([[P { x: 1 }, 0]])); // expect: true
-print(2 in map([[1, 0]])); // expect: false
+print(P { x: 1 } in [P { x: 1 }: 0]); // expect: true
+print(2 in [1: 0]); // expect: false
 print("a" in set(["a"])); // expect: true
 
 print(104 in b"hi"); // expect: true

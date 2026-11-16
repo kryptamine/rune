@@ -38,7 +38,7 @@ print(regex.test(r"\d", "room 101"));   // true
 - `index` — where it starts in `s`;
 - `groups` — the text of each group `(...)`, `nil` for a group that did
   not take part;
-- `named` — an object of the named groups, `(?P<name>...)`.
+- `named` — a map of the named groups, `(?P<name>...)`.
 
 ```rune
 let line = "GET /api/users 200 12ms";
@@ -55,8 +55,8 @@ Named groups read better when there are several:
 
 ```rune
 let d = regex.find(r"(?P<year>\d{4})-(?P<month>\d\d)", "released 2026-11");
-print(d.named);         // {year: "2026", month: "11"}
-print(d.named.year);    // 2026
+print(d.named);            // ["year": "2026", "month": "11"]
+print(d.named["year"]);    // 2026
 print(d.index);         // 9
 
 print(regex.find(r"\d+", "no digits"));             // nil
@@ -72,7 +72,7 @@ print(regex.findAll(r"\d+", text).map(m => number(m.text)));      // [7, 42, 108
 print(regex.findAll(r"\d+", text, 2).map(m => m.text));        // ["7", "42"]
 
 let pairs = regex.findAll(r"(\w+)=(\w+)", "user=ann role=admin");
-print(object(pairs.map(m => m.groups)));                       // {user: "ann", role: "admin"}
+print(map(pairs.map(m => m.groups)));                          // ["user": "ann", "role": "admin"]
 ```
 
 ## replace

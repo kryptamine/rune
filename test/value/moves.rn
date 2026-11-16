@@ -118,7 +118,8 @@ let mut src = [1];
 let [mut d = src] = [];
 d.push(2);
 print(src); // expect: [1]
-let { mut e = src } = {};
+struct Empty {}
+let { mut e = src } = Empty {};
 e.push(3);
 print(src); // expect: [1]
 

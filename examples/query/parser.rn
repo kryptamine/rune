@@ -16,12 +16,12 @@ const KEYWORDS = [
 
 let RESERVED = set(KEYWORDS);
 
-let PRECEDENCE = map({
+let PRECEDENCE = [
     "OR": 1, "AND": 2,
     "=": 4, "<>": 4, "!=": 4, "<": 4, "<=": 4, ">": 4, ">=": 4,
     "IS": 4, "IN": 4, "BETWEEN": 4, "LIKE": 4, "NOT": 4,
     "||": 5, "+": 6, "-": 6, "*": 7, "/": 7, "%": 7,
-});
+];
 
 fun tokenize(src) {
     let mut tokens = [];
@@ -29,12 +29,18 @@ fun tokenize(src) {
     for m in regex.findAll(TOKEN_RE, src) {
         let pos = m.index;
 
-        tokens.push(match m.named {
-            { num } if num != nil => Token { kind: Kind.Num, text: num, pos },
-            { str } if str != nil => Token { kind: Kind.Str, text: str[1..-1].replace("''", "'"), pos },
-            { id } if id != nil => Token { kind: Kind.Id, text: id, pos, word: id.upper() },
-            { op } if op != nil => Token { kind: Kind.Op, text: op, pos },
-            { bad } => throw ast.SqlError { message: "unexpected character '{bad}'", pos },
+        let g = m.named;
+
+        tokens.push(if g["num"] != nil {
+            Token { kind: Kind.Num, text: g["num"], pos }
+        } else if g["str"] != nil {
+            Token { kind: Kind.Str, text: g["str"][1..-1].replace("''", "'"), pos }
+        } else if g["id"] != nil {
+            Token { kind: Kind.Id, text: g["id"], pos, word: g["id"].upper() }
+        } else if g["op"] != nil {
+            Token { kind: Kind.Op, text: g["op"], pos }
+        } else {
+            throw ast.SqlError { message: "unexpected character '{g["bad"]}'", pos }
         });
     }
 

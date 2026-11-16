@@ -3,7 +3,7 @@ let { f, n } = Pair { f: () => { return n; }, n: 5 };
 print(f()); // expect: 5
 
 fun make() {
-  let { mut count } = { count: 0 };
+  let { n: mut count } = Pair { f: nil, n: 0 };
   return () => { count += 1; return count; };
 }
 
@@ -11,8 +11,8 @@ let c = make();
 c();
 print(c()); // expect: 2
 
-fun capture({ x }) {
-  return () => { return x; };
+fun capture({ n }) {
+  return () => { return n; };
 }
 
-print(capture({ x: 7 })()); // expect: 7
+print(capture(Pair { f: nil, n: 7 })()); // expect: 7

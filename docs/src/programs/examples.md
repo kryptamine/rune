@@ -46,7 +46,7 @@ rule kind (`Str`, `Duration`, `List`, `Tagged`...), matched with struct
 patterns. Every problem is reported with its path (`routes[2].auth.type`),
 unknown keys get a "did you mean", and checks across fields run on the
 normalized config with `?.` and `??`. Old config versions are upgraded
-first by migrations that reshape objects with destructuring and spread.
+first by migrations that reshape maps by key.
 
 ```sh
 rune run examples/validate.rn                         # a good, a legacy and a broken config

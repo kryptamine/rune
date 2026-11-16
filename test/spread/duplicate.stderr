@@ -1,6 +1,6 @@
-error: Duplicate property name.
- --> duplicate.rn:2:21
+error: Duplicate field name.
+ --> duplicate.rn:3:23
   |
-1 | let o = {};
-2 | print({ a: 1, ...o, a: 2 }); // Error at 'a': Duplicate property name.
-  |                     ^
+2 | let p = P { a: 0 };
+3 | print(P { a: 1, ...p, a: 2 }); // Error at 'a': Duplicate field name.
+  |                       ^

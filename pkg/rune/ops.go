@@ -13,11 +13,6 @@ import (
 	"unicode/utf8"
 )
 
-func undefinedProperty(token *ast.Token, obj value.Value, key string) error {
-	err := errors.NewRuntimeError(errors.KeyError, *token, fmt.Sprintf("Undefined property '%s'.", key))
-	return errors.WithHint(err, errors.DidYouMean(key, obj.Obj().Keys()))
-}
-
 func undefinedField(token *ast.Token, shape *value.Shape, key string) error {
 	err := errors.NewRuntimeError(errors.KeyError, *token, errors.NoField(shape.Name, key))
 	return errors.WithHint(err, errors.DidYouMean(key, slices.Values(shape.Fields), methodNames(shape.Methods)))
@@ -30,10 +25,6 @@ func readOnlyField(token *ast.Token, shape *value.Shape, key string) error {
 
 // setField sets the field of the struct target that key names to v.
 func setField(token *ast.Token, target, key, v value.Value) error {
-	if !key.IsString() {
-		return errors.NewRuntimeError(errors.TypeError, *token, "Struct fields must be accessed with string keys.")
-	}
-
 	slot := target.Shape().Index(key.Str())
 	if slot < 0 {
 		return undefinedField(token, target.Shape(), key.Str())
@@ -58,12 +49,10 @@ func variant(token *ast.Token, shape *value.Shape, args []value.Value) (value.Va
 	return stdlib.Variant(token, shape, args[0])
 }
 
-// propertyTarget fails unless target can have a property set, as only
-// an object can.
+// propertyTarget is the error of setting a property of target outside
+// a mut self method.
 func propertyTarget(token *ast.Token, target value.Value) error {
 	switch target.Kind() {
-	case value.Object:
-		return nil
 	case value.Struct:
 		return readOnlyField(token, target.Shape(), token.Lexeme)
 	default:
@@ -71,14 +60,14 @@ func propertyTarget(token *ast.Token, target value.Value) error {
 	}
 }
 
-// propertyError is the error of obj.name (verb "read") or obj.name = v
-// ("set") on a target that is not an object.
+// propertyError is the error of x.name (verb "read") or x.name = v
+// ("set") on a target that has no fields.
 func propertyError(verb string, token *ast.Token, target value.Value) error {
 	return errors.NewRuntimeError(errors.TypeError, *token, fmt.Sprintf(
 		"Cannot %s property '%s' of %s.", verb, token.Lexeme, helpers.TypeName(target)))
 }
 
-// getIndex reads target[index] for an array, string, object or struct target.
+// getIndex reads target[index] for an array, string, map, bytes or buffer target.
 func getIndex(token *ast.Token, target, index value.Value) (value.Value, error) {
 	v, found, err := lookup(token, target, index)
 	if found || err != nil {
@@ -86,18 +75,14 @@ func getIndex(token *ast.Token, target, index value.Value) (value.Value, error) 
 	}
 
 	switch target.Kind() {
-	case value.Object:
-		return v, undefinedProperty(token, target, index.Str())
 	case value.Map:
 		return v, errors.NewRuntimeError(errors.KeyError, *token, "Key not found: "+helpers.Quoted(index)+".")
-	case value.Struct:
-		return v, undefinedField(token, target.Shape(), index.Str())
 	default:
 		return v, outOfBounds(token, target, index)
 	}
 }
 
-// lookup is getIndex, but reports a missing element, property or field
+// lookup is getIndex, but reports a missing element or key by found
 // by found instead of an error.
 func lookup(token *ast.Token, target, index value.Value) (value.Value, bool, error) {
 	switch target.Kind() {
@@ -115,15 +100,6 @@ func lookup(token *ast.Token, target, index value.Value) (value.Value, bool, err
 			return value.NewInt(int64(b[idx])), true, nil
 		}
 
-	case value.Object:
-		if !index.IsString() {
-			return value.NilValue, false, errors.NewRuntimeError(errors.TypeError, *token, "Object keys must be strings.")
-		}
-
-		v, found := target.Obj().Get(index.Str())
-
-		return v, found, nil
-
 	case value.Map:
 		v, found, err := target.HashMap().Get(index)
 		if err != nil {
@@ -132,21 +108,10 @@ func lookup(token *ast.Token, target, index value.Value) (value.Value, bool, err
 
 		return v, found, nil
 
-	case value.Struct:
-		if !index.IsString() {
-			return value.NilValue, false, errors.NewRuntimeError(errors.TypeError, *token, "Struct fields must be accessed with string keys.")
-		}
-
-		i := target.Shape().Index(index.Str())
-		if i < 0 {
-			return value.NilValue, false, nil
-		}
-
-		return target.Fields()[i], true, nil
 	}
 
 	return value.NilValue, false, errors.NewRuntimeError(errors.TypeError, *token, fmt.Sprintf(
-		"Can only index arrays, strings, objects, structs, maps, bytes and buffers, got %s.", helpers.TypeName(target)))
+		"Can only index arrays, strings, maps, bytes and buffers, got %s.", helpers.TypeName(target)))
 }
 
 func setIndex(token *ast.Token, target, index, v value.Value) error {
@@ -158,17 +123,6 @@ func setIndex(token *ast.Token, target, index, v value.Value) error {
 		}
 
 		target.Arr()[idx] = v
-
-		return nil
-
-	case value.Object:
-		if !index.IsString() {
-			return errors.NewRuntimeError(errors.TypeError, *token, "Object properties must be accessed with string keys.")
-		}
-
-		if !target.Obj().Set(index.Str(), v) {
-			return functionProperty(token, index.Str())
-		}
 
 		return nil
 
@@ -200,16 +154,9 @@ func setIndex(token *ast.Token, target, index, v value.Value) error {
 
 		return nil
 
-	case value.Struct:
-		if !index.IsString() {
-			return errors.NewRuntimeError(errors.TypeError, *token, "Struct fields must be accessed with string keys.")
-		}
-
-		return readOnlyField(token, target.Shape(), index.Str())
-
 	default:
 		return errors.NewRuntimeError(errors.TypeError, *token, fmt.Sprintf(
-			"Can only index arrays, strings, objects, structs, maps, bytes and buffers, got %s.", helpers.TypeName(target)))
+			"Can only index arrays, strings, maps, bytes and buffers, got %s.", helpers.TypeName(target)))
 	}
 }
 
@@ -258,10 +205,4 @@ func length(target value.Value) int {
 	}
 
 	return utf8.RuneCountInString(target.Str())
-}
-
-// functionProperty is the error of a function put in property key of an
-// object, which Obj.Set refuses.
-func functionProperty(token *ast.Token, key string) error {
-	return errors.WithHint(errors.NewRuntimeError(errors.TypeError, *token, helpers.FunctionProperty(key)), helpers.FunctionPropertyHint)
 }

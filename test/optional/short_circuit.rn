@@ -1,4 +1,5 @@
-let o = { n: nil };
+struct O { n }
+let o = O { n: nil };
 
 fun side() {
   print("side");
@@ -11,4 +12,4 @@ print(o.n?.[side()]); // expect: nil
 print(o.n?.(side()).x); // expect: nil
 
 // A grouping ends the chain.
-(o.n?.b).c; // expect runtime error: [line: 14] TypeError: Cannot read property 'c' of nil.
+(o.n?.b).c; // expect runtime error: [line: 15] TypeError: Cannot read property 'c' of nil.

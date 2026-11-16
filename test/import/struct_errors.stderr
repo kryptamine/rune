@@ -21,7 +21,7 @@ error: Module 'math' has no export 'Nope'.
 error: 'o' is not a module.
  --> struct_errors.rn:7:1
   |
-6 | let o = {};
+6 | let o = [:];
 7 | o.Vec { x: 1 }; // Error at 'o': 'o' is not a module.
   | ^
 

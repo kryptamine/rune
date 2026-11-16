@@ -3,6 +3,6 @@ addTag(["x"], "y"); // [line: 2] Error at ')': Mut parameter 'tags' takes a muta
 let fixed = [];
 addTag(fixed, 1); // [line: 4] Error at 'fixed': Cannot pass immutable variable 'fixed' to mut parameter 'tags'.
 fun pass(xs) { addTag(xs, 1); } // [line: 5] Error at 'xs': Cannot pass immutable variable 'xs' to mut parameter 'tags'.
-let o = { xs: [] };
-addTag(o.xs, 1); // [line: 7] Error at 'o': Cannot pass immutable variable 'o' to mut parameter 'tags'.
+let o = ["xs": []];
+addTag(o["xs"], 1); // [line: 7] Error at 'o': Cannot pass immutable variable 'o' to mut parameter 'tags'.
 addTag(pass([]), 1); // [line: 8] Error at ')': Mut parameter 'tags' takes a mutable variable, element or property.

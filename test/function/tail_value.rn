@@ -1,8 +1,8 @@
 fun sq(x) { x * x }
 print(sq(4)); // expect: 16
 
-fun origin() { ({ x: 0, y: 0 }) }
-print(origin()); // expect: {x: 0, y: 0}
+fun origin() { ["x": 0, "y": 0] }
+print(origin()); // expect: ["x": 0, "y": 0]
 
 fun log(m) { print("log " + m); }
 print(log("hi")); // expect: log hi

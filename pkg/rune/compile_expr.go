@@ -75,8 +75,6 @@ func assigns(e ast.Expr) bool {
 		return assigns(n.Expr)
 	case *ast.SpreadExpr:
 		return assigns(n.Expr)
-	case *ast.ComputedExpr:
-		return assigns(n.Key) || assigns(n.Value)
 	case *ast.BinaryExpr:
 		return assigns(n.Left) || assigns(n.Right)
 	case *ast.LogicalExpr:
@@ -94,14 +92,8 @@ func assigns(e ast.Expr) bool {
 		return anyAssigns(n.Items)
 	case *ast.InterpolationExpr:
 		return anyAssigns(n.Parts)
-	case *ast.ObjectExpr:
-		for _, p := range n.Pairs {
-			if assigns(p.Value) {
-				return true
-			}
-		}
-
-		return false
+	case *ast.MapExpr:
+		return anyAssigns(n.Items)
 	case *ast.StructExpr:
 		return pairsAssign(n.Pairs)
 	case *ast.IsExpr:
@@ -255,7 +247,7 @@ func fresh(e ast.Expr) bool {
 	switch n := unwrap(e).(type) {
 	case *ast.VarExpr:
 		return isConst(n) || n.Moves && n.Local.Param == 0
-	case *ast.LiteralExpr, *ast.ArrayExpr, *ast.ObjectExpr, *ast.StructExpr, *ast.CallExpr,
+	case *ast.LiteralExpr, *ast.ArrayExpr, *ast.MapExpr, *ast.StructExpr, *ast.CallExpr,
 		*ast.BinaryExpr, *ast.UnaryExpr, *ast.InterpolationExpr, *ast.RangeExpr, *ast.FunctionExpr,
 		*ast.SliceExpr, *ast.IsExpr:
 		return true
@@ -353,21 +345,14 @@ func (fs *funcState) expr(e ast.Expr, dst int32) {
 	case *ast.CallExpr:
 		fs.call(n, dst)
 	case *ast.ArrayExpr:
-		fs.literal(dst, len(n.Items), true, func(i int) ast.Expr { return n.Items[i] }, arrayChunk)
+		fs.literal(dst, len(n.Items), true, nil, func(i int) ast.Expr { return n.Items[i] }, arrayChunk)
 	case *ast.InterpolationExpr:
-		fs.literal(dst, len(n.Parts), false, func(i int) ast.Expr { return n.Parts[i] }, func(from, to int, base int32) ins {
+		fs.literal(dst, len(n.Parts), false, nil, func(i int) ast.Expr { return n.Parts[i] }, func(from, to int, base int32) ins {
 			return ins{op: opConcat, b: base, c: int32(to - from)}
 		})
-	case *ast.ObjectExpr:
-		fs.literal(dst, len(n.Pairs), true, func(i int) ast.Expr { return n.Pairs[i].Value }, func(from, to int, base int32) ins {
-			keys := make([]string, 0, to-from)
-			toks := make([]ast.Token, 0, to-from)
-			for _, pair := range n.Pairs[from:to] {
-				keys = append(keys, pair.Key)
-				toks = append(toks, pair.Token)
-			}
-
-			return ins{op: opObject, b: base, c: fs.keyList(keys, toks)}
+	case *ast.MapExpr:
+		fs.literal(dst, len(n.Items), true, &n.Bracket, func(i int) ast.Expr { return n.Items[i] }, func(from, to int, base int32) ins {
+			return ins{op: opMap, b: base, c: int32(to-from) / 2}
 		})
 	case *ast.StructExpr:
 		fs.structLiteral(n, dst)
@@ -404,13 +389,14 @@ func arrayChunk(from, to int, base int32) ins {
 	return ins{op: opArray, b: base, c: int32(to - from)}
 }
 
-// literalChunk caps the registers an array or object literal takes; a
+// literalChunk caps the registers an array or map literal takes; a
 // longer one is built a chunk at a time, each adding to the first (X).
+// It is even, so a chunk of a map holds whole entries.
 const literalChunk = 256
 
-func (fs *funcState) literal(dst int32, n int, copies bool, item func(i int) ast.Expr, build func(from, to int, base int32) ins) {
+func (fs *funcState) literal(dst int32, n int, copies bool, tok *ast.Token, item func(i int) ast.Expr, build func(from, to int, base int32) ins) {
 	for i := range n {
-		if ast.Standalone(item(i)) {
+		if ast.IsSpread(item(i)) {
 			fs.piecewiseLiteral(dst, n, item, build)
 			return
 		}
@@ -435,16 +421,16 @@ func (fs *funcState) literal(dst int32, n int, copies bool, item func(i int) ast
 
 		in := build(from, to, base)
 		in.a, in.x = target, uint8(boolNum(from > 0))
-		fs.emit(in, nil)
+		fs.emit(in, tok)
 		fs.free = base
 	}
 
 	fs.move(dst, target)
 }
 
-// piecewiseLiteral builds a literal with standalone items from an empty
-// one, adding each run of plain items a chunk at a time and each
-// standalone item on its own.
+// piecewiseLiteral builds an array literal with spreads from an empty
+// one, adding each run of plain items a chunk at a time and each spread
+// on its own.
 func (fs *funcState) piecewiseLiteral(dst int32, n int, item func(i int) ast.Expr, build func(from, to int, base int32) ins) {
 	target := dst
 	if dst < fs.nactive {
@@ -462,15 +448,9 @@ func (fs *funcState) piecewiseLiteral(dst int32, n int, item func(i int) ast.Exp
 		case *ast.SpreadExpr:
 			fs.emit(ins{op: opSpread, a: target, b: fs.exprAny(it.Expr)}, &it.Token)
 			from++
-		case *ast.ComputedExpr:
-			k, v := fs.alloc(), fs.alloc()
-			fs.expr(it.Key, k)
-			fs.copyExpr(it.Value, v)
-			fs.emit(ins{op: opSetIndex, a: target, b: k, c: v}, &it.Bracket)
-			from++
 		default:
 			to := from
-			for to < n && to-from < literalChunk && !ast.Standalone(item(to)) {
+			for to < n && to-from < literalChunk && !ast.IsSpread(item(to)) {
 				fs.copyExpr(item(to), fs.alloc())
 				to++
 			}
@@ -750,7 +730,7 @@ func (fs *funcState) call(n *ast.CallExpr, dst int32) {
 	if sp, ok := n.Args[0].(*ast.SpreadExpr); ok && len(n.Args) == 1 {
 		fs.expr(sp.Expr, args)
 	} else {
-		fs.literal(args, len(n.Args), false, func(i int) ast.Expr { return n.Args[i] }, arrayChunk)
+		fs.literal(args, len(n.Args), false, nil, func(i int) ast.Expr { return n.Args[i] }, arrayChunk)
 	}
 
 	fs.emit(ins{op: opCallArray, a: base}, &n.Token)

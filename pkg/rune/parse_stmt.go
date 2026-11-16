@@ -510,10 +510,6 @@ func (s *Parser) expressionStatement() (ast.Stmt, error) {
 
 // braced parses a block if "{" is next; if valued, it may end in a value.
 func (s *Parser) braced(valued bool) (*ast.BlockStmt, error) {
-	if s.isObjectLiteralStart() {
-		return nil, errors.NewSyntaxError(s.peek(), "A '{' here starts a block; wrap an object in parentheses: ({ ... }).")
-	}
-
 	s.advance()
 	s.braces.Blocks = append(s.braces.Blocks, s.current-1)
 

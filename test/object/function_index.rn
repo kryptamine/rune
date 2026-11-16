@@ -1,3 +1,0 @@
-let f = [x => x][0];
-let mut o = { a: 1 };
-o["a"] = f; // expect runtime error: [line: 3] TypeError: Property 'a' of an object cannot hold a function.

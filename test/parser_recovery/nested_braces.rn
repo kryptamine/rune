@@ -3,7 +3,7 @@ fun page({ title, root ! "." }) { // Error at '!': Expect '}' after pattern.
 }
 
 fun a() {
-    let y = { k: 1 ! }; // Error at '!': Expect '}' after object properties.
+    let y = ["k": 1 ! ]; // Error at '!': Expect ']' after map entries.
     if y { print(1 +); } // Error at ')': Expect expression.
     print("still");
 }

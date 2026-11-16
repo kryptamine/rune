@@ -64,17 +64,17 @@ const (
 
 	opArray  // R[A] = [R[B], ..., R[B+C-1]]
 	opConcat // R[A] = R[B] .. R[B+C-1] as printed, appended to R[A] if X
-	opObject // R[A] = {keys[C][i]: R[B+i]}
+	opMap    // R[A] = [R[B]: R[B+1], ..., R[B+2C-2]: R[B+2C-1]], added to R[A] if X
 	opStruct // R[A] = struct of type K[C] with fields R[B...]
 	// A struct literal with spreads starts its fields undefined; those
 	// still undefined at the end take their defaults.
 	opUndef        // R[A..A+B-1] = undefined
-	opStructSpread // R[A...] = the fields of R[B], a struct of type K[C] or an object of some of its fields
+	opStructSpread // R[A...] = the fields of R[B], a struct of type K[C] or a map of some of its fields
 	opStructFill   // R[A] = struct of type K[C] with fields R[B...], defaults for the undefined
 	// The gets share what they read with Y, or as shareGot says on the
 	// path of a write.
 	opGetIndex // R[A] = R[B][R[C]]
-	opGetProp  // R[A] = R[B].K[C]; with X&getMissing one missing from an object or struct is undefined
+	opGetProp  // R[A] = R[B].K[C]; with X&getMissing one missing from a struct is undefined
 	// The optional forms give nil for a missing element, property or field.
 	opGetIndexOpt
 	opGetPropOpt
@@ -83,20 +83,20 @@ const (
 	// the jump that follows, over code writing R[A] back.
 	opSetIndex  // R[A][R[B]] = R[C]
 	opSetProp   // R[A].K[B] = R[C]
-	opCheckProp // R[A] must take property K[B]: an object, or with Y a struct with that field
+	opCheckProp // R[A] must take property K[B]: with Y, a struct with that field
 	// TestProp needs four operands, so it skips over the instruction after
 	// it, a jump to the mismatch, instead of taking a target.
-	opTestProp // if R[B] is an object or struct with K[C]: R[A] = R[B].K[C], pc++
+	opTestProp // if R[B] is a struct with K[C]: R[A] = R[B].K[C], pc++
 	opRange    // R[A] = array of R[B]..R[B+1] step R[B+2], inclusive if X
 	opIn       // R[A] = R[B] in R[C], negated if Y
 	opInRange  // R[A] = R[B] in R[C]..R[C+1] step R[C+2], inclusive if X, negated if Y
 	opSlice    // R[A] = R[B][R[C]..R[C+1]]; X: 1 inclusive, 2 with a start, 4 with an end
-	opSpread   // append the elements of array R[B] to array R[A], or merge R[B] into object R[A]
+	opSpread   // append the elements of R[B] to array R[A]
 	// Unpack: R[A+i] = R[B][i] for i < n, and if X R[A+n] = R[B][n:]; C is
 	// n | required<<unpackShift, and an element past those required that is
 	// missing is undefined. More than n elements fail unless X or Y.
 	opUnpack
-	opOmit // R[A] = an object of the properties or fields of R[B] but keys[C]
+	opOmit // R[A] = a map of the fields of R[B] but keys[C]
 
 	opClosure   // R[A] = closure of protos[C]
 	opCall      // R[A] = R[A](R[A+1], ..., R[A+B]), giving up the arguments C has bits for
@@ -248,9 +248,7 @@ type Proto struct {
 	consts   []value.Value
 	protos   []*Proto
 	keys     [][]string
-	// keyToks locates each key of an object literal's keys, for its errors.
-	keyToks [][]ast.Token
-	upvals  []upvalDesc
+	upvals   []upvalDesc
 }
 
 // accepts reports whether f takes n arguments.
@@ -306,7 +304,7 @@ var opNames = [...]string{
 	"CHECKDEFINED", "SETCELL!", "SETUPVAL!", "UNDEFINED",
 	"ADD", "SUB", "MUL", "DIV", "MOD", "ADDK", "SUBK", "MULK", "DIVK", "MODK", "CMP", "CMPK", "IS", "NEG", "NOT", "INCR", "BITWISE", "BITNOT",
 	"JMP", "JMPIF", "JMPCMP", "JMPCMPK", "JMPNOTTYPE", "JMPNIL", "JMPDEFINED", "JMPNOTLEN",
-	"ARRAY", "CONCAT", "OBJECT", "STRUCT", "UNDEF", "STRUCTSPREAD", "STRUCTFILL", "GETINDEX", "GETPROP", "GETINDEX?", "GETPROP?", "SETINDEX", "SETPROP", "CHECKPROP", "TESTPROP", "RANGE", "IN", "INRANGE", "SLICE", "SPREAD", "UNPACK", "OMIT",
+	"ARRAY", "CONCAT", "MAP", "STRUCT", "UNDEF", "STRUCTSPREAD", "STRUCTFILL", "GETINDEX", "GETPROP", "GETINDEX?", "GETPROP?", "SETINDEX", "SETPROP", "CHECKPROP", "TESTPROP", "RANGE", "IN", "INRANGE", "SLICE", "SPREAD", "UNPACK", "OMIT",
 	"CLOSURE", "CALL", "CALLARRAY", "INVOKE", "METHOD", "JMPNOINOUT", "RETURN", "RETURNNIL", "THROW", "RETHROW", "NOMATCH", "TRY", "ENDTRY",
 	"FORRANGE", "FORRANGENEXT", "FORITER", "FORITERNEXT",
 }

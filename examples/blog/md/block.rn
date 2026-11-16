@@ -4,6 +4,10 @@ import .inline;
 
 export struct Heading { level, text, id }
 
+export struct Doc { html, headings }
+
+struct ListItem { kind, text }
+
 enum ListKind { Bullet, Numbered }
 
 impl ListKind {
@@ -19,7 +23,8 @@ export fun slug(s) { regex.replace(r"[^a-z0-9]+", s.lower(), "-").trim("-") }
 
 export fun render(src) {
     let lines = src.split("\n");
-    let mut doc = { html: [], headings: [] };
+    let mut html = [];
+    let mut headings = [];
     let mut i = 0;
 
     while i < lines.len() {
@@ -42,7 +47,7 @@ export fun render(src) {
 
             i += 1;
             let cls = if lang == "" { "" } else { " class=\"lang-{lang}\"" };
-            doc.html.push("<pre><code{cls}>{inline.escape(code.join("\n"))}</code></pre>");
+            html.push("<pre><code{cls}>{inline.escape(code.join("\n"))}</code></pre>");
             continue;
         }
 
@@ -52,14 +57,14 @@ export fun render(src) {
             let [hashes, text] = h.groups;
             let level = hashes.len();
             let id = slug(text);
-            doc.headings.push(Heading { level, text, id });
-            doc.html.push("""<h{level} id="{id}">{inline.render(text)}</h{level}>""");
+            headings.push(Heading { level, text, id });
+            html.push("""<h{level} id="{id}">{inline.render(text)}</h{level}>""");
             i += 1;
             continue;
         }
 
         if regex.test(r"^(-{3,}|\*{3,})$", line.trim()) {
-            doc.html.push("<hr>");
+            html.push("<hr>");
             i += 1;
             continue;
         }
@@ -72,7 +77,7 @@ export fun render(src) {
                 i += 1;
             }
 
-            doc.html.push("<blockquote><p>{inline.render(quote.join(" "))}</p></blockquote>");
+            html.push("<blockquote><p>{inline.render(quote.join(" "))}</p></blockquote>");
             continue;
         }
 
@@ -93,7 +98,7 @@ export fun render(src) {
                 i += 1;
             }
 
-            doc.html.push("<{tag}>{items.join("")}</{tag}>");
+            html.push("<{tag}>{items.join("")}</{tag}>");
             continue;
         }
 
@@ -104,10 +109,10 @@ export fun render(src) {
             i += 1;
         }
 
-        doc.html.push("<p>{inline.render(para.join(" "))}</p>");
+        html.push("<p>{inline.render(para.join(" "))}</p>");
     }
 
-    return { html: doc.html.join("\n"), headings: doc.headings };
+    return Doc { html: html.join("\n"), headings };
 }
 
 fun listItem(line) {
@@ -118,7 +123,7 @@ fun listItem(line) {
     }
 
     let [marker, text] = m.groups;
-    return { kind: if marker.endsWith(".") { ListKind.Numbered } else { ListKind.Bullet }, text };
+    return ListItem { kind: if marker.endsWith(".") { ListKind.Numbered } else { ListKind.Bullet }, text };
 }
 
 fun startsBlock(line) {

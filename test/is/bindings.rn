@@ -1,4 +1,6 @@
 struct Point { x, y = 0 }
+struct Resp { status, body }
+struct Status { status }
 
 fun handle(r) {
     if r is { status: 200..300, body } && body {
@@ -10,9 +12,9 @@ fun handle(r) {
     }
 }
 
-print(handle({ status: 200, body: "hi" })); // expect: ok: hi
-print(handle({ status: 200, body: "" })); // expect: status 200
-print(handle({ status: 404 })); // expect: status 404
+print(handle(Resp { status: 200, body: "hi" })); // expect: ok: hi
+print(handle(Resp { status: 200, body: "" })); // expect: status 200
+print(handle(Status { status: 404 })); // expect: status 404
 print(handle(5)); // expect: not a response
 
 let p = Point { x: 3 };

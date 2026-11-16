@@ -1,3 +1,0 @@
-let fs = [() => 1];
-let o = { a: 1,
-  b: fs[0] }; // expect runtime error: [line: 3] TypeError: Property 'b' of an object cannot hold a function.

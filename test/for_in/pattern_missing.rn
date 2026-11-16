@@ -1,1 +1,2 @@
-for { nope } in [{ a: 1 }] { print(nope); } // expect runtime error: [line: 1] KeyError: Undefined property 'nope'.
+struct S { a }
+for { nope } in [S { a: 1 }] { print(nope); } // expect runtime error: [line: 2] KeyError: S has no field 'nope'.

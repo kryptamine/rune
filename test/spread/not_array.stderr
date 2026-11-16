@@ -1,5 +1,5 @@
-TypeError: Cannot spread object into an array.
+TypeError: Cannot spread map into an array.
  --> not_array.rn:1:8
   |
-1 | print([...{ a: 1 }]); // expect runtime error: [line: 1] TypeError: Cannot spread object into an array.
+1 | print([...["a": 1]]); // expect runtime error: [line: 1] TypeError: Cannot spread map into an array.
   |        ^^^

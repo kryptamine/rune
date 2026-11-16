@@ -2,9 +2,9 @@ struct P { z, a, m }
 
 let p = P { a: "1", m: "2", z: "3" };
 
-for k, v in { ...p } { print(k + "=" + v); }
+for k, v in map(p) { print(k + "=" + v); }
 // expect: z=3
 // expect: a=1
 // expect: m=2
 
-for k in p { print(k); } // expect runtime error: [line: 10] TypeError: Can only iterate over arrays, strings, objects, maps, sets, bytes and streams, got P.
+for k in p { print(k); } // expect runtime error: [line: 10] TypeError: Can only iterate over arrays, strings, maps, sets, bytes and streams, got P.

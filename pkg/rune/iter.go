@@ -72,8 +72,6 @@ func indexed(at func(i int) (value.Value, bool)) func() (value.Value, value.Valu
 }
 
 // cursorOf walks what the loop shares, so a write in the body copies it.
-// Objects yield their keys in the order they were added; a loop that
-// binds only one variable walks them like an array of keys.
 func (p *Interpreter) cursorOf(v value.Value, hasKey bool, keyword *ast.Token) (*cursor, error) {
 	switch v.Kind() {
 	case value.Array:
@@ -100,8 +98,6 @@ func (p *Interpreter) cursorOf(v value.Value, hasKey bool, keyword *ast.Token) (
 
 			return value.NewInt(int64(b[i])), true
 		})}, nil
-	case value.Object:
-		return objectCursor(v.Obj(), hasKey), nil
 	case value.Map, value.Set:
 		return tableCursor(v, hasKey && v.Kind() == value.Map), nil
 	case value.Stream:
@@ -109,36 +105,7 @@ func (p *Interpreter) cursorOf(v value.Value, hasKey bool, keyword *ast.Token) (
 	}
 
 	return nil, errors.NewRuntimeError(errors.TypeError, *keyword, fmt.Sprintf(
-		"Can only iterate over arrays, strings, objects, maps, sets, bytes and streams, got %s.", helpers.TypeName(v)))
-}
-
-// objectCursor walks the keys of o, with their values if hasKey.
-func objectCursor(o *value.Obj, hasKey bool) *cursor {
-	keys := make([]value.Value, 0, o.Len())
-	vals := make([]value.Value, 0, helpers.If(hasKey, o.Len(), 0))
-
-	for k, x := range o.All() {
-		keys = append(keys, value.NewString(k))
-		if hasKey {
-			vals = append(vals, x)
-		}
-	}
-
-	if !hasKey {
-		return &cursor{arr: keys}
-	}
-
-	i := 0
-
-	return &cursor{next: func() (value.Value, value.Value, bool, error) {
-		if i >= len(keys) {
-			return value.NilValue, value.NilValue, false, nil
-		}
-
-		i++
-
-		return keys[i-1], vals[i-1], true, nil
-	}}
+		"Can only iterate over arrays, strings, maps, sets, bytes and streams, got %s.", helpers.TypeName(v)))
 }
 
 // tableCursor walks a Map or a Set, by key with keys, else by index.

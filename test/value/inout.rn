@@ -27,9 +27,9 @@ addTag(grid[1], 5);
 print(grid); // expect: [[0], [1, 5]]
 print(g); // expect: [[0], [1]]
 
-let mut user = { name: "ann", tags: [] };
-addTag(user.tags, "admin");
-print(user.tags); // expect: ["admin"]
+let mut user = ["name": "ann", "tags": []];
+addTag(user["tags"], "admin");
+print(user["tags"]); // expect: ["admin"]
 
 struct User { name, tags = [] }
 impl User { fun tag(mut self, t) { addTag(self.tags, t); } }
@@ -37,10 +37,10 @@ let mut ann = User { name: "ann" };
 ann.tag("x");
 print(ann.tags); // expect: ["x"]
 
-let mut deep = { rows: [[1]] };
+let mut deep = ["rows": [[1]]];
 let mut i = 0;
-addTag(deep.rows[i], 2);
-print(deep); // expect: {rows: [[1, 2]]}
+addTag(deep["rows"][i], 2);
+print(deep); // expect: ["rows": [[1, 2]]]
 
 // A throw writes back too.
 fun fail(mut xs) {

@@ -4,7 +4,7 @@ struct Line { a, b }
 let p = Point { x: 1 };
 print(p is Point); // expect: true
 print(p is Line); // expect: false
-print({x: 1, y: 0} is Point); // expect: false
+print(["x": 1, "y": 0] is Point); // expect: false
 print(nil is Point); // expect: false
 print(Point is Point); // expect: false
 print(p is Point == true); // expect: true

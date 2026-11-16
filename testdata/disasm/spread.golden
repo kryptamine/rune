@@ -11,15 +11,13 @@ exit: 0
     7  LOADK         8 0 3
     8  ARRAY         6 7 2
     9  SPREAD        5 6 0
-   10  OBJECT        6 7 0
-   11  OBJECT        7 8 1
-   12  SPREAD        6 7 0
-   13  LOADK         7 0 2
-   14  OBJECT        6 7 2  x=1 y=false
-   15  ARRAY         5 6 1  x=1 y=false
-   16  CALLARRAY     4 0 0
-   17  CALL          3 1 1
-   18  RETURNNIL     0 0 0
+   10  LOADK         7 0 4
+   11  LOADK         8 0 2
+   12  MAP           6 7 1
+   13  ARRAY         5 6 1  x=1 y=false
+   14  CALLARRAY     4 0 0
+   15  CALL          3 1 1
+   16  RETURNNIL     0 0 0
 
 f: arity 1+, 7 registers, 0 upvalues
     0  UNPACK        4 1 2/2  x=1 y=false

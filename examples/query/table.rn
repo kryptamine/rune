@@ -4,7 +4,7 @@ import .ast;
 
 export struct Table { name, columns, rows }
 
-export struct Catalog { dir, tables = map() }
+export struct Catalog { dir, tables = [:] }
 
 impl Catalog {
     fun new(dir) { Catalog { dir } }

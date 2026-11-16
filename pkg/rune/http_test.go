@@ -39,7 +39,7 @@ func TestHTTPRequest(t *testing.T) {
 	defer srv.Close()
 
 	src := strings.ReplaceAll(`
-		let r = http.request("post", "URL/x", { headers: { "X-Token": "t1" }, body: "hi" });
+		let r = http.request("post", "URL/x", HttpOptions { headers: ["X-Token": "t1"], body: "hi" });
 		print(r.status);
 		print(r.body);
 		print(r.headers["x-echo"]);
@@ -50,20 +50,20 @@ func TestHTTPRequest(t *testing.T) {
 		print(nf.status);
 		print(http.request("GET", "URL/").body);
 
-		try { http.request("GET", "URL/slow", { timeout: 0.05 }); } catch e is IOError { print("timed out"); }
-		try { http.request("GET", "URL/", { body: 1 }); } catch e is TypeError { print(e.message); }
-		try { http.request("GET", "URL/", { headers: { a: 1 } }); } catch e is TypeError { print(e.message); }
-		try { http.request("GET", "URL/", { timeout: 0 }); } catch e is ValueError { print(e.message); }
-		try { http.request("GET", "URL/", { bogus: 1 }); } catch e is KeyError { print(e.message); }
+		try { http.request("GET", "URL/slow", HttpOptions { timeout: 0.05 }); } catch e is IOError { print("timed out"); }
+		try { http.request("GET", "URL/", HttpOptions { body: 1 }); } catch e is TypeError { print(e.message); }
+		try { http.request("GET", "URL/", HttpOptions { headers: ["a": 1] }); } catch e is TypeError { print(e.message); }
+		try { http.request("GET", "URL/", HttpOptions { timeout: 0 }); } catch e is ValueError { print(e.message); }
+		try { http.request("GET", "URL/", ["timeout": 1]); } catch e is TypeError { print(e.message); }
 		try { http.request("BAD METHOD", "URL/"); } catch e is ValueError { print("bad method"); }
 
-		let raw = http.request("PUT", "URL/x", { body: b"\x01raw", stream: true });
+		let raw = http.request("PUT", "URL/x", HttpOptions { body: b"\x01raw", stream: true });
 		print(raw.body is stream);
 		print(raw.body.readBytes());
 		raw.body.close();
-		for i, line in http.request("GET", "URL/lines", { stream: true }).body { print("{i}: {line}"); }
-		print(http.request("GET", "URL/slowbody", { stream: true, timeout: 0.05 }).body.readText());
-		try { http.request("GET", "URL/", { stream: 1 }); } catch e is TypeError { print(e.message); }
+		for i, line in http.request("GET", "URL/lines", HttpOptions { stream: true }).body { print("{i}: {line}"); }
+		print(http.request("GET", "URL/slowbody", HttpOptions { stream: true, timeout: 0.05 }).body.readText());
+		try { http.request("GET", "URL/", HttpOptions { stream: 1 }); } catch e is TypeError { print(e.message); }
 	`, "URL", srv.URL)
 
 	prog, errs := loadSource([]byte(src))
@@ -87,7 +87,7 @@ timed out
 http.request() expects HttpOptions.body to be a string, got number.
 http.request() expects header 'a' to be a string, got number.
 http.request() expects a positive timeout, got 0.
-HttpOptions has no field 'bogus'.
+http.request() expects HttpOptions as argument 3, got map.
 bad method
 true
 b"PUT \x01raw"

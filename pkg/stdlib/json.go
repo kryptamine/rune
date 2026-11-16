@@ -78,7 +78,7 @@ func jsonIndent(c *call) string {
 }
 
 // parseJSON reads numbers without a fraction or an exponent as integers,
-// when they fit, and keeps the order of object keys.
+// when they fit, and keeps the order of an object's keys in its map.
 func parseJSON(s string) (value.Value, error) {
 	d := json.NewDecoder(strings.NewReader(s))
 	d.UseNumber()
@@ -121,7 +121,7 @@ func readJSON(d *json.Decoder) (value.Value, error) {
 			return value.NewArray(items), err
 		}
 
-		obj := value.NewObj(0)
+		m := value.NewHashMap(0)
 		for d.More() {
 			k, err := d.Token()
 			if err != nil {
@@ -133,12 +133,12 @@ func readJSON(d *json.Decoder) (value.Value, error) {
 				return value.NilValue, err
 			}
 
-			obj.Set(k.(string), item)
+			_ = m.Set(value.NewString(k.(string)), item)
 		}
 
 		_, err := d.Token()
 
-		return value.NewObject(obj), err
+		return value.NewMap(m), err
 	case json.Number:
 		if n, err := strconv.ParseInt(string(t), 10, 64); err == nil {
 			return value.NewInt(n), nil
@@ -157,7 +157,7 @@ func readJSON(d *json.Decoder) (value.Value, error) {
 	return value.FromGo(t), nil
 }
 
-// appendJSON encodes objects in key order and structs in field order.
+// appendJSON encodes maps in key order and structs in field order.
 func appendJSON(c *call, buf []byte, v value.Value, depth int) []byte {
 	if depth > maxJSONDepth {
 		c.fail(errors.ValueError, "cannot encode a value nested over %d deep.", maxJSONDepth)
@@ -190,8 +190,6 @@ func appendJSON(c *call, buf []byte, v value.Value, depth int) []byte {
 		}
 
 		return append(buf, ']')
-	case value.Object:
-		return appendJSONPairs(c, buf, v.Obj().All(), depth)
 	case value.Struct:
 		return appendJSONPairs(c, buf, v.FieldPairs(), depth)
 	case value.Enum:
@@ -199,23 +197,16 @@ func appendJSON(c *call, buf []byte, v value.Value, depth int) []byte {
 	case value.Set:
 		return appendJSON(c, buf, keysOf(v.HashMap()), depth)
 	case value.Map:
-		obj := value.NewObj(v.HashMap().Len())
+		return appendJSONPairs(c, buf, func(yield func(string, value.Value) bool) {
+			v.HashMap().Each(func(k, x value.Value) bool {
+				if !k.IsString() {
+					c.fail(errors.TypeError, "cannot encode a map with keys other than strings.")
+					return false
+				}
 
-		ok := true
-		v.HashMap().Each(func(k, x value.Value) bool {
-			if ok = k.IsString(); ok {
-				obj.Set(k.Str(), x)
-			}
-
-			return ok
-		})
-
-		if !ok {
-			c.fail(errors.TypeError, "cannot encode a map with keys other than strings.")
-			return buf
-		}
-
-		return appendJSONPairs(c, buf, obj.All(), depth)
+				return yield(k.Str(), x)
+			})
+		}, depth)
 	}
 
 	c.fail(errors.TypeError, "cannot encode %s.", helpers.TypeName(v))

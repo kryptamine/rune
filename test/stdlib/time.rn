@@ -8,14 +8,14 @@ print(time.format(t, "%a %A %e %b %B %y %I:%M %p %Z %z %j %u %s %%", "America/Ne
 // expect: Tue Tuesday 14 Nov November 23 05:13 PM EST -0500 318 2 1700000000 %
 print(time.format(t + 0.25, "%H:%M:%S.%f", "UTC")); // expect: 22:13:20.250000
 
-print(time.make({ year: 2023, month: 11, day: 14, hour: 22, minute: 13, second: 20 }, "UTC")); // expect: 1700000000
+print(time.make(Date { year: 2023, month: 11, day: 14, hour: 22, minute: 13, second: 20 }, "UTC")); // expect: 1700000000
 print(time.make(time.date(t, "Asia/Tokyo"))); // expect: 1700000000
-print(time.make({ year: 2024, month: 2, day: 30 }, "UTC") == time.make({ year: 2024, month: 3, day: 1 }, "UTC")); // expect: true
-print(time.make({ year: 2000, second: 0.5 }, "UTC")); // expect: 946684800.5
+print(time.make(Date { year: 2024, month: 2, day: 30 }, "UTC") == time.make(Date { year: 2024, month: 3, day: 1 }, "UTC")); // expect: true
+print(time.make(Date { year: 2000, second: 0.5 }, "UTC")); // expect: 946684800.5
 
 // Across a daylight saving change a day is not 86400 seconds.
-let d = time.date(time.make({ year: 2026, month: 3, day: 28, hour: 12 }, "Europe/Kyiv"), "Europe/Kyiv");
-let next = time.make({ ...d, day: d.day + 1 });
+let d = time.date(time.make(Date { year: 2026, month: 3, day: 28, hour: 12 }, "Europe/Kyiv"), "Europe/Kyiv");
+let next = time.make(Date { ...d, day: d.day + 1 });
 print(next - time.make(d));             // expect: 82800
 print(time.format(next, "%Y-%m-%d %H:%M", "Europe/Kyiv")); // expect: 2026-03-29 12:00
 
@@ -32,7 +32,7 @@ print(time.parse("-86400", "%s"));                            // expect: -86400
 print(time.format(time.parse("12 am", "%I %p", "UTC"), "%H", "UTC")); // expect: 00
 print(time.format(time.parse("12 pm", "%I %p", "UTC"), "%H", "UTC")); // expect: 12
 
-for bad, layout in { "2023-02-30": "%Y-%m-%d", "2023-1x-01": "%Y-%m-%d", "2023-11-14 x": "%Y-%m-%d", "25:00": "%H:%M", "13 am": "%I %p" } {
+for bad, layout in ["2023-02-30": "%Y-%m-%d", "2023-1x-01": "%Y-%m-%d", "2023-11-14 x": "%Y-%m-%d", "25:00": "%H:%M", "13 am": "%I %p"] {
     try { time.parse(bad, layout, "UTC"); } catch e is ValueError { print(e.message); }
 }
 // expect: time.parse() cannot parse "2023-02-30" as "%Y-%m-%d": 2023-02-30 is not a valid date.
@@ -43,10 +43,10 @@ for bad, layout in { "2023-02-30": "%Y-%m-%d", "2023-1x-01": "%Y-%m-%d", "2023-1
 
 try { time.date(0, "Mars/Base"); } catch e is ValueError { print(e.message); } // expect: time.date() unknown time zone "Mars/Base".
 try { time.format(0, "%Q"); } catch e is ValueError { print(e.message); } // expect: time.format() unknown directive %Q in "%Q".
-try { time.make({ month: 1 }); } catch e { print(e.message); } // expect: Missing field 'year' of Date.
+try { time.make(Date { ...["month": 1] }); } catch e { print(e.message); } // expect: Missing field 'year' of Date.
 try { time.parse("x", "%Q"); } catch e is ValueError { print(e.message); } // expect: time.parse() cannot parse "x" as "%Q": unknown directive %Q in "%Q".
-try { time.make({ year: 2000, second: nil }); } catch e is TypeError { print(e.message); } // expect: time.make() expects Date.second to be a number, got nil.
-try { time.make({ year: 2000, zone: nil }); } catch e is TypeError { print(e.message); } // expect: time.make() expects Date.zone to be a string, got nil.
-try { time.make({ year: 2000.5 }); } catch e is TypeError { print(e.message); } // expect: time.make() expects Date.year to be an integer, got number.
+try { time.make(Date { year: 2000, second: nil }); } catch e is TypeError { print(e.message); } // expect: time.make() expects Date.second to be a number, got nil.
+try { time.make(Date { year: 2000, zone: nil }); } catch e is TypeError { print(e.message); } // expect: time.make() expects Date.zone to be a string, got nil.
+try { time.make(Date { year: 2000.5 }); } catch e is TypeError { print(e.message); } // expect: time.make() expects Date.year to be an integer, got number.
 print(time.date() is Date); // expect: true
 print(time.now() > t);    // expect: true

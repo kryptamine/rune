@@ -1,11 +1,11 @@
-let mut m = map([[1, 1], [2, 2]]);
+let mut m = [1: 1, 2: 2];
 for k, v in m {
   m.delete(k);
 }
-print(m); // expect: map {}
+print(m); // expect: [:]
 
-let mut n = map([[1, 1]]);
+let mut n = [1: 1];
 for k in n {
   n[k + 1] = 0;
 }
-print(n); // expect: map {1: 1, 2: 0}
+print(n); // expect: [1: 1, 2: 0]

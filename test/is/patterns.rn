@@ -1,12 +1,13 @@
 struct Point { x, y = 0 }
 enum Dir { North, South }
 const LIMIT = 10;
+struct Resp { status, body }
 
 print(3 is 1..5); // expect: true
 print(7 is ..LIMIT); // expect: true
 print("b" is "a" | "b"); // expect: true
 print(3 is number | string); // expect: true
-print({ status: 200, body: "" } is { status: 200..300 }); // expect: true
+print(Resp { status: 200, body: "" } is { status: 200..300 }); // expect: true
 print([1, 2] is [_, _]); // expect: true
 print([1, 2, 3] is [1, ..._]); // expect: true
 print(Point { x: 1 } is Point { y: 0 }); // expect: true

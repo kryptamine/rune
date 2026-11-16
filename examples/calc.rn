@@ -39,13 +39,16 @@ fun tokenize(src) {
     let mut tokens = [];
 
     for m in regex.findAll(TOKEN_RE, src) {
-        let { bad } = m.named;
+        let g = m.named;
 
-        let kind = match m.named {
-            { num } if num != nil => Kind.Num,
-            { id } if id != nil => Kind.Id,
-            { op } if op != nil => Kind.Op,
-            _ => throw CalcError { message: "unexpected '{bad}'", pos: m.index },
+        let kind = if g["num"] != nil {
+            Kind.Num
+        } else if g["id"] != nil {
+            Kind.Id
+        } else if g["op"] != nil {
+            Kind.Op
+        } else {
+            throw CalcError { message: "unexpected '{g["bad"]}'", pos: m.index }
         };
 
         tokens.push(Token { kind, text: m.text, pos: m.index });
@@ -55,7 +58,7 @@ fun tokenize(src) {
     return tokens;
 }
 
-let PRECEDENCE = map({ "+": 10, "-": 10, "*": 20, "/": 20, "%": 20, "^": 30, "**": 30 });
+let PRECEDENCE = ["+": 10, "-": 10, "*": 20, "/": 20, "%": 20, "^": 30, "**": 30];
 let RIGHT_ASSOC = set(["^", "**"]);
 
 struct Parser { tokens, i = 0 }
@@ -172,21 +175,21 @@ fun parse(src) {
     return ast;
 }
 
-let BUILTINS = map([
-    ["sqrt", math.sqrt],
-    ["abs", math.abs],
-    ["floor", math.floor],
-    ["max", math.max],
-    ["min", math.min],
-    ["sum", (...xs) => xs.reduce((a, b) => a + b, 0)],
-]);
+let BUILTINS = [
+    "sqrt": math.sqrt,
+    "abs": math.abs,
+    "floor": math.floor,
+    "max": math.max,
+    "min": math.min,
+    "sum": (...xs) => xs.reduce((a, b) => a + b, 0),
+];
 
 struct Env { vars, funs }
 
 impl Env {
-    fun new() { Env { vars: map({ pi: math.PI }), funs: map() } }
+    fun new() { Env { vars: ["pi": math.PI], funs: [:] } }
 
-    fun eval(mut self, node, locals = {}) {
+    fun eval(mut self, node, locals = [:]) {
         let ev = n => self.eval(n, locals);
 
         return match node {
@@ -226,7 +229,7 @@ impl Env {
                 throw CalcError { message: "{name} takes {f.params.len()} arguments, got {args.len()}" };
             }
 
-            let mut locals = {};
+            let mut locals = [:];
 
             for i, p in f.params {
                 locals[p] = args[i];
@@ -235,7 +238,7 @@ impl Env {
             return self.eval(f.body, locals);
         }
 
-        let builtin = BUILTINS[name] ?? throw CalcError { message: "unknown function '{name}'" };
+        let builtin = BUILTINS?.[name] ?? throw CalcError { message: "unknown function '{name}'" };
         return builtin(...args);
     }
 }
@@ -302,7 +305,7 @@ fun main(args) {
         run(env, line);
     }
 
-    let mut stats = map();
+    let mut stats = [:];
 
     for line in DEMO {
         let kind = try { parse(line).kind() } catch { continue };

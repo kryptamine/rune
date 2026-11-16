@@ -1,3 +1,4 @@
-let mut o = { a: nil };
+struct O { a }
+let mut o = O { a: nil };
 o?.a = 1; // Error at '=': Invalid assignment target.
 o?.a += 1; // Error at '+=': Invalid assignment target.

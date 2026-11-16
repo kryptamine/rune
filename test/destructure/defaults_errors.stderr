@@ -22,5 +22,5 @@ error: A rest element or _ cannot have a default.
  --> defaults_errors.rn:4:12
   |
 3 | let [...r = 1] = []; // Error at '=': A rest element or _ cannot have a default.
-4 | let { v: _ = 1 } = {}; // Error at '=': A rest element or _ cannot have a default.
+4 | let { v: _ = 1 } = nil; // Error at '=': A rest element or _ cannot have a default.
   |            ^

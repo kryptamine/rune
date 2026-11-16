@@ -3,11 +3,11 @@ a.push(3); // Error at 'a': Cannot mutate immutable variable 'a'.
 a.pop(); // Error at 'a': Cannot mutate immutable variable 'a'.
 a.sort(); // Error at 'a': Cannot mutate immutable variable 'a'.
 a.reverse(); // Error at 'a': Cannot mutate immutable variable 'a'.
-let o = { xs: [] };
-o.xs.push(1); // Error at 'o': Cannot mutate immutable variable 'o'.
-(o?.xs).push(1); // Error at 'o': Cannot mutate immutable variable 'o'.
+let o = ["xs": []];
+o["xs"].push(1); // Error at 'o': Cannot mutate immutable variable 'o'.
+(o?.["xs"]).push(1); // Error at 'o': Cannot mutate immutable variable 'o'.
 o.delete("xs"); // Error at 'o': Cannot mutate immutable variable 'o'.
-let m = map([["a", 1]]);
+let m = ["a": 1];
 let s = set([1]);
 m["b"] = 2; // Error at 'm': Cannot mutate immutable variable 'm'.
 m.delete("a"); // Error at 'm': Cannot mutate immutable variable 'm'.

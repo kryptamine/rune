@@ -39,7 +39,6 @@
 
 - [Built-in Functions](stdlib/builtins.md)
 - [Array Methods](stdlib/array.md)
-- [Object Methods](stdlib/object.md)
 - [String Methods](stdlib/string.md)
 - [regex](stdlib/regex.md)
 - [math](stdlib/math.md)

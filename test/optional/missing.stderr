@@ -1,6 +1,6 @@
-KeyError: Undefined property 'z'.
-  --> missing.rn:12:12
+KeyError: A has no field 'z'.
+  --> missing.rn:13:12
    |
-11 | print(Point { x: 1, y: 2 }?.z); // expect: nil
-12 | print(o?.a.z); // expect runtime error: [line: 12] KeyError: Undefined property 'z'.
+12 | print(Point { x: 1, y: 2 }?.z); // expect: nil
+13 | print(o?.a.z); // expect runtime error: [line: 13] KeyError: A has no field 'z'.
    |            ^

@@ -4,17 +4,17 @@ error: Expect match arm.
 1 | match 1 { }; // [line: 1] Error at '}': Expect match arm.
   |           ^
 
-error: Expect property name in pattern.
+error: Expect field name in pattern.
  --> syntax.rn:2:11
   |
 1 | match 1 { }; // [line: 1] Error at '}': Expect match arm.
-2 | match 1 { { } => 1 }; // [line: 2] Error at '{': Expect property name in pattern.
+2 | match 1 { { } => 1 }; // [line: 2] Error at '{': Expect field name in pattern.
   |           ^
 
 error: Expect '}' after match arms.
  --> syntax.rn:3:18
   |
-2 | match 1 { { } => 1 }; // [line: 2] Error at '{': Expect property name in pattern.
+2 | match 1 { { } => 1 }; // [line: 2] Error at '{': Expect field name in pattern.
 3 | match 1 { 1 => 2 3 => 4 }; // [line: 3] Error at '3': Expect '}' after match arms.
   |                  ^
 

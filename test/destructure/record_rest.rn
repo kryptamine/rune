@@ -1,0 +1,53 @@
+struct User { name, role = "member", age = 30 }
+struct Abc { a, b, c }
+struct S { s }
+struct Item { id, t }
+struct Cfg { version, name }
+
+let { a, ...rest } = Abc { a: 1, b: 2, c: 3 };
+print(a); // expect: 1
+print(rest); // expect: ["b": 2, "c": 3]
+
+let { name, ...other } = User { name: "ann" };
+print(name); // expect: ann
+print(other); // expect: ["role": "member", "age": 30]
+
+let { ...copy } = S { s: 1 };
+print(copy); // expect: ["s": 1]
+
+let { a: x, b: _, ...left } = Abc { a: 1, b: 2, c: 3 };
+print(x); // expect: 1
+print(left); // expect: ["c": 3]
+
+let { s, ..._ } = S { s: 5 };
+print(s); // expect: 5
+
+let { id, ...mut r } = Item { id: 1, t: 2 };
+r["e"] = 3;
+print(r); // expect: ["t": 2, "e": 3]
+
+fun split({ id, ...data }) {
+  let f = () => data;
+  return [id, f()];
+}
+
+print(split(Item { id: 1, t: "x" })); // expect: [1, ["t": "x"]]
+
+for { id, ...val } in [Item { id: "a", t: 1 }] {
+  print("{id} {val}"); // expect: a ["t": 1]
+}
+
+fun drop(cfg) {
+  let { version: _, name } = cfg;
+  return [name, cfg];
+}
+
+print(drop(Cfg { version: 2, name: "a" })); // expect: ["a", Cfg {version: 2, name: "a"}]
+
+fun strip(cfg) {
+  let { version: _, ...rest } = cfg;
+  return rest;
+}
+
+print(strip(Cfg { version: 2, name: "b" })); // expect: ["name": "b"]
+print(strip(User { name: "c" })); // expect: ["name": "c", "role": "member", "age": 30]

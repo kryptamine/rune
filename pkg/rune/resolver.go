@@ -532,13 +532,6 @@ func (p *Resolver) VisitSpreadExpr(expr *ast.SpreadExpr) (value.Value, error) {
 	return value.NilValue, nil
 }
 
-func (p *Resolver) VisitComputedExpr(expr *ast.ComputedExpr) (value.Value, error) {
-	p.resolveExpr(expr.Key)
-	p.resolveExpr(expr.Value)
-
-	return value.NilValue, nil
-}
-
 func (p *Resolver) VisitIndexExpr(expr *ast.IndexExpr) (value.Value, error) {
 	switch p.qualifier(expr.Array) {
 	case moduleQualifier:
@@ -656,37 +649,12 @@ func (p *Resolver) VisitSliceExpr(expr *ast.SliceExpr) (value.Value, error) {
 	return value.NilValue, nil
 }
 
-func (p *Resolver) VisitObjectExpr(expr *ast.ObjectExpr) (value.Value, error) {
-	for _, pair := range expr.Pairs {
-		p.resolveExpr(pair.Value)
-
-		v, key := pair.Value, pair.Key
-		if c, ok := v.(*ast.ComputedExpr); ok {
-			v, key = c.Value, ""
-		}
-
-		if p.knownFunction(v) {
-			err := errors.NewSyntaxError(pair.Token, helpers.FunctionProperty(key))
-			p.errors = append(p.errors, errors.WithHint(err, helpers.FunctionPropertyHint))
-		}
+func (p *Resolver) VisitMapExpr(expr *ast.MapExpr) (value.Value, error) {
+	for _, e := range expr.Items {
+		p.resolveExpr(e)
 	}
 
 	return value.NilValue, nil
-}
-
-// knownFunction reports whether e is known to be a function before it runs:
-// a function expression, a fun or a let of one, or a built-in one.
-func (p *Resolver) knownFunction(e ast.Expr) bool {
-	switch n := unwrap(e).(type) {
-	case *ast.FunctionExpr:
-		return true
-	case *ast.VarExpr:
-		return n.Module == nil && n.Local != nil && p.fns[n.Local] != nil
-	case *ast.IndexExpr:
-		return n.Member != nil && n.Member.IsFunction()
-	}
-
-	return false
 }
 
 // requireMutable reports name if it is bound immutably; verb says what was tried.

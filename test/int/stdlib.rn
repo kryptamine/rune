@@ -19,9 +19,9 @@ print(math.isInt([1, 2].len()));  // expect: true
 print("%d %x %b".format(9007199254740993, 255, 5)); // expect: 9007199254740993 ff 101
 
 let parsed = json.parse("\{\"id\": 9007199254740993, \"x\": 1.0, \"y\": 2}");
-print(parsed.id);                // expect: 9007199254740993
-print(math.isInt(parsed.x));     // expect: false
-print(math.isInt(parsed.y));     // expect: true
+print(parsed["id"]);             // expect: 9007199254740993
+print(math.isInt(parsed["x"]));  // expect: false
+print(math.isInt(parsed["y"]));  // expect: true
 print(json.stringify([9007199254740993, 1.5, 2])); // expect: [9007199254740993,1.5,2]
 let mut ns = [3, 1.5, 2];
 ns.sort();

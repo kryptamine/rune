@@ -12,16 +12,16 @@ const LINE_RE = r"^(?P<ip>\S+) \S+ \S+ \[(?P<time>[^\]]+)\] \x22(?P<method>[A-Z]
 
 fun parseLine(line, n) {
     let m = regex.find(LINE_RE, line) ?? throw ParseError { message: "malformed line", line: n };
-    let { ip, time, method, path, status, bytes, latency } = m.named;
+    let g = m.named;
 
     return Entry {
-        ip,
-        time,
-        method,
-        path: normalize(path),
-        status: number(status),
-        bytes: if bytes == "-" { 0 } else { number(bytes) },
-        latency: number(latency) * 1000,
+        ip: g["ip"],
+        time: g["time"],
+        method: g["method"],
+        path: normalize(g["path"]),
+        status: number(g["status"]),
+        bytes: if g["bytes"] == "-" { 0 } else { number(g["bytes"]) },
+        latency: number(g["latency"]) * 1000,
     };
 }
 
@@ -72,12 +72,16 @@ impl Stats {
 
 const TOP_SLOW = 5;
 
+struct Client { hits = 0, paths = set() }
+
+struct ClientRow { ip, hits, distinct }
+
 struct Report {
     total = 0,
     skipped = [],
-    endpoints = map(),
-    statuses = map(),
-    clients = map(),
+    endpoints = [:],
+    statuses = [:],
+    clients = [:],
     slowest = [],
 }
 
@@ -99,7 +103,7 @@ impl Report {
         self.statuses[cls] = (self.statuses?.[cls] ?? 0) + 1;
 
         if e.ip !in self.clients {
-            self.clients[e.ip] = { hits: 0, paths: set() };
+            self.clients[e.ip] = Client {};
         }
 
         self.clients[e.ip].hits += 1;
@@ -120,7 +124,7 @@ impl Report {
         let mut rows = [];
 
         for ip, { hits, paths } in self.clients {
-            rows.push({ ip, hits, distinct: paths.len() });
+            rows.push(ClientRow { ip, hits, distinct: paths.len() });
         }
 
         rows.sort((a, b) => b.hits - a.hits);
@@ -232,15 +236,19 @@ fun printReport(r) {
     }
 }
 
+struct EndpointJson { hits, p50, p95, errorRate }
+
+struct ReportJson { total, skipped, statuses, endpoints, slowest }
+
 fun toJson(r) {
-    let mut endpoints = {};
+    let mut endpoints = [:];
 
     for key, s in r.endpoints {
         let [p50, p95] = s.percentiles(50, 95);
-        endpoints[key] = { hits: s.count, p50, p95, errorRate: s.errorRate() };
+        endpoints[key] = EndpointJson { hits: s.count, p50, p95, errorRate: s.errorRate() };
     }
 
-    return json.stringify({
+    return json.stringify(ReportJson {
         total: r.total,
         skipped: r.skipped,
         statuses: r.statuses,

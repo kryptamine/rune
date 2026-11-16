@@ -40,45 +40,20 @@ print([...b"hi"]);               // [104, 105]
 A map is not a list, so spreading it is an error. Spread its `keys()`,
 `values()` or `entries()` instead.
 
-## Spreading Objects
+## Spreading into Structs
 
-Inside an object literal, `...o` copies all the properties of `o`. Keys
-are applied left to right and later ones win. That gives an easy way to
-merge settings:
-
-```rune
-let defaults = { timeout: 30, retries: 3 };
-let user = { timeout: 5 };
-
-print({ ...defaults, ...user });    // {timeout: 5, retries: 3}
-```
-
-Order decides who wins. Put the defaults first to let later keys
-override them, or last to fill in only what is missing:
+In a struct literal, `...s` fills fields from a struct of the same type,
+or from a map whose string keys are field names. Fields are applied left
+to right and later ones win, which gives an easy way to merge settings
+(see [Structs](../data/structs.md#updating-with-spread)):
 
 ```rune
-let defaults = { timeout: 30, retries: 3 };
+struct Config { timeout = 30, retries = 3 }
 
-print({ ...defaults, timeout: 5 });    // {timeout: 5, retries: 3}
-print({ timeout: 5, ...defaults });    // {timeout: 30, retries: 3}
-```
-
-A struct spreads into an object the same way, field by field:
-
-```rune
-struct Point { x, y = 0 }
-let p = Point { x: 1, y: 2 };
-print({ ...p, z: 3 });    // {x: 1, y: 2, z: 3}
-```
-
-In a struct literal, spreading a struct of the same type, or an object,
-fills its fields (see [Structs](../data/structs.md#updating-with-spread)):
-
-```rune
-struct Point { x, y = 0 }
-let p = Point { x: 1, y: 2 };
-print(Point { ...p, y: 5 });    // Point {x: 1, y: 5}
-print(Point { ...{ x: 3 } });   // Point {x: 3, y: 0}
+let defaults = Config {};
+print(Config { ...defaults, timeout: 5 });    // Config {timeout: 5, retries: 3}
+print(Config { timeout: 5, ...defaults });    // Config {timeout: 30, retries: 3}
+print(Config { ...["retries": 1] });          // Config {timeout: 30, retries: 1}
 ```
 
 Spreading anything else is a `TypeError`:

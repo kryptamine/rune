@@ -8,12 +8,12 @@ error: This pattern only takes a value apart; test the value with match or 'is'.
  --> refutable.rn:2:10
   |
 1 | let [a, 1] = [1, 1]; // Error at '1': This pattern only takes a value apart; test the value with match or 'is'.
-2 | let { b: "x" } = { b: "x" }; // Error at '"x"': This pattern only takes a value apart; test the value with match or 'is'.
+2 | let { b: "x" } = nil; // Error at '"x"': This pattern only takes a value apart; test the value with match or 'is'.
   |          ^^^
 
 error: This pattern only takes a value apart; test the value with match or 'is'.
  --> refutable.rn:3:11
   |
-2 | let { b: "x" } = { b: "x" }; // Error at '"x"': This pattern only takes a value apart; test the value with match or 'is'.
+2 | let { b: "x" } = nil; // Error at '"x"': This pattern only takes a value apart; test the value with match or 'is'.
 3 | fun f([c, 2 | 3]) {} // Error at '2': This pattern only takes a value apart; test the value with match or 'is'.
   |           ^

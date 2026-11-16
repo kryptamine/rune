@@ -24,14 +24,14 @@ b[0].push(2);
 print(a); // expect: [[1]]
 print(b); // expect: [[1, 2]]
 
-// Deeper paths, through objects.
-let mut o = { a: { b: [[0]] } };
-let ob = o.a.b;
-let ob0 = o.a.b[0];
-o.a.b[0][0] += 1;
+// Deeper paths, through maps.
+let mut o = ["a": ["b": [[0]]]];
+let ob = o["a"]["b"];
+let ob0 = o["a"]["b"][0];
+o["a"]["b"][0][0] += 1;
 print(ob); // expect: [[0]]
 print(ob0); // expect: [0]
-print(o.a.b); // expect: [[1]]
+print(o["a"]["b"]); // expect: [[1]]
 
 let mut deep = [[[0]]];
 let d1 = deep[0];
@@ -60,27 +60,27 @@ inner();
 // A write along a path copies a level another holder has, though the
 // levels above it are the writer's own.
 {
-    let mut o = { rows: [{ xs: [0] }] };
-    let r = o.rows;
-    o.rows[0].xs[0] = 1;
-    print(r); // expect: [{xs: [0]}]
-    print(o); // expect: {rows: [{xs: [1]}]}
+    let mut o = ["rows": [["xs": [0]]]];
+    let r = o["rows"];
+    o["rows"][0]["xs"][0] = 1;
+    print(r); // expect: [["xs": [0]]]
+    print(o); // expect: ["rows": [["xs": [1]]]]
 
-    let mut p = { xs: [0] };
-    p.xs[0] = p.xs;
-    print(p); // expect: {xs: [[0]]}
+    let mut p = ["xs": [0]];
+    p["xs"][0] = p["xs"];
+    print(p); // expect: ["xs": [[0]]]
 
     let mut s = nil;
-    let mut q = { xs: [0], k: 0 };
-    q.xs[(s = q).k] = 5;
-    print(s); // expect: {xs: [0], k: 0}
-    print(q); // expect: {xs: [5], k: 0}
+    let mut q = ["xs": [0], "k": 0];
+    q["xs"][(s = q)["k"]] = 5;
+    print(s); // expect: ["xs": [0], "k": 0]
+    print(q); // expect: ["xs": [5], "k": 0]
 
     let mut t = nil;
-    let mut w = { xs: [0], k: 7 };
-    w.xs[0] = (t = w).k;
-    print(t); // expect: {xs: [0], k: 7}
-    print(w); // expect: {xs: [7], k: 7}
+    let mut w = ["xs": [0], "k": 7];
+    w["xs"][0] = (t = w)["k"];
+    print(t); // expect: ["xs": [0], "k": 7]
+    print(w); // expect: ["xs": [7], "k": 7]
 
     let mut g = [[0, 0]];
     let row = g[0];

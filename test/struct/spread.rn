@@ -26,7 +26,7 @@ let log = (s, v) => { order.push(s); return v; };
 Point { x: log("x", 1), ...log("spread", p), y: log("y", 2) };
 print(order);                      // expect: ["x", "spread", "y"]
 
-print(Task { ...{ id: 1, text: "a" } }.text); // expect: a
-try { Task { ...{ id: 1, nope: 2 } }; } catch e is KeyError { print(e.message); } // expect: Task has no field 'nope'.
+print(Task { ...["id": 1, "text": "a"] }.text); // expect: a
+try { Task { ...["id": 1, "nope": 2] }; } catch e is KeyError { print(e.message); } // expect: Task has no field 'nope'.
 try { Task { ...p }; } catch e is TypeError { print(e.message); } // expect: Cannot spread Point into Task.
 Task { ...[1] }; // expect runtime error: [line: 32] TypeError: Cannot spread array into Task.

@@ -1,5 +1,5 @@
 TypeError: Can only call functions.
  --> call.rn:3:21
   |
-3 | print(Point({ x: 1 })); // expect runtime error: [line: 3] TypeError: Can only call functions.
+3 | print(Point(["x": 1])); // expect runtime error: [line: 3] TypeError: Can only call functions.
   |                     ^

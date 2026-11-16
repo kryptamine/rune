@@ -15,7 +15,7 @@ func length(c *call) value.Value {
 		return v
 	}
 
-	return c.typeError(0, "a string, an array, an object, a map, a set, bytes or a buffer")
+	return c.typeError(0, "a string, an array, a map, a set, bytes or a buffer")
 }
 
 func lengthFast(args []value.Value) (value.Value, bool) {
@@ -26,8 +26,6 @@ func lengthFast(args []value.Value) (value.Value, bool) {
 	switch v := args[0]; v.Kind() {
 	case value.Array:
 		return count(len(v.Arr())), true
-	case value.Object:
-		return count(v.Obj().Len()), true
 	case value.String:
 		return count(utf8.RuneCountInString(v.Str())), true
 	case value.Map, value.Set:

@@ -13,15 +13,15 @@ let mut nums = [1, 2, 3];
 for mut n in nums { n = n * n; }
 print(nums); // expect: [1, 4, 9]
 
-// Object and map values.
-let mut prices = { apple: 1, pear: 2 };
+// Map values.
+let mut prices = ["apple": 1, "pear": 2];
 for k, mut v in prices { v *= 10; }
-print(prices); // expect: {apple: 10, pear: 20}
+print(prices); // expect: ["apple": 10, "pear": 20]
 
-let mut counts = map();
+let mut counts = [:];
 counts["x"] = 1;
 for k, mut v in counts { v += 1; }
-print(counts); // expect: map {"x": 2}
+print(counts); // expect: ["x": 2]
 
 // continue and break write back too.
 let mut xs = [1, 2, 3, 4];
@@ -85,9 +85,9 @@ for mut w in ws {
 print(ws); // expect: [[1, 0], [2, 0]]
 
 // A path is read once, before the loop.
-let mut o = { rows: [[1], [2]] };
-for mut r in o.rows { r.push(r[0] * 10); }
-print(o); // expect: {rows: [[1, 10], [2, 20]]}
+let mut o = ["rows": [[1], [2]]];
+for mut r in o["rows"] { r.push(r[0] * 10); }
+print(o); // expect: ["rows": [[1, 10], [2, 20]]]
 
 let mut nested = [[[1]]];
 let n0 = nested[0];

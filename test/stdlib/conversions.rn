@@ -48,13 +48,11 @@ print(number(" -0b101 ")); // expect: -5
 print(number("1_000.5")); // expect: 1000.5
 
 struct User { name, role = "guest" }
-print(object(map([["b", 1], ["a", 2]])));      // expect: {b: 1, a: 2}
-print(object([["x", 1], ["y", [2]]]));         // expect: {x: 1, y: [2]}
-try { object({ a: 1 }); } catch e is TypeError { print(e.message); }     // expect: object() expects a map or an array of pairs as argument 1, got object.
-try { object(map([[1, 2]])); } catch e is TypeError { print(e.message); } // expect: object() expects string keys, got 1.
-try { object([1]); } catch e is TypeError { print(e.message); }           // expect: object() expects [key, value] pairs, got 1.
+print(map([["x", 1], ["y", [2]]]));            // expect: ["x": 1, "y": [2]]
+try { map(["a": 1]); } catch e is TypeError { print(e.message); }        // expect: map() expects a struct or an array of pairs as argument 1, got map.
+try { map([1]); } catch e is TypeError { print(e.message); }             // expect: map() expects [key, value] pairs, got 1.
 
 print([1, "a", nil].map(string));              // expect: ["1", "a", "nil"]
 print(["hi"].map(bytes));                      // expect: [b"hi"]
-print([{ name: "bob" }].map(o => User { ...o })); // expect: [User {name: "bob", role: "guest"}]
-print(map(User { name: "ann" }));              // expect: map {"name": "ann", "role": "guest"}
+print([["name": "bob"]].map(m => User { ...m })); // expect: [User {name: "bob", role: "guest"}]
+print(map(User { name: "ann" }));              // expect: ["name": "ann", "role": "guest"]

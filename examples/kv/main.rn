@@ -26,19 +26,19 @@ fun demo() {
 
     defer fs.removeAll(dir);
 
-    let opts = { maxSegment: 32 << 10 };
+    let opts = store.Options { maxSegment: 32 << 10 };
 
     print("== writes");
     let mut db = store.Store.open(dir, opts);
     let mut t = time.now();
 
     for i in 0..2000 {
-        db.put("user:%04d".format(i), { name: "user {i}", visits: 0, tags: if i % 3 == 0 { ["vip"] } else { [] } });
+        db.put("user:%04d".format(i), ["name": "user {i}", "visits": 0, "tags": if i % 3 == 0 { ["vip"] } else { [] }]);
     }
 
     for round in 1..=3 {
         for i in 0..2000 step 7 {
-            db.put("user:%04d".format(i), { name: "user {i}", visits: round, tags: [] });
+            db.put("user:%04d".format(i), ["name": "user {i}", "visits": round, "tags": []]);
         }
     }
 
@@ -46,7 +46,7 @@ fun demo() {
         db.delete("user:%04d".format(i));
     }
 
-    db.put("config", { theme: "dark", limits: { rps: 100 } });
+    db.put("config", ["theme": "dark", "limits": ["rps": 100]]);
     print("  {db.info().writes} writes in {ms(t)}");
     print("  {show(db.info())}");
     print("  user:0007 → {db.get("user:0007")}");
@@ -120,7 +120,7 @@ fun bench(n) {
 
     let mut db = store.Store.open(dir);
     let keys = (0..n).map(i => "key:{i}");
-    let value = { id: 1, name: "a value of moderate size", tags: ["a", "b", "c"], score: 3.14 };
+    let value = ["id": 1, "name": "a value of moderate size", "tags": ["a", "b", "c"], "score": 3.14];
 
     print("== bench, {n} keys");
     let mut t = time.now();
@@ -164,7 +164,7 @@ fun bench(n) {
     print("  hint load  %8.0f keys/s".format(db.len() / (time.now() - t)));
     db.close();
 
-    db = store.Store.open(dir, { sync: true });
+    db = store.Store.open(dir, store.Options { sync: true });
     t = time.now();
 
     for i in 0..200 {

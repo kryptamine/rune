@@ -48,10 +48,12 @@ in a module-level variable:
 // lib/cart.rn
 import .money;
 
+struct Item { name, price }
+
 export let mut items = [];
 
 export fun add(name, cents) {
-    items.push({ name, price: money.Money { cents } });
+    items.push(Item { name, price: money.Money { cents } });
 }
 
 export fun total() {

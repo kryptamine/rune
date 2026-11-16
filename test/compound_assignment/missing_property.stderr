@@ -1,6 +1,6 @@
-KeyError: Undefined property 'n'.
- --> missing_property.rn:2:3
+KeyError: Key not found: "n".
+ --> missing_property.rn:2:6
   |
-1 | let mut o = {};
-2 | o.n += 1; // expect runtime error: [line: 2] KeyError: Undefined property 'n'.
-  |   ^
+1 | let mut o = [:];
+2 | o["n"] += 1; // expect runtime error: [line: 2] KeyError: Key not found: "n".
+  |      ^

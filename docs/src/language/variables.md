@@ -35,16 +35,16 @@ print(lastLogin);    // 2026-11-16
 let limit;    // Error at 'limit': Immutable variable must be initialized.
 ```
 
-## Immutable Arrays, Objects and Structs
+## Immutable Arrays, Maps and Structs
 
 `let` freezes the whole value, not only the variable. Through a `let`
-variable you cannot change an element, a property or a field, however deep,
+variable you cannot change an element, a key or a field, however deep,
 nor call a method that changes the value in place, such as `push`, `pop`,
 `sort` or a `mut self` method:
 
 ```rune
-let config = { db: { hosts: ["db1"] } };
-config.db.hosts[0] = "db2";    // Error at 'config': Cannot mutate immutable variable 'config'.
+let config = ["db": ["hosts": ["db1"]]];
+config["db"]["hosts"][0] = "db2";    // Error at 'config': Cannot mutate immutable variable 'config'.
 ```
 
 ```rune
@@ -127,10 +127,10 @@ one place:
 const KB = 1 << 10;
 const MAX_UPLOAD = 4 * KB;
 const UNIT = "bytes";
-const LIMITS = { body: 8 * KB, header: KB };
+const LIMITS = ["body": 8 * KB, "header": KB];
 
 print("max upload: {MAX_UPLOAD} {UNIT}");    // max upload: 4096 bytes
-print(LIMITS.body);                          // 8192
+print(LIMITS["body"]);                       // 8192
 ```
 
 A constant's value must be computable by the compiler. It may be:
@@ -138,14 +138,14 @@ A constant's value must be computable by the compiler. It may be:
 - a number, string, `true`, `false` or `nil`;
 - another constant, or operators applied to constants (`4 * KB`);
 - an enum variant;
-- `map()`, `set()`, or an array or object made of such values.
+- `set()`, or an array or map literal made of such values.
 
 Reading a constant costs nothing at run time: each use is replaced by the
 value itself.
 
 ```rune
 let size = 4;
-const LIMIT = size * 2;    // Error at 'LIMIT': Constant 'LIMIT' must be a constant: a literal, a const or operators on them, an enum variant, or an array, object, map() or set() of them.
+const LIMIT = size * 2;    // Error at 'LIMIT': Constant 'LIMIT' must be a constant: a literal, a const or operators on them, an enum variant, or an array, map or set() of them.
 ```
 
 ```rune
@@ -182,7 +182,7 @@ print(greet("admin"));    // welcome back, boss
 print(greet("guest"));    // hello
 ```
 
-An array or object constant cannot be used as a pattern.
+An array or map constant cannot be used as a pattern.
 
 ## Scopes
 
@@ -222,8 +222,8 @@ but do not need: a parameter, a `for` index, a part of a pattern. It can
 appear any number of times, and can never be read.
 
 ```rune
-fun onEvent(_, payload) { payload.id }
-print(onEvent("click", { id: 7 }));    // 7
+fun onEvent(_, payload) { payload["id"] }
+print(onEvent("click", ["id": 7]));    // 7
 
 for _, name in ["ann", "bob"] {
     print(name);

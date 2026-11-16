@@ -1,11 +1,11 @@
-print(json.parse("\{\"a\": [1, 2.5, null, true], \"b\": \"x\"}")); // expect: {a: [1, 2.5, nil, true], b: "x"}
+print(json.parse("\{\"a\": [1, 2.5, null, true], \"b\": \"x\"}")); // expect: ["a": [1, 2.5, nil, true], "b": "x"]
 print(json.parse("3")); // expect: 3
-print(json.stringify({b: [1, nil, false], a: "q\"\n\t"})); // expect: {"b":[1,null,false],"a":"q\"\n\t"}
+print(json.stringify(["b": [1, nil, false], "a": "q\"\n\t"])); // expect: {"b":[1,null,false],"a":"q\"\n\t"}
 print(json.stringify(1e21) + " " + json.stringify(0.0000001) + " " + json.stringify(-0.5)); // expect: 1e+21 1e-7 -0.5
 
 struct P { x, y = 2 }
 print(json.stringify(P { x: 1 })); // expect: {"x":1,"y":2}
-print(json.parse(json.stringify([{k: "é"}])) == [{k: "é"}]); // expect: true
+print(json.parse(json.stringify([["k": "é"]])) == [["k": "é"]]); // expect: true
 
 try { json.stringify(() => {}); } catch e is TypeError { print(e.message); } // expect: json.stringify() cannot encode function.
 try { json.stringify(math.INF); } catch e is ValueError { print(e.message); } // expect: json.stringify() cannot encode a non-finite number.
@@ -14,7 +14,7 @@ let mut deep = [];
 for i in 0..1001 { deep = [deep]; }
 try { json.stringify(deep); } catch e is ValueError { print(e.message); } // expect: json.stringify() cannot encode a value nested over 1000 deep.
 
-let doc = { name: "ann", tags: ["a"], empty: [], none: {}, nested: { ok: true } };
+let doc = ["name": "ann", "tags": ["a"], "empty": [], "none": [:], "nested": ["ok": true]];
 print(json.stringify(doc, 2));
 // expect: {
 // expect:   "name": "ann",
@@ -27,7 +27,7 @@ print(json.stringify(doc, 2));
 // expect:     "ok": true
 // expect:   }
 // expect: }
-print(json.stringify([1, { a: 2 }], "\t") == "[\n\t1,\n\t\{\n\t\t\"a\": 2\n\t}\n]"); // expect: true
+print(json.stringify([1, ["a": 2]], "\t") == "[\n\t1,\n\t\{\n\t\t\"a\": 2\n\t}\n]"); // expect: true
 print(json.stringify([1, 2], 0)); // expect: [1,2]
 print(json.stringify([1, 2], nil)); // expect: [1,2]
 print(json.parse(json.stringify(doc, 4)) == doc); // expect: true

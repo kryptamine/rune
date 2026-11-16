@@ -5,14 +5,13 @@ print("a" is number); // expect: false
 print("a" is string); // expect: true
 print(true is boolean); // expect: true
 print([1] is array); // expect: true
-print({} is object); // expect: true
-print(P { x: 1 } is object); // expect: false
 print(print is function); // expect: true
 print((x => x) is function); // expect: true
-print(map() is map); // expect: true
+print([:] is map); // expect: true
+print(P { x: 1 } is map); // expect: false
 print(set() is set); // expect: true
 print(b"" is bytes); // expect: true
-print(nil is object); // expect: false
+print(nil is map); // expect: false
 
 fun kind(v) {
     return match v {

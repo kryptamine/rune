@@ -10,20 +10,52 @@ import (
 	"strings"
 )
 
-// Convert is v as a struct of shape: v itself if already one, or a
-// struct built from an object holding every required field and no other.
-func Convert(token *ast.Token, shape *value.Shape, v value.Value) (value.Value, error) {
-	switch v.Kind() {
-	case value.Struct:
-		if v.Shape() == shape {
-			return v, nil
-		}
-	case value.Object:
-		return structOf(token, shape, v.Obj())
+// structArg is the fields of argument i, which must be a struct of shape.
+func (c *call) structArg(i int, shape *value.Shape) ([]value.Value, bool) {
+	if v := c.args[i]; v.Kind() == value.Struct && v.Shape() == shape {
+		return v.Fields(), true
 	}
 
-	return value.NilValue, errors.NewRuntimeError(errors.TypeError, *token, fmt.Sprintf(
-		"Cannot convert %s to %s.", helpers.TypeName(v), shape.Name))
+	c.typeError(i, shape.Name)
+
+	return nil, false
+}
+
+// stringEntries is the entries of m, whose keys and values must be
+// strings; what names them in an error.
+func (c *call) stringEntries(m *value.HashMap, what string) [][2]string {
+	out := make([][2]string, 0, m.Len())
+
+	m.Each(func(k, v value.Value) bool {
+		switch {
+		case !k.IsString():
+			c.fail(errors.TypeError, "expects %s names to be strings, got %s.", what, helpers.Quoted(k))
+		case !v.IsString():
+			c.fail(errors.TypeError, "expects %s '%s' to be a string, got %s.", what, k.Str(), helpers.TypeName(v))
+		default:
+			out = append(out, [2]string{k.Str(), v.Str()})
+			return true
+		}
+
+		return false
+	})
+
+	return out
+}
+
+// option returns field i of an options struct of shape if it is set; it must be of kind.
+func (c *call) option(shape *value.Shape, fields []value.Value, i int, kind value.Kind, want string) (value.Value, bool) {
+	v := fields[i]
+	if v.IsNil() || !c.ok() {
+		return v, false
+	}
+
+	if v.Kind() != kind {
+		c.fail(errors.TypeError, "expects %s.%s to be %s, got %s.", shape.Name, shape.Fields[i], want, helpers.TypeName(v))
+		return v, false
+	}
+
+	return v, true
 }
 
 // Variant is Enum(v): v itself if a variant of it, or the variant at
@@ -56,31 +88,20 @@ func NotOrdinal(enum *value.Shape) string {
 	return enum.Name + " has variants with fields; values(), " + enum.Name + "(n) and int() are for enums without."
 }
 
-// AssignFields sets the fields of shape that obj has keys for; a key
-// that is no field is a KeyError.
-func AssignFields(token *ast.Token, shape *value.Shape, fields []value.Value, obj *value.Obj) error {
-	if extra, ok := shape.Assign(fields, obj); !ok {
-		return errors.NewRuntimeError(errors.KeyError, *token, errors.NoField(shape.Name, extra))
+// AssignFields sets the fields of shape that the keys of m name; any
+// other key is a KeyError.
+func AssignFields(token *ast.Token, shape *value.Shape, fields []value.Value, m *value.HashMap) error {
+	extra, ok := shape.Assign(fields, m)
+
+	switch {
+	case ok:
+		return nil
+	case extra.IsString():
+		return errors.NewRuntimeError(errors.KeyError, *token, errors.NoField(shape.Name, extra.Str()))
 	}
 
-	return nil
-}
-
-func structOf(token *ast.Token, shape *value.Shape, obj *value.Obj) (value.Value, error) {
-	v, fields := value.NewStruct(shape)
-	for i := range fields {
-		fields[i] = value.UndefinedValue
-	}
-
-	if err := AssignFields(token, shape, fields, obj); err != nil {
-		return value.NilValue, err
-	}
-
-	if missing, ok := shape.Fill(fields); !ok {
-		return value.NilValue, errors.NewRuntimeError(errors.KeyError, *token, errors.MissingField(shape.Name, missing))
-	}
-
-	return v, nil
+	return errors.NewRuntimeError(errors.TypeError, *token, fmt.Sprintf(
+		"%s has no field %s; a field is named by a string.", shape.Name, helpers.Quoted(extra)))
 }
 
 // toString is string(v): v as print shows it.

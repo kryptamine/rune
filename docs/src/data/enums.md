@@ -124,11 +124,11 @@ elements.
 ```rune
 enum Dir { North, East, South, West }
 
-let saved = json.stringify({ facing: Dir.East });
-print(saved);                         // {"facing":"East"}
-print(Dir(json.parse(saved).facing)); // Dir.East
+let saved = json.stringify(["facing": Dir.East]);
+print(saved);                            // {"facing":"East"}
+print(Dir(json.parse(saved)["facing"])); // Dir.East
 
-let visits = map([[Dir.North, 2], [Dir.West, 1]]);
+let visits = [Dir.North: 2, Dir.West: 1];
 print(visits[Dir.North]); // 2
 ```
 

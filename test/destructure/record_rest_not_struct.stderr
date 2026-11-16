@@ -1,0 +1,5 @@
+TypeError: Cannot destructure number by fields.
+ --> record_rest_not_struct.rn:1:5
+  |
+1 | let { ...r } = 1; // expect runtime error: [line: 1] TypeError: Cannot destructure number by fields.
+  |     ^

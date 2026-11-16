@@ -22,36 +22,27 @@ let [mut first, ...rest] = xs;
 first.push(0);
 print(xs); // expect: [[1], [2]]
 
-let o = { a: [1] };
-let mut values = o.values();
-values[0].push(0);
-let mut entries = o.entries();
-entries[0][1].push(0);
-let mut copy = { ...o };
-copy.a.push(0);
-let { a: mut a } = o;
-a.push(0);
-let mut asMap = map(o.entries());
-asMap["a"].push(0);
-print(o); // expect: {a: [1]}
-
-let m = map([["k", [1]]]);
+let m = ["k": [1]];
 let mut mvalues = m.values();
 mvalues[0].push(0);
 let mut mentries = m.entries();
 mentries[0][1].push(0);
-let mut asObject = object(m.entries());
-asObject.k.push(0);
-print(m); // expect: map {"k": [1]}
+let mut asMap = map(m.entries());
+asMap["k"].push(0);
+print(m); // expect: ["k": [1]]
 
 struct P { items }
 let p = P { items: [1] };
-let mut fields = { ...p };
-fields.items.push(0);
+let mut fields = map(p);
+fields["items"].push(0);
+let { items: mut it } = p;
+it.push(0);
+let { ...mut others } = p;
+others["items"].push(0);
 let mut q = P { ...p };
 let mut qi = q.items;
 qi.push(0);
-let mut r = P { ...{ items: p.items } };
+let mut r = P { ...["items": p.items] };
 let mut ri = r.items;
 ri.push(0);
 print(p); // expect: P {items: [1]}

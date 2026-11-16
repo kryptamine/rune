@@ -1,5 +1,5 @@
 error: Expect variable name.
  --> let_mut_pattern.rn:1:9
   |
-1 | let mut { a } = { a: 1 }; // Error at '{': Expect variable name.
+1 | let mut { a } = nil; // Error at '{': Expect variable name.
   |         ^

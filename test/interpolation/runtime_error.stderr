@@ -1,6 +1,6 @@
-KeyError: Undefined property 'missing'.
- --> runtime_error.rn:2:13
+KeyError: Key not found: "missing".
+ --> runtime_error.rn:2:22
   |
-1 | let o = {};
-2 | print("x {o.missing} y"); // expect runtime error: [line: 2] KeyError: Undefined property 'missing'.
-  |             ^^^^^^^
+1 | let o = [:];
+2 | print("x {o["missing"]} y"); // expect runtime error: [line: 2] KeyError: Key not found: "missing".
+  |                      ^

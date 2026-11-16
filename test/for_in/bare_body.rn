@@ -2,7 +2,7 @@ let mut out = [];
 for x in 1..4 { out.push(x); }
 print(out); // expect: [1, 2, 3]
 
-for k, v in { "a": "b" } { print(k + v); } // expect: ab
+for k, v in ["a": "b"] { print(k + v); } // expect: ab
 
 for x in [1, 2, 3] { if x != 2 { print(x); } }
 // expect: 1

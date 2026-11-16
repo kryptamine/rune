@@ -19,6 +19,6 @@ for g in gs { print(g()); } // expect: 0
 // expect: 2
 
 let mut hs = [];
-for key, val in {a: "1", b: "2"} { hs.push(() => { return key + val; }); }
+for key, val in ["a": "1", "b": "2"] { hs.push(() => { return key + val; }); }
 print(hs[0]()); // expect: a1
 print(hs[1]()); // expect: b2
