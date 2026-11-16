@@ -12,14 +12,14 @@ exit: 0
     8  MOVE          5 4 0
     9  MOVE          6 2 0
    10  CALL          6 0 0
-   11  CALL          5 1 0
+   11  CALL          5 1 1
    12  CLOSURE       3 0 1
    13  MOVE          5 4 0
    14  MOVE          6 3 0
    15  LOADK         7 0 2
    16  LOADK         8 0 3
-   17  CALL          6 2 0
-   18  CALL          5 1 0
+   17  CALL          6 2 3
+   18  CALL          5 1 1
    19  RETURNNIL     0 0 0
 
 counter: arity 0, 2 registers, 0 upvalues

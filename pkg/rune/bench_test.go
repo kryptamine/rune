@@ -134,6 +134,8 @@ func TestContainerMovesDoNotCopy(t *testing.T) {
 		"set":    `let mut a = set(); for i in 0..1000 { a.add(i); } for k in 0..%d { let mut b = a; b.delete(k); a = b; }`,
 		"buffer": `let mut a = bytes.buffer(); for i in 0..1000 { a.writeUint(0, 8); } for k in 0..%d { let mut b = a; b[0] = k %% 256; a = b; }`,
 		"struct": `struct B { xs = [] } impl B { fun set(mut self, i, x) { self.xs[i] = x; } fun add(mut self, x) { self.xs.push(x); } } let mut b = B {}; for i in 0..1000 { b.add(i); } for k in 0..%d { b.set(0, k); }`,
+		"append": `let mut a = [0].repeat(1000); for k in 0..%d { a = a.append(k); a.pop(); }`,
+		"param":  `fun add(xs, x) { let mut ys = xs; ys[0] = x; return ys; } let mut a = [0].repeat(1000); for k in 0..%d { a = add(a, k); }`,
 		"path":   `let mut o = { m: map({ a: {} }) }; for i in 0..1000 { o.m["a"][string(i)] = i; } for k in 0..%d { o.m["a"]["0"] = k; o.m["a"].delete("1"); }`,
 	} {
 		t.Run(name, func(t *testing.T) {

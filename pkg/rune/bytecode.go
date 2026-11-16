@@ -13,17 +13,18 @@ type Op uint8
 // the running closure. Jump targets are absolute, in C.
 // A and B take up to 16 bits, C up to 20.
 const (
-	opMove     Op = iota // R[A] = R[B]
-	opCopy               // R[A] = R[B], shared
-	opLoadK              // R[A] = K[C]
-	opShare              // mark R[A] as held twice, so a write copies it first
-	opShareIf            // share R[A] if R[B], which holds it, is shared, or with X&frozenStruct a struct
-	opUnshare            // if R[A] is shared, R[A] = a copy of its own and pc += X
-	opNewCell            // R[A] = cell(R[B])
-	opGetCell            // R[A] = cell R[B], which must be defined
-	opSetCell            // cell R[A] = R[B]
-	opGetUpval           // R[A] = U[B], which must be defined
-	opSetUpval           // U[B] = R[A]
+	opMove       Op = iota // R[A] = R[B]
+	opCopy                 // R[A] = R[B], shared
+	opLoadK                // R[A] = K[C]
+	opShare                // mark R[A] as held twice, so a write copies it first
+	opShareIf              // share R[A] if R[B], which holds it, is shared, or with X&frozenStruct a struct
+	opShareParam           // share R[A] unless the caller gave up argument B
+	opUnshare              // if R[A] is shared, R[A] = a copy of its own and pc += X
+	opNewCell              // R[A] = cell(R[B])
+	opGetCell              // R[A] = cell R[B], which must be defined
+	opSetCell              // cell R[A] = R[B]
+	opGetUpval             // R[A] = U[B], which must be defined
+	opSetUpval             // U[B] = R[A]
 	// The checked forms fail on a top-level variable not yet defined.
 	opCheckDefined // R[A] must be defined
 	opSetCellChecked
@@ -70,9 +71,10 @@ const (
 	opUndef        // R[A..A+B-1] = undefined
 	opStructSpread // R[A...] = the fields of R[B], a struct of type K[C] or an object of some of its fields
 	opStructFill   // R[A] = struct of type K[C] with fields R[B...], defaults for the undefined
-	// The gets share what they read with Y.
+	// The gets share what they read with Y, or as shareGot says on the
+	// path of a write.
 	opGetIndex // R[A] = R[B][R[C]]
-	opGetProp  // R[A] = R[B].K[C]; with X one missing from an object or struct is undefined
+	opGetProp  // R[A] = R[B].K[C]; with X&getMissing one missing from an object or struct is undefined
 	// The optional forms give nil for a missing element, property or field.
 	opGetIndexOpt
 	opGetPropOpt
@@ -97,7 +99,7 @@ const (
 	opOmit // R[A] = an object of the properties or fields of R[B] but keys[C]
 
 	opClosure   // R[A] = closure of protos[C]
-	opCall      // R[A] = R[A](R[A+1], ..., R[A+B])
+	opCall      // R[A] = R[A](R[A+1], ..., R[A+B]), giving up the arguments C has bits for
 	opCallArray // R[A] = R[A](the elements of array R[A+1])
 	// Invoke calls method K[C] of R[A+1] with it and R[A+2], ..., R[A+1+B].
 	// With Y the next instruction jumps over code that writes R[A+1] back
@@ -116,7 +118,7 @@ const (
 	// function with mut parameters resumes after the jump, a method
 	// without mut self B past it, and gives the frame their bits.
 	opJmpNoInout // pc = C unless the last call wrote back bit B
-	opReturn     // return R[A], shared with X
+	opReturn     // return R[A], shared with X=1, and with X=2 unless the caller gave up argument B
 	opReturnNil  // return nil
 	opThrow      // throw R[A]
 	opRethrow    // throw the caught error in R[A] again
@@ -136,6 +138,11 @@ const (
 // inoutSite is the bit of X of a call followed by write-backs.
 const inoutSite = 4
 
+// givenRecv is the bit of X of an invoke whose caller gives the receiver
+// up, which a native method may then change and return. X of an invoke
+// also has bit 1, frozen, and inoutSite, in its three bits.
+const givenRecv = 2
+
 // A of the jump after an inout site has a bit for the receiver and each
 // argument a mut parameter takes.
 const _ uint16 = 1 << maxArity
@@ -144,6 +151,16 @@ const _ uint16 = 1 << maxArity
 // struct there takes no field set, so what it holds is shared, and a
 // write fails at the SetProp putting the copy back into the struct.
 const frozenStruct = 1
+
+// The bits of X of a get: getMissing for opGetProp, getShareIf and
+// getFrozen for a level of the path of a write; getShares tests them in
+// an Instr, with Y.
+const (
+	getMissing = 1
+	getShareIf = 2
+	getFrozen  = 4
+	getShares  = Instr(getShareIf|getFrozen)<<8 | 1<<11
+)
 
 // forMut is the bit of X of a ForIter of a for mut, which with Y does not
 // share the collection, which the body never reads.
@@ -286,7 +303,7 @@ type methodTable struct {
 }
 
 var opNames = [...]string{
-	"MOVE", "COPY", "LOADK", "SHARE", "SHAREIF", "UNSHARE", "NEWCELL", "GETCELL", "SETCELL", "GETUPVAL", "SETUPVAL",
+	"MOVE", "COPY", "LOADK", "SHARE", "SHAREIF", "SHAREPARAM", "UNSHARE", "NEWCELL", "GETCELL", "SETCELL", "GETUPVAL", "SETUPVAL",
 	"CHECKDEFINED", "SETCELL!", "SETUPVAL!", "UNDEFINED",
 	"ADD", "SUB", "MUL", "DIV", "MOD", "ADDK", "SUBK", "MULK", "DIVK", "MODK", "CMP", "CMPK", "IS", "NEG", "NOT", "INCR", "BITWISE", "BITNOT",
 	"JMP", "JMPIF", "JMPCMP", "JMPCMPK", "JMPNOTTYPE", "JMPNIL", "JMPDEFINED", "JMPNOTLEN",

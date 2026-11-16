@@ -179,7 +179,13 @@ func (fs *funcState) returnStmt(s *ast.ReturnStmt) {
 	fs.runDefers(0)
 
 	fs.returnSelf()
-	fs.emit(ins{op: opReturn, a: v, x: uint8(boolNum(!fresh(s.Value)))}, nil)
+
+	ret := ins{op: opReturn, a: v, x: uint8(boolNum(!fresh(s.Value)))}
+	if p := paramMove(s.Value); p > 0 {
+		ret.x, ret.b = 2, int32(p-1)
+	}
+
+	fs.emit(ret, nil)
 }
 
 // exprStmt drops the value, so x++ needs no copy of the old x.

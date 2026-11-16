@@ -145,7 +145,7 @@ func (p *Interpreter) invoke(fr *frame, in Instr, tok *ast.Token) error {
 		}
 
 		caller := len(p.frames) - 1
-		if err := p.callNativeMethod(at, n, nat, tok); err != nil {
+		if err := p.callNativeMethod(at, n, nat, tok, in.x()&givenRecv != 0); err != nil {
 			return err
 		}
 
@@ -163,14 +163,14 @@ func (p *Interpreter) invoke(fr *frame, in Instr, tok *ast.Token) error {
 
 	p.stack[at] = fn
 
-	return p.callAt(at, n+1, tok, fr.siteInout(in))
+	return p.callAt(at, n+1, tok, fr.site(in))
 }
 
 // callWithout calls the function at stack[at] with the n arguments after
 // the receiver.
 func (p *Interpreter) callWithout(at, n int, tok *ast.Token) error {
 	copy(p.stack[at+1:], p.stack[at+2:at+2+n])
-	return p.callAt(at, n, tok, 0)
+	return p.callAt(at, n, tok, callSite{})
 }
 
 func missingMember(tok *ast.Token, t value.Value, name string, ms []value.Method) error {

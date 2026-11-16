@@ -70,6 +70,11 @@ reload:
 				value.Share(*at(regs, in.a()))
 			}
 
+		case opShareParam:
+			if fr.given&(1<<in.b()) == 0 {
+				value.Share(*at(regs, in.a()))
+			}
+
 		case opUnshare:
 			if at(regs, in.a()).Shared() {
 				goto slow
@@ -443,16 +448,16 @@ reload:
 				if arr, idx := t.Arr(), i.Int(); uint64(idx) < uint64(len(arr)) {
 					v := arr[idx]
 					*at(regs, in.a()) = v
-					if in.y() {
-						value.Share(v)
+					if in&getShares != 0 {
+						shareGot(in, t, v)
 					}
 					continue
 				}
 			} else if t.Kind() == value.Object && i.IsString() {
 				if v, ok := t.Obj().Interned(i); ok {
 					*at(regs, in.a()) = v
-					if in.y() {
-						value.Share(v)
+					if in&getShares != 0 {
+						shareGot(in, t, v)
 					}
 					continue
 				}
@@ -479,16 +484,16 @@ reload:
 			if k := t.Kind(); k == value.Struct {
 				if v, ok := t.InternedField(*at(consts, in.c())); ok {
 					*at(regs, in.a()) = v
-					if in.y() {
-						value.Share(v)
+					if in&getShares != 0 {
+						shareGot(in, t, v)
 					}
 					continue
 				}
 			} else if k == value.Object {
 				if v, ok := t.Obj().Interned(*at(consts, in.c())); ok {
 					*at(regs, in.a()) = v
-					if in.y() {
-						value.Share(v)
+					if in&getShares != 0 {
+						shareGot(in, t, v)
 					}
 					continue
 				}
@@ -498,8 +503,8 @@ reload:
 
 				if v, ok := t.Obj().Get(at(consts, in.c()).Str()); ok {
 					*dst = v
-					if in.y() {
-						value.Share(v)
+					if in&getShares != 0 {
+						shareGot(in, t, v)
 					}
 					goto reload
 				}
@@ -568,7 +573,7 @@ reload:
 			// It takes every argument, so its mut parameters write back
 			// all their bits, after the jump that follows.
 			if m := f.proto.inout; m != 0 {
-				if m&^fr.siteInout(in) != 0 {
+				if m&^fr.site(in).inout != 0 {
 					goto slow
 				}
 
@@ -580,7 +585,7 @@ reload:
 				p.grow(need)
 			}
 
-			p.frames = append(p.frames, frame{cl: f, base: base})
+			p.frames = append(p.frames, frame{cl: f, base: base, given: uint32(in.c())})
 
 			goto reload
 
@@ -619,7 +624,7 @@ reload:
 					}
 				}
 
-				if err = p.callNativeMethod(fr.base+in.a(), in.b(), fn.Fn().(*stdlib.Native), fr.cl.proto.toks[pc-1]); err != nil {
+				if err = p.callNativeMethod(fr.base+in.a(), in.b(), fn.Fn().(*stdlib.Native), fr.cl.proto.toks[pc-1], in.x()&givenRecv != 0); err != nil {
 					goto fail
 				}
 
@@ -634,7 +639,7 @@ reload:
 			// enter, inlined as for opCall.
 			fr.pc = pc
 			if m := f.proto.inout; m != 0 {
-				if m&^fr.siteInout(in) != 0 {
+				if m&^fr.site(in).inout != 0 {
 					goto slow
 				}
 
@@ -656,7 +661,7 @@ reload:
 			var v value.Value
 			if in.op() == opReturn {
 				v = *at(regs, in.a())
-				if in.x() != 0 {
+				if x := in.x(); x == 1 || x == 2 && fr.given&(1<<in.b()) == 0 {
 					value.Share(v)
 				}
 			}

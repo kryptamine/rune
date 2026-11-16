@@ -40,18 +40,26 @@ func (pl *place) check() {
 	}
 }
 
-func (pl *place) load(dst int32) {
+// load returns the index of the get it emits.
+func (pl *place) load(dst int32) int {
 	if pl.optional {
 		pl.fs.nilJump(pl.t.reg)
 	}
 
-	pl.fs.emit(ins{op: pick(pl.prop, opGetProp, opGetIndex), a: dst, b: pl.t.reg, c: pl.i}, pl.tok)
+	return pl.fs.emit(ins{op: pick(pl.prop, opGetProp, opGetIndex), a: dst, b: pl.t.reg, c: pl.i}, pl.tok)
 }
 
 // store writes v. Only a path from a mut self takes a field set. A set
 // on a shared target copies it, and the copy goes back where it was read.
-func (pl *place) store(v int32) {
-	pl.t.shareDown()
+// A quiet write, which shares nothing between loading its path and
+// writing, has its path shared as it was loaded.
+func (pl *place) store(v int32, quiet bool) {
+	if quiet {
+		pl.t.shareAtLoad()
+	} else {
+		pl.t.shareDown()
+	}
+
 	pl.put(v)
 }
 
@@ -103,13 +111,14 @@ func (fs *funcState) inCell(e ast.Expr) bool {
 }
 
 // lval is a value in reg read from a variable or a place, where a new
-// struct can go back.
+// struct can go back; loaded is the index of the get reading a place.
 type lval struct {
-	fs  *funcState
-	e   ast.Expr
-	reg int32
-	v   *ast.VarExpr
-	at  *place
+	fs     *funcState
+	e      ast.Expr
+	reg    int32
+	v      *ast.VarExpr
+	at     *place
+	loaded int
 }
 
 // ref evaluates where e is read from, but not e, which load reads.
@@ -151,7 +160,7 @@ func (fs *funcState) lvalue(e ast.Expr, later ...ast.Expr) *lval {
 
 func (lv *lval) load(dst int32) {
 	if lv.at != nil {
-		lv.at.load(dst)
+		lv.loaded = lv.at.load(dst)
 	} else {
 		lv.fs.expr(lv.e, dst)
 	}
@@ -193,6 +202,18 @@ func (lv *lval) shareDown() {
 	x := uint8(boolNum(!lv.fromSelf()) * frozenStruct)
 	for _, l := range slices.Backward(path) {
 		lv.fs.emit(ins{op: opShareIf, a: l.reg, b: l.at.t.reg, x: x}, nil)
+	}
+}
+
+// shareAtLoad is shareDown done by the gets that loaded the path.
+func (lv *lval) shareAtLoad() {
+	x := uint8(getShareIf)
+	if !lv.fromSelf() {
+		x |= getFrozen
+	}
+
+	for l := lv; l.at != nil; l = l.at.t {
+		lv.fs.code[l.loaded].x |= x
 	}
 }
 

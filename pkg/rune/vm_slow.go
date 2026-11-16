@@ -17,7 +17,7 @@ import (
 // does not have, or nil for an error.
 func missingProp(in Instr) *value.Value {
 	switch {
-	case in.x() != 0:
+	case in.x()&getMissing != 0:
 		return &value.UndefinedValue
 	case in.op() == opGetPropOpt:
 		return &value.NilValue
@@ -126,9 +126,7 @@ func (p *Interpreter) slow(in Instr) error {
 		v, err := getIndex(tok, regs[in.b()], regs[in.c()])
 		if err == nil {
 			regs[in.a()] = v
-			if in.y() {
-				value.Share(v)
-			}
+			shareGot(in, regs[in.b()], v)
 		}
 
 		return err
@@ -145,9 +143,7 @@ func (p *Interpreter) slow(in Instr) error {
 		v, err := p.property(tok, regs[in.b()], consts[in.c()], missingProp(in))
 		if err == nil {
 			regs[in.a()] = v
-			if in.y() {
-				value.Share(v)
-			}
+			shareGot(in, regs[in.b()], v)
 		}
 
 		return err
@@ -273,7 +269,7 @@ func (p *Interpreter) slow(in Instr) error {
 		regs[in.a()] = value.NewFunction(cl)
 
 	case opCall:
-		return p.callAt(fr.base+in.a(), in.b(), tok, fr.siteInout(in))
+		return p.callAt(fr.base+in.a(), in.b(), tok, fr.site(in))
 
 	case opInvoke:
 		return p.invoke(fr, in, tok)
@@ -292,7 +288,7 @@ func (p *Interpreter) slow(in Instr) error {
 		p.grow(at + 1 + len(items))
 		copy(p.stack[at+1:], items)
 
-		return p.callAt(at, len(items), tok, 0)
+		return p.callAt(at, len(items), tok, callSite{})
 
 	case opSpread:
 		return spread(tok, regs[in.a()], regs[in.b()])
@@ -391,9 +387,9 @@ func (p *Interpreter) slow(in Instr) error {
 }
 
 // callAt calls the function at stack[at] with the n arguments after it,
-// leaving the result there unless it pushes a frame; a closure called
-// directly writes back the arguments inout has bits for.
-func (p *Interpreter) callAt(at, n int, tok *ast.Token, inout uint32) error {
+// leaving the result there unless it pushes a frame, to which a closure
+// called directly gets what site passes on.
+func (p *Interpreter) callAt(at, n int, tok *ast.Token, site callSite) error {
 	fn := p.stack[at]
 	if fn.Kind() == value.Type {
 		v, err := convert(tok, fn.TypeShape(), p.stack[at+1:at+1+n])
@@ -410,7 +406,7 @@ func (p *Interpreter) callAt(at, n int, tok *ast.Token, inout uint32) error {
 
 	switch f := fn.Fn().(type) {
 	case *Closure:
-		return p.enter(f, at+1, n, tok, inout)
+		return p.enter(f, at+1, n, tok, site)
 	case *BoundMethod:
 		if !f.fn.proto.accepts(n + 1) {
 			return argumentError(f.fn.proto, n+1, 1, tok)
@@ -420,13 +416,13 @@ func (p *Interpreter) callAt(at, n int, tok *ast.Token, inout uint32) error {
 		copy(p.stack[at+2:], p.stack[at+1:at+1+n])
 		p.stack[at], p.stack[at+1] = value.NewFunction(f.fn), f.recv
 
-		return p.enter(f.fn, at+1, n+1, tok, 0)
+		return p.enter(f.fn, at+1, n+1, tok, callSite{})
 	case *BoundNative:
 		p.grow(at + 2 + n)
 		copy(p.stack[at+2:], p.stack[at+1:at+1+n])
 		p.stack[at+1] = f.recv
 
-		return p.callNativeMethod(at, n, f.fn, tok)
+		return p.callNativeMethod(at, n, f.fn, tok, false)
 	}
 
 	v, err := p.host.Call(fn.Fn().(*stdlib.Native), p.stack[at+1:at+1+n], tok)
@@ -440,8 +436,8 @@ func (p *Interpreter) callAt(at, n int, tok *ast.Token, inout uint32) error {
 
 // callNativeMethod calls nat on the receiver at stack[at+1] with the n
 // arguments after it, leaving the result at stack[at].
-func (p *Interpreter) callNativeMethod(at, n int, nat *stdlib.Native, tok *ast.Token) error {
-	v, err := p.host.CallMethod(nat, p.stack[at+1:at+2+n], tok)
+func (p *Interpreter) callNativeMethod(at, n int, nat *stdlib.Native, tok *ast.Token, given bool) error {
+	v, err := p.host.CallMethod(nat, p.stack[at+1:at+2+n], tok, given)
 	if err == nil {
 		p.stack[at] = v
 	}
@@ -624,4 +620,13 @@ func compareValues(op uint8, l, r value.Value, tok *ast.Token) (bool, error) {
 	v, err := binaryOp(tok, l, r)
 
 	return v.Bool(), err
+}
+
+// shareGot shares v, which a get read from t: always with Y, and on the
+// path of a write with X&getShareIf if t is shared or, with X&getFrozen,
+// a struct, as opShareIf would at the write.
+func shareGot(in Instr, t, v value.Value) {
+	if in.y() || in.x()&getShareIf != 0 && (t.Shared() || in.x()&getFrozen != 0 && t.Kind() == value.Struct) {
+		value.Share(v)
+	}
 }
