@@ -16,7 +16,7 @@ func (s *Parser) assignment() (ast.Expr, error) {
 		return fn, err
 	}
 
-	expr, err := s.conditional()
+	expr, err := s.nullish()
 
 	if err != nil {
 		return nil, err
@@ -75,30 +75,6 @@ var compoundOps = map[ast.TokenType]ast.TokenType{
 	ast.GREATER_GREATER_EQUAL: ast.GREATER_GREATER,
 
 	ast.GREATER_GREATER_GREATER_EQUAL: ast.GREATER_GREATER_GREATER,
-}
-
-// conditional parses cond ? then : else, right-associative.
-func (s *Parser) conditional() (ast.Expr, error) {
-	cond, err := s.nullish()
-	if err != nil || !s.match(ast.QUESTION) {
-		return cond, err
-	}
-
-	then, err := s.expressionWithStructs(structsAll)
-	if err != nil {
-		return nil, err
-	}
-
-	if _, err := s.consume(ast.COLON, "Expect ':' after then branch of '?'."); err != nil {
-		return nil, err
-	}
-
-	els, err := s.assignment()
-	if err != nil {
-		return nil, err
-	}
-
-	return &ast.ConditionalExpr{Cond: cond, Then: then, Else: els}, nil
 }
 
 // rangeExpr parses a..b and a..=b, which bind looser than the bitwise and
@@ -489,6 +465,15 @@ func (s *Parser) primary() (ast.Expr, error) {
 		return s.matchExpr()
 	}
 
+	if s.match(ast.IF) {
+		st, err := s.ifStatement()
+		if err != nil {
+			return nil, err
+		}
+
+		return &ast.IfExpr{If: st}, nil
+	}
+
 	if s.match(ast.TRUE) {
 		return ast.NewLiteralExpr(ast.TRUE, true), nil
 	}
@@ -798,7 +783,7 @@ func (s *Parser) arrowFunction() (fn ast.Expr, ok bool, err error) {
 		return nil, false, nil
 	}
 
-	body, _, err := s.arrowBody(s.advance())
+	body, err := s.arrowBody(s.advance())
 	if err != nil {
 		return nil, true, err
 	}
@@ -822,14 +807,14 @@ func (s *Parser) arrowParams() (params, bool) {
 }
 
 // arrowBody parses a block, or an expression whose value is returned.
-func (s *Parser) arrowBody(arrow ast.Token) (body []ast.Stmt, expr bool, err error) {
-	if body, ok, err := s.braceBody(); ok {
-		return body, false, err
+func (s *Parser) arrowBody(arrow ast.Token) ([]ast.Stmt, error) {
+	if s.check(ast.LEFT_BRACE) {
+		return s.functionBody()
 	}
 
 	e, err := s.assignment()
 
-	return []ast.Stmt{ast.NewReturnStmt(e, arrow)}, true, err
+	return []ast.Stmt{ast.NewReturnStmt(e, arrow)}, err
 }
 
 func anonName(at ast.Token) ast.Token {
@@ -841,7 +826,7 @@ func anonName(at ast.Token) ast.Token {
 
 // isObjectLiteralStart reports whether the upcoming tokens can only
 // start an object literal: "{" and a property name and ":", a shorthand
-// property, "..." or a computed key.
+// property and ",", "..." or a computed key.
 func (s *Parser) isObjectLiteralStart() bool {
 	if !s.check(ast.LEFT_BRACE) {
 		return false
@@ -851,7 +836,7 @@ func (s *Parser) isObjectLiteralStart() bool {
 
 	return key == ast.DOT_DOT_DOT || key == ast.LEFT_BRACKET && s.computedKeyStart() ||
 		(key == ast.IDENTIFIER || key == ast.STRING) && after == ast.COLON ||
-		key == ast.IDENTIFIER && endsItem(after)
+		key == ast.IDENTIFIER && after == ast.COMMA
 }
 
 // computedKeyStart reports whether the "[" after the "{" closes before a

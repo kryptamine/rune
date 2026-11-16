@@ -8,9 +8,9 @@ struct Field { table, name }
 export struct Scope { fields = [] }
 
 impl Scope {
-    fun of(alias, columns) => Scope { fields: columns.map(name => Field { table: alias, name }) };
+    fun of(alias, columns) { Scope { fields: columns.map(name => Field { table: alias, name }) } }
 
-    fun plus(self, other) => Scope { fields: [...self.fields, ...other.fields] };
+    fun plus(self, other) { Scope { fields: [...self.fields, ...other.fields] } }
 
     fun find(self, col) {
         let mut found = -1;
@@ -45,7 +45,7 @@ impl Scope {
         throw ast.SqlError { message: "unknown column '{ast.sql(col)}'" + ast.suggest(col.name, names), pos: col.pos };
     }
 
-    fun covers(self, e) => ast.columnsOf(e).every(c => self.find(c) >= 0);
+    fun covers(self, e) { ast.columnsOf(e).every(c => self.find(c) >= 0) }
 
     // check fails on the first column of e it has not.
     fun check(self, e) {
@@ -88,7 +88,7 @@ export fun compile(e, ctx) {
 
             return row => {
                 let v = f(row);
-                return v == nil ? nil : -v;
+                return if v == nil { nil } else { -v };
             };
         },
         ast.Unary { op: "NOT", expr } => {
@@ -96,7 +96,7 @@ export fun compile(e, ctx) {
 
             return row => {
                 let v = f(row);
-                return v == nil ? nil : !v;
+                return if v == nil { nil } else { !v };
             };
         },
         ast.Binary { op: "AND", left, right } => {
@@ -115,7 +115,7 @@ export fun compile(e, ctx) {
                     return false;
                 }
 
-                return a == nil || b == nil ? nil : true;
+                return if a == nil || b == nil { nil } else { true };
             };
         },
         ast.Binary { op: "OR", left, right } => {
@@ -134,7 +134,7 @@ export fun compile(e, ctx) {
                     return true;
                 }
 
-                return a == nil || b == nil ? nil : false;
+                return if a == nil || b == nil { nil } else { false };
             };
         },
         ast.Binary { op, left, right } => binary(op, c(left), c(right)),
@@ -150,7 +150,7 @@ export fun compile(e, ctx) {
 
                 return row => {
                     let v = f(row);
-                    return v == nil ? nil : v in values != not;
+                    return if v == nil { nil } else { v in values != not };
                 };
             }
 
@@ -158,7 +158,7 @@ export fun compile(e, ctx) {
 
             return row => {
                 let v = f(row);
-                return v == nil ? nil : fs.some(g => g(row) == v) != not;
+                return if v == nil { nil } else { fs.some(g => g(row) == v) != not };
             };
         },
         ast.Between { expr, lo, hi, not } => {
@@ -180,13 +180,13 @@ export fun compile(e, ctx) {
 
             return row => {
                 let v = f(row);
-                return v == nil ? nil : regex.test(re, string(v)) != not;
+                return if v == nil { nil } else { regex.test(re, string(v)) != not };
             };
         },
         ast.Like { pattern } => throw ast.SqlError { message: "LIKE takes a string literal", pos: ast.columnsOf(pattern)?.[0]?.pos },
         ast.Case { whens, otherwise } => {
             let arms = whens.map(([cond, v]) => [c(cond), c(v)]);
-            let other = otherwise == nil ? (_ => nil) : c(otherwise);
+            let other = if otherwise == nil { _ => nil } else { c(otherwise) };
 
             return row => {
                 for [cond, v] in arms {
@@ -224,15 +224,15 @@ fun binary(op, l, r) {
     let strict = f => row => {
         let a = l(row);
         let b = r(row);
-        return a == nil || b == nil ? nil : f(a, b);
+        return if a == nil || b == nil { nil } else { f(a, b) };
     };
 
     return match op {
         "+" => strict((a, b) => a + b),
         "-" => strict((a, b) => a - b),
         "*" => strict((a, b) => a * b),
-        "/" => strict((a, b) => b == 0 ? nil : a / b),
-        "%" => strict((a, b) => b == 0 ? nil : a % b),
+        "/" => strict((a, b) => if b == 0 { nil } else { a / b }),
+        "%" => strict((a, b) => if b == 0 { nil } else { a % b }),
         "||" => strict((a, b) => string(a) + string(b)),
         "=" => strict((a, b) => a == b),
         "<>" => strict((a, b) => a != b),
@@ -255,7 +255,7 @@ let SCALARS = {
     SUBSTR: Scalar {
         f: (s, start, n = nil) => {
             let from = math.max(start - 1, 0);
-            return n == nil ? string(s)[from..] : string(s)[from..from + n];
+            return if n == nil { string(s)[from..] } else { string(s)[from..from + n] };
         },
         min: 2,
         max: 3,
@@ -269,17 +269,17 @@ fun scalar(name, fs, pos) {
     };
 
     if fs.len() < min || fs.len() > max {
-        throw ast.SqlError { message: "{name} takes {min == max ? min : "{min} to {max}"} arguments, got {fs.len()}", pos };
+        throw ast.SqlError { message: "{name} takes {if min == max { min } else { "{min} to {max}" }} arguments, got {fs.len()}", pos };
     }
 
     return match fs {
         [a] => row => {
             let x = a(row);
-            return x == nil ? nil : f(x);
+            return if x == nil { nil } else { f(x) };
         },
         _ => row => {
             let xs = fs.map(g => g(row));
-            return nil in xs ? nil : f(...xs);
+            return if nil in xs { nil } else { f(...xs) };
         },
     };
 }
@@ -310,8 +310,8 @@ export fun compare(a, b) {
     }
 
     if (a is number) != (b is number) {
-        return a is number ? -1 : 1;
+        return if a is number { -1 } else { 1 };
     }
 
-    return a < b ? -1 : 1;
+    return if a < b { -1 } else { 1 };
 }

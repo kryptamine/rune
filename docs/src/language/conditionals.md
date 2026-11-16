@@ -48,20 +48,39 @@ print(0 || 5);                     // 5
 print("ann" && "admin");           // admin
 ```
 
-## Conditional Expressions
+## if as an Expression
 
-`c ? a : b` is `a` if `c` is truthy, else `b`; only the chosen branch runs.
-It binds looser than `??`, tighter than assignment, and nests to
-the right: `a ? b : c ? d : e` is `a ? b : (c ? d : e)`.
+A block's value is its last expression when that has no `;` after it;
+a block ending with `;` gives `nil`. So `if` is an expression too: its
+value is that of the branch taken, `nil` when no branch is. `else if`
+chains as usual.
 
 ```rune
 let stock = 3;
-let label = stock > 10 ? "in stock" : stock > 0 ? "low" : "sold out";
+let label = if stock > 10 { "in stock" } else if stock > 0 { "low" } else { "sold out" };
 print(label);    // low
 
 let cart = ["tea", "milk"];
-print("{cart.len()} item{cart.len() == 1 ? "" : "s"}");    // 2 items
+print("{cart.len()} item{if cart.len() == 1 { "" } else { "s" }}");    // 2 items
 
-let parity = n => n % 2 == 0 ? "even" : "odd";
-print(parity(7));    // odd
+print(if stock > 10 { "many" });    // nil
 ```
+
+A branch may run statements before its value:
+
+```rune
+let score = 72;
+let grade = if score >= 90 {
+    "A"
+} else {
+    let gap = 90 - score;
+    "B, {gap} to A"
+};
+print(grade);    // B, 18 to A
+```
+
+After `if` a `{` always starts a block; an object to give goes in
+parentheses: `if ok { ({ code: 200 }) } else { nil }`.
+
+The bodies of `while`, `for` and `defer` have no value, so each of their
+statements ends with `;`.

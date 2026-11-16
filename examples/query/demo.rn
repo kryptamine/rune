@@ -12,9 +12,9 @@ impl Rng {
         return (self.state >>> 11) / 9007199254740992;
     }
 
-    fun int(mut self, n) => math.floor(self.next() * n);
+    fun int(mut self, n) { math.floor(self.next() * n) }
 
-    fun pick(mut self, xs) => xs[self.int(xs.len())];
+    fun pick(mut self, xs) { xs[self.int(xs.len())] }
 }
 
 const FIRST = ["Ann", "Bob", "Chen", "Dana", "Emil", "Fatima", "Goran", "Hana", "Ivan", "Jo", "Kemal", "Lena", "Mia", "Nils", "Olga", "Priya"];
@@ -34,7 +34,7 @@ export fun generate(dir, orders) {
     out.write("id,name,country,signup\n");
 
     for id in 1..customers + 1 {
-        let suffix = rng.int(40) == 0 ? ", Jr." : "";
+        let suffix = if rng.int(40) == 0 { ", Jr." } else { "" };
         let name = "{rng.pick(FIRST)} {rng.pick(LAST)}{suffix}";
         let signup = "2025-%02d-%02d".format(rng.int(12) + 1, rng.int(28) + 1);
         out.write([id, name, rng.pick(COUNTRIES), signup].map(table.quoteCsv).join(",") + "\n");
@@ -61,7 +61,7 @@ export fun generate(dir, orders) {
         // a few customers never order: ids above 4900 are skipped
         let customer = rng.int(customers - 100) + 1;
         let created = "2026-%02d-%02d".format(rng.int(10) + 1, rng.int(28) + 1);
-        let coupon = rng.int(5) == 0 ? rng.pick(["WELCOME10", "BLACKFRIDAY", "VIP"]) : "";
+        let coupon = if rng.int(5) == 0 { rng.pick(["WELCOME10", "BLACKFRIDAY", "VIP"]) } else { "" };
         out.write("{id},{customer},{rng.int(products) + 1},{rng.int(4) + 1},{rng.pick(STATUSES)},{created},{coupon}\n");
     }
 

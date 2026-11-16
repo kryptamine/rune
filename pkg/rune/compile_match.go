@@ -68,16 +68,7 @@ func (fs *funcState) arm(arm *ast.MatchArm, subj, dst int32) []int {
 		miss = append(miss, fs.jumpIf(arm.Guard, false)...)
 	}
 
-	if e, ok := arm.Body.(*ast.ExprStmt); ok && dst != noReg {
-		fs.expr(e.Expr, dst)
-		return miss
-	}
-
-	fs.stmt(arm.Body)
-
-	if dst != noReg {
-		fs.emit(ins{op: opLoadK, a: dst, c: fs.constant(value.NilValue)}, nil)
-	}
+	fs.block(arm.Body, dst)
 
 	return miss
 }

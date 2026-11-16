@@ -11,7 +11,7 @@ struct ApiError { message, status, path }
 struct Client { base = BASE, token = nil, refreshToken = nil, refreshes = 0 }
 
 impl Client {
-    fun new() => Client {};
+    fun new() { Client {} }
 
     fun login(mut self, username, password) {
         let r = self.send("POST", "/auth/login", { username, password, expiresInMins: 30 });
@@ -31,8 +31,8 @@ impl Client {
         self.token = "expired";
     }
 
-    fun get(mut self, path) => self.authed("GET", path);
-    fun post(mut self, path, body) => self.authed("POST", path, body);
+    fun get(mut self, path) { self.authed("GET", path) }
+    fun post(mut self, path, body) { self.authed("POST", path, body) }
 
     // 401 means the access token expired: refresh once and retry.
     fun authed(mut self, method, path, body = nil) {
@@ -61,11 +61,11 @@ impl Client {
 
         let r = http.request(method, self.base + path, {
             headers,
-            body: body == nil ? nil : json.stringify(body),
+            body: if body == nil { nil } else { json.stringify(body) },
             timeout: 10,
         });
 
-        let data = r.body == "" ? nil : json.parse(r.body);
+        let data = if r.body == "" { nil } else { json.parse(r.body) };
 
         if r.status >= 400 {
             throw ApiError { message: data?.message ?? "HTTP {r.status}", status: r.status, path };
@@ -87,13 +87,13 @@ fun urlEncode(s) {
 
     for _, b in bytes(s) {
         let c = string.fromCharCode(b);
-        out += regex.test(r"^[A-Za-z0-9\-_.~]$", c) ? c : "%%%02X".format(b);
+        out += if regex.test(r"^[A-Za-z0-9\-_.~]$", c) { c } else { "%%%02X".format(b) };
     }
 
     return out;
 }
 
-fun money(n) => "$%.2f".format(n);
+fun money(n) { "$%.2f".format(n) }
 
 fun section(title) {
     print("");
@@ -122,7 +122,7 @@ fun showProducts(query, { products, total }) {
     byRating.sort((a, b) => b.rating - a.rating);
     for { id, title, price, rating, stock } in byRating {
         let stars = "★".repeat(math.round(rating)) + "☆".repeat(5 - math.round(rating));
-        let low = stock < 10 ? "  low stock: {stock}" : "";
+        let low = if stock < 10 { "  low stock: {stock}" } else { "" };
         print("  #%-4d %-32s %9s  %s{low}".format(id, title[..32], money(price), stars));
     }
 }

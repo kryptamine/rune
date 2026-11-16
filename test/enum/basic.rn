@@ -10,7 +10,7 @@ print(c is Color);            // expect: true
 print("White" is Color);      // expect: false
 print(c == Color.White);      // expect: true
 print(c == Color.Black);      // expect: false
-print(c ? "yes" : "no");      // expect: yes
+print(if c { "yes" } else { "no" });      // expect: yes
 
 let alias = Color;
 print(alias.Black);           // expect: Color.Black

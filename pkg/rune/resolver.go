@@ -526,12 +526,8 @@ func (p *Resolver) VisitLogicalExpr(expr *ast.LogicalExpr) (value.Value, error) 
 	return value.NilValue, nil
 }
 
-func (p *Resolver) VisitConditionalExpr(expr *ast.ConditionalExpr) (value.Value, error) {
-	p.resolveExpr(expr.Cond)
-	p.resolveExpr(expr.Then)
-	p.resolveExpr(expr.Else)
-
-	return value.NilValue, nil
+func (p *Resolver) VisitIfExpr(expr *ast.IfExpr) (value.Value, error) {
+	return value.NilValue, p.VisitIfStmt(expr.If)
 }
 
 func (p *Resolver) VisitThrowExpr(expr *ast.ThrowExpr) (value.Value, error) {

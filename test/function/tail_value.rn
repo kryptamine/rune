@@ -1,0 +1,65 @@
+fun sq(x) { x * x }
+print(sq(4)); // expect: 16
+
+fun origin() { ({ x: 0, y: 0 }) }
+print(origin()); // expect: {x: 0, y: 0}
+
+fun log(m) { print("log " + m); }
+print(log("hi")); // expect: log hi
+// expect: nil
+
+fun sign(n) { if n < 0 { throw ValueError { message: "negative" } } else { n } }
+print(sign(2)); // expect: 2
+
+fun early(n) {
+    if n > 0 { return "pos"; }
+    let s = "non-pos {n}";
+    s
+}
+print(early(1), early(0)); // expect: pos non-pos 0
+
+fun grade(n) {
+    match n {
+        90.. => "A",
+        n if n >= 50 => {
+            let gap = 90 - n;
+            "B, {gap} to A"
+        },
+        _ => "F",
+    }
+}
+print(grade(95), grade(70), grade(1)); // expect: A B, 20 to A F
+
+fun pick(c) {
+    let t = "yes";
+    if c { t } else { "no" }
+}
+print(pick(true), pick(false)); // expect: yes no
+
+struct P { x }
+impl P {
+    fun of(x) { P { x } }
+    fun double(self) { self.x * 2 }
+}
+print(P.of(3).double()); // expect: 6
+
+let add = (a, b = 2) => a + b;
+print(add(1)); // expect: 3
+
+let twice = x => {
+    let y = x * 2;
+    y
+};
+print(twice(4)); // expect: 8
+
+let shorthand = name => { name };
+print(shorthand("ann")); // expect: ann
+
+fun withDefer() {
+    let mut xs = [1];
+    defer { print("deferred", xs); }
+    xs.push(2);
+    xs
+}
+print(withDefer()); // expect: deferred [1, 2]
+// expect: [1, 2]

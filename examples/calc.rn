@@ -18,15 +18,17 @@ enum Node {
 }
 
 impl Node {
-    fun kind(self) => match self {
-        _ is Node.Num => "Num",
-        _ is Node.Var => "Var",
-        _ is Node.Neg => "Neg",
-        _ is Node.Binary => "Binary",
-        _ is Node.Call => "Call",
-        _ is Node.Assign => "Assign",
-        _ is Node.FunDef => "FunDef",
-    };
+    fun kind(self) {
+        match self {
+            _ is Node.Num => "Num",
+            _ is Node.Var => "Var",
+            _ is Node.Neg => "Neg",
+            _ is Node.Binary => "Binary",
+            _ is Node.Call => "Call",
+            _ is Node.Assign => "Assign",
+            _ is Node.FunDef => "FunDef",
+        }
+    }
 }
 
 struct CalcError { message, pos = nil }
@@ -59,9 +61,9 @@ let RIGHT_ASSOC = set(["^", "**"]);
 struct Parser { tokens, i = 0 }
 
 impl Parser {
-    fun new(src) => Parser { tokens: tokenize(src) };
+    fun new(src) { Parser { tokens: tokenize(src) } }
 
-    fun peek(self) => self.tokens[self.i];
+    fun peek(self) { self.tokens[self.i] }
 
     fun next(mut self) {
         let t = self.tokens[self.i];
@@ -120,7 +122,7 @@ impl Parser {
             }
 
             self.next();
-            let nextMin = op in RIGHT_ASSOC ? prec : prec + 1;
+            let nextMin = if op in RIGHT_ASSOC { prec } else { prec + 1 };
             left = Node.Binary { op, left, right: self.expr(nextMin) };
         }
 
@@ -182,7 +184,7 @@ let BUILTINS = map([
 struct Env { vars, funs }
 
 impl Env {
-    fun new() => Env { vars: map({ pi: math.PI }), funs: map() };
+    fun new() { Env { vars: map({ pi: math.PI }), funs: map() } }
 
     fun eval(mut self, node, locals = {}) {
         let ev = n => self.eval(n, locals);
@@ -198,7 +200,7 @@ impl Env {
                     "+" => a + b,
                     "-" => a - b,
                     "*" => a * b,
-                    "/" => b == 0 ? throw CalcError { message: "division by zero" } : a / b,
+                    "/" => if b == 0 { throw CalcError { message: "division by zero" } } else { a / b },
                     "%" => a % b,
                     "^" | "**" => math.pow(a, b),
                 };
@@ -238,11 +240,13 @@ impl Env {
     }
 }
 
-fun show(v, digits = 6) => match v {
-    _ is string => v,
-    _ if math.isInt(v) => string(v),
-    _ => regex.replace("\\.?0+$", "%.*f".format(digits, v), ""),
-};
+fun show(v, digits = 6) {
+    match v {
+        _ is string => v,
+        _ if math.isInt(v) => string(v),
+        _ => regex.replace("\\.?0+$", "%.*f".format(digits, v), ""),
+    }
+}
 
 fun run(mut env, line) {
     try {

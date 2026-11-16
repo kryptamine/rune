@@ -146,13 +146,13 @@ func Irrefutable(p Pattern) bool {
 	return false
 }
 
-// MatchArm is pattern [if guard] => body. An expression body is an
-// *ExprStmt, whose value is the arm's; any other body gives nil.
+// MatchArm is pattern [if guard] => body; an expression body is a valued
+// block of it alone.
 type MatchArm struct {
 	Token   Token
 	Pattern Pattern
 	Guard   Expr
-	Body    Stmt
+	Body    *BlockStmt
 }
 
 // MatchExpr is match subject { arms }; no arm matching is an error.
@@ -160,6 +160,16 @@ type MatchExpr struct {
 	Keyword Token
 	Subject Expr
 	Arms    []MatchArm
+}
+
+// Values returns the value of each arm, nil for one without.
+func (n *MatchExpr) Values() []Expr {
+	vs := make([]Expr, len(n.Arms))
+	for i := range n.Arms {
+		vs[i] = n.Arms[i].Body.Value()
+	}
+
+	return vs
 }
 
 func (n *MatchExpr) Accept(v ExprVisitor) (value.Value, error) {

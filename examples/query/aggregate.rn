@@ -10,7 +10,7 @@ struct AggSpec { fn, arg, distinct }
 // specs compiles the aggregate calls against the rows' scope.
 export fun specs(calls, scope) {
     return calls.map(e => {
-        if e.args.len() != (e.star ? 0 : 1) {
+        if e.args.len() != (if e.star { 0 } else { 1 }) {
             throw ast.SqlError { message: "{e.name} takes one argument", pos: e.pos };
         }
 
@@ -20,7 +20,7 @@ export fun specs(calls, scope) {
 
         return AggSpec {
             fn: Agg(e.name[0] + e.name[1..].lower()),
-            arg: e.star ? nil : expr.compile(e.args[0], expr.Ctx { scope }),
+            arg: if e.star { nil } else { expr.compile(e.args[0], expr.Ctx { scope }) },
             distinct: e.distinct,
         };
     });
@@ -107,15 +107,15 @@ fun finish(a, v) {
 
         return match a.fn {
             Agg.Count => xs.len(),
-            Agg.Sum => xs ? xs.reduce((x, y) => x + y) : nil,
-            Agg.Avg => xs ? xs.reduce((x, y) => x + y) / xs.len() : nil,
-            Agg.Min => xs.reduce((x, y) => expr.compare(x, y) <= 0 ? x : y, nil),
-            Agg.Max => xs.reduce((x, y) => expr.compare(x, y) >= 0 ? x : y, nil),
+            Agg.Sum => if xs { xs.reduce((x, y) => x + y) } else { nil },
+            Agg.Avg => if xs { xs.reduce((x, y) => x + y) / xs.len() } else { nil },
+            Agg.Min => xs.reduce((x, y) => if expr.compare(x, y) <= 0 { x } else { y }, nil),
+            Agg.Max => xs.reduce((x, y) => if expr.compare(x, y) >= 0 { x } else { y }, nil),
         };
     }
 
     return match a.fn {
-        Agg.Avg => v[1] == 0 ? nil : v[0] / v[1],
+        Agg.Avg => if v[1] == 0 { nil } else { v[0] / v[1] },
         _ => v,
     };
 }

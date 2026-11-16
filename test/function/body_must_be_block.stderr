@@ -1,4 +1,4 @@
-error: Expect '{' or '=>' before function body.
+error: Expect '{' before function body.
  --> body_must_be_block.rn:3:9
   |
 2 | // [c line 4] Error at end: Expect '}' after block.

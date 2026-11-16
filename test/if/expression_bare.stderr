@@ -1,0 +1,5 @@
+error: Expect '{' after if condition.
+ --> expression_bare.rn:1:17
+  |
+1 | let b = if true 1 else 2; // Error at '1': Expect '{' after if condition.
+  |                 ^

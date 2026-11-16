@@ -1,5 +1,4 @@
-let b = x => { x }; // Error at '{': A '{' here starts a block; wrap an object in parentheses: ({ ... }).
 let c = () => { a: 1 }; // Error at '{': A '{' here starts a block; wrap an object in parentheses: ({ ... }).
 let d = () => { ...{} }; // Error at '{': A '{' here starts a block; wrap an object in parentheses: ({ ... }).
-fun e() => { a: 1 }; // Error at '{': A '{' here starts a block; wrap an object in parentheses: ({ ... }).
+fun e() { a: 1 } // Error at '{': A '{' here starts a block; wrap an object in parentheses: ({ ... }).
 match 1 { 1 => { a: 1 }, _ => 2 }; // Error at '{': A '{' here starts a block; wrap an object in parentheses: ({ ... }).

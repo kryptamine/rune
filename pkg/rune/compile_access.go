@@ -232,8 +232,6 @@ func reads(e ast.Expr) bool {
 		return reads(n.Left) && reads(n.Right)
 	case *ast.LogicalExpr:
 		return reads(n.Left) && reads(n.Right)
-	case *ast.ConditionalExpr:
-		return reads(n.Cond) && reads(n.Then) && reads(n.Else)
 	case *ast.IndexExpr:
 		return reads(n.Array) && reads(n.Index)
 	case *ast.InterpolationExpr:

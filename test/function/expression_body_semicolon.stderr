@@ -1,5 +1,0 @@
-error: Expect ';' after function body.
- --> expression_body_semicolon.rn:1:13
-  |
-1 | fun f() => 1
-  |             ^

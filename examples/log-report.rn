@@ -20,31 +20,33 @@ fun parseLine(line, n) {
         method,
         path: normalize(path),
         status: int(status),
-        bytes: bytes == "-" ? 0 : int(bytes),
+        bytes: if bytes == "-" { 0 } else { int(bytes) },
         latency: number(latency) * 1000,
     };
 }
 
 fun normalize(path) {
     let [base, ..._] = path.split("?");
-    return base.split("/").map(seg => regex.test(r"^(\d+|[0-9a-f]{8,})$", seg) ? ":id" : seg).join("/");
+    return base.split("/").map(seg => if regex.test(r"^(\d+|[0-9a-f]{8,})$", seg) { ":id" } else { seg }).join("/");
 }
 
-fun statusClass(code) => match code {
-    ..200 => "1xx",
-    200..300 => "2xx",
-    304 => "304",
-    300..400 => "3xx",
-    404 => "404",
-    429 => "429",
-    400..500 => "4xx",
-    _ => "5xx",
-};
+fun statusClass(code) {
+    match code {
+        ..200 => "1xx",
+        200..300 => "2xx",
+        304 => "304",
+        300..400 => "3xx",
+        404 => "404",
+        429 => "429",
+        400..500 => "4xx",
+        _ => "5xx",
+    }
+}
 
 struct Stats { count = 0, errors = 0, bytes = 0, latencies = [] }
 
 impl Stats {
-    fun new() => Stats {};
+    fun new() { Stats {} }
 
     fun add(mut self, { status, bytes, latency }) {
         self.count++;
@@ -63,7 +65,7 @@ impl Stats {
         return ps.map(p => xs[math.min(xs.len() - 1, math.floor(xs.len() * p / 100))]);
     }
 
-    fun errorRate(self) => self.count == 0 ? 0 : self.errors / self.count * 100;
+    fun errorRate(self) { if self.count == 0 { 0 } else { self.errors / self.count * 100 } }
 }
 
 const TOP_SLOW = 5;
@@ -78,7 +80,7 @@ struct Report {
 }
 
 impl Report {
-    fun new() => Report {};
+    fun new() { Report {} }
 
     fun add(mut self, e) {
         self.total++;
@@ -143,7 +145,7 @@ fun analyze(path) {
 }
 
 fun bar(value, max, width = 24) {
-    let n = max == 0 ? 0 : math.round(value / max * width);
+    let n = if max == 0 { 0 } else { math.round(value / max * width) };
     return "█".repeat(n) + "·".repeat(width - n);
 }
 
@@ -162,7 +164,7 @@ fun table(headers, rows) {
 
         for i, c in cells {
             let s = string(c);
-            out.push(i == 0 ? s.padEnd(widths[i]) : s.padStart(widths[i]));
+            out.push(if i == 0 { s.padEnd(widths[i]) } else { s.padStart(widths[i]) });
         }
 
         return out.join("  ");
@@ -176,7 +178,7 @@ fun table(headers, rows) {
 }
 
 fun printReport(r) {
-    print("== {r.total} requests, {r.skipped.len()} malformed lines skipped" + (r.skipped ? " (lines {r.skipped[..5].join(", ")})" : ""));
+    print("== {r.total} requests, {r.skipped.len()} malformed lines skipped" + (if r.skipped { " (lines {r.skipped[..5].join(", ")})" } else { "" }));
     print("");
 
     let mut rows = [];
@@ -223,7 +225,7 @@ fun printReport(r) {
     print("");
     print("slowest requests:");
     for { time, method, path, status, latency } in r.slowest {
-        let flag = status >= 500 ? " !" : "";
+        let flag = if status >= 500 { " !" } else { "" };
         print("  %8.1f ms  %s  %s %s → %d%s".format(latency, time, method, path, status, flag));
     }
 }
@@ -248,16 +250,16 @@ fun toJson(r) {
 struct Rng { seed }
 
 impl Rng {
-    fun new(seed) => Rng { seed };
+    fun new(seed) { Rng { seed } }
 
     fun next(mut self) {
         self.seed = (self.seed * 1103515245 + 12345) & 0x7fffffff;
         return self.seed >> 8;
     }
 
-    fun int(mut self, n) => self.next() % n;
+    fun int(mut self, n) { self.next() % n }
 
-    fun pick(mut self, xs) => xs[self.int(xs.len())];
+    fun pick(mut self, xs) { xs[self.int(xs.len())] }
 }
 
 const IPS = ["203.0.113.7", "198.51.100.23", "192.0.2.44", "203.0.113.90", "198.51.100.5"];
@@ -270,7 +272,7 @@ let ROUTES = [
     Route { method: "POST", path: _ => "/api/orders", ms: 80 },
     Route { method: "GET", path: n => "/api/orders/{n % 100000}?expand=items", ms: 35 },
     Route { method: "GET", path: _ => "/health", ms: 1 },
-    Route { method: "GET", path: n => "/static/app." + (n % 2 == 0 ? "js" : "css"), ms: 3 },
+    Route { method: "GET", path: n => "/static/app." + (if n % 2 == 0 { "js" } else { "css" }), ms: 3 },
 ];
 
 fun generate(path, n = 400) {
@@ -286,16 +288,16 @@ fun generate(path, n = 400) {
         let roll = rng.int(100);
 
         let status = match roll {
-            ..82 => route.method == "POST" ? 201 : 200,
+            ..82 => if route.method == "POST" { 201 } else { 200 },
             82..88 => 304,
             88..93 => 404,
             93..95 => 429,
             _ => [500, 502, 503][rng.int(3)],
         };
 
-        let spike = rng.int(50) == 0 ? 40 : 1;
+        let spike = if rng.int(50) == 0 { 40 } else { 1 };
         let latency = route.ms * spike * (0.5 + rng.int(1000) / 1000) / 1000;
-        let size = status == 304 ? "-" : string(200 + rng.int(8000));
+        let size = if status == 304 { "-" } else { string(200 + rng.int(8000)) };
         let sec = i * 7;
         let time = "12/Nov/2026:%02d:%02d:%02d".format(10 + math.idiv(sec, 3600), math.idiv(sec, 60) % 60, sec % 60);
 

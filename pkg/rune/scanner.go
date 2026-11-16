@@ -138,7 +138,7 @@ func (s *Scanner) scanToken() {
 		case s.match('?'):
 			s.addToken(ast.QUESTION_QUESTION)
 		default:
-			s.addToken(ast.QUESTION)
+			s.errorAt("Unexpected character: ?")
 		}
 	case '-':
 		switch {

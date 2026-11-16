@@ -108,7 +108,7 @@ fallback extend as far as they can.
 let port = try int("http") catch => 80;
 print(port); // 80
 
-fun field(o, key) => try o[key] catch e is KeyError => nil catch e is TypeError => "not an object";
+fun field(o, key) { try o[key] catch e is KeyError => nil catch e is TypeError => "not an object" }
 
 print(field({ id: 7 }, "id"));    // 7
 print(field({ id: 7 }, "name"));  // nil
@@ -159,7 +159,7 @@ throw AgeError { message: "negative age", value: -1 }; // AgeError: negative age
 ```
 
 `throw` is also an expression, whose operand extends as far as it can, so it
-fits where a value is expected: after `??`, in `? :`, or in a match arm.
+fits where a value is expected: after `??`, in an `if` branch, or in a match arm.
 
 ```rune
 struct ConfigError { message, key }
@@ -169,7 +169,7 @@ fun require(cfg, key) {
 }
 
 fun positive(n) {
-    return n > 0 ? n : throw ValueError { message: "not positive: {n}" };
+    return if n > 0 { n } else { throw ValueError { message: "not positive: {n}" } };
 }
 
 let cfg = { port: 8080 };

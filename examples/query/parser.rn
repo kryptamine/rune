@@ -50,7 +50,7 @@ export fun parse(src) {
 struct Parser { tokens, i = 0 }
 
 impl Parser {
-    fun peek(self, ahead = 0) => self.tokens[math.min(self.i + ahead, self.tokens.len() - 1)];
+    fun peek(self, ahead = 0) { self.tokens[math.min(self.i + ahead, self.tokens.len() - 1)] }
 
     fun next(mut self) {
         let t = self.tokens[self.i];
@@ -84,7 +84,7 @@ impl Parser {
 
     fun fail(self, message) {
         let t = self.peek();
-        throw ast.SqlError { message: "{message}, got {t.kind == Kind.Eof ? t.text : "'{t.text}'"}", pos: t.pos };
+        throw ast.SqlError { message: "{message}, got {if t.kind == Kind.Eof { t.text } else { "'{t.text}'" }}", pos: t.pos };
     }
 
     fun atName(self) {
@@ -134,7 +134,7 @@ impl Parser {
             joins.push(ast.Join { left, table, on: self.expr(0) });
         }
 
-        let where = self.accept("WHERE") ? self.expr(0) : nil;
+        let where = if self.accept("WHERE") { self.expr(0) } else { nil };
 
         let mut groupBy = [];
 
@@ -143,7 +143,7 @@ impl Parser {
             groupBy = self.exprs();
         }
 
-        let having = self.accept("HAVING") ? self.expr(0) : nil;
+        let having = if self.accept("HAVING") { self.expr(0) } else { nil };
 
         let mut orderBy = [];
 
@@ -155,8 +155,8 @@ impl Parser {
             }
         }
 
-        let limit = self.accept("LIMIT") ? self.count("LIMIT") : nil;
-        let offset = self.accept("OFFSET") ? self.count("OFFSET") : 0;
+        let limit = if self.accept("LIMIT") { self.count("LIMIT") } else { nil };
+        let offset = if self.accept("OFFSET") { self.count("OFFSET") } else { 0 };
 
         self.accept(";");
 
@@ -205,14 +205,14 @@ impl Parser {
             return ast.Item { expr, alias: self.name("a column alias") };
         }
 
-        return ast.Item { expr, alias: self.atName() ? self.next().text : nil };
+        return ast.Item { expr, alias: if self.atName() { self.next().text } else { nil } };
     }
 
     fun table(mut self) {
         let pos = self.peek().pos;
         let name = self.name("a table name");
         self.accept("AS");
-        return ast.TableRef { name, alias: self.atName() ? self.next().text : name, pos };
+        return ast.TableRef { name, alias: if self.atName() { self.next().text } else { name }, pos };
     }
 
     fun expr(mut self, minPrec) {
@@ -221,7 +221,7 @@ impl Parser {
         while true {
             let t = self.peek();
             let op = t.word ?? t.text;
-            let prec = t.kind == Kind.Op || t.kind == Kind.Id ? (PRECEDENCE?.[op] ?? -1) : -1;
+            let prec = if t.kind == Kind.Op || t.kind == Kind.Id { PRECEDENCE?.[op] ?? -1 } else { -1 };
 
             if prec < minPrec || prec < 0 {
                 break;
@@ -233,7 +233,7 @@ impl Parser {
                 "IS" => self.isNull(left),
                 "NOT" => self.postfix(left, self.next().word, true),
                 "IN" | "BETWEEN" | "LIKE" => self.postfix(left, op, false),
-                _ => ast.Binary { op: op == "!=" ? "<>" : op, left, right: self.expr(prec + 1) },
+                _ => ast.Binary { op: if op == "!=" { "<>" } else { op }, left, right: self.expr(prec + 1) },
             };
         }
 
@@ -320,7 +320,7 @@ impl Parser {
         }
 
         let distinct = self.accept("DISTINCT");
-        let args = self.at(")") ? [] : self.exprs();
+        let args = if self.at(")") { [] } else { self.exprs() };
         self.expect(")");
 
         if distinct && name !in ast.AGGREGATES {
@@ -343,7 +343,7 @@ impl Parser {
             self.fail("expected WHEN");
         }
 
-        let otherwise = self.accept("ELSE") ? self.expr(0) : nil;
+        let otherwise = if self.accept("ELSE") { self.expr(0) } else { nil };
         self.expect("END");
         return ast.Case { whens, otherwise };
     }

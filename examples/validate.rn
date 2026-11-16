@@ -118,7 +118,7 @@ fun check(s, v, path, mut out) {
 
             return bounded(v, min, max, path, out);
         },
-        _ is Flag => want(v is boolean, "boolean", v, path, out) ? v : nil,
+        _ is Flag => if want(v is boolean, "boolean", v, path, out) { v } else { nil },
         Duration { min, max } => {
             if !want(v is string, "string", v, path, out) {
                 return nil;
@@ -149,7 +149,7 @@ fun want(ok, t, v, path, mut out) {
         return true;
     }
 
-    fail(out, path, "expected {t}, got {v == nil ? "null" : show(v)}");
+    fail(out, path, "expected {t}, got {if v == nil { "null" } else { show(v) }}");
     return false;
 }
 
@@ -175,7 +175,7 @@ fun checkStr({ min, max, pattern, like, oneOf }, v, path, mut out) {
     }
 
     if v.len() < min {
-        return fail(out, path, min == 1 ? "must not be empty" : "shorter than {min} characters");
+        return fail(out, path, if min == 1 { "must not be empty" } else { "shorter than {min} characters" });
     }
 
     if max != nil && v.len() > max {
@@ -217,10 +217,10 @@ fun checkAddr(v, path, mut out) {
 
     let m = regex.find(r"^(?:[\w.-]*|\[[0-9a-fA-F:]+\]):(\d+)$", v) ?? return fail(out, path, "{show(v)} is not host:port");
     let port = int(m.groups[0]);
-    return validPort(port) ? v : fail(out, path, "port {port} is out of range 1-65535");
+    return if validPort(port) { v } else { fail(out, path, "port {port} is out of range 1-65535") };
 }
 
-fun validPort(p) => p >= 1 && p <= 65535;
+fun validPort(p) { p >= 1 && p <= 65535 }
 
 fun checkList({ of, min, max, unique }, v, path, mut out) {
     if !want(v is array, "array", v, path, out) {
@@ -228,7 +228,7 @@ fun checkList({ of, min, max, unique }, v, path, mut out) {
     }
 
     if v.len() < min {
-        fail(out, path, min == 1 ? "must not be empty" : "needs at least {min} items");
+        fail(out, path, if min == 1 { "must not be empty" } else { "needs at least {min} items" });
     }
 
     if max != nil && v.len() > max {
@@ -246,7 +246,7 @@ fun checkList({ of, min, max, unique }, v, path, mut out) {
             continue;
         }
 
-        let [key, keyAt] = unique == true ? [item, at] : [item is object ? item?.[unique] : nil, [...at, unique]];
+        let [key, keyAt] = if unique == true { [item, at] } else { [if item is object { item?.[unique] } else { nil }, [...at, unique]] };
 
         if key !is string | number {
             continue;
@@ -268,7 +268,7 @@ fun checkDict({ of, key, min }, v, path, mut out) {
     }
 
     if v.len() < min {
-        fail(out, path, min == 1 ? "must not be empty" : "needs at least {min} entries");
+        fail(out, path, if min == 1 { "must not be empty" } else { "needs at least {min} entries" });
     }
 
     let mut entries = {};
@@ -439,7 +439,7 @@ fun v2to3(cfg, mut notes) {
     notes.push("backends → upstreams, keyed by name");
 
     let next = routes.map(({ path, backend, auth = "none", ...more }) => {
-        return { pattern: path.endsWith("/") ? path + "*" : path, upstream: backend, ...more, auth: { type: auth } };
+        return { pattern: if path.endsWith("/") { path + "*" } else { path }, upstream: backend, ...more, auth: { type: auth } };
     });
 
     notes.push("routes: path → pattern, backend → upstream, auth \"name\" → auth.type");
@@ -475,17 +475,17 @@ fun fmtPath(path) {
     for seg in path {
         s += match seg {
             _ is number => "[{seg}]",
-            _ if regex.test(r"^[A-Za-z_][\w-]*$", seg) => s == "" ? seg : "." + seg,
+            _ if regex.test(r"^[A-Za-z_][\w-]*$", seg) => if s == "" { seg } else { "." + seg },
             _ => "[%q]".format(seg),
         };
     }
 
-    return s == "" ? "(root)" : s;
+    return if s == "" { "(root)" } else { s };
 }
 
 fun show(v) {
     let s = "%q".format(v);
-    return s.len() > 40 ? s[..37] + "..." : s;
+    return if s.len() > 40 { s[..37] + "..." } else { s };
 }
 
 fun suggest(word, options) {
@@ -500,7 +500,7 @@ fun suggest(word, options) {
         }
     }
 
-    return best == nil ? "" : ", did you mean {show(best)}?";
+    return if best == nil { "" } else { ", did you mean {show(best)}?" };
 }
 
 fun distance(a, b) {
@@ -514,7 +514,7 @@ fun distance(a, b) {
         let mut row = [i];
 
         for j in 1..b.len() + 1 {
-            let cost = a[i - 1] == b[j - 1] ? 0 : 1;
+            let cost = if a[i - 1] == b[j - 1] { 0 } else { 1 };
             row.push(math.min(prev[j] + 1, row[j - 1] + 1, prev[j - 1] + cost));
         }
 
@@ -550,8 +550,8 @@ fun inUnits(n, units) {
     return string(n);
 }
 
-fun duration(ms) => inUnits(ms, UNITS);
-fun size(n) => inUnits(n, SIZES);
+fun duration(ms) { inUnits(ms, UNITS) }
+fun size(n) { inUnits(n, SIZES) }
 
 fun report(issues) {
     let errors = issues.filter(i => i.level == Level.Error).len();
@@ -572,7 +572,7 @@ fun report(issues) {
     return errors;
 }
 
-fun plural(n) => n == 1 ? "" : "s";
+fun plural(n) { if n == 1 { "" } else { "s" } }
 
 // --- commands ---
 
@@ -607,7 +607,7 @@ fun run([cmd = "help", path = nil, ...flags]) {
                 io.eprint("  migrated: {n}");
             }
 
-            return report(validate(cfg).issues) > 0 ? 1 : 0;
+            return if report(validate(cfg).issues) > 0 { 1 } else { 0 };
         },
         "migrate" => {
             for n in notes {
@@ -739,7 +739,7 @@ fun demo() {
         let [cmd, file] = line.split(" ");
         print("$ validate {line}");
         let code = run([cmd, fs.join(dir, file)]);
-        print(code == 0 ? "" : "(exit {code})\n");
+        print(if code == 0 { "" } else { "(exit {code})\n" });
     }
 }
 

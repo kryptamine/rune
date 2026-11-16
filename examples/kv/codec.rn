@@ -12,7 +12,7 @@ export const DEL = 1;
 export struct Loc { seg, start, recLen, size }
 
 impl Loc {
-    fun valueAt(self) => self.start + self.recLen - self.size;
+    fun valueAt(self) { self.start + self.recLen - self.size }
 }
 
 export struct Record { kind, key, start, recLen, size }

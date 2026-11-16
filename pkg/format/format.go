@@ -52,8 +52,6 @@ type comment struct {
 type frame struct {
 	open   ast.TokenType
 	indent int
-	// pending counts the ? of conditionals waiting for their :.
-	pending int
 }
 
 type printer struct {
@@ -134,7 +132,10 @@ func split(s string, tokens []ast.Token) ([]atom, []comment) {
 func layout(atoms []atom) {
 	type frame struct {
 		brace, multi bool
-		start        int
+		// broke is set once a statement of the block ends with a ;, which
+		// puts its value, if any, and the } on lines of their own.
+		broke bool
+		start int
 	}
 	stack := []frame{{brace: true}}
 	for i := range atoms {
@@ -152,6 +153,9 @@ func layout(atoms []atom) {
 		case closer(t) && len(stack) > 1:
 			inner := stack[len(stack)-1]
 			stack = stack[:len(stack)-1]
+			if inner.broke {
+				lineBreak(&atoms[i], 1)
+			}
 			stack[len(stack)-1].multi = stack[len(stack)-1].multi || inner.multi ||
 				t == ast.RIGHT_BRACE && atoms[i].before.breaks > 0
 			end = t == ast.RIGHT_BRACE && next != nil && next.before.breaks > 0 && !continuesBlock(next)
@@ -166,6 +170,7 @@ func layout(atoms []atom) {
 		if t == ast.SEMICOLON && next != nil {
 			lineBreak(next, 1)
 			lineBreak(&atoms[top.start], 1)
+			top.broke = true
 		}
 		if top.multi {
 			lineBreak(&atoms[top.start], 2)
@@ -329,13 +334,9 @@ func (p *printer) continues() bool {
 	return true
 }
 
-// track keeps the brackets and conditionals open after a.
+// track keeps the brackets open after a.
 func (p *printer) track(a, next *atom) {
 	switch t := a.tok.TokenType; {
-	case t == ast.QUESTION:
-		p.top().pending++
-	case t == ast.COLON && p.top().pending > 0:
-		p.top().pending--
 	case opener(t):
 		base := p.line
 		if p.bodyBrace(t, next) {
@@ -390,7 +391,7 @@ func (p *printer) spaceBefore(a *atom) bool {
 		}
 		return !prev.ended()
 	case t == ast.COLON:
-		return p.top().pending > 0
+		return false
 	}
 	return true
 }

@@ -31,21 +31,21 @@ const INF = 1000000;
 
 struct FenError { message }
 
-fun sq(file, rank) => 21 + file + rank * 10;
-fun fileOf(s) => s % 10 - 1;
-fun rankOf(s) => math.idiv(s, 10) - 2;
-fun squareName(s) => "abcdefgh"[fileOf(s)] + string(rankOf(s) + 1);
-fun color(side) => (1 - side) >> 1;
+fun sq(file, rank) { 21 + file + rank * 10 }
+fun fileOf(s) { s % 10 - 1 }
+fun rankOf(s) { math.idiv(s, 10) - 2 }
+fun squareName(s) { "abcdefgh"[fileOf(s)] + string(rankOf(s) + 1) }
+fun color(side) { (1 - side) >> 1 }
 
-fun encode(from, to, promo = 0, flag = 0) => from | to << 7 | promo << 14 | flag << 17;
-fun moveFrom(m) => m & 127;
-fun moveTo(m) => m >> 7 & 127;
-fun movePromo(m) => m >> 14 & 7;
-fun moveFlag(m) => m >> 17;
+fun encode(from, to, promo = 0, flag = 0) { from | to << 7 | promo << 14 | flag << 17 }
+fun moveFrom(m) { m & 127 }
+fun moveTo(m) { m >> 7 & 127 }
+fun movePromo(m) { m >> 14 & 7 }
+fun moveFlag(m) { m >> 17 }
 
 fun moveName(m) {
     let promo = movePromo(m);
-    return squareName(moveFrom(m)) + squareName(moveTo(m)) + (promo != 0 ? PIECE_CHARS[promo] : "");
+    return squareName(moveFrom(m)) + squareName(moveTo(m)) + (if promo != 0 { PIECE_CHARS[promo] } else { "" });
 }
 
 // Piece-square tables from white's side, a8 first (Michniewski's simplified evaluation)
@@ -114,7 +114,7 @@ const PST = [
     ],
 ];
 
-fun pieceIndex(p, s) => (p + 6) * 120 + s;
+fun pieceIndex(p, s) { (p + 6) * 120 + s }
 
 fun buildSquareScores() {
     let mut out = [0].repeat(13 * 120);
@@ -148,7 +148,7 @@ fun random64() {
 
 let PIECE_KEYS = (0..13 * 120).map(_ => random64());
 let CASTLE_KEYS = (0..16).map(_ => random64());
-let EP_KEYS = (0..120).map(i => i == 0 ? 0 : random64());
+let EP_KEYS = (0..120).map(i => if i == 0 { 0 } else { random64() });
 let SIDE_KEY = random64();
 
 fun castleMask() {
@@ -213,11 +213,11 @@ impl Position {
                     throw FenError { message: "bad rank '{row}'" };
                 }
 
-                let p = ch == ch.upper() ? t : -t;
+                let p = if ch == ch.upper() { t } else { -t };
                 board[sq(file, rank)] = p;
 
                 if t == KING {
-                    kings[color(p > 0 ? 1 : -1)] = sq(file, rank);
+                    kings[color(if p > 0 { 1 } else { -1 })] = sq(file, rank);
                 }
 
                 file++;
@@ -240,8 +240,8 @@ impl Position {
             }
         }
 
-        let epSquare = ep == "-" ? 0 : sq("abcdefgh".indexOf(ep[0]), int(ep[1]) - 1);
-        let pos = Position { board, side: side == "w" ? 1 : -1, castle: rights, ep: epSquare, half: int(half), kings };
+        let epSquare = if ep == "-" { 0 } else { sq("abcdefgh".indexOf(ep[0]), int(ep[1]) - 1) };
+        let pos = Position { board, side: if side == "w" { 1 } else { -1 }, castle: rights, ep: epSquare, half: int(half), kings };
         return Position { ...pos, hash: pos.computeHash(), score: pos.computeScore() };
     }
 
@@ -283,8 +283,8 @@ impl Position {
             }
         }
 
-        let ep = self.ep == 0 ? "-" : squareName(self.ep);
-        return "{rows.join("/")} {self.side == 1 ? "w" : "b"} {rights == "" ? "-" : rights} {ep} {self.half} 1";
+        let ep = if self.ep == 0 { "-" } else { squareName(self.ep) };
+        return "{rows.join("/")} {if self.side == 1 { "w" } else { "b" }} {if rights == "" { "-" } else { rights }} {ep} {self.half} 1";
     }
 
     fun computeHash(self) {
@@ -363,8 +363,8 @@ impl Position {
         return false;
     }
 
-    fun inCheck(self) => self.attacked(self.kings[color(self.side)], -self.side);
-    fun leftInCheck(self) => self.attacked(self.kings[color(-self.side)], self.side);
+    fun inCheck(self) { self.attacked(self.kings[color(self.side)], -self.side) }
+    fun leftInCheck(self) { self.attacked(self.kings[color(-self.side)], self.side) }
 
     fun moves(self, quiet = true) {
         let b = self.board;
@@ -383,11 +383,11 @@ impl Position {
             if t == PAWN {
                 let fwd = 10 * side;
                 let one = s + fwd;
-                let promotes = rankOf(one) == (side == 1 ? 7 : 0);
+                let promotes = rankOf(one) == (if side == 1 { 7 } else { 0 });
 
                 if b[one] == EMPTY && (quiet || promotes) {
                     pushPawn(out, s, one, promotes);
-                    let home = rankOf(s) == (side == 1 ? 1 : 6);
+                    let home = rankOf(s) == (if side == 1 { 1 } else { 6 });
                     if quiet && home && b[one + fwd] == EMPTY {
                         out.push(encode(s, one + fwd, 0, DOUBLE));
                     }
@@ -407,7 +407,7 @@ impl Position {
             }
 
             if t == KNIGHT || t == KING {
-                for d in t == KNIGHT ? KNIGHT_DIRS : KING_DIRS {
+                for d in (if t == KNIGHT { KNIGHT_DIRS } else { KING_DIRS }) {
                     let target = b[s + d];
 
                     if target == OFF || target * side > 0 {
@@ -449,9 +449,9 @@ impl Position {
     fun castles(self, mut out) {
         let b = self.board;
         let side = self.side;
-        let rank = side == 1 ? 0 : 7;
+        let rank = if side == 1 { 0 } else { 7 };
         let king = sq(4, rank);
-        let shift = side == 1 ? 0 : 2;
+        let shift = if side == 1 { 0 } else { 2 };
 
         if self.castle & 1 << shift != 0
             && b[king + 1] == EMPTY && b[king + 2] == EMPTY
@@ -501,7 +501,7 @@ impl Position {
             score -= SQUARE_SCORE[pieceIndex(captured, to)];
         }
 
-        let placed = promo != 0 ? promo * side : p;
+        let placed = if promo != 0 { promo * side } else { p };
         self.board[from] = EMPTY;
         self.board[to] = placed;
         h ^= PIECE_KEYS[pieceIndex(placed, to)];
@@ -517,7 +517,7 @@ impl Position {
             score -= SQUARE_SCORE[pieceIndex(-PAWN * side, victim)];
             self.board[victim] = EMPTY;
         } else if flag == CASTLE {
-            let [rookFrom, rookTo] = to > from ? [from + 3, from + 1] : [from - 4, from - 1];
+            let [rookFrom, rookTo] = if to > from { [from + 3, from + 1] } else { [from - 4, from - 1] };
             let rook = ROOK * side;
             self.board[rookFrom] = EMPTY;
             self.board[rookTo] = rook;
@@ -529,7 +529,7 @@ impl Position {
             self.kings[color(side)] = to;
         }
 
-        self.half = p == PAWN * side || captured != EMPTY ? 0 : self.half + 1;
+        self.half = if p == PAWN * side || captured != EMPTY { 0 } else { self.half + 1 };
         self.castle &= CASTLE_MASK[from] & CASTLE_MASK[to];
         self.hash = h ^ CASTLE_KEYS[self.castle] ^ EP_KEYS[self.ep];
         self.score = score;
@@ -543,7 +543,7 @@ impl Position {
         let to = moveTo(m);
         let side = -self.side;
         let flag = moveFlag(m);
-        let p = movePromo(m) != 0 ? PAWN * side : self.board[to];
+        let p = if movePromo(m) != 0 { PAWN * side } else { self.board[to] };
 
         self.board[from] = p;
         self.board[to] = u.captured;
@@ -551,7 +551,7 @@ impl Position {
         if flag == EN_PASSANT {
             self.board[to - 10 * side] = -PAWN * side;
         } else if flag == CASTLE {
-            let [rookFrom, rookTo] = to > from ? [from + 3, from + 1] : [from - 4, from - 1];
+            let [rookFrom, rookTo] = if to > from { [from + 3, from + 1] } else { [from - 4, from - 1] };
             self.board[rookTo] = EMPTY;
             self.board[rookFrom] = ROOK * side;
         }
@@ -596,7 +596,7 @@ impl Position {
 
 fun pieceChar(p) {
     let ch = PIECE_CHARS[math.abs(p)];
-    return p > 0 ? ch.upper() : ch;
+    return if p > 0 { ch.upper() } else { ch };
 }
 
 fun pushPawn(mut out, from, to, promotes) {
@@ -617,7 +617,7 @@ fun perft(mut pos, depth) {
         pos.make(m);
 
         if !pos.leftInCheck() {
-            nodes += depth == 1 ? 1 : perft(pos, depth - 1);
+            nodes += if depth == 1 { 1 } else { perft(pos, depth - 1) };
         }
 
         pos.unmake();
@@ -690,7 +690,7 @@ impl Search {
         }
 
         let check = self.pos.inCheck();
-        let remaining = check ? depth + 1 : depth;
+        let remaining = if check { depth + 1 } else { depth };
 
         if remaining <= 0 {
             return self.quiesce(alpha, beta, ply);
@@ -755,10 +755,10 @@ impl Search {
         }
 
         if legal == 0 {
-            return check ? -MATE + ply : 0;
+            return if check { -MATE + ply } else { 0 };
         }
 
-        let bound = best >= beta ? Bound.Lower : best <= alpha ? Bound.Upper : Bound.Exact;
+        let bound = if best >= beta { Bound.Lower } else if best <= alpha { Bound.Upper } else { Bound.Exact };
         self.tt[self.pos.hash] = Entry { depth: remaining, score: toTT(best, ply), bound, move: bestMove };
         return best;
     }
@@ -888,14 +888,14 @@ fun fromTT(score, ply) {
 fun scoreText(score) {
     if math.abs(score) > MATE - 1000 {
         let moves = math.idiv(MATE - math.abs(score) + 1, 2);
-        return score > 0 ? "mate {moves}" : "mated {moves}";
+        return if score > 0 { "mate {moves}" } else { "mated {moves}" };
     }
 
     return "%+.2f".format(score / 100);
 }
 
 fun printInfo({ depth, score, nodes, seconds, pv }) {
-    let nps = seconds > 0 ? math.round(nodes / seconds) : 0;
+    let nps = if seconds > 0 { math.round(nodes / seconds) } else { 0 };
     print("  depth %2d  %-9s  nodes %8d  nps %7d  pv %s".format(depth, scoreText(score), nodes, nps, pv.join(" ")));
 }
 
@@ -906,7 +906,7 @@ fun search(pos, seconds = 5, maxDepth = 64, report = printInfo) {
 
 fun gameOver(mut pos) {
     if !pos.legalMoves() {
-        return pos.inCheck() ? (pos.side == 1 ? "black wins by mate" : "white wins by mate") : "stalemate";
+        return if pos.inCheck() { if pos.side == 1 { "black wins by mate" } else { "white wins by mate" } } else { "stalemate" };
     }
 
     if pos.half >= 100 {
@@ -934,7 +934,7 @@ fun demo() {
             let start = time.now();
             let got = perft(pos, i + 1);
             let ms = math.round((time.now() - start) * 1000);
-            print("  %-9s depth %d  %7d %s  %5d ms".format(name, i + 1, got, got == want ? "ok" : "WRONG, want {want}", ms));
+            print("  %-9s depth %d  %7d %s  %5d ms".format(name, i + 1, got, if got == want { "ok" } else { "WRONG, want {want}" }, ms));
         }
     }
 
@@ -949,7 +949,7 @@ fun demo() {
 
     for ply in 0..12 {
         let { move } = search(pos, 0.2, 64, nil);
-        line.push(ply % 2 == 0 ? "{ply / 2 + 1}. {moveName(move)}" : moveName(move));
+        line.push(if ply % 2 == 0 { "{ply / 2 + 1}. {moveName(move)}" } else { moveName(move) });
         pos.make(move);
     }
 
@@ -965,7 +965,7 @@ fun perftCommand(depth, fen) {
 
     for m in pos.legalMoves() {
         pos.make(m);
-        let n = depth <= 1 ? 1 : perft(pos, depth - 1);
+        let n = if depth <= 1 { 1 } else { perft(pos, depth - 1) };
         pos.unmake();
         print("{moveName(m)}: {n}");
         total += n;
@@ -977,7 +977,7 @@ fun perftCommand(depth, fen) {
 
 fun play(human, seconds) {
     let mut pos = Position.fromFen(START_FEN);
-    print("you play {human == 1 ? "white" : "black"}; moves like e2e4 or e7e8q, 'quit' to stop");
+    print("you play {if human == 1 { "white" } else { "black" }}; moves like e2e4 or e7e8q, 'quit' to stop");
 
     while true {
         print("\n" + pos.show());
@@ -1056,7 +1056,7 @@ fun main(args) {
                 let { move, score } = search(pos, seconds, depth);
                 print("bestmove {moveName(move)} ({scoreText(score)})");
             },
-            "play" => play(free?.[0] == "black" ? -1 : 1, seconds),
+            "play" => play(if free?.[0] == "black" { -1 } else { 1 }, seconds),
             _ => throw UsageError { message: "unknown command '{command}'" },
         };
     } catch e is UsageError | FenError | ValueError {

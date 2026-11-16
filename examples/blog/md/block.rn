@@ -7,13 +7,15 @@ export struct Heading { level, text, id }
 enum ListKind { Bullet, Numbered }
 
 impl ListKind {
-    fun tag(self) => match self {
-        ListKind.Bullet => "ul",
-        ListKind.Numbered => "ol",
-    };
+    fun tag(self) {
+        match self {
+            ListKind.Bullet => "ul",
+            ListKind.Numbered => "ol",
+        }
+    }
 }
 
-export fun slug(s) => regex.replace(r"[^a-z0-9]+", s.lower(), "-").trim("-");
+export fun slug(s) { regex.replace(r"[^a-z0-9]+", s.lower(), "-").trim("-") }
 
 export fun render(src) {
     let lines = src.split("\n");
@@ -38,7 +40,7 @@ export fun render(src) {
             }
 
             i++;
-            let cls = lang == "" ? "" : " class=\"lang-{lang}\"";
+            let cls = if lang == "" { "" } else { " class=\"lang-{lang}\"" };
             doc.html.push("<pre><code{cls}>{inline.escape(code.join("\n"))}</code></pre>");
             continue;
         }
@@ -113,7 +115,7 @@ fun listItem(line) {
     }
 
     let [marker, text] = m.groups;
-    return { kind: marker.endsWith(".") ? ListKind.Numbered : ListKind.Bullet, text };
+    return { kind: if marker.endsWith(".") { ListKind.Numbered } else { ListKind.Bullet }, text };
 }
 
 fun startsBlock(line) {

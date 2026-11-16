@@ -116,7 +116,7 @@ func TestMovesDoNotCopy(t *testing.T) {
 		"rebind":   `let mut a = [0].repeat(1000); for k in 0..%d { let mut b = a; b[0] = k; a = b; let c = [0].repeat(1000); }`,
 		"pass":     `fun first(xs) { return xs[0]; } for k in 0..%d { let mut a = [0].repeat(1000); first(a); a[0] = 1; }`,
 		"passlast": `fun put(mut xs) { xs[0] = 1; } for k in 0..%d { let mut a = [0].repeat(1000); let mut b = a; put(b); }`,
-		"cond":     `fun pick(c) { let mut a = [0].repeat(1000); let mut b = [1]; return c ? a : b; } for k in 0..%d { let mut xs = pick(k %% 2 == 0); xs[0] = 1; }`,
+		"cond":     `fun pick(c) { let mut a = [0].repeat(1000); let mut b = [1]; if c { a } else { b } } for k in 0..%d { let mut xs = pick(k %% 2 == 0); xs[0] = 1; }`,
 	} {
 		t.Run(name, func(t *testing.T) {
 			if one, many := allocated(t, src, 1), allocated(t, src, 101); many-one > 100*20<<10 {
