@@ -1,50 +1,68 @@
 # Destructuring
 
-A pattern takes a value apart into variables. It works in `let`, in function
-parameters and in `for`-`in` variables.
+Destructuring takes a value apart into variables in one step. Instead of
+reading `user.name` and `user.age` into two variables by hand, you write
+the shape you expect and Rune fills in the names. Patterns work in `let`,
+in function parameters and in `for`-`in` variables.
 
 ## Objects and Structs
 
-An object pattern binds properties of an object, or fields of a struct, to
-variables of the same name:
+An object pattern binds properties to variables of the same name:
 
 ```rune
-let user = { name: "ann", age: 31 };
+let user = { name: "ann", age: 31, role: "admin" };
 let { name, age } = user;
 
-print(name); // ann
-print(age);  // 31
+print(name);    // ann
+print(age);     // 31
 ```
 
-`key: name` binds under another name; a string key needs one. `mut x` and
-`key: mut name` make a variable mutable, `let mut { ... }` makes them all
-mutable.
+`key: name` binds a property under another name. A key that is not a
+plain identifier, such as `"full name"`, needs one:
 
 ```rune
-let user = { name: "ann", age: 31, "full name": "Ann Lee" };
-let { name: login, "full name": fullName, age: mut years } = user;
-years += 1;
+let user = { name: "ann", "full name": "Ann Lee" };
+let { name: login, "full name": fullName } = user;
 
-print(login);    // ann
-print(fullName); // Ann Lee
-print(years);    // 32
+print(login);       // ann
+print(fullName);    // Ann Lee
 ```
 
-In a parameter, a pattern takes the fields it needs, from an object or a
-struct alike:
+Variables from a pattern are immutable, like any `let`. Mark one with
+`mut`, or write `let mut { ... }` to make them all mutable:
+
+```rune
+let { name, age: mut years } = { name: "ann", age: 31 };
+years += 1;
+print("{name} turns {years}");    // ann turns 32
+```
+
+The same pattern reads the fields of a struct.
+
+### In parameters
+
+A pattern in a parameter takes just the fields the function needs. It
+accepts any value that has them, an object or a struct alike:
 
 ```rune
 struct Point { x, y = 0 }
 
-fun length({ x, y }) {
-    return x * x + y * y;
-}
+fun lengthSquared({ x, y }) { x * x + y * y }
 
-print(length(Point { x: 3, y: 4 })); // 25
-print(length({ x: 1, y: 1 }));       // 2
+print(lengthSquared(Point { x: 3, y: 4 }));    // 25
+print(lengthSquared({ x: 1, y: 1 }));          // 2
 ```
 
-In `for`-`in` the pattern takes the value, not the key:
+This also makes arrow functions over records short:
+
+```rune
+let orders = [{ id: 1, total: 30 }, { id: 2, total: 120 }];
+print(orders.map(({ total }) => total));    // [30, 120]
+```
+
+### In for-in
+
+A pattern on the value variable unpacks each element:
 
 ```rune
 let pages = { "/home": { hits: 10 }, "/about": { hits: 3 } };
@@ -56,21 +74,30 @@ for path, { hits } in pages {
 // /about: 3
 ```
 
-`...name` takes the other properties, or fields, as a new object and must
-come last:
+### Taking the rest
+
+`...name` collects the remaining properties, or fields, into a new
+object. It must come last. Use it to split off one part of a record:
+
+```rune
+let post = { id: 7, title: "Hello", draft: true };
+let { id, ...data } = post;
+
+print(id);      // 7
+print(data);    // {title: "Hello", draft: true}
+```
+
+On a struct, the rest is a plain object with the other fields:
 
 ```rune
 struct User { name, role = "member", age = 31 }
 
-let { id, ...data } = { id: 7, title: "Hello", draft: true };
-print(id);   // 7
-print(data); // {title: "Hello", draft: true}
-
 let { name, ...rest } = User { name: "ann" };
-print(rest); // {role: "member", age: 31}
+print(rest);    // {role: "member", age: 31}
 ```
 
-A missing property or field is a runtime error, as with `obj.name`:
+A missing property or field is an error, just as `obj.email` would be.
+To allow it, give it a [default](#defaults):
 
 ```rune
 let { email } = { name: "ann" }; // KeyError: Undefined property 'email'.
@@ -78,38 +105,64 @@ let { email } = { name: "ann" }; // KeyError: Undefined property 'email'.
 
 ## Arrays
 
-An array pattern takes elements by position: `_` skips one, `...name`
-takes the rest as a new array and must come last, `..._` drops it. The
-array must have as many elements as the pattern, as in
-[match](pattern-matching.md); only a rest takes more.
+An array pattern takes elements by position:
+
+```rune
+let [x, y] = [3, 4];
+print(x + y);    // 7
+```
+
+`_` skips an element, and `...name` collects the rest into a new array. A
+rest must come last; `..._` ignores it.
 
 ```rune
 let [first, _, third, ...rest] = ["mon", "tue", "wed", "thu", "fri"];
 
-print(first); // mon
-print(third); // wed
-print(rest);  // ["thu", "fri"]
+print(first);    // mon
+print(third);    // wed
+print(rest);     // ["thu", "fri"]
 
 let [day, ..._] = ["sat", "sun"];
-print(day);   // sat
+print(day);      // sat
 ```
 
-It shines in parameters, for pairs and tuples:
+This is handy for splitting a line of text into its fields:
+
+```rune
+let line = "2026-11-16 ERROR disk full";
+let [date, level, ...words] = line.split(" ");
+
+print(date);               // 2026-11-16
+print(level);              // ERROR
+print(words.join(" "));    // disk full
+```
+
+A function can return several values as an array, and the caller picks
+them apart:
+
+```rune
+fun minMax(xs) { [math.min(...xs), math.max(...xs)] }
+
+let [lo, hi] = minMax([4, 9, 1]);
+print("{lo}..{hi}");    // 1..9
+```
+
+Array patterns shine for pairs, such as the entries of an object:
 
 ```rune
 let env = { HOME: "/home/ann", PORT: "8080" };
-print(env.entries().map(([k, v]) => k + "=" + v)); // ["HOME=/home/ann", "PORT=8080"]
+print(env.entries().map(([k, v]) => k + "=" + v));    // ["HOME=/home/ann", "PORT=8080"]
 
-fun swap([a, b]) { return [b, a]; }
-print(swap([1, 2])); // [2, 1]
-
-let mut [lo, hi] = [1, 9];
-lo = 2;
-print([lo, hi]); // [2, 9]
+for [name, score] in [["ann", 90], ["bob", 72]] {
+    print("{name}: {score}");
+}
+// ann: 90
+// bob: 72
 ```
 
-An array of another length is an `IndexError`, anything but an array a
-`TypeError`:
+The array must have exactly as many elements as the pattern, as in
+[match](pattern-matching.md). Only a rest takes more. A different length
+is an `IndexError`:
 
 ```rune
 let [host, port] = ["localhost"]; // IndexError: Expected 2 elements but got 1.
@@ -119,40 +172,51 @@ let [host, port] = ["localhost"]; // IndexError: Expected 2 elements but got 1.
 let [host, port] = ["localhost", 80, "tls"]; // IndexError: Expected 2 elements but got 3.
 ```
 
+Anything that is not an array is a `TypeError`:
+
 ```rune
 let [a, b] = "ab"; // TypeError: Cannot destructure string as an array.
 ```
 
+Patterns do not nest: each element or property binds a plain variable.
+
 ## Defaults
 
-A variable may have a default, `name = expression`, taken when the
-property, field or element is missing, not when it is `nil`. It is
-evaluated only then, and may use the variables before it.
+A variable may have a default, `name = value`, used when the property,
+field or element is missing. This makes optional settings easy:
+
+```rune
+fun page({ title, root = "/" }) { "{title} at {root}" }
+
+print(page({ title: "Home" }));                   // Home at /
+print(page({ title: "Docs", root: "/docs" }));    // Docs at /docs
+```
+
+In an array pattern, defaults fill in missing positions at the end:
+
+```rune
+let [src = "content", out = "site"] = ["posts"];
+
+print(src);    // posts
+print(out);    // site
+```
+
+A default is used only when the value is missing, not when it is `nil`.
+It is evaluated only when used, and may refer to the variables before
+it:
 
 ```rune
 let opts = { title: "Blog", root: nil };
 let { title, theme = "light", root = ".", depth = if root == "." { 0 } else { 1 } } = opts;
 
-print(title); // Blog
-print(theme); // light
-print(root);  // nil
-print(depth); // 1
+print(title);    // Blog
+print(theme);    // light
+print(root);     // nil
+print(depth);    // 1
 ```
 
-```rune
-let [src = "content", out = "site"] = ["posts"];
-
-print(src); // posts
-print(out); // site
-
-fun page({ title, root = "." }) { return "{title} at {root}"; }
-
-print(page({ title: "Home" }));                // Home at .
-print(page({ title: "Docs", root: "/docs" })); // Docs at /docs
-```
-
-In an array pattern every element after one with a default needs one too;
-`_` and `...rest`, in either pattern, take none.
+In an array pattern, every element after one with a default needs a
+default too. `_` and `...rest` take none.
 
 ```rune
 let [a = 1, b] = [1, 2]; // Error at 'b': An element without a default cannot follow one with a default.

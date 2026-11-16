@@ -1,17 +1,20 @@
 # Pattern Matching
 
-`match` tries its arms in order and runs the first whose pattern matches.
+`match` compares a value against a list of patterns, top to bottom, and
+runs the first arm that fits. A pattern can test a value and pull it
+apart at the same time, so one `match` often replaces a chain of `if`s
+plus the code that reads fields out.
 
 ```rune
 fun status(code) {
-    return match code {
+    match code {
         200 | 201 | 204 => "ok",
         301 | 302 => "redirect",
         404 => "not found",
         400..500 => "client error",
         c if c >= 500 => "server error {c}",
         _ => "unknown",
-    };
+    }
 }
 
 print(status(201)); // ok
@@ -21,78 +24,143 @@ print(status(503)); // server error 503
 print(status(100)); // unknown
 ```
 
-An arm is `pattern => expression` or `pattern => { block }`, whose value
-is the block's last expression, written without a `;`. Arms are
-separated by `,`, and the last may have one too. `return`,
-`break`, `continue` and `throw` are expressions, so `pattern => return x,`
-works. As after an arrow function's `=>`, `{` starts a block: an object is
-`1 => ({ a: 1 })`. A guard, `pattern if condition`, adds a test after the
-pattern matches.
+Read the arms from the top:
+
+- `200 | 201 | 204` matches any of three literals;
+- `400..500` matches a number from 400 up to, but not including, 500;
+- `c if c >= 500` binds the value to `c`, then the guard after `if`
+  must also hold;
+- `_` matches anything, so it catches the rest.
+
+## Arms
+
+An arm is `pattern => expression`, or `pattern => { block }`. A block
+arm's value is its last expression, written without a `;`. Arms are
+separated by `,`, and a trailing `,` after the last is fine.
+
+```rune
+fun shipping(order) {
+    match order.country {
+        "US" => 5,
+        "CA" | "MX" => 12,
+        _ => {
+            let base = 20;
+            if order.total > 100 { base / 2 } else { base }
+        },
+    }
+}
+
+print(shipping({ country: "US", total: 40 }));  // 5
+print(shipping({ country: "DE", total: 40 }));  // 20
+print(shipping({ country: "DE", total: 150 })); // 10
+```
+
+After `=>`, a `{` always starts a block, as it does after an arrow
+function's `=>`. To give an object, wrap it in parentheses:
+`200 => ({ ok: true })`.
+
+`return`, `break`, `continue` and `throw` are expressions, so an arm can
+leave the function or the loop: `"quit" => return "bye",`.
 
 ## Patterns
 
-- `_` matches anything;
-- a name binds the value (`mut name` mutably); a struct type's name is
-  an error, test the type with `is`;
-- the name of a [constant](variables.md#constants), `LIMIT` or `m.LIMIT`,
-  matches its value, as the literal would; as a bare key in `{ LIMIT }`,
-  or after `mut`, it still binds;
-- `name is T` and `_ is T` test the value is a `T`, a struct type or a
-  built-in one like `string` or `nil`, `_ is T | U` one of them, the same
-  [test](values.md#type-tests) as `v is T` and `catch e is T`;
-- literals: numbers, strings, `true`, `false`, `nil`, compared as by `==`;
-- `a..b` matches a number from `a` up to `b`, `b` excluded, `a..=b` up to
-  `b` included, `a..` one from `a` on and `..b` or `..=b` one up to `b`; a
-  bound is a number or the name of a constant. A float within the bounds
-  matches, and anything but a number, `NaN` included, is no match;
-- `p | q` matches if either does;
-- `Color.White` matches that [enum](../data/enums.md) variant, and
-  `Expr.Num { value }` a variant with fields, as a struct pattern;
-- `Point { x, y: 0 }` tests the type, then matches the listed fields;
-- `{ key, "other key": p }` matches an object, or a struct, that has the
-  keys; other keys are allowed and a missing one is no match;
-- `[p, q]` matches an array of exactly that many elements, `[p, ...rest]`
-  one of at least as many, `rest` taking the others as a new array
-  (`..._` ignores them).
+| Pattern | Matches |
+|---|---|
+| `_` | anything |
+| `name`, `mut name` | anything, and binds it to `name` |
+| `42`, `"ok"`, `true`, `nil` | a value equal to the literal, as by `==` |
+| `LIMIT`, `m.LIMIT` | a value equal to the [constant](variables.md#constants) |
+| `a..b`, `a..=b`, `a..`, `..b`, `..=b` | a number in the range |
+| `p \| q` | a value either pattern matches |
+| `_ is T`, `name is T \| U` | a value of the given [type](values.md#type-tests) |
+| `Point { x, y: 0 }` | a `Point` whose fields match |
+| `Color.White`, `Expr.Num { value }` | that [enum](../data/enums.md) variant |
+| `{ key, "other key": p }` | an object or struct that has the keys |
+| `[p, q]`, `[p, ...rest]` | an array of that many elements, or at least that many |
 
-Struct patterns test the type and the fields at once:
+Any pattern may be followed by a guard, `pattern if condition`, which is
+checked after the pattern matches.
+
+## Literals and Constants
+
+Literals compare with `==`. A constant's name matches the constant's
+value, the same as writing the literal, so limits live in one place:
 
 ```rune
-struct Point { x, y = 0 }
+const ADMIN = "admin";
+const MAX_RETRIES = 3;
 
-fun describe(v) {
-    return match v {
-        nil => "nothing",
-        Point { x: 0, y: 0 } => "origin",
-        Point { x: 0, y } => "on the y axis at {y}",
-        Point { x, y } if x == y => "diagonal",
-        _ is Point => "a point",
-        _ => "other",
-    };
+fun access(role) {
+    match role {
+        ADMIN => "everything",
+        "editor" | "author" => "posts",
+        nil => "nothing, not signed in",
+        _ => "read only",
+    }
 }
 
-print(describe(nil));                  // nothing
-print(describe(Point { x: 0 }));       // origin
-print(describe(Point { x: 0, y: 5 })); // on the y axis at 5
-print(describe(Point { x: 2, y: 2 })); // diagonal
-print(describe(Point { x: 1, y: 2 })); // a point
-print(describe(42));                   // other
+fun next(attempt) {
+    match attempt {
+        MAX_RETRIES => "give up",
+        _ => "retry #{attempt + 1}",
+    }
+}
+
+print(access("admin"));  // everything
+print(access("author")); // posts
+print(access(nil));      // nothing, not signed in
+print(next(1));          // retry #2
+print(next(3));          // give up
 ```
 
-Range patterns sort a number into bands, on their own or inside another
-pattern:
+A constant binds instead of matching in two spots: after `mut`, and as a
+bare key in an object pattern, `{ LIMIT }`.
+
+## Ranges
+
+A range pattern sorts a number into a band:
+
+- `a..b` from `a` up to `b`, `b` excluded;
+- `a..=b` from `a` up to `b`, `b` included;
+- `a..` from `a` on, `..b` and `..=b` up to `b`.
+
+A bound is a number literal or a constant holding a number. Floats match
+too. Anything that is not a number, `NaN` included, does not.
+
+```rune
+const FREEZING = 0;
+
+fun weather(celsius) {
+    match celsius {
+        ..FREEZING => "freezing",
+        FREEZING..15 => "cold",
+        15..25 => "mild",
+        25.. => "hot",
+        _ => "not a temperature",
+    }
+}
+
+print(weather(-3));   // freezing
+print(weather(14.9)); // cold
+print(weather(22));   // mild
+print(weather(31));   // hot
+print(weather("?"));  // not a temperature
+```
+
+Ranges also work inside other patterns, combine with `|` and take a
+guard. To use the number, bind a name and test it in the guard:
 
 ```rune
 const SLOW = 250;
 
 fun grade(resp) {
-    return match resp {
+    match resp {
         { status: 500.. } => "error",
         { status: 200..300, ms: ..50 } => "fast",
         { status: 200..300, ms: SLOW.. } => "slow",
         { status: 200..300 } => "ok",
         _ => "other",
-    };
+    }
 }
 
 print(grade({ status: 200, ms: 12.5 })); // fast
@@ -102,114 +170,162 @@ print(grade({ status: 503, ms: 1 }));    // error
 print(grade({ status: 404, ms: 1 }));    // other
 ```
 
-Ranges combine with `|`, sit in array patterns and take a guard; to use
-the number, bind it with a name and test it in the guard:
-
 ```rune
-const LOW = 10;
-const HIGH = 20;
-
-fun where(v) {
-    return match v {
-        -5..=-1 | LOW..HIGH => "in",
-        [..0, 1..] => "sign change",
-        4.. if v % 2 == 0 => "even, 4 or more",
-        n if n is number => "number {n}",
-        _ => "other",
-    };
+fun reading(v) {
+    match v {
+        -5..=-1 | 10..20 => "in a normal band",
+        [..0, 1..] => "crossed zero",
+        n if n is number && n % 2 == 0 => "even {n}",
+        n is number => "odd {n}",
+        _ => "not a reading",
+    }
 }
 
-print(where(15));      // in
-print(where([-1, 1])); // sign change
-print(where(8));       // even, 4 or more
-print(where(7));       // number 7
-print(where("15"));    // other
+print(reading(15));      // in a normal band
+print(reading([-1, 1])); // crossed zero
+print(reading(8));       // even 8
+print(reading(7));       // odd 7
+print(reading("15"));    // not a reading
 ```
 
-A range no number is in is an error, and so is a bound that is not a
-number or a constant holding one:
+A range never makes a `match` complete on its own: even `..0 | 0..`
+still needs `_ =>` for values that are not numbers.
+
+## Types
+
+`name is T` matches a value of type `T` and binds it; `_ is T` only
+tests. `T` is a struct, an enum or a built-in type such as `string`,
+`number` or `nil`, and `T | U` accepts either. It is the same test as
+[`v is T`](values.md#type-tests).
 
 ```rune
-match 1 { 5..5 => 1, _ => 2 } // Error at '..': Range pattern matches no number.
+fun describe(v) {
+    match v {
+        nil => "nothing",
+        n is number => "the number {n}",
+        s is string => "text of {s.len()} characters",
+        _ is array | object => "a collection",
+        _ => "something else",
+    }
+}
+
+print(describe(nil));        // nothing
+print(describe(4.5));        // the number 4.5
+print(describe("hello"));    // text of 5 characters
+print(describe([1, 2]));     // a collection
+print(describe({ id: 1 }));  // a collection
+print(describe(true));       // something else
 ```
+
+## Structs
+
+`Point { x, y: 0 }` first checks that the value is a `Point`, then
+matches the listed fields. A field written alone, `x`, binds it; a field
+with a pattern, `y: 0`, must match it. Fields left out are not checked.
 
 ```rune
-let v = 1;
-match 1 { v..3 => 1, _ => 2 } // Error at '..': A bound of a range pattern must be a number or a constant holding one.
+struct Point { x, y = 0 }
+
+fun locate(p) {
+    match p {
+        Point { x: 0, y: 0 } => "origin",
+        Point { x: 0, y } => "on the y axis at {y}",
+        Point { x, y } if x == y => "on the diagonal",
+        Point { y: ..0 } => "below the x axis",
+        _ is Point => "somewhere else",
+        _ => "not a point",
+    }
+}
+
+print(locate(Point { x: 0 }));        // origin
+print(locate(Point { x: 0, y: 5 }));  // on the y axis at 5
+print(locate(Point { x: 2, y: 2 }));  // on the diagonal
+print(locate(Point { x: 1, y: -4 })); // below the x axis
+print(locate(Point { x: 1, y: 2 }));  // somewhere else
+print(locate(42));                    // not a point
 ```
 
-Ranges never make a match exhaustive: `..0 | 0..` still needs `_ =>`
-for values that are not numbers.
+## Objects
 
-Object patterns pick data apart by shape, which makes small interpreters
-and event handlers short:
+`{ key, ... }` matches any object, or struct, that has the listed keys;
+extra keys are ignored and a missing one means no match. Keys that are
+not names are quoted. This is a short way to dispatch on the shape of
+data, as in a tiny calculator:
 
 ```rune
 fun eval(e) {
-    return match e {
+    match e {
         { op: "+", a, b } => eval(a) + eval(b),
         { op: "*", a, b } => eval(a) * eval(b),
         { op: "neg", a } => -eval(a),
         n => n,
-    };
+    }
 }
 
+// 1 + 2 * 3
 print(eval({ op: "+", a: 1, b: { op: "*", a: 2, b: 3 } })); // 7
 ```
 
 ```rune
-let event = { type: "click", "target id": "save" };
-
-match event {
-    { type: "click", "target id": id } => print("clicked " + id), // clicked save
-    { type: "key", key } => print("pressed " + key),
-    _ => {}
+fun handle(event) {
+    match event {
+        { type: "click", "target id": id } => "clicked {id}",
+        { type: "key", key: "Enter" | "Return" } => "submitted",
+        { type: "key", key } => "pressed {key}",
+        _ => "ignored",
+    }
 }
+
+print(handle({ type: "click", "target id": "save" })); // clicked save
+print(handle({ type: "key", key: "Enter" }));          // submitted
+print(handle({ type: "key", key: "q" }));              // pressed q
+print(handle({ type: "scroll" }));                     // ignored
 ```
 
-Array patterns suit tuples, command lines and `entries()` pairs:
+## Arrays
+
+`[p, q]` matches an array of exactly two elements. `[p, ...rest]`
+matches one of at least one element, and `rest` gets the others as a new
+array; `..._` ignores them. Anything that is not an array, a string
+included, does not match.
+
+Array patterns suit command lines, tuples and `entries()` pairs:
 
 ```rune
 fun run(args) {
-    return match args {
-        [] => "usage: tool <command>",
-        ["add", name] => "adding " + name,
-        ["rm", first, ...more] => "removing {first} and {more.len()} more",
-        [cmd, ..._] => "unknown command " + cmd,
-    };
+    match args {
+        [] => "usage: todo <command>",
+        ["add", item] => "added {item}",
+        ["rm", first, ...more] => "removed {first} and {more.len()} more",
+        [cmd, ..._] => "unknown command {cmd}",
+    }
 }
 
-print(run([]));                   // usage: tool <command>
-print(run(["add", "milk"]));      // adding milk
-print(run(["rm", "a", "b"]));     // removing a and 1 more
-print(run(["ls", "-l"]));         // unknown command ls
+print(run([]));                     // usage: todo <command>
+print(run(["add", "milk"]));        // added milk
+print(run(["rm", "milk", "eggs"])); // removed milk and 1 more
+print(run(["ls", "-l"]));           // unknown command ls
+```
 
-for pair in map({ ok: 3, failed: 0 }).entries() {
-    print(match pair { [k, 0] => "{k}: none", [k, n] => "{k}: {n}" });
+```rune
+let results = map({ passed: 12, failed: 0, skipped: 2 });
+
+for pair in results.entries() {
+    print(match pair {
+        [name, 0] => "{name}: none",
+        [name, n] => "{name}: {n}",
+    });
 }
-// ok: 3
+// passed: 12
 // failed: none
-```
-
-Anything but an array, a string included, is no match.
-
-A bare struct name would bind, so it is an error:
-
-```rune
-struct Point { x, y = 0 }
-match 1 { Point => 1, _ => 2 } // Error at 'Point': 'Point' is a struct type; test it with '_ is Point'.
-```
-
-Alternatives cannot bind:
-
-```rune
-match 1 { 1 | x => 1, _ => 2 } // Error at 'x': Cannot bind variables in '|' patterns.
+// skipped: 2
 ```
 
 ## Expression or Statement
 
-As an expression its value is the arm's; a block arm ending with `;`
-gives `nil`. No arm matching is a `ValueError`:
+Used as a value, `match` gives the value of the arm that ran. A block
+arm ending with `;` gives `nil`. If no arm matches, it throws a
+`ValueError`:
 
 ```rune
 let count = 3;
@@ -222,14 +338,17 @@ let label = match count {
     },
 };
 print(label); // 3 items
-
-print(match 7 { 1 => "a" }); // ValueError: No match arm for 7.
 ```
 
-At the start of a statement it is a statement: values are dropped, unless
-it ends a block that has a value, as a function body, and no
-arm matching is a `ValueError` all the same, so add `_ => {}` to ignore the
-rest. An arm may `return` from the enclosing function:
+```rune
+print(match 7 { 1 => "one" }); // ValueError: No match arm for 7.
+```
+
+At the start of a statement, `match` is a statement and the arms'
+values are dropped (unless it is the last expression of a block that has
+a value, such as a function body). No arm matching is still a
+`ValueError`, so add `_ => {}` to ignore the rest. An arm can `return`
+from the enclosing function:
 
 ```rune
 fun handle(cmd) {
@@ -238,27 +357,56 @@ fun handle(cmd) {
         "help" => print("usage: add | list | quit"),
         _ => {}
     }
-    return "continue";
+    "continue"
 }
 
-print(handle("help")); // continue
-print(handle("quit")); // bye
-print(handle("save")); // continue
+print(handle("help"));
+print(handle("quit"));
+print(handle("save"));
+// usage: add | list | quit
+// continue
+// bye
+// continue
 ```
 
-The first call prints `usage: add | list | quit` before `continue`.
-
-## Details
-
-The value is evaluated once. It may be a struct literal,
+The value is computed once. It may be a struct literal,
 `match Point { x: 1 } { ... }`, except an empty one, which needs
 parentheses: `match (Empty {}) { ... }`.
 
-A match naming variants of an enum must cover them all, unless an arm
-matches everything; see [Matching every variant](../data/enums.md#matching-every-variant).
+A `match` that names variants of an enum must cover all of them, unless
+an arm matches everything; see
+[Matching every variant](../data/enums.md#matching-every-variant).
 
-An arm after one that matches everything is an error:
+## Mistakes the Compiler Catches
+
+A bare struct name would bind any value, which is almost never what you
+meant, so it is an error:
+
+```rune
+struct Point { x, y = 0 }
+match 1 { Point => 1, _ => 2 } // Error at 'Point': 'Point' is a struct type; test it with '_ is Point'.
+```
+
+Alternatives cannot bind names, since only one side would set them:
+
+```rune
+match 1 { 1 | x => 1, _ => 2 } // Error at 'x': Cannot bind variables in '|' patterns.
+```
+
+An arm after one that matches everything can never run:
 
 ```rune
 match 1 { _ => 1, 2 => 2 } // Error at '2': Unreachable match arm.
+```
+
+A range no number fits in, or a bound that is not a number, is an
+error:
+
+```rune
+match 1 { 5..5 => 1, _ => 2 } // Error at '..': Range pattern matches no number.
+```
+
+```rune
+let v = 1;
+match 1 { v..3 => 1, _ => 2 } // Error at '..': A bound of a range pattern must be a number or a constant holding one.
 ```

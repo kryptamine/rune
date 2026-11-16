@@ -50,9 +50,9 @@ it somewhere on your `PATH`.
 
 ```sh
 # macOS on Apple silicon; swap the version and platform for yours
-curl -LO https://github.com/kryptamine/rune/releases/download/v0.1.0/rune-0.1.0-darwin-arm64.tar.gz
-tar -xzf rune-0.1.0-darwin-arm64.tar.gz
-sudo mv rune-0.1.0-darwin-arm64/rune /usr/local/bin/
+curl -LO https://github.com/kryptamine/rune/releases/download/v0.3.0/rune-0.3.0-darwin-arm64.tar.gz
+tar -xzf rune-0.3.0-darwin-arm64.tar.gz
+sudo mv rune-0.3.0-darwin-arm64/rune /usr/local/bin/
 rune version
 ```
 

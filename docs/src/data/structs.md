@@ -1,33 +1,59 @@
 # Structs
 
-A struct is a named record with a fixed set of fields. Fields without a
-default are required. Structs are declared at the top level only and can
-be used before their declaration.
+A struct is a named record with a fixed set of fields. Use one when a
+value has a known shape, such as a user, an order or a config: the
+compiler checks field names in literals, the type can be tested with
+`is` and matched in [patterns](../language/pattern-matching.md#structs),
+and [methods](methods.md) can be attached to it.
 
 ```rune
 struct User { name, role = "member", tags = [] }
 
 let ann = User { name: "ann" };
-print(ann);          // User {name: "ann", role: "member", tags: []}
-print(ann.name);     // ann
-print(ann["role"]);  // member
-
-let name = "bob";
-print(User { name, role: "admin" }); // User {name: "bob", role: "admin", tags: []}
+print(ann);         // User {name: "ann", role: "member", tags: []}
+print(ann.name);    // ann
+print(ann["role"]); // member
 ```
 
-`User { name }` is shorthand for `User { name: name }`.
+A field with a default, `role = "member"`, may be left out of a literal;
+a field without one is required. Structs are declared at the top level
+only and can be used before their declaration.
 
-A default is a constant: a literal or operators on literals (`60 * 60`), a
-[`const`](../language/variables.md#constants), a variant of an
-[enum](enums.md) of the file, an array or object of them, `map()` or
-`set()`. Like every value it is [copied](../language/values.md#copies), so
-`tags = []` is never shared:
+When a variable has the same name as a field, write it once:
+`User { name }` is short for `User { name: name }`.
+
+```rune
+struct User { name, role = "member" }
+
+let name = "bob";
+let role = "admin";
+print(User { name, role }); // User {name: "bob", role: "admin"}
+```
+
+## Defaults
+
+A default must be a constant: a literal or operators on literals
+(`60 * 60`), a [`const`](../language/variables.md#constants), a variant
+of an [enum](enums.md) in the same file, an array or object of these,
+`map()` or `set()`.
+
+```rune
+const DAY = 24 * 60 * 60;
+
+struct Session { user, ttl = DAY, scopes = ["read"] }
+
+print(Session { user: "ann" });                    // Session {user: "ann", ttl: 86400, scopes: ["read"]}
+print(Session { user: "bob", scopes: ["admin"] }); // Session {user: "bob", ttl: 86400, scopes: ["admin"]}
+```
+
+Like every value in Rune, a default is [copied](../language/values.md#copies),
+so two structs never share the same `[]`:
 
 ```rune
 struct User { name, tags = [] }
+
 impl User {
-  fun tag(mut self, t) { self.tags.push(t); }
+    fun tag(mut self, t) { self.tags.push(t); }
 }
 
 let mut ann = User { name: "ann" };
@@ -37,8 +63,10 @@ print(ann.tags); // ["admin"]
 print(bob.tags); // []
 ```
 
-A field that does not exist, or a required one left out, is a compile
-error in a literal:
+## Typos Are Caught Early
+
+A misspelled or unknown field, or a required one left out, is a compile
+error in a literal, so the program does not even start:
 
 ```rune
 struct User { name, role = "member" }
@@ -50,7 +78,7 @@ struct User { name, role = "member" }
 User { role: "admin" }; // Error at 'User': Missing field 'name' of User.
 ```
 
-Reading a field that does not exist is a runtime error:
+Reading a field that does not exist fails when it runs:
 
 ```rune
 struct User { name, role = "member" }
@@ -58,20 +86,17 @@ let ann = User { name: "ann" };
 print(ann.email); // KeyError: User has no field 'email'.
 ```
 
-## Setting fields
+## Setting Fields
 
-Fields are read-only outside the struct's own
-[mutating methods](methods.md#mutating-methods): only `self.x = ...` (or
-`self["x"]`, `+=`, `++`, ...) in a `mut self` method sets one. Anywhere
-else setting a field of a struct, through a variable, an element or
-another struct's field, is a runtime error. To change a struct from
-outside, call one of its `mut self` methods or make an updated copy
-with [spread](#updating-with-spread).
+A struct guards its own data: its fields are set only inside its
+[mutating methods](methods.md#mutating-methods), those that take
+`mut self`. To change a struct, call one of them:
 
 ```rune
 struct User { name, role = "member" }
+
 impl User {
-  fun promote(mut self, role) { self.role = role; }
+    fun promote(mut self, role) { self.role = role; }
 }
 
 let mut ann = User { name: "ann" };
@@ -83,17 +108,18 @@ team[0].promote("lead");
 print(team[0].role); // lead
 ```
 
+Setting a field anywhere else, through a variable, an array element or
+another struct, is an error:
+
 ```rune
 struct User { name, role = "member" }
 let mut ann = User { name: "ann" };
 ann.role = "admin"; // TypeError: Cannot set field 'role' of User outside its mut self methods.
 ```
 
-A struct owns its fields, and what they hold: an array, object, map or
-set in a field, or another struct, is part of it. Its `mut self` methods
-change them in place (`self.tags.push(x)`, `self.pos.x = 1`,
-`self.pos.move(1)`); anywhere else that is the same error as setting the
-field.
+A struct also owns what its fields hold. An array, object, map, set or
+another struct in a field is part of it, so changing it in place,
+`ann.tags.push(x)`, counts as setting the field:
 
 ```rune
 struct User { name, tags = [] }
@@ -101,30 +127,36 @@ let mut ann = User { name: "ann" };
 ann.tags.push("x"); // TypeError: Cannot set field 'tags' of User outside its mut self methods.
 ```
 
-## Updating with spread
+Inside a `mut self` method all of this is allowed: `self.tags.push(x)`,
+`self.pos.x = 1`, `self.pos.move(1)`.
 
-A literal may spread a struct of the same type, as `T { ...t, x: 1 }`
-does an update without changing `t`. Items apply in order, later ones
-winning. Spreading anything else, an object or a struct of another type,
-is a runtime error; an object becomes a struct by
-[conversion](#converting).
+## Updating with Spread
+
+To get a changed copy without touching the original, spread the struct
+into a new literal of the same type and list the fields to change:
+`Config { ...base, debug: true }`. Items apply in order, so later ones
+win.
 
 ```rune
 struct Config { host, port = 8080, debug = false }
 
 let base = Config { host: "localhost" };
-print(Config { ...base, debug: true });  // Config {host: "localhost", port: 8080, debug: true}
-print(Config { debug: true, ...base });  // Config {host: "localhost", port: 8080, debug: false}
-print(base);                             // Config {host: "localhost", port: 8080, debug: false}
+let dev = Config { ...base, debug: true };
+let prod = Config { ...base, host: "example.com", port: 443 };
+
+print(dev);  // Config {host: "localhost", port: 8080, debug: true}
+print(prod); // Config {host: "example.com", port: 443, debug: false}
+print(base); // Config {host: "localhost", port: 8080, debug: false}
 ```
+
+Only a struct of the same type can be spread into a literal; an object
+or another struct type is a runtime error. Use a
+[conversion](#converting) to turn an object into a struct.
 
 ## Converting
 
-Calling a struct type converts to it. From an object the keys must be
-exactly the fields, the defaulted ones optional; a struct of the same
-type is returned as is, and any other value is an error. There are no
-implicit conversions, and none between struct types. This is how data
-from `json.parse` becomes a struct:
+Calling a struct type converts a value to it. This is how data from
+`json.parse` becomes a struct:
 
 ```rune
 struct Config { host, port = 8080 }
@@ -133,6 +165,11 @@ let cfg = Config(json.parse(r"""{"host": "example.com"}"""));
 print(cfg);      // Config {host: "example.com", port: 8080}
 print(cfg.port); // 8080
 ```
+
+The object's keys must be exactly the struct's fields; fields with
+defaults may be left out. A struct of the same type is returned as is.
+Anything else is an error: there are no implicit conversions, and none
+between different struct types.
 
 ```rune
 struct Config { host, port = 8080 }
@@ -144,15 +181,14 @@ struct Config { host, port = 8080 }
 Config({ port: 80 }); // KeyError: Missing field 'host' of Config.
 ```
 
-## Type checks, equality, fields
+## Type Tests and Equality
 
-`v is User` is `true` only for a `User`, never for an object; see
+`v is User` is `true` only for a `User`, never for an object that
+happens to have the same keys; see
 [Type Tests](../language/values.md#type-tests).
 
-`==` compares structs field by field and only if they are of the same
-struct, so a struct never equals an object. `{ ...s }` copies a struct
-into a new object, its fields in declaration order, to walk them or
-count them.
+`==` compares two structs of the same type field by field. A struct
+never equals an object or a struct of another type.
 
 ```rune
 struct User { name, role = "member" }
@@ -162,6 +198,16 @@ print(ann is User);                            // true
 print({ name: "ann" } is User);                // false
 print(ann == User { name: "ann" });            // true
 print(ann == { name: "ann", role: "member" }); // false
+```
+
+## Walking the Fields
+
+`{ ...s }` copies a struct into a plain object, its fields in
+declaration order. Use it to loop over the fields or count them:
+
+```rune
+struct User { name, role = "member" }
+let ann = User { name: "ann" };
 
 for field, value in { ...ann } {
     print("{field}: {value}");
@@ -169,6 +215,5 @@ for field, value in { ...ann } {
 // name: ann
 // role: member
 
-print({ ...ann });  // {name: "ann", role: "member"}
 print({ ...ann }.len()); // 2
 ```

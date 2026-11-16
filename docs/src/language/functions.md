@@ -1,52 +1,90 @@
 # Functions
 
-`fun name(params) { ... }` declares a function. It returns the value of its
-body: the last expression, written without a `;`, or an `if` or `match`
-that ends it and has values. A body ending with `;` returns `nil`.
-`return` leaves early.
+`fun name(params) { ... }` declares a function. Its result is the value of
+its body: the last expression, written without a `;` after it.
+
+```rune
+fun greet(name) {
+    "hello, {name}!"
+}
+
+print(greet("ann"));    // hello, ann!
+```
+
+A body can run any statements before that final value:
 
 ```rune
 fun total(items) {
     let mut sum = 0;
-    for item in items { sum += item.price * item.qty; }
-    return sum;
+    for item in items {
+        sum += item.price * item.qty;
+    }
+    sum
 }
 
-print(total([{ price: 10, qty: 2 }, { price: 5, qty: 1 }])); // 25
+let cart = [{ price: 10, qty: 2 }, { price: 5, qty: 1 }];
+print(total(cart));    // 25
 ```
 
-A function captures the variables around it, and keeps them after the
-enclosing call returns:
-
-```rune
-fun counter() {
-    let mut n = 0;
-    return () => { n += 1; return n; };
-}
-
-let next = counter();
-next();
-print(next()); // 2
-```
+A body that ends with `;` gives `nil`, which suits functions called only
+for what they do, such as printing.
 
 Calling with the wrong number of arguments is an `ArgumentError`:
 
 ```rune
-fun area(w, h) { return w * h; }
+fun area(w, h) { w * h }
 area(3); // ArgumentError: Expected 2 arguments but got 1.
 ```
 
 ## Body Values
 
+Short functions fit on one line:
+
 ```rune
 fun square(x) { x * x }
-fun origin() { ({ x: 0, y: 0 }) }
+fun isEven(n) { n % 2 == 0 }
 
-fun sign(n) {
-    if n < 0 { return "negative"; }
-    if n == 0 { "zero" } else { "positive" }
+print(square(7));    // 49
+print(isEven(10));   // true
+```
+
+When the body ends with an `if` or a `match`, the branch taken gives the
+result. `return` leaves early, which keeps guard checks flat:
+
+```rune
+fun shipping(order) {
+    if order.total <= 0 { return "nothing to ship" }
+    if order.total >= 50 { "free" } else { "$4.99" }
 }
 
+print(shipping({ total: 0 }));     // nothing to ship
+print(shipping({ total: 80 }));    // free
+print(shipping({ total: 20 }));    // $4.99
+
+fun httpStatus(code) {
+    match code {
+        200 => "ok",
+        404 => "not found",
+        500.. => "server error",
+        _ => "other",
+    }
+}
+
+print(httpStatus(404));    // not found
+print(httpStatus(503));    // server error
+```
+
+A `{` that starts a body is always a block, so to give an object, wrap it
+in parentheses:
+
+```rune
+fun origin() { ({ x: 0, y: 0 }) }
+print(origin());    // {x: 0, y: 0}
+```
+
+Methods work the same way:
+
+```rune
 struct Money { cents }
 
 impl Money {
@@ -54,31 +92,59 @@ impl Money {
     fun format(self) { "$%.2f".format(self.cents / 100) }
 }
 
-print(square(7));                // 49
-print(origin());                 // {x: 0, y: 0}
-print(sign(-2), sign(0));        // negative zero
-print(Money.of(4.99).format());  // $4.99
+print(Money.of(4.99).format());    // $4.99
+```
+
+## Closures
+
+A function can use the variables around it. It keeps them alive even
+after the function that made them has returned. Here each counter keeps
+its own `n`:
+
+```rune
+fun counter() {
+    let mut n = 0;
+    () => {
+        n += 1;
+        n
+    }
+}
+
+let tickets = counter();
+let orders = counter();
+tickets();
+tickets();
+print(tickets());    // 3
+print(orders());     // 1
 ```
 
 ## Arrow Functions
 
-A function without a name is an arrow function, an expression, so
-functions can be passed around inline. An expression body is returned; a
-block body works like `fun`'s, giving its last expression.
+An arrow function is a function without a name, written as an expression.
+Use it to pass behavior inline, as in `map` or `filter`. A single
+parameter needs no parentheses:
 
 ```rune
 let add = (a, b) => a + b;
 let double = x => x * 2;
-let log = msg => { print("[log] " + msg); };
 
 print(add(2, 3));                     // 5
 print(double(21));                    // 42
 print([120, 45, 300].map(double));    // [240, 90, 600]
-log("started");                       // [log] started
 ```
 
-A single plain parameter needs no parentheses. Parameters may be
-[`mut`](#mut-parameters) or [patterns](destructuring.md):
+A longer body goes in braces and gives its last expression, like `fun`:
+
+```rune
+let describe = n => {
+    let kind = if n % 2 == 0 { "even" } else { "odd" };
+    "{n} is {kind}"
+};
+print(describe(7));    // 7 is odd
+```
+
+Parameters may be [patterns](destructuring.md), which takes just the
+fields you need:
 
 ```rune
 let users = [{ name: "ann", age: 31 }, { name: "bob", age: 17 }];
@@ -87,16 +153,15 @@ print(users.map(({ name }) => name));                    // ["ann", "bob"]
 print(users.filter(u => u.age >= 18).map(u => u.name));  // ["ann"]
 ```
 
-After `=>` a `{` always starts a block, here and in a match arm; an
-object to return goes in parentheses:
+After `=>` a `{` starts a block, both here and in a `match` arm. To return
+an object, wrap it in parentheses:
 
 ```rune
-let origin = () => ({ x: 0, y: 0 });
-let wrap = name => ({ name });
-
-print(origin());     // {x: 0, y: 0}
-print(wrap("ann"));  // {name: "ann"}
+let point = (x, y) => ({ x, y });
+print(point(1, 2));    // {x: 1, y: 2}
 ```
+
+Forgetting the parentheses is a compile error with a hint:
 
 ```rune
 let wrap = name => { name: name }; // Error at '{': A '{' here starts a block; wrap an object in parentheses: ({ ... }).
@@ -104,91 +169,128 @@ let wrap = name => { name: name }; // Error at '{': A '{' here starts a block; w
 
 ## Default Parameters
 
-A parameter may have a default, `name = expression`, taken when the call
-passes no argument for it.
+A parameter may have a default, `name = value`, used when the call leaves
+that argument out:
 
 ```rune
 fun connect(host, port = 5432) {
-    return "{host}:{port}";
+    "{host}:{port}"
 }
 
-print(connect("db.local"));       // db.local:5432
-print(connect("db.local", 6379)); // db.local:6379
+print(connect("db.local"));          // db.local:5432
+print(connect("db.local", 6379));    // db.local:6379
 ```
 
-The default is evaluated at each such call, after the parameters before it,
-which it may use, so a mutable default is a new value every call. An
-explicit `nil` is an argument and gets no default.
+The default is evaluated at each call that needs it, so it may depend on
+the parameters before it:
 
 ```rune
 fun greet(name, greeting = "hi", punct = if greeting == "hi" { "!" } else { "." }) {
-    return "{greeting} {name}{punct}";
+    "{greeting} {name}{punct}"
 }
 
-print(greet("ann"));          // hi ann!
-print(greet("ann", "hello")); // hello ann.
-print(greet("ann", nil));     // nil ann.
-
-fun tag(item, tags = []) { let mut all = tags; all.push(item); return all; }
-print(tag("a")); // ["a"]
-print(tag("b")); // ["b"]
+print(greet("ann"));             // hi ann!
+print(greet("ann", "hello"));    // hello ann.
 ```
 
-Every parameter after one with a default needs one too, except a rest
-parameter; `self` and a rest parameter cannot have one.
+Because it is evaluated fresh, a default `[]` is a new array every time,
+never one shared between calls:
 
 ```rune
-fun f(a = 1, b) {} // Error at 'b': A parameter without a default cannot follow one with a default.
+fun tag(item, tags = []) {
+    let mut all = tags;
+    all.push(item);
+    all
+}
+
+print(tag("a"));    // ["a"]
+print(tag("b"));    // ["b"]
+```
+
+Passing `nil` explicitly is passing a value, so the default is not used:
+
+```rune
+fun greet(name, greeting = "hi") { "{greeting} {name}" }
+print(greet("ann", nil));    // nil ann
 ```
 
 Arrow functions take defaults too:
 
 ```rune
 let inc = (n, by = 1) => n + by;
-print(inc(5));     // 6
-print(inc(5, 10)); // 15
+print(inc(5));        // 6
+print(inc(5, 10));    // 15
+```
+
+Every parameter after one with a default needs a default too, except a
+rest parameter. `self` and rest parameters cannot have one.
+
+```rune
+fun f(a = 1, b) {} // Error at 'b': A parameter without a default cannot follow one with a default.
 ```
 
 ## Mut Parameters
 
-A parameter is a copy of its argument, so a function cannot change the
-caller's value. A `mut` parameter is the one way to: the function works on
-its own value, and when the call ends, by a return, a throw or the end of
-the body, the value goes back to the place the caller passed.
+Arguments are passed as copies, so a function cannot change the caller's
+variable by accident:
 
 ```rune
-fun addTag(mut tags, tag) { tags.push(tag); }
+fun addTag(tags, tag) {
+    let mut copy = tags;
+    copy.push(tag);
+    copy
+}
+
+let tags = ["new"];
+print(addTag(tags, "sale"));    // ["new", "sale"]
+print(tags);                    // ["new"]
+```
+
+When changing the caller's value is the point, mark the parameter `mut`.
+The function works on its own copy, and when it ends, whether by a
+`return`, a throw or the end of the body, the copy is written back to the
+place the caller passed:
+
+```rune
+fun addTag(mut tags, tag) {
+    tags.push(tag);
+}
 
 let mut tags = ["new"];
 addTag(tags, "sale");
-print(tags); // ["new", "sale"]
+print(tags);         // ["new", "sale"]
 
 let mut user = { name: "ann", tags: [] };
 addTag(user.tags, "admin");
-print(user.tags); // ["admin"]
+print(user.tags);    // ["admin"]
 ```
 
 The argument must be a mutable place: a `let mut` variable, a `mut`
-parameter, or an element or property on a path from one. The place is
-found once, before the call. A copy taken from it earlier keeps its value.
+parameter, or an element or property reached from one. A value with no
+place to write back to is a compile error:
 
 ```rune
+fun addTag(mut tags, tag) { tags.push(tag); }
 addTag(["x"], "y"); // Error at ')': Mut parameter 'tags' takes a mutable variable, element or property.
+```
 
+So is a `let` variable, which cannot change:
+
+```rune
+fun addTag(mut tags, tag) { tags.push(tag); }
 let fixed = [];
 addTag(fixed, "y"); // Error at 'fixed': Cannot pass immutable variable 'fixed' to mut parameter 'tags'.
 ```
 
-A call through a function value, a method or a callback checks this when
-it runs: a function whose `mut` parameter gets no mutable place fails with
-a `TypeError`. A native such as `map` passes none.
+A call through a function value, a method or a callback is checked when it
+runs instead, and fails with a `TypeError`. Natives such as `map` never
+pass a place, so they cannot call a function with a `mut` parameter:
 
 ```rune
+fun addTag(mut tags, tag) { tags.push(tag); }
 let f = [addTag][0];
-let mut xs = [];
-f(xs, 1);   // xs is [1]
-f([], 2);   // TypeError: Mut parameter 'tags' of addTag takes a mutable variable, element or property.
+f([], "y"); // TypeError: Mut parameter 'tags' of addTag takes a mutable variable, element or property.
 ```
 
 A rest parameter cannot be `mut`. A `mut` parameter left to its default
-writes back nothing.
+writes nothing back.

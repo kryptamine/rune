@@ -1,7 +1,16 @@
 # Examples
 
 Complete programs live in [`examples/`](https://github.com/kryptamine/rune/tree/master/examples).
-Each one runs as is from the repository root.
+Each runs as is from the repository root, and with no arguments runs a
+demo, so `rune run examples/<name>` is always a good first step.
+
+Where to start:
+
+- new to Rune: [`calc.rn`](#calcrn--calculator), a small parser and evaluator in one file;
+- writing command-line tools: [`todo.rn`](#todorn--task-tracker) and [`validate.rn`](#validatern--config-validator);
+- splitting a program into modules: [`blog/`](#blog--static-blog-generator) and [`query/`](#query--sql-over-csv);
+- binary data and files: [`kv/`](#kv--key-value-store);
+- performance-minded code: [`chess.rn`](#chessrn--chess-engine).
 
 ## Real-world programs
 

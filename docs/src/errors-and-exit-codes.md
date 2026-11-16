@@ -1,33 +1,18 @@
 # Errors and Exit Codes
 
-Errors name the file, line and column, show the source with the offending
-token underlined, and, when the cause is certain, a hint on how to fix it.
-On a terminal they are colored; set `NO_COLOR` to turn that off. A runtime
-error also lists the calls it unwound through:
+When something goes wrong, Rune tells you where and why. Every error names
+the file, line and column, shows the surrounding source with the offending
+token underlined, and, when the cause is certain, adds a hint on how to
+fix it. On a terminal the report is colored; set `NO_COLOR` to turn that
+off.
 
-```rune
-fun total(order) {
-    return order.price * order.qty;
-}
+Rune finds errors at two moments: when it compiles the program, before any
+of it runs, and while it runs.
 
-let orders = [{ price: 10, qty: 2 }, 5];
-print(orders.map(total));
-```
+## Compile Errors
 
-```
-TypeError: Cannot read property 'price' of number.
- --> main.rn:2:18
-  |
-1 | fun total(order) {
-2 |     return order.price * order.qty;
-  |                  ^^^^^
-
-  at total (main.rn:2)
-  at array.map (native)
-  at <script> (main.rn:6)
-```
-
-A hint follows the source:
+A compile error stops the program before its first line runs. Assigning to
+a variable declared without `mut` is one:
 
 ```rune
 let count = 0;
@@ -47,28 +32,87 @@ error: Cannot assign to immutable variable 'count'.
   = hint: declare it as 'mut count' on line 1
 ```
 
-The parser recovers from a syntax error and reports all of them in one run:
+After a syntax error the parser carries on, so one run lists all of them:
 
 ```rune
-let x = (1 + ;
-print(x)
+let price = (19.99 * ;
+print(price)
 ```
 
 ```
 error: Expect expression.
- --> main.rn:1:14
+ --> main.rn:1:22
   |
-1 | let x = (1 + ;
-  |              ^
+1 | let price = (19.99 * ;
+  |                      ^
 
 error: Expect ';' after expression.
- --> main.rn:2:9
+ --> main.rn:2:13
   |
-1 | let x = (1 + ;
-2 | print(x)
-  |         ^
+1 | let price = (19.99 * ;
+2 | print(price)
+  |             ^
 ```
 
-`run` exits with `65` on a syntax or compile error, `70` on an uncaught
-runtime error, and otherwise with `0` or the code [`main`](programs/main.md)
-returns.
+## Runtime Errors
+
+A runtime error happens while the program runs, for example reading a
+property of a number. Unless a [`try`](language/error-handling.md) catches
+it, the program stops, and the report also lists the calls the error
+passed through, innermost first:
+
+```rune
+fun total(order) {
+    order.price * order.qty
+}
+
+let orders = [{ price: 10, qty: 2 }, 5];
+print(orders.map(total));
+```
+
+```
+TypeError: Cannot read property 'price' of number.
+ --> main.rn:2:11
+  |
+1 | fun total(order) {
+2 |     order.price * order.qty
+  |           ^^^^^
+
+  at total (main.rn:2)
+  at array.map (native)
+  at <script> (main.rn:6)
+```
+
+The first word, here `TypeError`, is the error's type. [Error
+Handling](language/error-handling.md) lists the types and shows how to
+catch them by type.
+
+## Exit Codes
+
+`rune run` tells the shell how the program ended:
+
+| Code | Meaning |
+| --- | --- |
+| `0` | The program finished. |
+| `65` | A syntax or compile error; nothing ran. |
+| `70` | An uncaught runtime error. |
+| any other | The number [`main`](programs/main.md) returned. |
+
+So a program can report its own failure by returning a code from `main`:
+
+```rune
+// main.rn
+fun main(args) {
+    if !args {
+        print("usage: rune run main.rn <file>");
+        return 2;
+    }
+    print("processing {args[0]}");
+}
+```
+
+```sh
+$ rune run main.rn; echo $?
+usage: rune run main.rn <file>
+2
+```

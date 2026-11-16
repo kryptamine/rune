@@ -1,13 +1,26 @@
 # Loops
 
-There are two loops: `for x in ...` and `while`. There is no C-style `for`:
-count with a range.
+Rune has two loops: `for x in ...` walks a collection or a range, and
+`while` repeats while a condition holds. There is no C-style
+`for (i = 0; i < n; i++)`; count with a [range](#ranges) instead.
 
 ## for-in
 
-`for x in arr { ... }` visits array elements, string characters or object keys,
-in the order they were added. With two variables you also get the index, or
-the key and the value.
+`for x in xs { ... }` runs the body once per element:
+
+```rune
+let tasks = ["write tests", "fix bug", "deploy"];
+
+for task in tasks {
+    print("- {task}");
+}
+// - write tests
+// - fix bug
+// - deploy
+```
+
+With two variables you get the position as well. Over an array that is the
+index, over an object the key and the value, in the order they were added:
 
 ```rune
 for i, name in ["ann", "bob"] {
@@ -22,73 +35,125 @@ for fruit, count in stock {
 }
 // pears: 0
 // apples: 5
+```
 
-for ch in "hé!" { print(ch); }
+A string is walked character by character, not byte by byte:
+
+```rune
+for ch in "hé!" {
+    print(ch);
+}
 // h
 // é
 // !
 ```
 
-It also walks [maps and sets](../data/map-and-set.md),
-[bytes](../data/bytes.md) and [streams](../stdlib/streams.md); a
-struct's fields are walked as an object, `for k, v in { ...s }`.
+`for` also walks [maps and sets](../data/map-and-set.md),
+[bytes](../data/bytes.md) and [streams](../stdlib/streams.md). To walk a
+struct's fields, spread it into an object first: `for k, v in { ...s }`.
 
 ## break and continue
 
-`continue` skips to the next iteration, `break` leaves the loop; both work in
-`for` and `while`.
+`continue` skips the rest of the body and goes to the next element.
+`break` leaves the loop. Both work in `for` and `while`.
 
 ```rune
-let orders = [{ id: 1, total: 30 }, { id: 2, total: 0 }, { id: 3, total: 120 }];
+let orders = [
+    { id: 1, total: 30 },
+    { id: 2, total: 0 },
+    { id: 3, total: 120 },
+    { id: 4, total: 15 },
+];
 
 for order in orders {
-    if order.total == 0 { continue; }
+    if order.total == 0 { continue }
     if order.total > 100 {
-        print("big order {order.id}, stopping");
+        print("order {order.id} needs review, stopping");
         break;
     }
     print("order {order.id}: {order.total}");
 }
 // order 1: 30
-// big order 3, stopping
+// order 3 needs review, stopping
 ```
-
-A body is always a block: `if order.total == 0 { continue; }`.
 
 ## Ranges
 
-Count with `a..b` (end excluded) or `a..=b` (end included), optionally
-`step n`; a `for`-`in` walks it, and `x in a..b` tests it, without building
-the array. Anywhere else a range is an array. In brackets it
-[slices](../data/arrays.md), `xs[1..]`, and in a `match` it is a
-[pattern](pattern-matching.md#patterns), `200..300 => "ok"`. `..` binds looser than arithmetic
-and bitwise operators and tighter than comparisons, so `0..n + 1`,
-`x in 0..10` and `xs == 1..3` need no parentheses; a `??` in a
-bound does.
+`a..b` counts from `a` up to `b`, leaving `b` out. `a..=b` includes `b`.
 
 ```rune
-for i in 1..4 { print(i); }              // 1 2 3
-for i in 1..=3 { print(i); }             // 1 2 3
-for i in 10..0 step -3 { print(i); }     // 10 7 4 1
-for x in 0..1 step 0.25 { print(x); }    // 0 0.25 0.5 0.75
+for i in 1..4 {
+    print(i);
+}
+// 1
+// 2
+// 3
 
-print(5 in 1..10);      // true
-print(1..4);            // [1, 2, 3]
-print([1, 2] == 1..3);  // true
-print(0..10 step 5);    // [0, 5]
+for i in 1..=3 {
+    print("lap {i}");
+}
+// lap 1
+// lap 2
+// lap 3
 ```
+
+Add `step n` to skip ahead, or count down with a negative step. Steps may
+be fractions:
+
+```rune
+for i in 10..0 step -3 {
+    print(i);
+}
+// 10
+// 7
+// 4
+// 1
+
+for x in 0..1 step 0.25 {
+    print(x);
+}
+// 0
+// 0.25
+// 0.5
+// 0.75
+```
+
+`for` and `in` walk a range without building an array, so even a huge
+range costs nothing. Anywhere else a range is just an array:
+
+```rune
+print(1..4);              // [1, 2, 3]
+print(0..10 step 5);      // [0, 5]
+print([1, 2] == 1..3);    // true
+print(5 in 1..10);        // true
+print(3 in 0..10 step 2); // false
+```
+
+Ranges show up in two more places: in brackets they
+[slice](../data/arrays.md#slices), `xs[1..]`, and in a `match` they are
+[patterns](pattern-matching.md#patterns), `200..300 => "ok"`.
+
+`..` binds looser than arithmetic and tighter than comparisons, so
+`0..n + 1`, `x in 0..10` and `xs == 1..3` need no parentheses. A `??` in a
+bound does: `0..(limit ?? 10)`.
 
 ## What a Loop Sees
 
-Array elements are taken when the loop starts, so pushing to the array
-inside the loop does not extend it. Each iteration has its own variable, so
-closures capture the current element.
+A `for` loop walks the collection as it was when the loop started.
+Pushing to the array inside the loop does not make the loop longer:
 
 ```rune
 let mut queue = [1, 2];
-for x in queue { queue.push(x * 10); }
+for x in queue {
+    queue.push(x * 10);
+}
 print(queue);    // [1, 2, 10, 20]
+```
 
+Each iteration gets a fresh variable, so a closure made in the loop keeps
+the element of its own iteration:
+
+```rune
 let mut handlers = [];
 for name in ["save", "load"] {
     handlers.push(() => "clicked " + name);
@@ -99,39 +164,69 @@ print(handlers[1]());    // clicked load
 
 ## for mut
 
-`for mut x in xs` gives each iteration its own copy of the element, and
-writes it back into `xs` when the iteration ends: at the end of the body,
-on `continue`, `break`, `return` and on a throw. It walks arrays and the
-values of objects and maps.
+The loop variable is a copy, so changing it does not change the
+collection. `for mut x in xs` makes it change: each iteration gets its own
+copy of the element, and the copy is written back into `xs` when the
+iteration ends, whether by reaching the end of the body, `continue`,
+`break`, `return` or a throw. It works on arrays and on the values of
+objects and maps.
 
 ```rune
-let mut grid = [[0, 0], [0, 0]];
-for i, mut row in grid { row[i] = 1; }
-print(grid);    // [[1, 0], [0, 1]]
+let mut prices = { apple: 1.2, pear: 2.5 };
+for fruit, mut price in prices {
+    price *= 2;
+}
+print(prices);    // {apple: 2.4, pear: 5}
 
-let mut prices = { apple: 1, pear: 2 };
-for k, mut v in prices { v *= 10; }
-print(prices);  // {apple: 10, pear: 20}
+let mut grid = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+for i, mut row in grid {
+    row[i] = 1;
+}
+print(grid);    // [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
 ```
 
-The collection must be a mutable place, as for a
-[`mut` parameter](functions.md#mut-parameters), found once before the
-loop. The loop walks it as it was when the loop started; a write the body
-makes to it directly is overwritten by the write-back of that element.
-The body cannot assign the variable the collection is read from, and a
-key cannot be `mut`.
+The collection must be a mutable place, the same rule as for a
+[`mut` parameter](functions.md#mut-parameters). Writing back into a `let`
+variable is a compile error:
+
+```rune
+let rows = [[0]];
+for mut row in rows {} // Error at 'rows': Cannot write 'for mut' variable 'row' back into immutable variable 'rows'.
+```
+
+A range is not a place, so there is nothing to write back into:
+
+```rune
+for mut i in 0..3 {} // Error at 'i': A 'for mut' loop walks a mutable variable, element or property, which it writes back into.
+```
+
+The body cannot replace the collection it walks:
 
 ```rune
 let mut xs = [[0]];
 for mut x in xs { xs = []; } // Error at 'xs': Cannot assign to 'xs' inside a 'for mut' loop over it.
-let rows = [[0]];
-for mut row in rows {}  // Error at 'rows': Cannot write 'for mut' variable 'row' back into immutable variable 'rows'.
-for mut i in 0..3 {}    // Error at 'i': A 'for mut' loop walks a mutable variable, element or property, which it writes back into.
 ```
+
+Only the value can be `mut`, never the index or key.
 
 ## while
 
-Anything else is a `while`:
+`while` repeats its body as long as the condition holds. Use it when you
+don't know the number of steps in advance:
+
+```rune
+let mut stack = ["home", "settings", "profile"];
+while stack {
+    print("closing {stack.pop()}");
+}
+// closing profile
+// closing settings
+// closing home
+```
+
+The condition is tested for [truthiness](values.md#truthiness), so
+`while stack` runs until the array is empty. Here is a loop that counts
+the steps of the Collatz sequence from 27 to 1:
 
 ```rune
 let mut n = 27;
