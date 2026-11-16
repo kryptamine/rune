@@ -2,29 +2,45 @@ name: Release
 
 on:
   push:
-    tags: ["v*"]
+    branches: [master]
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      created: ${{ steps.rp.outputs.release_created }}
+      tag: ${{ steps.rp.outputs.tag_name }}
+    steps:
+      - id: rp
+        uses: googleapis/release-please-action@v4
+
   ci:
+    needs: release-please
+    if: needs.release-please.outputs.created == 'true'
     uses: ./.github/workflows/ci.yml
 
-  release:
-    needs: ci
+  dist:
+    needs: [release-please, ci]
     runs-on: ubuntu-latest
+    env:
+      TAG: ${{ needs.release-please.outputs.tag }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TAG }}
 
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
 
       - name: Build
-        run: make dist VERSION="${GITHUB_REF_NAME#v}"
+        run: make dist VERSION="${TAG#v}"
 
-      - name: Publish
+      - name: Upload
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dist/* --title "$GITHUB_REF_NAME" --generate-notes
+        run: gh release upload "$TAG" dist/*
