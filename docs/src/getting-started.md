@@ -7,13 +7,15 @@ Download the archive for your platform from the
 are builds for Linux, macOS and Windows, on amd64 and arm64. Each archive
 holds a single `rune` binary; put it somewhere on your `PATH`:
 
+<!-- x-release-please-start-version -->
 ```sh
 # macOS on Apple silicon; swap the version and platform for yours
-curl -LO https://github.com/kryptamine/rune/releases/download/v0.3.0/rune-0.3.0-darwin-arm64.tar.gz
-tar -xzf rune-0.3.0-darwin-arm64.tar.gz
-sudo mv rune-0.3.0-darwin-arm64/rune /usr/local/bin/
+curl -LO https://github.com/kryptamine/rune/releases/download/v0.4.0/rune-0.4.0-darwin-arm64.tar.gz
+tar -xzf rune-0.4.0-darwin-arm64.tar.gz
+sudo mv rune-0.4.0-darwin-arm64/rune /usr/local/bin/
 rune version
 ```
+<!-- x-release-please-end -->
 
 `checksums.txt` on the same page lists the SHA-256 sum of every archive.
 
