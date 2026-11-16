@@ -21,6 +21,14 @@ type LiteralPattern struct {
 	Value value.Value
 }
 
+// RangePattern is lo..hi, lo..=hi, lo.. or ..hi, matching a number within
+// the bounds; the resolver makes each bound a LiteralPattern.
+type RangePattern struct {
+	Op        Token
+	Lo, Hi    Pattern
+	Inclusive bool
+}
+
 // OrPattern matches if any of Alts does; they bind nothing.
 type OrPattern struct {
 	Alts []Pattern
@@ -79,6 +87,7 @@ type ArrayPattern struct {
 func (*WildcardPattern) patternNode() {}
 func (*BindPattern) patternNode()     {}
 func (*LiteralPattern) patternNode()  {}
+func (*RangePattern) patternNode()    {}
 func (*OrPattern) patternNode()       {}
 func (*StructPattern) patternNode()   {}
 func (*ObjectPattern) patternNode()   {}

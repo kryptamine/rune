@@ -381,9 +381,9 @@ func (p *printer) spaceBefore(a *atom) bool {
 	case t == ast.DOT, t == ast.QUESTION_DOT, pt == ast.DOT, pt == ast.QUESTION_DOT:
 		return false
 	case t == ast.DOT_DOT, t == ast.DOT_DOT_EQUAL:
-		return keyword(prev)
+		return keyword(prev) || !prev.ended()
 	case pt == ast.DOT_DOT, pt == ast.DOT_DOT_EQUAL:
-		return false
+		return t == ast.ARROW || t == ast.IF || t == ast.PIPE
 	case t == ast.LEFT_PAREN, t == ast.LEFT_BRACKET:
 		if pt == ast.RIGHT_BRACE {
 			return a.before.spaced

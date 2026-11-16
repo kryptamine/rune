@@ -142,6 +142,17 @@ func (p *Resolver) resolvePattern(pat ast.Pattern) ast.Pattern {
 		if b, ok := n.Inner.(*ast.BindPattern); ok {
 			p.checkBind(b)
 		}
+	case *ast.RangePattern:
+		n.Lo, n.Hi = p.rangeBound(n.Op, n.Lo), p.rangeBound(n.Op, n.Hi)
+
+		lo, _ := n.Lo.(*ast.LiteralPattern)
+		hi, _ := n.Hi.(*ast.LiteralPattern)
+
+		if lo != nil && hi != nil && lo.Value.IsNumber() && hi.Value.IsNumber() {
+			if c, _ := value.CompareNum(lo.Value, hi.Value); c > 0 || c == 0 && !n.Inclusive {
+				p.error(n.Op, "Range pattern matches no number.")
+			}
+		}
 	case *ast.OrPattern:
 		for i, alt := range n.Alts {
 			n.Alts[i] = p.resolvePattern(alt)
@@ -184,6 +195,24 @@ func (p *Resolver) resolvePattern(pat ast.Pattern) ast.Pattern {
 	}
 
 	return pat
+}
+
+// rangeBound returns the bound b of the range pattern at op, if it has
+// one, as the test of its number.
+func (p *Resolver) rangeBound(op ast.Token, b ast.Pattern) ast.Pattern {
+	if b == nil {
+		return nil
+	}
+
+	errs := len(p.errors)
+	b = p.resolvePattern(b)
+
+	// A name that is no constant is reported once, by what it is not.
+	if lit, ok := b.(*ast.LiteralPattern); (!ok || !lit.Value.IsNumber()) && len(p.errors) == errs {
+		p.error(op, "A bound of a range pattern must be a number or a constant holding one.")
+	}
+
+	return b
 }
 
 // resolveTypes returns the type each of types names, reporting those

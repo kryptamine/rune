@@ -71,8 +71,8 @@ fun relative(day, now) {
         0 => "today",
         1 => "tomorrow",
         -1 => "yesterday",
-        _ if diff > 1 && diff < 7 => "in {diff}d",
-        _ if diff < 0 => "{-diff}d ago",
+        2..7 => "in {diff}d",
+        ..0 => "{-diff}d ago",
         _ => day,
     };
 }

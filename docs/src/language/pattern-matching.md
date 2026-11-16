@@ -8,6 +8,7 @@ fun status(code) {
         200 | 201 | 204 => "ok",
         301 | 302 => "redirect",
         404 => "not found",
+        400..500 => "client error",
         c if c >= 500 => "server error {c}",
         _ => "unknown",
     };
@@ -15,8 +16,9 @@ fun status(code) {
 
 print(status(201)); // ok
 print(status(404)); // not found
+print(status(418)); // client error
 print(status(503)); // server error 503
-print(status(418)); // unknown
+print(status(100)); // unknown
 ```
 
 An arm is `pattern => expression` or `pattern => { block }`. Arms are
@@ -38,6 +40,10 @@ pattern matches.
   built-in one like `string` or `nil`, `_ is T | U` one of them, the same
   [test](values.md#type-tests) as `v is T` and `catch e is T`;
 - literals: numbers, strings, `true`, `false`, `nil`, compared as by `==`;
+- `a..b` matches a number from `a` up to `b`, `a..=b` up to `b` included,
+  `a..` one from `a` on and `..b` or `..=b` one up to `b`; a bound is a
+  number or the name of a constant. A float within the bounds matches,
+  and anything but a number is no match;
 - `p | q` matches if either does;
 - `Color.White` matches that [enum](../data/enums.md) variant, and
   `Expr.Num { value }` a variant with fields, as a struct pattern;
@@ -70,6 +76,35 @@ print(describe(Point { x: 0, y: 5 })); // on the y axis at 5
 print(describe(Point { x: 2, y: 2 })); // diagonal
 print(describe(Point { x: 1, y: 2 })); // a point
 print(describe(42));                   // other
+```
+
+Range patterns sort a number into bands, on their own or inside another
+pattern:
+
+```rune
+const SLOW = 250;
+
+fun grade(resp) {
+    return match resp {
+        { status: 500.. } => "error",
+        { status: 200..300, ms: ..50 } => "fast",
+        { status: 200..300, ms: SLOW.. } => "slow",
+        { status: 200..300 } => "ok",
+        _ => "other",
+    };
+}
+
+print(grade({ status: 200, ms: 12.5 })); // fast
+print(grade({ status: 204, ms: 90 }));   // ok
+print(grade({ status: 201, ms: 400 }));  // slow
+print(grade({ status: 503, ms: 1 }));    // error
+print(grade({ status: 404, ms: 1 }));    // other
+```
+
+A range no number is in is an error:
+
+```rune
+match 1 { 5..5 => 1, _ => 2 } // Error at '..': Range pattern matches no number.
 ```
 
 Object patterns pick data apart by shape, which makes small interpreters

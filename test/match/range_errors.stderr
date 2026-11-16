@@ -1,0 +1,62 @@
+error: Range pattern matches no number.
+ --> range_errors.rn:5:12
+  |
+4 | let v = 1;
+5 | match 1 { 5..5 => 1, _ => 2 }; // Error at '..': Range pattern matches no number.
+  |            ^^
+
+error: Range pattern matches no number.
+ --> range_errors.rn:6:12
+  |
+5 | match 1 { 5..5 => 1, _ => 2 }; // Error at '..': Range pattern matches no number.
+6 | match 1 { 5..=4 => 1, _ => 2 }; // Error at '..=': Range pattern matches no number.
+  |            ^^^
+
+error: A bound of a range pattern must be a number or a constant holding one.
+ --> range_errors.rn:7:12
+  |
+6 | match 1 { 5..=4 => 1, _ => 2 }; // Error at '..=': Range pattern matches no number.
+7 | match 1 { v..3 => 1, _ => 2 }; // Error at '..': A bound of a range pattern must be a number or a constant holding one.
+  |            ^^
+
+error: A bound of a range pattern must be a number or a constant holding one.
+ --> range_errors.rn:8:12
+  |
+7 | match 1 { v..3 => 1, _ => 2 }; // Error at '..': A bound of a range pattern must be a number or a constant holding one.
+8 | match 1 { 1..S => 1, _ => 2 }; // Error at '..': A bound of a range pattern must be a number or a constant holding one.
+  |            ^^
+
+error: A bound of a range pattern must be a number or a constant holding one.
+ --> range_errors.rn:9:14
+  |
+8 | match 1 { 1..S => 1, _ => 2 }; // Error at '..': A bound of a range pattern must be a number or a constant holding one.
+9 | match 1 { E.A.. => 1, _ => 2 }; // Error at '..': A bound of a range pattern must be a number or a constant holding one.
+  |              ^^
+
+error: 'P' is a struct type; test it with '_ is P'.
+  --> range_errors.rn:10:14
+   |
+ 9 | match 1 { E.A.. => 1, _ => 2 }; // Error at '..': A bound of a range pattern must be a number or a constant holding one.
+10 | match 1 { 1..P => 1, _ => 2 }; // Error at 'P': 'P' is a struct type; test it with '_ is P'.
+   |              ^
+
+error: E has no variant 'B'.
+  --> range_errors.rn:11:16
+   |
+10 | match 1 { 1..P => 1, _ => 2 }; // Error at 'P': 'P' is a struct type; test it with '_ is P'.
+11 | match 1 { 1..E.B => 1, _ => 2 }; // Error at 'B': E has no variant 'B'.
+   |                ^
+
+error: A bound of a range pattern must be a number or a constant holding one.
+  --> range_errors.rn:12:14
+   |
+11 | match 1 { 1..E.B => 1, _ => 2 }; // Error at 'B': E has no variant 'B'.
+12 | match 1 { nil..3 => 1, _ => 2 }; // Error at '..': A bound of a range pattern must be a number or a constant holding one.
+   |              ^^
+
+error: A bound of a range pattern must be a number or a constant holding one.
+  --> range_errors.rn:13:12
+   |
+12 | match 1 { nil..3 => 1, _ => 2 }; // Error at '..': A bound of a range pattern must be a number or a constant holding one.
+13 | match 1 { 1..x is P => 1, _ => 2 }; // Error at '..': A bound of a range pattern must be a number or a constant holding one.
+   |            ^^

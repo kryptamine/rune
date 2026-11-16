@@ -94,6 +94,8 @@ func (fs *funcState) pattern(p ast.Pattern, s int32) []int {
 		return nil
 	case *ast.LiteralPattern:
 		return []int{fs.literalTest(s, n)}
+	case *ast.RangePattern:
+		return fs.rangeTest(s, n)
 	case *ast.OrPattern:
 		return fs.anyOf(len(n.Alts), func(i int) []int { return fs.pattern(n.Alts[i], s) })
 	case *ast.StructPattern:
@@ -189,15 +191,41 @@ func (fs *funcState) literalTest(s int32, n *ast.LiteralPattern) int {
 	ne := n.Token
 	ne.TokenType = ast.BANG_EQUAL
 
-	k, ok := fs.operandConst(n.Value, true, maxAB)
+	return fs.jumpCmpConst(s, n.Value, cmpNE, 1, &ne)
+}
+
+// rangeTest jumps unless R[s] is a number within the bounds of n.
+func (fs *funcState) rangeTest(s int32, n *ast.RangePattern) []int {
+	miss := []int{fs.typeTest(s, kindTypes["number"])}
+
+	bound := func(b ast.Pattern, cmp uint8) {
+		if b != nil {
+			miss = append(miss, fs.jumpCmpConst(s, b.(*ast.LiteralPattern).Value, cmp, 0, &n.Op))
+		}
+	}
+
+	bound(n.Lo, cmpGE)
+
+	if n.Inclusive {
+		bound(n.Hi, cmpLE)
+	} else {
+		bound(n.Hi, cmpLT)
+	}
+
+	return miss
+}
+
+// jumpCmpConst jumps if (R[s] <cmp> v) == y.
+func (fs *funcState) jumpCmpConst(s int32, v value.Value, cmp, y uint8, tok *ast.Token) int {
+	k, ok := fs.operandConst(v, true, maxAB)
 	if ok {
-		return fs.emit(ins{op: opJmpCmpK, x: cmpNE, y: 1, a: s, b: k}, &ne)
+		return fs.emit(ins{op: opJmpCmpK, x: cmp, y: y, a: s, b: k}, tok)
 	}
 
 	t := fs.alloc()
 	fs.emit(ins{op: opLoadK, a: t, c: k}, nil)
 
-	return fs.emit(ins{op: opJmpCmp, x: cmpNE, y: 1, a: s, b: t}, &ne)
+	return fs.emit(ins{op: opJmpCmp, x: cmp, y: y, a: s, b: t}, tok)
 }
 
 // fieldTest matches field f of R[s]: of a struct already known to have

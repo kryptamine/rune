@@ -1,0 +1,12 @@
+error: Expect a bound of the range pattern.
+ --> range_syntax.rn:1:14
+  |
+1 | match 1 { .. => 1, _ => 2 }; // Error at '=>': Expect a bound of the range pattern.
+  |              ^^
+
+error: Expect upper bound after '..='.
+ --> range_syntax.rn:2:16
+  |
+1 | match 1 { .. => 1, _ => 2 }; // Error at '=>': Expect a bound of the range pattern.
+2 | match 1 { 1..= => 1, _ => 2 }; // Error at '=>': Expect upper bound after '..='.
+  |                ^^
