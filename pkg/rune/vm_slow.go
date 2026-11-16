@@ -117,7 +117,9 @@ func (p *Interpreter) slow(in Instr) error {
 		}
 
 		for i, k := range keys {
-			obj.Set(k, regs[in.b()+i])
+			if !obj.Set(k, regs[in.b()+i]) {
+				return functionProperty(tok, k)
+			}
 		}
 
 	case opGetIndex:
@@ -402,7 +404,7 @@ func (p *Interpreter) callAt(at, n int, tok *ast.Token, inout uint32) error {
 		return err
 	}
 
-	if fn.Kind() != value.Function {
+	if !fn.IsFunction() {
 		return errors.NewRuntimeError(errors.TypeError, *tok, "Can only call functions.")
 	}
 
@@ -481,7 +483,9 @@ func spread(tok *ast.Token, dst, src value.Value) error {
 		}
 	case value.Struct:
 		for k, v := range src.FieldPairs() {
-			obj.Set(k, value.Share(v))
+			if !obj.Set(k, value.Share(v)) {
+				return functionProperty(tok, k)
+			}
 		}
 	default:
 		return spreadError(tok, src, "an object")
@@ -552,8 +556,8 @@ func omit(tok *ast.Token, src value.Value, keys []string) (value.Value, error) {
 
 	obj := value.NewObj(0)
 	for k, v := range all {
-		if !slices.Contains(keys, k) {
-			obj.Set(k, value.Share(v))
+		if !slices.Contains(keys, k) && !obj.Set(k, value.Share(v)) {
+			return value.Value{}, functionProperty(tok, k)
 		}
 	}
 

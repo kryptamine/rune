@@ -124,7 +124,7 @@ var regexNatives = []*Native{
 			return value.NewString(re.ReplaceAllString(s, c.args[2].Str()))
 		}
 
-		if c.args[2].Kind() != value.Function {
+		if !c.args[2].IsFunction() {
 			return c.typeError(2, "a string or a function")
 		}
 

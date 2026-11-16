@@ -1,0 +1,8 @@
+TypeError: Property 'f' of an object cannot hold a function.
+ --> function_property.rn:3:3
+  |
+2 | let mut o = {};
+3 | o.f = f; // expect runtime error: [line: 3] TypeError: Property 'f' of an object cannot hold a function.
+  |   ^
+  |
+  = hint: objects hold data; give the behavior to a struct with an impl

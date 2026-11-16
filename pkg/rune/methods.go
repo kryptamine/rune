@@ -118,8 +118,8 @@ func (p *Interpreter) invoke(fr *frame, in Instr, tok *ast.Token) error {
 
 		return err
 	case m == nil:
-		if _, ok := own(tok, t, key); ok {
-			return notMethod(tok, t, owner, key.Str())
+		if v, ok := own(tok, t, key); ok && v.IsFunction() {
+			return notMethod(tok, owner, key.Str())
 		}
 
 		return noMethod(tok, t, owner, key.Str(), ms)
@@ -203,11 +203,9 @@ func noMethod(tok *ast.Token, t value.Value, owner, name string, ms []value.Meth
 }
 
 // notMethod is the error of t.name(args) for a function in a field or property.
-func notMethod(tok *ast.Token, t value.Value, owner, name string) error {
-	holder := helpers.If(t.Kind() == value.Struct, "field", "property")
-
+func notMethod(tok *ast.Token, owner, name string) error {
 	return errors.NewRuntimeError(errors.TypeError, *tok, fmt.Sprintf(
-		"%s has no method '%s'; call the function in its %s as (x.%s)().", owner, name, holder, name))
+		"%s has no method '%s'; call the function in its field as (x.%s)().", owner, name, name))
 }
 
 func staticMethod(tok *ast.Token, owner, name string) error {

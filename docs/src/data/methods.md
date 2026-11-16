@@ -173,24 +173,28 @@ let show = prices[0].format;
 print(show()); // $4.99
 ```
 
-## Functions in fields and properties
+## Functions in fields
 
-`x.f(args)` always calls a method. A function held in a field or property
-is called as `(x.f)(args)`, or `x["f"](args)`:
+`x.f(args)` always calls a method. A function held in a field is called
+as `(x.f)(args)`, or `x["f"](args)`:
 
 ```rune
 struct Button { label, onClick }
 let save = Button { label: "save", onClick: () => "saved" };
 print((save.onClick)()); // saved
-
-let handlers = { greet: name => "hi " + name };
-print((handlers.greet)("ann"));  // hi ann
-print(handlers["greet"]("bob")); // hi bob
+print(save["onClick"]()); // saved
+save.onClick();          // TypeError: Button has no method 'onClick'; call the function in its field as (x.onClick)().
 ```
 
+An object holds data only: a function as the value of one of its
+properties is an error. Behavior belongs to a struct and its `impl`; a
+table of functions by name is a [map](map-and-set.md):
+
 ```rune
-let handlers = { greet: name => "hi " + name };
-handlers.greet("ann"); // TypeError: object has no method 'greet'; call the function in its property as (x.greet)().
+let handlers = { greet: name => "hi " + name }; // Error at 'greet': Property 'greet' of an object cannot hold a function.
+
+let greeters = map([["greet", name => "hi " + name]]);
+print(greeters["greet"]("ann")); // hi ann
 ```
 
 Members of a namespace, as in `math.floor(x)`, are no methods and are

@@ -162,7 +162,9 @@ func setIndex(token *ast.Token, target, index, v value.Value) error {
 			return errors.NewRuntimeError(errors.TypeError, *token, "Object properties must be accessed with string keys.")
 		}
 
-		target.Obj().Set(index.Str(), v)
+		if !target.Obj().Set(index.Str(), v) {
+			return functionProperty(token, index.Str())
+		}
 
 		return nil
 
@@ -252,4 +254,10 @@ func length(target value.Value) int {
 	}
 
 	return utf8.RuneCountInString(target.Str())
+}
+
+// functionProperty is the error of a function put in property key of an
+// object, which Obj.Set refuses.
+func functionProperty(token *ast.Token, key string) error {
+	return errors.WithHint(errors.NewRuntimeError(errors.TypeError, *token, helpers.FunctionProperty(key)), helpers.FunctionPropertyHint)
 }

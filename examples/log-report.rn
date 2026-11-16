@@ -262,13 +262,15 @@ impl Rng {
 
 const IPS = ["203.0.113.7", "198.51.100.23", "192.0.2.44", "203.0.113.90", "198.51.100.5"];
 
+struct Route { method, path, ms }
+
 let ROUTES = [
-    { method: "GET", path: _ => "/api/users", ms: 20 },
-    { method: "GET", path: n => "/api/users/{n % 1000}", ms: 12 },
-    { method: "POST", path: _ => "/api/orders", ms: 80 },
-    { method: "GET", path: n => "/api/orders/{n % 100000}?expand=items", ms: 35 },
-    { method: "GET", path: _ => "/health", ms: 1 },
-    { method: "GET", path: n => "/static/app." + (n % 2 == 0 ? "js" : "css"), ms: 3 },
+    Route { method: "GET", path: _ => "/api/users", ms: 20 },
+    Route { method: "GET", path: n => "/api/users/{n % 1000}", ms: 12 },
+    Route { method: "POST", path: _ => "/api/orders", ms: 80 },
+    Route { method: "GET", path: n => "/api/orders/{n % 100000}?expand=items", ms: 35 },
+    Route { method: "GET", path: _ => "/health", ms: 1 },
+    Route { method: "GET", path: n => "/static/app." + (n % 2 == 0 ? "js" : "css"), ms: 3 },
 ];
 
 fun generate(path, n = 400) {

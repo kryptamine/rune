@@ -1,0 +1,8 @@
+TypeError: Property 'f' of an object cannot hold a function.
+ --> function_spread.rn:3:11
+  |
+2 | let s = S { f: x => x };
+3 | let o = { ...s }; // expect runtime error: [line: 3] TypeError: Property 'f' of an object cannot hold a function.
+  |           ^^^
+  |
+  = hint: objects hold data; give the behavior to a struct with an impl

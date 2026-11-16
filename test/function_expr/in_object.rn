@@ -1,2 +1,5 @@
-let o = {"greet": name => { return "hi " + name; }};
-print((o.greet)("bob")); // expect: hi bob
+let o = {"greet": name => { return "hi " + name; }}; // [line: 1] Error at '"greet"': Property 'greet' of an object cannot hold a function.
+let p = { ["k"]: () => 1 }; // [line: 2] Error at '[': A property of an object cannot hold a function.
+fun helper() {}
+let q = { helper }; // [line: 4] Error at 'helper': Property 'helper' of an object cannot hold a function.
+let r = { f: math.sqrt }; // [line: 5] Error at 'f': Property 'f' of an object cannot hold a function.

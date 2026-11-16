@@ -1,0 +1,34 @@
+error: Property 'greet' of an object cannot hold a function.
+ --> in_object.rn:1:10
+  |
+1 | let o = {"greet": name => { return "hi " + name; }}; // [line: 1] Error at '"greet"': Property 'greet' of an object cannot hold a function.
+  |          ^^^^^^^
+  |
+  = hint: objects hold data; give the behavior to a struct with an impl
+
+error: A property of an object cannot hold a function.
+ --> in_object.rn:2:11
+  |
+1 | let o = {"greet": name => { return "hi " + name; }}; // [line: 1] Error at '"greet"': Property 'greet' of an object cannot hold a function.
+2 | let p = { ["k"]: () => 1 }; // [line: 2] Error at '[': A property of an object cannot hold a function.
+  |           ^
+  |
+  = hint: objects hold data; give the behavior to a struct with an impl
+
+error: Property 'helper' of an object cannot hold a function.
+ --> in_object.rn:4:11
+  |
+3 | fun helper() {}
+4 | let q = { helper }; // [line: 4] Error at 'helper': Property 'helper' of an object cannot hold a function.
+  |           ^^^^^^
+  |
+  = hint: objects hold data; give the behavior to a struct with an impl
+
+error: Property 'f' of an object cannot hold a function.
+ --> in_object.rn:5:11
+  |
+4 | let q = { helper }; // [line: 4] Error at 'helper': Property 'helper' of an object cannot hold a function.
+5 | let r = { f: math.sqrt }; // [line: 5] Error at 'f': Property 'f' of an object cannot hold a function.
+  |           ^
+  |
+  = hint: objects hold data; give the behavior to a struct with an impl
