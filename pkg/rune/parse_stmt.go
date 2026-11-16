@@ -548,10 +548,6 @@ func (s *Parser) blockOf(valued bool) (*ast.BlockStmt, error) {
 
 		switch st := (*last).(type) {
 		case *ast.ExprStmt:
-			if !valued {
-				s.errors = append(s.errors, foreignKeyword(st.Expr, errors.NewMissingError(s.previous(), s.peek(), "Expect ';' after expression.")))
-			}
-
 			b.Valued = valued
 		case ast.ValuedStmt:
 			b.Valued = valued && hasValue(st.Values())
