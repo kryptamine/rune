@@ -19,7 +19,14 @@ type Parser struct {
 	blockDepth int
 	// inout has a bit for each argument a mut parameter of some function
 	// parsed takes.
-	inout uint32
+	inout  uint32
+	braces Braces
+}
+
+// Braces holds the indexes of the '{' tokens that open a block, and of
+// those that open a match body.
+type Braces struct {
+	Blocks, Matches []int
 }
 
 func newParser(tokens []ast.Token) *Parser {
@@ -57,6 +64,7 @@ type fileAST struct {
 	stmts   []ast.Stmt
 	exports []ast.Stmt
 	inout   uint32
+	braces  Braces
 }
 
 // parseFile parses a file: its imports, then its statements, which in a
@@ -108,7 +116,7 @@ func parseFile(tokens []ast.Token, module bool) (*fileAST, []error) {
 		return nil, parser.errors
 	}
 
-	file.inout = parser.inout
+	file.inout, file.braces = parser.inout, parser.braces
 
 	return file, nil
 }

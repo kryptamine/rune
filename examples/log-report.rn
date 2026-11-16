@@ -65,7 +65,9 @@ impl Stats {
         return ps.map(p => xs[math.min(xs.len() - 1, math.floor(xs.len() * p / 100))]);
     }
 
-    fun errorRate(self) { if self.count == 0 { 0 } else { self.errors / self.count * 100 } }
+    fun errorRate(self) {
+        if self.count == 0 { 0 } else { self.errors / self.count * 100 }
+    }
 }
 
 const TOP_SLOW = 5;

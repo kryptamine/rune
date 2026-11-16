@@ -116,9 +116,13 @@ fun filter(conds, ctx) {
     return rows => rows.filter(r => ok(r) == true);
 }
 
-fun whereText(conds) { if conds { " where {ast.sql(ast.allOf(conds))}" } else { "" } }
+fun whereText(conds) {
+    if conds { " where {ast.sql(ast.allOf(conds))}" } else { "" }
+}
 
-fun describe(ref) { if ref.alias == ref.name { ref.name } else { "{ref.name} {ref.alias}" } }
+fun describe(ref) {
+    if ref.alias == ref.name { ref.name } else { "{ref.name} {ref.alias}" }
+}
 
 // An ON with a conjunct a = b, each side on one table, is a hash join on
 // it, the rest checked on each match; anything else is a nested loop.

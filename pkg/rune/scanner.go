@@ -39,18 +39,19 @@ func Scan(source []byte) ([]ast.Token, []error) {
 }
 
 // Parse scans and parses source as an entry file, for the tokens of
-// valid code or every error of invalid code.
-func Parse(source []byte) ([]ast.Token, []error) {
+// valid code and its braces, or every error of invalid code.
+func Parse(source []byte) ([]ast.Token, Braces, []error) {
 	s := scan(source, 0)
 	if s.truncated {
-		return nil, s.errors
+		return nil, Braces{}, s.errors
 	}
 
-	if _, errs := parseFile(s.tokens, false); len(s.errors)+len(errs) > 0 {
-		return nil, append(s.errors, errs...)
+	file, errs := parseFile(s.tokens, false)
+	if len(s.errors)+len(errs) > 0 {
+		return nil, Braces{}, append(s.errors, errs...)
 	}
 
-	return s.tokens, nil
+	return s.tokens, file.braces, nil
 }
 
 func scan(source []byte, file int) *Scanner {

@@ -51,4 +51,13 @@ fun blocks() {
     try { t(); } catch e { p(e); }
     let c = 3;
 }
+fun nest() {
+    let lock = try { open(d) } catch e is IOError { throw if e.code == "x" { E { m: 1 } } else { e } };
+    let n = if a { if b { 1 } else { 2 } } else { 3 };
+    let k = match v { 1 => { if a { 1 } else { 2 } }, _ => 0 };
+    let s = match v { 1 => "one", _ => "many" };
+    xs.map(x => { if x { 1 } else { 2 } });
+    for i, x in xs { if x { p(i); } }
+}
+fun short(x) { if x { 1 } else { 2 } }
 // end

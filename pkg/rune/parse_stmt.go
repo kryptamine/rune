@@ -515,19 +515,11 @@ func (s *Parser) braced(valued bool) (*ast.BlockStmt, error) {
 	}
 
 	s.advance()
+	s.braces.Blocks = append(s.braces.Blocks, s.current-1)
 
 	defer s.allowStructs(structsAll)()
 
 	return s.blockOf(valued)
-}
-
-func (s *Parser) block() ([]ast.Stmt, error) {
-	b, err := s.blockOf(false)
-	if err != nil {
-		return nil, err
-	}
-
-	return b.Stmts, nil
 }
 
 // blockOf parses statements up to "}". The last one, when no ';' ends

@@ -16,7 +16,7 @@ func TestRepoSources(t *testing.T) {
 				return err
 			}
 			src, _ := os.ReadFile(path)
-			if _, errs := rune.Parse(src); len(errs) > 0 {
+			if _, _, errs := rune.Parse(src); len(errs) > 0 {
 				return nil
 			}
 
