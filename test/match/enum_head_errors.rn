@@ -1,0 +1,14 @@
+enum Status { Pending, Paid }
+struct Point { x }
+
+fun f(s) {
+    match s is Status { Pendin => 1, _ => 2 } // Error at 'Pendin': Status has no variant 'Pendin'.
+}
+
+fun g(s) {
+    match s is Status { Pending => 1 } // Error at 'match': Match does not cover Status.Paid; add arms or '_ =>'.
+}
+
+fun h(p) {
+    match p is Point { _ => 1 } // Error at 'Point': 'Point' is not an enum; match x is Enum { ... } names its variants bare.
+}

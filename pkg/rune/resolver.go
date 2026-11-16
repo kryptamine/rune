@@ -193,33 +193,6 @@ func (p *Resolver) VisitVarStmt(stmt *ast.VarStmt) error {
 	return nil
 }
 
-func (p *Resolver) VisitDestructureStmt(stmt *ast.DestructureStmt) error {
-	p.resolveDestructure(stmt, stmt.Initializer)
-	return nil
-}
-
-func (p *Resolver) VisitArrayDestructureStmt(stmt *ast.ArrayDestructureStmt) error {
-	p.resolveDestructure(stmt, stmt.Initializer)
-	return nil
-}
-
-// resolveDestructure declares the variables stmt binds, each defined
-// once initializer and its default are resolved.
-func (p *Resolver) resolveDestructure(stmt ast.Stmt, initializer ast.Expr) {
-	vars := ast.PatternVars(stmt)
-	for _, v := range vars {
-		v.Local = p.declare(v.Binding)
-	}
-
-	p.resolveExpr(initializer)
-
-	for _, v := range vars {
-		p.resolveExpr(v.Default)
-
-		p.define(v.Name)
-	}
-}
-
 func (p *Resolver) requireInitialized(name ast.Token, verb string) {
 	if l, exists := p.innermost()[name.Lexeme]; exists && !l.defined {
 		kind := helpers.If(p.isScopesEmpty(), "global", "local")
@@ -288,8 +261,7 @@ func declaresLocals(stmts []ast.Stmt) bool {
 }
 
 func (p *Resolver) VisitIfStmt(ifStmt *ast.IfStmt) error {
-	p.resolveExpr(ifStmt.Condition)
-	p.resolveStmt(ifStmt.Then)
+	p.condScope(ifStmt.Condition, func() { p.resolveStmt(ifStmt.Then) })
 
 	if ifStmt.El != nil {
 		p.resolveStmt(ifStmt.El)
@@ -299,8 +271,7 @@ func (p *Resolver) VisitIfStmt(ifStmt *ast.IfStmt) error {
 }
 
 func (p *Resolver) VisitWhileStmt(whileStmt *ast.WhileStmt) error {
-	p.resolveExpr(whileStmt.Condition)
-	p.resolveLoopBody(whileStmt.Body)
+	p.condScope(whileStmt.Condition, func() { p.resolveLoopBody(whileStmt.Body) })
 
 	return nil
 }
@@ -386,20 +357,6 @@ func (p *Resolver) VisitFunctionStmt(fnStmt *ast.FunctionStmt) error {
 	p.resolveFn(fnStmt)
 
 	return nil
-}
-
-func (p *Resolver) VisitIsExpr(expr *ast.IsExpr) (value.Value, error) {
-	p.resolveExpr(expr.Value)
-
-	for i, typ := range expr.Types {
-		if t, ok := typ.(*ast.VarExpr); ok {
-			expr.Shapes[i] = p.typeNamed(t)
-		} else {
-			p.resolveExpr(typ)
-		}
-	}
-
-	return value.NilValue, nil
 }
 
 func (p *Resolver) VisitReturnStmt(returnStmt *ast.ReturnStmt) error {

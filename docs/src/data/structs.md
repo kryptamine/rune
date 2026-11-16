@@ -185,7 +185,7 @@ Config({ port: 80 }); // KeyError: Missing field 'host' of Config.
 
 `v is User` is `true` only for a `User`, never for an object that
 happens to have the same keys; see
-[Type Tests](../language/values.md#type-tests).
+[Type Tests](../language/values.md#type-tests-and-patterns).
 
 `==` compares two structs of the same type field by field. A struct
 never equals an object or a struct of another type.

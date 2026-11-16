@@ -131,10 +131,8 @@ func (fs *funcState) stmt(stmt ast.Stmt) {
 		fs.exprStmt(s.Expr)
 	case *ast.VarStmt:
 		fs.varStmt(s)
-	case *ast.DestructureStmt:
-		fs.destructure(s)
-	case *ast.ArrayDestructureStmt:
-		fs.unpack(s)
+	case *ast.PatternStmt:
+		fs.patternStmt(s)
 	case *ast.BlockStmt:
 		fs.block(s, noReg)
 	case *ast.IfStmt:
@@ -245,63 +243,6 @@ func (fs *funcState) varStmt(s *ast.VarStmt) {
 	})
 }
 
-func (fs *funcState) destructure(s *ast.DestructureStmt) {
-	for _, b := range ast.Declared(s) {
-		fs.predeclare(b.Local)
-	}
-
-	src := fs.exprAny(s.Initializer)
-
-	for i := range s.Fields {
-		f := &s.Fields[i]
-		if f.Discards() {
-			continue
-		}
-		fs.initialize(f.Local, func(dst int32) {
-			fs.emit(ins{op: opGetProp, a: dst, b: src, c: fs.constant(value.NewString(f.Key.Lexeme)), x: uint8(boolNum(f.Default != nil))}, &f.Key)
-			fs.orDefault(dst, f.Default)
-			fs.emit(ins{op: opShare, a: dst}, nil)
-		})
-	}
-
-	if r := s.Rest; r != nil && !r.Discards() {
-		keys := make([]string, len(s.Fields))
-		for i, f := range s.Fields {
-			keys[i] = f.Key.Lexeme
-		}
-
-		c := fs.keyList(keys)
-		fs.initialize(r.Local, func(dst int32) {
-			fs.emit(ins{op: opOmit, a: dst, b: src, c: c}, &s.Brace)
-		})
-	}
-}
-
-// unpack takes the elements into temporaries, then the variables.
-func (fs *funcState) unpack(s *ast.ArrayDestructureStmt) {
-	for _, b := range ast.Declared(s) {
-		fs.predeclare(b.Local)
-	}
-
-	src := fs.exprAny(s.Initializer)
-	n := len(s.Elems)
-	rest := s.Rest != nil
-	base := fs.unpackTo(src, n, s.Required(), rest, false, &s.Bracket)
-
-	for i, e := range s.Elems {
-		if e != nil {
-			fs.initialize(e.Local, func(dst int32) {
-				fs.move(dst, base+int32(i))
-				fs.orDefault(dst, e.Default)
-			})
-		}
-	}
-
-	if rest {
-		fs.initialize(s.Rest.Local, func(dst int32) { fs.move(dst, base+int32(n)) })
-	}
-}
-
 // unpackTo takes the first n elements of the array R[src], of which
 // required must be there, into new temporaries, and with rest the others
 // as an array after them; it returns the first temporary. Without rest
@@ -405,8 +346,12 @@ func (fs *funcState) functionStmt(s *ast.FunctionStmt) {
 // ifStmt compiles s, with the value of the branch taken into dst unless
 // it is noReg.
 func (fs *funcState) ifStmt(s *ast.IfStmt, dst int32) {
-	skip := fs.jumpIf(s.Condition, false)
-	fs.block(s.Then, dst)
+	var skip []int
+
+	fs.condScope(s.Condition, func() {
+		skip = fs.jumpIf(s.Condition, false)
+		fs.block(s.Then, dst)
+	})
 
 	if s.El == nil && dst == noReg {
 		fs.patch(skip)
@@ -459,6 +404,10 @@ func (fs *funcState) block(b *ast.BlockStmt, dst int32) {
 
 // whileStmt tests at the bottom, so an iteration runs one jump.
 func (fs *funcState) whileStmt(s *ast.WhileStmt) {
+	fs.condScope(s.Condition, func() { fs.while(s) })
+}
+
+func (fs *funcState) while(s *ast.WhileStmt) {
 	enter := fs.emit(ins{op: opJmp}, nil)
 	body := fs.here()
 

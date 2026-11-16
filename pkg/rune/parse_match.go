@@ -3,8 +3,6 @@ package rune
 import (
 	"rune/pkg/ast"
 	"rune/pkg/errors"
-	"rune/pkg/helpers"
-	"rune/pkg/value"
 )
 
 // matchExpr parses the rest of match subject { arms } after "match". The
@@ -50,7 +48,17 @@ func (s *Parser) matchExpr() (*ast.MatchExpr, error) {
 		return nil, err
 	}
 
-	return &ast.MatchExpr{Keyword: keyword, Subject: subject, Arms: arms}, nil
+	m := &ast.MatchExpr{Keyword: keyword, Subject: subject, Arms: arms}
+
+	if is, ok := subject.(*ast.IsExpr); ok && !is.Negate {
+		if t, ok := is.Pattern.(*ast.TypeTestPattern); ok {
+			if v, ok := t.Type.(*ast.VarExpr); ok {
+				m.Subject, m.Enum = is.Value, v
+			}
+		}
+	}
+
+	return m, nil
 }
 
 func (s *Parser) matchArm() (ast.MatchArm, error) {
@@ -86,237 +94,4 @@ func (s *Parser) armBody() (*ast.BlockStmt, error) {
 	e, err := s.expression()
 
 	return &ast.BlockStmt{Stmts: []ast.Stmt{ast.NewExprStmt(e)}, Valued: true}, err
-}
-
-// matchPattern parses a pattern: alternatives separated by "|".
-func (s *Parser) matchPattern() (ast.Pattern, error) {
-	p, err := s.patternAlt()
-	if err != nil || !s.check(ast.PIPE) {
-		return p, err
-	}
-
-	alts := []ast.Pattern{p}
-
-	for s.match(ast.PIPE) {
-		alt, err := s.patternAlt()
-		if err != nil {
-			return nil, err
-		}
-
-		alts = append(alts, alt)
-	}
-
-	return &ast.OrPattern{Alts: alts}, nil
-}
-
-// patternAlt parses a pattern, or a range whose bounds are patterns: a
-// number or the name of a constant, which the resolver checks.
-func (s *Parser) patternAlt() (ast.Pattern, error) {
-	var lo ast.Pattern
-
-	if !s.check(ast.DOT_DOT) && !s.check(ast.DOT_DOT_EQUAL) {
-		var err error
-		if lo, err = s.patternAtom(); err != nil {
-			return nil, err
-		}
-	}
-
-	if !s.match(ast.DOT_DOT, ast.DOT_DOT_EQUAL) {
-		return lo, nil
-	}
-
-	pat := &ast.RangePattern{Op: s.previous(), Lo: lo, Inclusive: s.previous().TokenType == ast.DOT_DOT_EQUAL}
-
-	if s.check(ast.NUMBER) || s.check(ast.MINUS) || s.check(ast.IDENTIFIER) {
-		var err error
-		if pat.Hi, err = s.patternAtom(); err != nil {
-			return nil, err
-		}
-	}
-
-	switch {
-	case pat.Hi == nil && pat.Inclusive:
-		return nil, errors.NewSyntaxError(s.peek(), "Expect upper bound after '..='.")
-	case pat.Hi == nil && lo == nil:
-		return nil, errors.NewSyntaxError(s.peek(), "Expect a bound of the range pattern.")
-	}
-
-	return pat, nil
-}
-
-func (s *Parser) patternAtom() (ast.Pattern, error) {
-	switch {
-	case s.match(ast.NUMBER):
-		return s.numberPattern(s.previous(), false)
-	case s.match(ast.MINUS):
-		minus := s.previous()
-		if _, err := s.consume(ast.NUMBER, "Expect number after '-'."); err != nil {
-			return nil, err
-		}
-
-		p, err := s.numberPattern(s.previous(), true)
-		if p != nil {
-			p.(*ast.LiteralPattern).Token = minus
-		}
-
-		return p, err
-	case s.match(ast.STRING):
-		return &ast.LiteralPattern{Token: s.previous(), Value: value.NewString(s.previous().Literal)}, nil
-	case s.match(ast.BYTES):
-		return &ast.LiteralPattern{Token: s.previous(), Value: value.NewBytes([]byte(s.previous().Literal))}, nil
-	case s.match(ast.TRUE, ast.FALSE):
-		return &ast.LiteralPattern{Token: s.previous(), Value: value.NewBool(s.previous().TokenType == ast.TRUE)}, nil
-	case s.match(ast.NIL):
-		return &ast.LiteralPattern{Token: s.previous(), Value: value.NilValue}, nil
-	case s.match(ast.LEFT_BRACE):
-		brace := s.previous()
-
-		fields, err := s.fieldPatterns(true)
-		if err == nil && len(fields) == 0 {
-			s.errors = append(s.errors, errors.NewSyntaxError(brace, "Expect property name in pattern."))
-		}
-
-		return &ast.ObjectPattern{Brace: brace, Fields: fields}, err
-	case s.match(ast.LEFT_BRACKET):
-		return s.arrayMatchPattern()
-	case s.check(ast.MUT):
-		b, err := s.binding("Expect variable name.")
-		if err != nil {
-			return nil, err
-		}
-
-		return s.typePattern(&ast.BindPattern{Binding: b})
-	case s.match(ast.IDENTIFIER):
-		name := s.previous()
-
-		if name.Lexeme == "_" {
-			return s.typePattern(&ast.WildcardPattern{Token: name})
-		}
-
-		t, err := s.qualifiedName(name)
-		switch {
-		case err != nil:
-			return nil, err
-		case s.match(ast.LEFT_BRACE):
-			pat := &ast.StructPattern{Type: t}
-			pat.Fields, err = s.fieldPatterns(false)
-
-			return pat, err
-		case t.Case != nil:
-			return &ast.VariantPattern{Module: t.Module, Enum: t.Name, Variant: *t.Case}, nil
-		case t.Module != nil:
-			return &ast.VariantPattern{Enum: *t.Module, Variant: t.Name}, nil
-		}
-
-		return s.typePattern(&ast.BindPattern{Binding: ast.Binding{Name: name}})
-	}
-
-	return nil, errors.NewSyntaxError(s.peek(), "Expect pattern.")
-}
-
-// arrayMatchPattern parses [p, q, ...rest] after the "[".
-func (s *Parser) arrayMatchPattern() (ast.Pattern, error) {
-	pat := &ast.ArrayPattern{Bracket: s.previous()}
-
-	for !s.check(ast.RIGHT_BRACKET) && !s.isAtEnd() {
-		if s.match(ast.DOT_DOT_DOT) {
-			b, err := s.binding("Expect variable name.")
-			if err != nil {
-				return nil, err
-			}
-
-			pat.Open = true
-			if !b.Discards() {
-				pat.Rest = &ast.BindPattern{Binding: b}
-			}
-
-			if !s.check(ast.RIGHT_BRACKET) {
-				return nil, errors.NewSyntaxError(s.peek(), "Rest element must be last.")
-			}
-
-			break
-		}
-
-		p, err := s.matchPattern()
-		if err != nil {
-			return nil, err
-		}
-
-		pat.Elems = append(pat.Elems, p)
-
-		if !s.match(ast.COMMA) {
-			break
-		}
-	}
-
-	_, err := s.consume(ast.RIGHT_BRACKET, "Expect ']' after pattern.")
-
-	return pat, err
-}
-
-// typePattern parses an optional 'is T | U' after the pattern p, a name or _.
-func (s *Parser) typePattern(p ast.Pattern) (ast.Pattern, error) {
-	if !s.match(ast.IS) {
-		return p, nil
-	}
-
-	types, err := s.typeList()
-
-	return &ast.TypePattern{Inner: p, Types: types}, err
-}
-
-func (s *Parser) numberPattern(tok ast.Token, negate bool) (ast.Pattern, error) {
-	n, _ := helpers.ParseLiteral(tok.Lexeme)
-
-	if negate && n.IsInt() {
-		n = value.NewInt(-n.Int())
-	} else if negate {
-		n = value.NewNumber(-n.Float())
-	}
-
-	return &ast.LiteralPattern{Token: tok, Value: n}, nil
-}
-
-// fieldPatterns parses key: pattern, ... up to "}"; the "{" has already
-// been consumed. A bare key, or mut key, binds the value to its name;
-// string keys are for objects only.
-func (s *Parser) fieldPatterns(object bool) ([]ast.FieldPattern, error) {
-	var fields []ast.FieldPattern
-
-	err := s.braceList("Duplicate property name.", "Expect '}' after pattern.", func() (string, ast.Token, error) {
-		if s.check(ast.MUT) {
-			b, err := s.binding("Expect property name.")
-			fields = append(fields, ast.FieldPattern{Key: b.Name, Pattern: &ast.BindPattern{Binding: b}})
-
-			return b.Name.Lexeme, b.Name, err
-		}
-
-		if !s.match(ast.IDENTIFIER) && !(object && s.match(ast.STRING)) {
-			return "", s.peek(), errors.NewSyntaxError(s.peek(), "Expect property name.")
-		}
-
-		key := s.previous()
-		quoted := key.TokenType == ast.STRING
-
-		if quoted {
-			key.Lexeme = key.Literal
-		}
-
-		if !s.match(ast.COLON) {
-			if quoted {
-				return "", key, errors.NewSyntaxError(s.peek(), "Expect ':' after string key.")
-			}
-
-			fields = append(fields, ast.FieldPattern{Key: key, Pattern: &ast.BindPattern{Binding: ast.Binding{Name: key}}, Shorthand: true})
-
-			return key.Lexeme, key, nil
-		}
-
-		p, err := s.matchPattern()
-		fields = append(fields, ast.FieldPattern{Key: key, Pattern: p})
-
-		return key.Lexeme, key, err
-	})
-
-	return fields, err
 }

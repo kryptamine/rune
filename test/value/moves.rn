@@ -74,7 +74,7 @@ print(caught()); // expect: [1]
 // A defer reads it on the way out.
 fun deferred() {
     let mut x = [1];
-    defer { print(x); }
+    defer print(x);
     let mut y = x;
     y.push(2);
     return y;

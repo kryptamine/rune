@@ -22,9 +22,7 @@ fun files(dir) { fs.list(dir).map(f => "{f.name} {kb(f.size)}").join(", ") }
 fun demo() {
     let dir = fs.tempDir();
 
-    defer {
-        fs.removeAll(dir);
-    }
+    defer fs.removeAll(dir);
 
     let opts = { maxSegment: 32 << 10 };
 
@@ -105,9 +103,7 @@ fun demo() {
 fun bench(n) {
     let dir = fs.tempDir();
 
-    defer {
-        fs.removeAll(dir);
-    }
+    defer fs.removeAll(dir);
 
     let mut db = store.Store.open(dir);
     let keys = (0..n).map(i => "key:{i}");
@@ -171,9 +167,7 @@ struct UsageError { message }
 fun cli(dir, cmd, rest) {
     let mut db = store.Store.open(dir);
 
-    defer {
-        db.close();
-    }
+    defer db.close();
 
     return match [cmd, ...rest] {
         ["put", key, value] => db.put(key, try json.parse(value) catch _ => value),

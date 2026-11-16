@@ -1,6 +1,6 @@
 TypeError: Right operand of 'is' must be a type, got Point.
- --> is_struct_value.rn:4:9
+ --> is_struct_value.rn:4:12
   |
 3 | let p = Point { x: 1 };
 4 | print(p is p); // expect runtime error: [line: 4] TypeError: Right operand of 'is' must be a type, got Point.
-  |         ^^
+  |            ^

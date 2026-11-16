@@ -57,7 +57,7 @@ print(shorthand("ann")); // expect: ann
 
 fun withDefer() {
     let mut xs = [1];
-    defer { print("deferred", xs); }
+    defer print("deferred", xs);
     xs.push(2);
     xs
 }

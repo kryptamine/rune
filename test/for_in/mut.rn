@@ -58,7 +58,7 @@ print(ys); // expect: [5, 2]
 
 fun failing() {
     let mut zs = [1, 2];
-    defer { print(zs); } // expect: [9, 2]
+    defer print(zs); // expect: [9, 2]
     for mut z in zs {
         z = 9;
         throw Error("stop");

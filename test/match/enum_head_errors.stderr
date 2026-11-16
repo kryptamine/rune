@@ -1,0 +1,20 @@
+error: Status has no variant 'Pendin'.
+ --> enum_head_errors.rn:5:25
+  |
+4 | fun f(s) {
+5 |     match s is Status { Pendin => 1, _ => 2 } // Error at 'Pendin': Status has no variant 'Pendin'.
+  |                         ^^^^^^
+
+error: Match does not cover Status.Paid; add arms or '_ =>'.
+ --> enum_head_errors.rn:9:5
+  |
+8 | fun g(s) {
+9 |     match s is Status { Pending => 1 } // Error at 'match': Match does not cover Status.Paid; add arms or '_ =>'.
+  |     ^^^^^
+
+error: 'Point' is not an enum; match x is Enum { ... } names its variants bare.
+  --> enum_head_errors.rn:13:16
+   |
+12 | fun h(p) {
+13 |     match p is Point { _ => 1 } // Error at 'Point': 'Point' is not an enum; match x is Enum { ... } names its variants bare.
+   |                ^^^^^

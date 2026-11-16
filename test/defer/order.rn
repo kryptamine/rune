@@ -1,6 +1,6 @@
 fun run() {
-  defer { print("first registered"); }
-  defer { print("second registered"); }
+  defer print("first registered");
+  defer print("second registered");
   print("body");
 }
 run();
@@ -9,7 +9,7 @@ run();
 // expect: first registered
 
 {
-  defer { print("inner block"); }
+  defer print("inner block");
   print("in block");
 }
 print("after block");

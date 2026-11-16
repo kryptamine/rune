@@ -1,0 +1,19 @@
+fun describe(v) {
+    match v {
+        { kind: "user", name, role = "member" } => "{name} ({role})",
+        [cmd, arg = "-"] => "{cmd} {arg}",
+        { id, ...rest } => "#{id} {rest}",
+        _ => "other",
+    }
+}
+
+print(describe({ kind: "user", name: "ann" })); // expect: ann (member)
+print(describe({ kind: "user", name: "bob", role: "admin" })); // expect: bob (admin)
+print(describe(["ls"])); // expect: ls -
+print(describe(["rm", "x"])); // expect: rm x
+print(describe(["rm", "x", "y"])); // expect: other
+print(describe({ id: 7, a: 1, b: 2 })); // expect: #7 {a: 1, b: 2}
+print(describe(5)); // expect: other
+
+print(match 5 { { a = 1 } => "object", _ => "not" }); // expect: not
+print(match [[1, 2], 3] { [[a, b], c] => a + b + c, _ => 0 }); // expect: 6

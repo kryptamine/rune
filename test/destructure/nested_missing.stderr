@@ -1,0 +1,5 @@
+KeyError: Undefined property 'b'.
+ --> nested_missing.rn:1:12
+  |
+1 | let { a: { b } } = { a: {} }; // expect runtime error: [line: 1] KeyError: Undefined property 'b'.
+  |            ^

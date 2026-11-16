@@ -54,7 +54,7 @@ try { fail(done); } catch e { print(done); } // expect: ["replaced"]
 
 fun failNested() {
     let mut xs = [0];
-    defer { print(xs); } // expect: ["replaced"]
+    defer print(xs); // expect: ["replaced"]
     fail(xs);
 }
 try { failNested(); } catch e {}

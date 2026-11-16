@@ -72,11 +72,11 @@ leave the function or the loop: `"quit" => return "bye",`.
 | `LIMIT`, `m.LIMIT` | a value equal to the [constant](variables.md#constants) |
 | `a..b`, `a..=b`, `a..`, `..b`, `..=b` | a number in the range |
 | `p \| q` | a value either pattern matches |
-| `_ is T`, `name is T \| U` | a value of the given [type](values.md#type-tests) |
+| `_ is T`, `name is T \| U`, `name is P` | a value of the given [type](values.md#type-tests-and-patterns), or one `P` matches, bound to `name` |
 | `Point { x, y: 0 }` | a `Point` whose fields match |
 | `Color.White`, `Expr.Num { value }` | that [enum](../data/enums.md) variant |
-| `{ key, "other key": p }` | an object or struct that has the keys |
-| `[p, q]`, `[p, ...rest]` | an array of that many elements, or at least that many |
+| `{ key, "other key": p, key = d, ...rest }` | an object or struct that has the keys |
+| `[p, q]`, `[p, q = d]`, `[p, ...rest]` | an array of that many elements, or at least that many |
 
 Any pattern may be followed by a guard, `pattern if condition`, which is
 checked after the pattern matches.
@@ -196,7 +196,7 @@ still needs `_ =>` for values that are not numbers.
 `name is T` matches a value of type `T` and binds it; `_ is T` only
 tests. `T` is a struct, an enum or a built-in type such as `string`,
 `number` or `nil`, and `T | U` accepts either. It is the same test as
-[`v is T`](values.md#type-tests).
+[`v is T`](values.md#type-tests-and-patterns).
 
 ```rune
 fun describe(v) {
@@ -215,6 +215,28 @@ print(describe("hello"));    // text of 5 characters
 print(describe([1, 2]));     // a collection
 print(describe({ id: 1 }));  // a collection
 print(describe(true));       // something else
+```
+
+After `is` comes any pattern, in which a bare name is a type. So `name is P`
+binds the whole value once `P` matches it, which a guard would otherwise
+have to check:
+
+```rune
+struct Point { x, y = 0 }
+
+fun classify(v) {
+    match v {
+        n is 1..10 => "small {n}",
+        p is Point { x: 0 } => "on the axis: {p}",
+        s is "yes" | "no" => "answer {s}",
+        _ => "other",
+    }
+}
+
+print(classify(3));                   // small 3
+print(classify(Point { x: 0, y: 2 })); // on the axis: Point {x: 0, y: 2}
+print(classify("no"));                // answer no
+print(classify(42));                  // other
 ```
 
 ## Structs
@@ -319,6 +341,37 @@ for pair in results.entries() {
 // passed: 12
 // failed: none
 // skipped: 2
+```
+
+## Defaults and Rest
+
+A property or element may have a default, `name = value`, used when it is
+missing, so one arm covers data with optional parts. `...rest` in an
+object pattern binds an object of the other keys. These work exactly as
+in [destructuring](destructuring.md#defaults):
+
+```rune
+fun command(args) {
+    match args {
+        [cmd, target = "."] => "{cmd} {target}",
+        _ => "usage: cmd [target]",
+    }
+}
+
+print(command(["ls"]));            // ls .
+print(command(["ls", "/tmp"]));    // ls /tmp
+print(command(["ls", "a", "b"]));  // usage: cmd [target]
+
+fun user(v) {
+    match v {
+        { name, role = "member", ...extra } => "{name} ({role}) {extra}",
+        _ => "not a user",
+    }
+}
+
+print(user({ name: "ann" }));                     // ann (member) {}
+print(user({ name: "bob", role: "admin", id: 7 })); // bob (admin) {id: 7}
+print(user(5));                                   // not a user
 ```
 
 ## Expression or Statement

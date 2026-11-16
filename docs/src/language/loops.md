@@ -225,7 +225,9 @@ while stack {
 ```
 
 The condition is tested for [truthiness](values.md#truthiness), so
-`while stack` runs until the array is empty. Here is a loop that counts
+`while stack` runs until the array is empty. With a pattern,
+`while queue.pop() is { id } { ... }` runs as long as the value matches;
+see [Binding in Conditions](values.md#binding-in-conditions). Here is a loop that counts
 the steps of the Collatz sequence from 27 to 1:
 
 ```rune

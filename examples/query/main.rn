@@ -49,9 +49,7 @@ fun tryRun(src, mut catalog, format = "table") {
 fun showDemo() {
     let dir = fs.tempDir();
 
-    defer {
-        fs.removeAll(dir);
-    }
+    defer fs.removeAll(dir);
 
     let n = int(os.env("ORDERS") ?? "100000");
 
