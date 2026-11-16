@@ -1,4 +1,27 @@
-// [line: 4] Error at '}': Expect ';' after expression.
+// A block without a value drops its last expression; the ';' after it is optional.
 for i in 0..2 {
-    i
+    print(i)
 }
+// expect: 0
+// expect: 1
+
+let mut n = 0;
+while n < 1 {
+    n += 1
+}
+print(n); // expect: 1
+
+{
+    print("bare")
+}
+// expect: bare
+
+fun f() {
+    defer {
+        print("deferred");
+        print("twice")
+    }
+}
+f();
+// expect: deferred
+// expect: twice

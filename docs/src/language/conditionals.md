@@ -133,16 +133,16 @@ let response = if ok { ({ code: 200 }) } else { ({ code: 500 }) };
 print(response);    // {code: 200}
 ```
 
-The bodies of `while`, `for` and `defer` give no value, so every statement
-in them ends with `;`. The exception is `return`, `break` and `continue`
-right before a `}`: they leave the block, so they need no `;` anywhere:
+The bodies of `while`, `for` and `defer` give no value: their last
+expression is dropped, so the `;` after it is optional. `return`, `break`
+and `continue` right before a `}` need no `;` in any block:
 
 ```rune
 let mut paid = [];
 for amount in [20, -5, 0, 40, 999] {
     if amount <= 0 { continue }
     if amount > 500 { break }
-    paid.push(amount);
+    paid.push(amount)
 }
 print(paid);    // [20, 40]
 ```
