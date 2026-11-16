@@ -3,15 +3,15 @@
 ## Installation
 
 Download the archive for your platform from the
-[releases page](https://github.com/kryptamine/rune/releases/latest). Builds
-exist for Linux, macOS and Windows, on amd64 and arm64. Each archive holds a
-single `rune` binary; put it somewhere on your `PATH`:
+[releases page](https://github.com/kryptamine/rune/releases/latest). There
+are builds for Linux, macOS and Windows, on amd64 and arm64. Each archive
+holds a single `rune` binary; put it somewhere on your `PATH`:
 
 ```sh
 # macOS on Apple silicon; swap the version and platform for yours
-curl -LO https://github.com/kryptamine/rune/releases/download/v0.1.0/rune-0.1.0-darwin-arm64.tar.gz
-tar -xzf rune-0.1.0-darwin-arm64.tar.gz
-sudo mv rune-0.1.0-darwin-arm64/rune /usr/local/bin/
+curl -LO https://github.com/kryptamine/rune/releases/download/v0.3.0/rune-0.3.0-darwin-arm64.tar.gz
+tar -xzf rune-0.3.0-darwin-arm64.tar.gz
+sudo mv rune-0.3.0-darwin-arm64/rune /usr/local/bin/
 rune version
 ```
 
@@ -19,13 +19,14 @@ rune version
 
 ### From source
 
-Building needs **Go** 1.27+. Clone the repository and run:
+Building needs Go 1.27 or newer. Clone the repository and run:
 
 ```sh
+git clone https://github.com/kryptamine/rune && cd rune
 make build
 ```
 
-This produces the `rune` binary in the project directory.
+This puts the `rune` binary in the project directory.
 
 ## Your First Program
 
@@ -43,25 +44,60 @@ $ rune run hello.rn
 hello, world!
 ```
 
-Arguments after the file go to the program's [`main`](programs/main.md):
+`{name}` inside the string is [interpolation](language/strings.md#joining-and-interpolation):
+the value of `name` is inserted in its place.
+
+## Command-Line Arguments
+
+Words after the file name go to the program's [`main`](programs/main.md)
+function as an array of strings. An empty array is falsy, so
+`if args { ... }` asks "were any arguments given?":
 
 ```rune
+// greet.rn
 fun main(args) {
-    let name = if args.len() > 0 { args[0] } else { "world" };
+    let name = if args { args[0] } else { "world" };
     print("hello, {name}!");
 }
 ```
 
 ```sh
+$ rune run greet.rn
+hello, world!
 $ rune run greet.rn ann
 hello, ann!
 ```
 
-`make run` builds and runs `program.rn`, a scratch file ignored by git.
+## Commands
 
-## Interpreter Commands
+| Command | What it does |
+| --- | --- |
+| `rune run <file> [args...]` | Runs the program. |
+| `rune fmt <file>` | Prints the file formatted. |
+| `rune fmt -w <path>...` | Formats files and directories in place. |
+| `rune fmt --check <path>...` | Lists the files that are not formatted and exits with `1` if there are any. |
+| `rune disasm <file>` | Prints the bytecode the file compiles to. |
+| `rune version` | Prints the interpreter's version. |
 
-- `run` — runs the program in the file.
-- `disasm` — prints the bytecode the file compiles to.
-- `fmt` — prints the file formatted; `fmt -w <path>...` rewrites files and directories in place, `fmt --check <path>...` lists the unformatted ones and exits 1.
-- `version` — prints the interpreter's version.
+`rune fmt` gives every program one layout: 4-space indents, spaces around
+operators, one statement per line.
+
+```sh
+$ cat messy.rn
+let total=19.99*3;
+print( total );
+$ rune fmt messy.rn
+let total = 19.99 * 3;
+print(total);
+```
+
+When working on Rune itself, `make run` builds the interpreter and runs
+`program.rn`, a scratch file that git ignores.
+
+## Next Steps
+
+- [Errors and Exit Codes](errors-and-exit-codes.md) shows what a failing
+  program prints.
+- The Language chapters, starting with [Values](language/values.md), cover
+  the language from the ground up.
+- [Examples](programs/examples.md) lists complete programs to read.

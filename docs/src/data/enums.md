@@ -1,160 +1,241 @@
 # Enums
 
-An enum is a type with a fixed set of named values, its variants, which
-may [have fields](#variants-with-fields). A variant is not a number or a string: it equals only itself, prints as
-`Type.Variant` and is tested with `is`. Enums are declared at the top
-level only and can be used before their declaration.
+An enum is a type with a fixed set of named values, called variants.
+Use one when a value is one of a few known choices: an order status, a
+direction, a log level. Unlike strings, a typo is a compile error, and a
+`match` can check that every case is handled.
 
 ```rune
-enum Color { White, Black }
+enum Status { Pending, Paid, Shipped, Cancelled }
 
-let c = Color.White;
-print(c);                // Color.White
-print(c is Color);       // true
-print(c == Color.Black); // false
-print(Color is enum);    // true
+let s = Status.Paid;
+print(s);                   // Status.Paid
+print(s == Status.Paid);    // true
+print(s == Status.Shipped); // false
+print(s is Status);         // true
 ```
 
-A name that is not a variant is a compile error:
+A variant is not a number or a string: it equals only itself and prints
+as `Type.Variant`. Enums are declared at the top level only and can be
+used before their declaration.
+
+A name that is not a variant is caught before the program runs:
 
 ```rune
-enum Color { White, Black }
-print(Color.Red); // Error at 'Red': Color has no variant 'Red'.
+enum Status { Pending, Paid, Shipped, Cancelled }
+print(Status.Payed); // Error at 'Payed': Status has no variant 'Payed'.
 ```
 
-## Ordinals and conversion
+Variants can also [carry fields](#variants-with-fields), which makes
+enums a natural fit for values that come in several shapes.
 
-Variants are numbered from 0 in declaration order. `int(v)` is a variant's
-number and `v.name` its name; calling the enum converts back, from the
-number or from the name. `Color.values()` lists the variants in order.
+## Matching
+
+A variant is a pattern, so `match` turns a variant into whatever it
+stands for:
+
+```rune
+enum Status { Pending, Paid, Shipped, Cancelled }
+
+fun label(s) {
+    match s {
+        Status.Pending => "waiting for payment",
+        Status.Paid | Status.Shipped => "on its way",
+        Status.Cancelled => "cancelled",
+    }
+}
+
+print(label(Status.Pending)); // waiting for payment
+print(label(Status.Shipped)); // on its way
+```
+
+This `match` has no `_` arm, and it does not need one: it lists every
+variant. If a variant is later added to `Status`, the compiler points at
+each `match` that forgot it; see [Matching every variant](#matching-every-variant).
+
+## Numbers and Names
+
+Variants are numbered from 0 in declaration order. `int(v)` gives a
+variant's number and `v.name` its name. Calling the enum converts back,
+from a number or from a name, and `values()` lists all variants in order.
 
 ```rune
 enum Dir { North, East, South, West }
 
-print(int(Dir.South));         // 2
-print(Dir.South.name);         // South
-print(Dir(3));                 // Dir.West
-print(Dir("East"));            // Dir.East
-print(Dir.values());           // [Dir.North, Dir.East, Dir.South, Dir.West]
-print(Dir((int(Dir.West) + 1) % 4)); // Dir.North
+print(int(Dir.South));  // 2
+print(Dir.South.name);  // South
+print(Dir(3));          // Dir.West
+print(Dir("East"));     // Dir.East
+print(Dir.values());    // [Dir.North, Dir.East, Dir.South, Dir.West]
 ```
+
+That is enough to turn right by stepping to the next variant and
+wrapping around:
+
+```rune
+enum Dir { North, East, South, West }
+
+fun turnRight(d) { Dir((int(d) + 1) % Dir.values().len()) }
+
+print(turnRight(Dir.North)); // Dir.East
+print(turnRight(Dir.West));  // Dir.North
+```
+
+A number or name with no variant is a `ValueError`:
 
 ```rune
 enum Dir { North, East, South, West }
 Dir(4); // ValueError: Dir has no variant 4.
 ```
 
-`json.stringify` writes a variant as its name, so `Dir(name)` reads it
-back. Variants are hashable, as map keys and set elements.
+`json.stringify` writes a variant as its name, so calling the enum on
+the parsed name reads it back. Variants can also be map keys and set
+elements.
 
 ```rune
-enum Dir { North, East }
+enum Dir { North, East, South, West }
 
 let saved = json.stringify({ facing: Dir.East });
-print(saved);                             // {"facing":"East"}
-print(Dir(json.parse(saved).facing));     // Dir.East
+print(saved);                         // {"facing":"East"}
+print(Dir(json.parse(saved).facing)); // Dir.East
+
+let visits = map([[Dir.North, 2], [Dir.West, 1]]);
+print(visits[Dir.North]); // 2
 ```
 
-## Matching
+## Variants with Fields
 
-A variant is a pattern:
+A variant may have fields, declared like a struct's. Each such variant
+is a struct type of its own: build it with `Enum.Variant { ... }`, read
+its fields with `.`, and test it with `is`. `v is Enum` holds for every
+variant.
+
+This fits data that comes in several shapes, such as payment methods:
 
 ```rune
-enum Piece { Pawn, Knight, Bishop, Rook, Queen, King }
-
-fun worth(p) {
-    return match p {
-        Piece.Pawn => 1,
-        Piece.Knight | Piece.Bishop => 3,
-        Piece.Rook => 5,
-        Piece.Queen => 9,
-        Piece.King => 0,
-    };
+enum Payment {
+    Card { last4, brand = "visa" },
+    Transfer { iban },
+    Cash,
 }
 
-print(worth(Piece.Bishop)); // 3
+let p = Payment.Card { last4: "4242" };
+print(p);                    // Payment.Card {last4: "4242", brand: "visa"}
+print(p.last4);              // 4242
+print(p is Payment.Card);    // true
+print(p is Payment);         // true
+print(Payment.Cash is Payment); // true
 ```
 
-## Variants with fields
+Match on the variant and take its fields apart in one step:
 
-A variant may have fields, declared as a struct's are. `Enum.Variant { ... }`
-makes one, and it is a struct of that type: its fields are read with `.`,
-matched with `Enum.Variant { ... }` and tested with `is`; `v is Enum` holds
-for every variant.
+```rune
+enum Payment {
+    Card { last4, brand = "visa" },
+    Transfer { iban },
+    Cash,
+}
+
+fun describe(p) {
+    match p {
+        Payment.Card { brand, last4 } => "{brand} card ending in {last4}",
+        Payment.Transfer { iban } => "bank transfer from {iban[..4]}…",
+        Payment.Cash => "cash on delivery",
+    }
+}
+
+print(describe(Payment.Card { last4: "4242", brand: "amex" })); // amex card ending in 4242
+print(describe(Payment.Transfer { iban: "DE89370400440532013000" })); // bank transfer from DE89…
+print(describe(Payment.Cash));                                  // cash on delivery
+```
+
+Variants that refer to the enum itself describe trees. Here is a small
+expression evaluator:
 
 ```rune
 enum Expr {
     Num { value },
     Add { left, right },
+    Mul { left, right },
     Neg { expr },
-    Zero,
 }
 
-let e = Expr.Add { left: Expr.Num { value: 1 }, right: Expr.Neg { expr: Expr.Num { value: 3 } } };
-print(e.left.value);    // 1
-print(e is Expr.Add);   // true
-print(e is Expr);       // true
-print(Expr.Num { value: 5 }); // Expr.Num {value: 5}
+fun eval(e) {
+    match e {
+        Expr.Num { value } => value,
+        Expr.Add { left, right } => eval(left) + eval(right),
+        Expr.Mul { left, right } => eval(left) * eval(right),
+        Expr.Neg { expr } => -eval(expr),
+    }
+}
+
+// -(2 + 3) * 4
+let e = Expr.Mul {
+    left: Expr.Neg { expr: Expr.Add { left: Expr.Num { value: 2 }, right: Expr.Num { value: 3 } } },
+    right: Expr.Num { value: 4 },
+};
+print(eval(e)); // -20
 ```
 
-Fields are read-only, defaults and spread work as for structs, and
-`Expr.Num(obj)` converts. An enum with such variants has no ordinals:
-`values()`, `Expr(n)` and `int(v)` are a `TypeError`.
+Fields work as in a [struct](structs.md): they are read-only, defaults
+and spread work, and `Expr.Num(obj)` converts an object. An enum that has
+variants with fields has no numbers, so `values()`, `Expr(n)` and
+`int(v)` are a `TypeError`:
 
 ```rune
 enum Expr { Num { value }, Zero }
-print(Expr.Num); // <struct Expr.Num>
-Expr.values();   // TypeError: Expr has variants with fields; values(), Expr(n) and int() are for enums without.
+Expr.values(); // TypeError: Expr has variants with fields; values(), Expr(n) and int() are for enums without.
 ```
 
-## Matching every variant
+## Matching Every Variant
 
-A `match` that names variants of an enum and has no catch-all arm must
-cover them all: a variant is covered by an arm without a guard whose
-pattern is the variant, `_ is Enum.Variant`, or `Enum.Variant { ... }`
-binding its fields. A missing one is a compile error.
+A `match` that names variants of an enum, and has no arm that matches
+everything, must cover all of them. A variant counts as covered by an
+arm without a guard whose pattern is the variant itself,
+`_ is Enum.Variant`, or `Enum.Variant { ... }`. A missing one is a
+compile error that names it:
 
 ```rune
 enum Shape { Circle { r }, Square { side }, Dot }
 
 fun area(s) {
-    return match s {
-        Shape.Circle { r } => 3 * r * r,
+    match s {
+        Shape.Circle { r } => math.PI * r * r,
         Shape.Square { side } => side * side,
-        Shape.Dot => 0,
-    };
-}
-
-print(area(Shape.Square { side: 2 })); // 4
+    }
+} // Error at 'match': Match does not cover Shape.Dot; add arms or '_ =>'.
 ```
 
-```rune
-enum Shape { Circle { r }, Square { side }, Dot }
-match Shape.Dot { Shape.Dot => print("dot") } // Error at 'match': Match does not cover Shape.Circle, Shape.Square; add arms or '_ =>'.
-```
+This is the main reason to prefer an enum over strings: adding a variant
+shows you every place that has to handle it.
 
 ## Methods
 
-`impl` adds methods, as for a struct; `self` is the variant. Variants
-are not changed in place, so methods cannot take `mut self`, nor share a
-name with a field of a variant.
+`impl` adds methods to an enum, as to a struct; `self` is the variant.
+Variants never change in place, so methods cannot take `mut self`, and
+they cannot share a name with a field of a variant.
 
 ```rune
 enum Side { White, Black }
 
 impl Side {
     fun other(self) {
-        return if self == Side.White { Side.Black } else { Side.White };
+        if self == Side.White { Side.Black } else { Side.White }
     }
+
     fun parse(s) {
-        return if s == "w" { Side.White } else { Side.Black };
+        match s {
+            "w" => Side.White,
+            "b" => Side.Black,
+            _ => throw ValueError { message: "unknown side '{s}'" },
+        }
     }
 }
 
-print(Side.White.other());              // Side.Black
-print(Side.parse("b"));                 // Side.Black
-print(Side.values().map(Side.other));   // [Side.Black, Side.White]
+print(Side.White.other());            // Side.Black
+print(Side.parse("b"));               // Side.Black
+print(Side.values().map(Side.other)); // [Side.Black, Side.White]
 ```
 
-An enum is no struct, so `Color { }` is an error. A variant cannot be
-named `values` or `name`, nor can a method taking `self`.
+An enum is not a struct, so `Side {}` is an error. No variant, and no
+method taking `self`, may be named `values` or `name`.

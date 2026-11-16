@@ -1,40 +1,47 @@
 # Variables
 
-`let` declares an immutable variable, `let mut` a mutable one. Assigning to an
-immutable variable (`=`, `+=`, `++`, ...) is a compile-time error. An immutable
-variable must be initialized; `let mut x;` starts as `nil`.
+`let` declares a variable that never changes. `let mut` declares one that
+may. Immutable is the default because most values are set once: when a
+variable is plain `let`, you know it holds the same value everywhere you
+read it.
 
 ```rune
 let name = "ann";
 let mut visits = 0;
+
 visits += 1;
 visits++;
-print("{name}: {visits}");    // ann: 2
-
-let mut lastSeen;
-print(lastSeen);              // nil
+print("{name} visited {visits} times");    // ann visited 2 times
 ```
+
+Changing a `let` variable, with `=`, `+=`, `++` or any other assignment, is
+caught at compile time, before the program runs:
 
 ```rune
 let name = "ann";
 name = "bob";    // Error at 'name': Cannot assign to immutable variable 'name'.
 ```
 
+A `let` variable needs a value right away. A `let mut` variable may be
+declared without one and starts as `nil`:
+
 ```rune
-let limit;       // Error at 'limit': Immutable variable must be initialized.
+let mut lastLogin;
+print(lastLogin);    // nil
+lastLogin = "2026-11-16";
+print(lastLogin);    // 2026-11-16
 ```
 
-## Immutable Arrays and Objects
+```rune
+let limit;    // Error at 'limit': Immutable variable must be initialized.
+```
 
-Through an immutable variable the array, object or struct it holds cannot
-be changed either: index and property assignment (`a[0] = 1`, `o.x += 1`,
-`a[0]++`, also nested like `o.xs[0] = 1`) and calls of the in-place
-methods (`push`, `pop`, `sort`, `reverse`, `set.add`, `delete`, `clear`,
-...) and of `mut self` methods are compile errors. Taking an in-place
-method as a value is a runtime `TypeError`. Methods that return a new value
-(`map`, `filter`, ...) work as usual. As every value is
-[copied](values.md#copies), nothing else can change it either: what a
-`let` holds never changes.
+## Immutable Arrays, Objects and Structs
+
+`let` freezes the whole value, not only the variable. Through a `let`
+variable you cannot change an element, a property or a field, however deep,
+nor call a method that changes the value in place, such as `push`, `pop`,
+`sort` or a `mut self` method:
 
 ```rune
 let config = { db: { hosts: ["db1"] } };
@@ -43,24 +50,55 @@ config.db.hosts[0] = "db2";    // Error at 'config': Cannot mutate immutable var
 
 ```rune
 let scores = [70, 95];
-print([...scores, 80]);         // [70, 95, 80]
-print(scores);                  // [70, 95]
-scores.push(80);                // Error at 'scores': Cannot mutate immutable variable 'scores'.
+scores.push(80);    // Error at 'scores': Cannot mutate immutable variable 'scores'.
 ```
+
+Methods that return a new value, such as `map`, `filter` or a spread, work
+on any variable:
+
+```rune
+let scores = [70, 95];
+let more = [...scores, 80];
+print(more);      // [70, 95, 80]
+print(scores);    // [70, 95]
+```
+
+To change it in place, declare it `let mut`:
 
 ```rune
 let mut scores = [70, 95];
 scores.push(80);
-print(scores);                  // [70, 95, 80]
+print(scores);    // [70, 95, 80]
+```
+
+Since every value is [copied](values.md#copies) where it goes, no other
+variable or function can change a `let` value behind your back either.
+Copying a `let` array into a `let mut` variable gives you a separate array
+you can change freely:
+
+```rune
+let scores = [70, 95];
+let mut draft = scores;
+draft.push(80);
+print(draft);     // [70, 95, 80]
+print(scores);    // [70, 95]
 ```
 
 ## Parameters and Loop Variables
 
-Function parameters, `for`-`in` variables, `catch` variables and functions are
-immutable too. A `mut` parameter or `for`-`in` variable writes its value back
-where it came from: the caller's argument (see
-[Functions](functions.md#mut-parameters)) or the element of the collection
-(see [Loops](loops.md#for-mut)).
+Function parameters, `for` loop variables and `catch` variables are
+immutable too, and so is a function's own name:
+
+```rune
+fun retry(attempts) {
+    attempts -= 1;    // Error at 'attempts': Cannot assign to immutable variable 'attempts'.
+}
+```
+
+Marking a parameter or loop variable `mut` lets you change it, and the
+change is written back where the value came from: to the caller's
+variable for a [`mut` parameter](functions.md#mut-parameters), to the
+element of the collection for [`for mut`](loops.md#for-mut).
 
 ```rune
 fun addTag(mut tags, tag) {
@@ -70,49 +108,41 @@ fun addTag(mut tags, tag) {
 let mut tags = ["new"];
 addTag(tags, "sale");
 print(tags);    // ["new", "sale"]
-
-let mut grid = [[0, 0], [0, 0]];
-for i, mut row in grid { row[i] = 1; }
-print(grid);    // [[1, 0], [0, 1]]
 ```
 
 ```rune
-fun retry(attempts) {
-    attempts -= 1;    // Error at 'attempts': Cannot assign to immutable variable 'attempts'.
+let mut prices = [10, 20, 30];
+for mut p in prices {
+    p = p * 2;
 }
-```
-
-A container is a value too, so `let mut b = a;` gives `b` a copy of its
-own: changing `b` leaves `a` as it was (see [Copies](values.md#copies)).
-
-```rune
-let scores = [70, 95];
-let mut copy = scores;
-copy.push(80);
-print(scores);    // [70, 95]
+print(prices);    // [20, 40, 60]
 ```
 
 ## Constants
 
-`const` names a value known before the program runs: a number, string,
-`true`, `false` or `nil`, written as a literal or computed from other
-constants with operators, an enum variant, `map()` or `set()`, or an array
-or object of such values. A constant costs
-nothing to read: each use is the value itself. Constants are declared at
-the top level only, can be used before their declaration, as a struct
-field's default, and [exported](../programs/modules.md).
+`const` names a value fixed before the program runs. Use it for limits,
+settings and lookup tables, so that a magic number has a name and lives in
+one place:
 
 ```rune
 const KB = 1 << 10;
-const LIMIT = 4 * KB;
+const MAX_UPLOAD = 4 * KB;
 const UNIT = "bytes";
-const SIZES = [KB, LIMIT, [0, -KB]];
-const UNITS = { KB, MB: KB * KB, limits: { body: 8 * KB } };
+const LIMITS = { body: 8 * KB, header: KB };
 
-print("{LIMIT} {UNIT}");    // 4096 bytes
-print(SIZES);               // [1024, 4096, [0, -1024]]
-print(UNITS.limits.body);   // 8192
+print("max upload: {MAX_UPLOAD} {UNIT}");    // max upload: 4096 bytes
+print(LIMITS.body);                          // 8192
 ```
+
+A constant's value must be computable by the compiler. It may be:
+
+- a number, string, `true`, `false` or `nil`;
+- another constant, or operators applied to constants (`4 * KB`);
+- an enum variant;
+- `map()`, `set()`, or an array or object made of such values.
+
+Reading a constant costs nothing at run time: each use is replaced by the
+value itself.
 
 ```rune
 let size = 4;
@@ -124,17 +154,42 @@ const LIMIT = 10;
 LIMIT = 20;    // Error at 'LIMIT': Cannot assign to constant 'LIMIT'.
 ```
 
-A constant never changes: each read is a copy of it. Spreads and computed
-keys are not constant.
+Constants are declared at the top level of a file. They can be used before
+the line that declares them, serve as a struct field's default, and be
+[exported](../programs/modules.md) from a module:
 
-In a [pattern](pattern-matching.md#patterns) a constant's name tests for
-its value; an array or object constant cannot be one.
+```rune
+struct Request { url, retries = MAX_RETRIES }
+
+print(Request { url: "/orders" });    // Request {url: "/orders", retries: 3}
+
+const MAX_RETRIES = 3;
+```
+
+In a [pattern](pattern-matching.md#patterns), a constant's name matches its
+value:
+
+```rune
+const ADMIN = "admin";
+
+fun greet(role) {
+    match role {
+        ADMIN => "welcome back, boss",
+        _ => "hello",
+    }
+}
+
+print(greet("admin"));    // welcome back, boss
+print(greet("guest"));    // hello
+```
+
+An array or object constant cannot be used as a pattern.
 
 ## Scopes
 
-Redeclaring a variable in the same scope is an error, at the top level too.
-A new scope may shadow a name with a different mutability.
-Built-ins are not declarations, so a program may still redefine them.
+A variable lives in the block that declares it. An inner block may declare
+a variable with the same name, which hides the outer one until the block
+ends; it may even differ in mutability:
 
 ```rune
 let total = 10;
@@ -144,29 +199,38 @@ let total = 10;
     print(total);    // 5
 }
 print(total);        // 10
-
-let int = 3;         // shadows the built-in int
-print(int);          // 3
 ```
+
+Declaring the same name twice in one scope is an error:
 
 ```rune
 let total = 10;
 let total = 20;    // Error at 'total': Variable with this name already declared in this scope.
 ```
 
-## Discarding with _
-
-`_` declares nothing: in `let`, a parameter, a `for`-`in` or `catch`
-variable or a pattern it takes a value and drops it, so it may appear any
-number of times. It cannot be read, assigned or exported.
+Built-in functions such as `int` and `print` are not declarations, so a
+program may reuse their names. The built-in is hidden from then on:
 
 ```rune
-fun second(_, b, _) { return b; }
-print(second(1, 2, 3));    // 2
+let int = 3;
+print(int);    // 3
+```
 
-let _ = 1;
-let _ = 2;
-for _, x in ["a"] { print(x); }    // a
+## Discarding with _
+
+`_` is a name that throws its value away. Use it for a value you must accept
+but do not need: a parameter, a `for` index, a part of a pattern. It can
+appear any number of times, and can never be read.
+
+```rune
+fun onEvent(_, payload) { payload.id }
+print(onEvent("click", { id: 7 }));    // 7
+
+for _, name in ["ann", "bob"] {
+    print(name);
+}
+// ann
+// bob
 ```
 
 ```rune

@@ -1,0 +1,25 @@
+fun sign(n) {
+    if n < 0 { return -1 }
+    if n == 0 { return 0 }
+    1
+}
+
+print(sign(-5)); // expect: -1
+print(sign(0)); // expect: 0
+print(sign(9)); // expect: 1
+
+fun half(n) {
+    let h = if n % 2 == 0 { n / 2 } else { return nil };
+    h
+}
+
+print(half(8)); // expect: 4
+print(half(7)); // expect: nil
+
+let mut odd = [];
+for i in 0..6 {
+    if i % 2 == 0 { continue }
+    if i > 4 { break }
+    odd.push(i);
+}
+print(odd); // expect: [1, 3]

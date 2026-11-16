@@ -1,22 +1,26 @@
 # Methods
 
-An `impl` block adds methods to a struct declared in the same file. A
-method taking `self` first is called on an instance, `self` being the
-instance; one without is static and called on the type.
+An `impl` block attaches functions to a [struct](structs.md), so the
+behavior lives next to the data it works on. A method whose first
+parameter is `self` is called on an instance, and `self` is that
+instance. A method without `self` is a static method, called on the
+type itself; it is the usual place for constructors.
 
 ```rune
 struct Money { cents, currency = "USD" }
 
 impl Money {
-  fun of(amount, currency = "USD") {
-    return Money { cents: math.round(amount * 100), currency };
-  }
-  fun plus(self, other) {
-    return Money { ...self, cents: self.cents + other.cents };
-  }
-  fun format(self) {
-    return "%.2f %s".format(self.cents / 100, self.currency);
-  }
+    fun of(amount, currency = "USD") {
+        Money { cents: math.round(amount * 100), currency }
+    }
+
+    fun plus(self, other) {
+        Money { ...self, cents: self.cents + other.cents }
+    }
+
+    fun format(self) {
+        "%.2f %s".format(self.cents / 100, self.currency)
+    }
 }
 
 let price = Money.of(12.5);
@@ -25,37 +29,47 @@ print(total.format()); // 13.49 USD
 print(price.format()); // 12.50 USD
 ```
 
-Impl blocks are top-level only, may come before the struct and there may be
-several; a method cannot share a name with a field or another method of the
-type. A static method is not reachable from an instance:
+`Money.of` is static, `plus` and `format` are instance methods. Note that
+`plus` does not change `price`: it returns a new `Money`.
+
+`impl` blocks are top-level only. They may come before the struct, and a
+type may have several. A method cannot share its name with a field or
+with another method of the type.
+
+A static method is called only on the type, never on an instance:
 
 ```rune
 struct Money { cents }
+
 impl Money {
-  fun zero() { return Money { cents: 0 }; }
+    fun zero() { Money { cents: 0 } }
 }
+
 Money.zero().zero(); // TypeError: 'zero' is a static method of Money; call it as Money.zero().
 ```
 
-## Mutating methods
+## Mutating Methods
 
-`mut self` makes a mutating method, which can set the fields of `self`
-(`self.x += 1`, `self["x"] = 1`), or `self` as a whole, as a mutable
-variable can. Without `mut`, `self` is immutable. These methods are the
-only place a struct's fields are set; see
-[Setting fields](structs.md#setting-fields).
+A method that takes `mut self` may change the instance: set its fields
+(`self.balance += 1`, `self["x"] = 1`), change what they hold
+(`self.items.push(x)`) or replace `self` as a whole. Without `mut`,
+`self` is read-only. Mutating methods are the only place a struct's
+fields can be set; see [Setting Fields](structs.md#setting-fields).
 
 ```rune
 struct Account { owner, balance = 0 }
 
 impl Account {
-  fun deposit(mut self, amount) {
-    self.balance += amount;
-  }
-  fun withdraw(mut self, amount) {
-    if amount > self.balance { throw ValueError { message: "insufficient funds" }; }
-    self.balance -= amount;
-  }
+    fun deposit(mut self, amount) {
+        self.balance += amount;
+    }
+
+    fun withdraw(mut self, amount) {
+        if amount > self.balance {
+            throw ValueError { message: "insufficient funds" };
+        }
+        self.balance -= amount;
+    }
 }
 
 let mut acc = Account { owner: "ann" };
@@ -64,69 +78,62 @@ acc.withdraw(30);
 print(acc.balance); // 70
 ```
 
-`self` is the receiver itself, as a
-[`mut` parameter](../language/functions.md#mut-parameters) is the
-caller's variable: the method changes it in place, and it goes back where
-the receiver was read from when the method returns or throws. A copy
-taken before the call keeps its value.
-
-```rune
-struct Account { owner, balance = 0 }
-impl Account {
-  fun deposit(mut self, amount) { self.balance += amount; }
-  fun withdraw(mut self, amount) {
-    if amount > self.balance { throw ValueError { message: "insufficient funds" }; }
-    self.balance -= amount;
-  }
-}
-
-let mut acc = Account { owner: "ann", balance: 50 };
-let before = acc;
-acc.deposit(10);
-print(acc.balance);    // 60
-print(before.balance); // 50
-
-try {
-    acc.withdraw(1000);
-} catch e {
-    print(e.message);  // insufficient funds
-}
-print(acc.balance);    // 60
-```
-
-A method that throws keeps what it changed before the throw, so check
-first and change after, as `withdraw` does.
-
-The fields' containers are part of the struct too:
+The call changes the variable it was made on, as a
+[`mut` parameter](../language/functions.md#mut-parameters) changes the
+caller's variable. A copy taken before the call keeps the old value:
 
 ```rune
 struct Cart { items = [] }
+
 impl Cart {
-  fun add(mut self, x) { self.items.push(x); }
+    fun add(mut self, item) { self.items.push(item); }
 }
 
 let mut cart = Cart {};
 let before = cart;
 cart.add("tea");
+cart.add("milk");
+print(cart.items);   // ["tea", "milk"]
 print(before.items); // []
-print(cart.items);   // ["tea"]
 ```
 
-The receiver must be a mutable variable, or an element, property or
-field of a value one holds; through an immutable variable, or on a
-struct literal or conversion, the call is a compile error. A struct in a
-field of another struct is such a receiver only in the outer struct's
-own `mut self` methods, as `self.pos.move(1)`; see
-[Setting fields](structs.md#setting-fields). A method called as a value,
-as `Account.deposit`, takes no receiver to write back, so calling it is
-a `TypeError`. On another
-value it is a runtime error, or a compile error when no method of that
-name but a mutating one exists.
+If a mutating method throws, whatever it changed before the throw stays
+changed. So check first and change after, as `withdraw` does; then a
+failed call leaves the instance as it was:
 
 ```rune
 struct Account { owner, balance = 0 }
+
 impl Account {
-  fun deposit(mut self, amount) { self.balance += amount; }
+    fun withdraw(mut self, amount) {
+        if amount > self.balance {
+            throw ValueError { message: "insufficient funds" };
+        }
+        self.balance -= amount;
+    }
+}
+
+let mut acc = Account { owner: "ann", balance: 50 };
+
+try {
+    acc.withdraw(1000);
+} catch e {
+    print(e.message); // insufficient funds
+}
+print(acc.balance);   // 50
+```
+
+### Where a Mutating Method Can Be Called
+
+The receiver must be something that can be changed: a `let mut`
+variable, or an element, property or field reached from one. That
+includes structs stored in arrays and objects:
+
+```rune
+struct Account { owner, balance = 0 }
+
+impl Account {
+    fun deposit(mut self, amount) { self.balance += amount; }
 }
 
 let mut accounts = [Account { owner: "ann" }, Account { owner: "bob" }];
@@ -134,10 +141,14 @@ accounts[1].deposit(25);
 print(accounts[1]); // Account {owner: "bob", balance: 25}
 ```
 
+On an immutable variable, a struct literal or the result of a call, there
+is nothing to write the change back to, so it is a compile error:
+
 ```rune
 struct Account { owner, balance = 0 }
+
 impl Account {
-  fun deposit(mut self, amount) { self.balance += amount; }
+    fun deposit(mut self, amount) { self.balance += amount; }
 }
 
 let acc = Account { owner: "ann" };
@@ -146,24 +157,32 @@ acc.deposit(10); // Error at 'acc': Cannot mutate immutable variable 'acc'.
 
 ```rune
 struct Account { owner, balance = 0 }
+
 impl Account {
-  fun deposit(mut self, amount) { self.balance += amount; }
+    fun deposit(mut self, amount) { self.balance += amount; }
 }
 
 Account { owner: "ann" }.deposit(10); // Error at 'deposit': Cannot call mutating method 'deposit' of Account: the receiver is not a mutable variable, element or property.
 ```
 
-## Methods as values
+A struct held in a field of another struct can be changed only from the
+outer struct's own `mut self` methods, as in `self.pos.move(1)`; see
+[Setting Fields](structs.md#setting-fields).
 
-`acc.format` without a call is the method bound to `acc`, a function taking
-the rest of the arguments; `Money.format` is the plain function, taking the
-instance first, so `prices.map(Money.format)` works. A mutating method
-cannot be taken as a value.
+## Methods as Values
+
+A method can be passed around like any function:
+
+- `price.format`, without a call, is the method bound to `price`: a
+  function that takes the remaining arguments;
+- `Money.format` is the plain function, which takes the instance as its
+  first argument. It fits straight into `map` and friends.
 
 ```rune
 struct Money { cents }
+
 impl Money {
-  fun format(self) { return "$%.2f".format(self.cents / 100); }
+    fun format(self) { "$%.2f".format(self.cents / 100) }
 }
 
 let prices = [Money { cents: 499 }, Money { cents: 1250 }];
@@ -173,50 +192,73 @@ let show = prices[0].format;
 print(show()); // $4.99
 ```
 
-## Functions in fields
+A mutating method has no variable to write back to when used as a value.
+Taking a bound one, `acc.deposit`, is a `TypeError`, and so is calling
+`Account.deposit` through `map` or another callback.
 
-`x.f(args)` always calls a method. A function held in a field is called
-as `(x.f)(args)`, or `x["f"](args)`:
+## Functions in Fields
+
+A struct field can hold a function. Since `x.f(args)` always calls a
+method, call a function stored in a field as `(x.f)(args)` or
+`x["f"](args)`:
 
 ```rune
 struct Button { label, onClick }
+
 let save = Button { label: "save", onClick: () => "saved" };
-print((save.onClick)()); // saved
+print((save.onClick)());  // saved
 print(save["onClick"]()); // saved
-save.onClick();          // TypeError: Button has no method 'onClick'; call the function in its field as (x.onClick)().
 ```
 
-An object holds data only: a function as the value of one of its
-properties is an error. Behavior belongs to a struct and its `impl`; a
-table of functions by name is a [map](map-and-set.md):
+```rune
+struct Button { label, onClick }
+
+let save = Button { label: "save", onClick: () => "saved" };
+save.onClick(); // TypeError: Button has no method 'onClick'; call the function in its field as (x.onClick)().
+```
+
+Plain objects hold data only, so a function cannot be the value of an
+object property. Put behavior in a struct and its `impl`. For a lookup
+table of functions by name, use a [map](map-and-set.md):
+
+```rune
+let greeters = map([
+    ["en", name => "hello, " + name],
+    ["es", name => "hola, " + name],
+]);
+
+print(greeters["es"]("ann")); // hola, ann
+```
 
 ```rune
 let handlers = { greet: name => "hi " + name }; // Error at 'greet': Property 'greet' of an object cannot hold a function.
-
-let greeters = map([["greet", name => "hi " + name]]);
-print(greeters["greet"]("ann")); // hi ann
 ```
 
-Members of a namespace, as in `math.floor(x)`, are no methods and are
-called as they are.
+Functions of a namespace, such as `math.floor(x)` or `fs.join(a, b)`, are
+not methods; they are plain functions grouped under a name.
 
-## Methods on built-in types
+## Methods on Built-in Types
 
-`impl` also takes the built-in types `string`, `number`, `boolean`,
-`array`, `object`, `function`, `map`, `set`, `bytes` and `stream`. Their methods must take `self`, not
-`mut self`, and are seen by the whole program; a method of the program
-wins over a built-in one.
-Built-in structs, such as `IOError`, take no methods.
+`impl` also works on the built-in types `string`, `number`, `boolean`,
+`array`, `object`, `function`, `map`, `set`, `bytes` and `stream`. This
+lets you add the helpers your program keeps needing:
 
 ```rune
 impl string {
-  fun shout(self) { return self.upper() + "!"; }
+    fun shout(self) { self.upper() + "!" }
 }
 
 impl array {
-  fun sum(self) { return self.reduce((a, b) => a + b, 0); }
+    fun sum(self) { self.reduce((a, b) => a + b, 0) }
+    fun average(self) { self.sum() / self.len() }
 }
 
-print("hi".shout());      // HI!
-print([3, 4, 5].sum());   // 12
+print("hi".shout());           // HI!
+print([3, 4, 5].sum());        // 12
+print([3, 4, 5, 8].average()); // 5
 ```
+
+Methods on built-in types take `self`, never `mut self`, and are visible
+to the whole program. If one has the same name as a built-in method, the
+program's own wins. Built-in structs, such as `IOError`, cannot get
+methods.

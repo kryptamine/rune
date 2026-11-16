@@ -1,8 +1,14 @@
 # main
 
-If the entry file declares `fun main`, it runs after the top level. If it
-takes a parameter, that is the program's arguments, an array of strings.
-It returns `nil` to exit with 0, or an exit code from 0 to 255.
+A script can simply run its statements from top to bottom. A command-line
+tool usually wants more: its arguments and an exit code. For that, declare
+`fun main` in the file you pass to `rune run`.
+
+## Arguments and Exit Code
+
+`main` runs after the top level of the file. Its parameter, if it has one,
+is the program's arguments, an array of strings. Its value is the exit
+code: `nil` exits with 0, an integer from 0 to 255 exits with that code.
 
 ```rune
 // greet.rn
@@ -28,8 +34,13 @@ $ echo $?
 2
 ```
 
-Arguments are always strings; convert them yourself. A pattern takes as
-many as it lists, so here a third is an `IndexError`:
+Arguments are always strings; convert them yourself, with `int`,
+`number` and the like.
+
+## Destructuring Arguments
+
+The parameter can be a [pattern](../language/destructuring.md), which
+names the arguments and gives defaults to the optional ones:
 
 ```rune
 // repeat.rn
@@ -41,10 +52,31 @@ fun main([word, times = "1"]) {
 ```sh
 $ rune run repeat.rn ab 3
 ababab
+$ rune run repeat.rn ab
+ab
 ```
 
-The top level runs first, so `main` sees everything declared there.
-Without `main` the top level is the whole program.
+A pattern without a rest takes exactly as many arguments as it lists, so
+`rune run repeat.rn ab 3 x` fails with an `IndexError`. Collect the rest
+to accept flags:
+
+```rune
+// show.rn
+fun main([file, ...flags]) {
+    let verbose = "-v" in flags;
+    print(file, verbose);
+}
+```
+
+```sh
+$ rune run show.rn notes.txt -v
+notes.txt true
+```
+
+## Top Level First
+
+The top level of the file runs before `main`, so `main` sees everything
+declared there. Without `main`, the top level is the whole program.
 
 ```rune
 let greeting = "hello";
@@ -54,8 +86,11 @@ fun main() {
 }
 ```
 
-`main` takes at most one parameter. Returning an integer out of range is a
-`ValueError`, and anything else but `nil` or an integer a `TypeError`:
+## Rules
+
+`main` takes at most one parameter. Its value must be `nil` or an
+integer from 0 to 255. Since a body gives its last expression, a `main`
+ending in `5` without a `;` exits with 5.
 
 ```rune
 fun main() { return 256; } // ValueError: main must return nil or an exit code from 0 to 255, got 256.
@@ -65,4 +100,6 @@ fun main() { return 256; } // ValueError: main must return nil or an exit code f
 fun main() { return "ok"; } // TypeError: main must return nil or an exit code from 0 to 255, got "ok".
 ```
 
-To exit from deeper in the program, use `os.exit(code)`.
+To exit from deeper in the program, call `os.exit(code)`. An uncaught
+error exits with 70; [Errors and Exit Codes](../errors-and-exit-codes.md)
+lists every code.

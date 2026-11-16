@@ -1,26 +1,35 @@
 # io
 
-- `readLine()` — the next line of stdin without `\n` or `\r\n`, or `nil` at the end.
-- `readText()` — the rest of stdin.
-- `write(v, ...)` — writes to stdout as `print` does, without a newline.
-- `eprint(v, ...)`, `ewrite(v, ...)` — the same to stderr, with and without a newline.
+Standard input, output and error.
 
-Reading stdin or writing stderr first flushes what was printed.
+| Function | Does |
+|---|---|
+| `io.readLine()` | the next line of stdin, or `nil` at the end |
+| `io.readText()` | the rest of stdin, as a string |
+| `io.write(v, ...)` | writes to stdout like `print`, without a newline |
+| `io.eprint(v, ...)` | writes to stderr like `print` |
+| `io.ewrite(v, ...)` | writes to stderr like `print`, without a newline |
 
-A filter that sums the numbers it is given, one per line, and warns about
-the lines that are not numbers:
+`readLine()` gives a line without its `\n` or `\r\n`. Reading stdin or
+writing to stderr first flushes what was printed, so prompts and messages
+come out in order.
+
+## Reading lines
+
+A filter that sums the numbers it is given, one per line, and warns on
+stderr about lines that are not numbers. `?? break` ends the loop when
+`readLine` gives `nil`:
 
 ```rune
 // sum.rn
 let mut total = 0;
-let mut line = io.readLine();
-while line != nil {
+while true {
+    let line = io.readLine() ?? break;
     try {
         total += number(line);
     } catch e is ValueError {
         io.eprint("skipping '{line}'");
     }
-    line = io.readLine();
 }
 io.write("total: ");
 print(total);
@@ -32,7 +41,10 @@ skipping 'abc'
 total: 42
 ```
 
-`readText()` takes all of stdin at once, for input that is not line by line:
+## Reading everything
+
+`readText()` takes all of stdin at once, for input that is not line by
+line:
 
 ```rune
 // count.rn
@@ -43,4 +55,20 @@ print("{words.len()} words");
 ```sh
 $ echo "the quick brown fox" | rune run count.rn
 4 words
+```
+
+## Prompts
+
+`io.write` leaves the cursor on the same line, which suits a prompt:
+
+```rune
+// ask.rn
+io.write("name: ");
+let name = io.readLine() ?? "stranger";
+print("hello, {name}!");
+```
+
+```sh
+$ echo ann | rune run ask.rn
+name: hello, ann!
 ```

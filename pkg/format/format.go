@@ -64,9 +64,9 @@ type printer struct {
 	trailing []int
 }
 
-// Source formats src, or returns the scan errors that stop it.
+// Source formats src, or returns the syntax errors that stop it.
 func Source(src []byte) ([]byte, []error) {
-	tokens, errs := rune.Scan(src)
+	tokens, errs := rune.Parse(src)
 	if len(errs) > 0 {
 		return nil, errs
 	}

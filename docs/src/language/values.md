@@ -1,91 +1,156 @@
 # Values
 
-A value is one of `nil`, a boolean, a [number](numbers.md), a
-[string](strings.md), an [array](../data/arrays.md), an object, a function,
-a [`map` or `set`](../data/map-and-set.md), [bytes](../data/bytes.md), a
-[struct](../data/structs.md) or a [stream](../stdlib/streams.md);
-[`is`](#type-tests) tests which.
+Every value in Rune is one of these kinds:
 
-An object holds data: its properties cannot be functions. Behavior goes in
-a struct's [`impl`](../data/methods.md#functions-in-fields).
+| Kind | Examples |
+| --- | --- |
+| `nil` | `nil`, the absence of a value |
+| boolean | `true`, `false` |
+| [number](numbers.md) | `42`, `19.99`, `0xff` |
+| [string](strings.md) | `"ann"`, `"total: {sum}"` |
+| [array](../data/arrays.md) | `[1, 2, 3]` |
+| object | `{ name: "ann", age: 31 }` |
+| function | `fun area(r) { ... }`, `x => x * 2` |
+| [map and set](../data/map-and-set.md) | `map()`, `set(["a", "b"])` |
+| [bytes](../data/bytes.md) | `b"\x89PNG"` |
+| [struct](../data/structs.md) | `User { name: "ann" }` |
+| [enum](../data/enums.md) variant | `Status.Active` |
+| [stream](../stdlib/streams.md) | an open file, `io.stdin` |
+
+An object holds data only: its properties cannot be functions. To give
+data behavior, use a struct and its [`impl`](../data/methods.md).
 
 ## Copies
 
-Every value is copied where it goes: assigning it, passing it to a
-function, returning it, capturing it in a closure, storing it in an element,
-a property or a field. Arrays, objects, maps, sets, buffers and structs
-are no exception, so two values never hold one changeable container:
-changing one leaves the other as it was. A copy costs nothing until one of them is
-written, and none at all if the source is not read again.
+Assigning a value, passing it to a function, returning it, or storing it
+in an array, object or field always gives the receiver its own copy. This
+holds for arrays, objects, maps, sets and structs too, so changing a copy
+never changes the original:
 
 ```rune
-let a = { tags: ["new"] };
-let mut b = a;
-b.tags.push("sale");
-b.price = 10;
-print(a); // {tags: ["new"]}
-print(b); // {tags: ["new", "sale"], price: 10}
+let order = { item: "tea", qty: 1 };
+let mut draft = order;
+draft.qty = 3;
+
+print(order);    // {item: "tea", qty: 1}
+print(draft);    // {item: "tea", qty: 3}
 ```
 
-A function changes the caller's variable only through a
-[`mut` parameter](functions.md#mut-parameters). The one way to share
-changeable state is a variable that functions capture; a copy taken from
-it keeps its value when they change it later:
+The same goes for a function argument. The function works on its own copy,
+and the caller's value stays as it was:
+
+```rune
+fun discounted(order) {
+    let mut copy = order;
+    copy.price = copy.price * 0.9;
+    copy
+}
+
+let order = { price: 100 };
+print(discounted(order));    // {price: 90}
+print(order);                // {price: 100}
+```
+
+Copies are cheap. Rune copies a container lazily, only when one of the two
+is about to be changed, and not at all when the original is never read
+again.
+
+There are exactly two ways to change a value outside a function:
+
+- a [`mut` parameter](functions.md#mut-parameters), which writes the
+  function's value back to the caller's variable;
+- a variable that the function captures as a closure.
+
+```rune
+fun applyDiscount(mut order) {
+    order.price *= 0.9;
+}
+
+let mut order = { price: 100 };
+applyDiscount(order);
+print(order);    // {price: 90}
+```
 
 ```rune
 let mut seen = set();
 fun visit(id) { seen.add(id); }
+
 visit(1);
 let before = seen;
 visit(2);
-print(seen);   // set {1, 2}
-print(before); // set {1}
+
+print(seen);      // set {1, 2}
+print(before);    // set {1}
 ```
 
-No value refers to another, so no container holds itself: a graph or a
-tree with links back is built on indices or keys, as in
-[the linked list](https://github.com/kryptamine/rune/blob/master/examples/linked-list.rn).
+`before` is a copy, so it keeps the value `seen` had when it was taken.
 
-Functions and streams are not data and are not copied: a copy of one is
+Because no value refers to another, a container can never hold itself. A
+graph, or a tree with links back to parents, keeps its nodes in an array or
+a map and links them by index or key, as
+[the linked list example](https://github.com/kryptamine/rune/blob/master/examples/linked-list.rn)
+does.
+
+Functions and streams are not data and are never copied: a "copy" of one is
 the same function or stream.
 
 ## Type Tests
 
-`v is T` tests that `v` is of type `T`: a struct or enum type, or one of
-the built-in `nil`, `boolean`, `number`, `string`, `array`, `object`,
-`function`, `map`, `set`, `bytes`, `buffer` and `stream`, or `struct` and
-`enum`, which a struct type and an enum type themselves are.
-`v is T | U` tests that it is one of them, `v !is T | U` that it is none.
-Both have the precedence of `==`; the same test is `name is T` in
-[match](pattern-matching.md) and `catch e is T`.
+`v is T` asks whether `v` has type `T`. `T` is a struct or enum you
+declared, or one of the built-in type names:
+
+`nil`, `boolean`, `number`, `string`, `array`, `object`, `function`,
+`map`, `set`, `bytes`, `buffer`, `stream`, `struct`, `enum`
 
 ```rune
 struct User { name }
+let ann = User { name: "ann" };
 
-print(42 is number);                  // true
-print("42" is number);                // false
-print([1, 2] is array);               // true
-print(User { name: "ann" } is User);  // true
-print(User { name: "ann" } is object); // false
-print(nil is nil);                    // true
-print("42" !is number);               // true
-print("42" is number | string);       // true
-print(nil !is number | string);       // true
-print(User is struct);                // true
+print(42 is number);       // true
+print("42" is number);     // false
+print([1, 2] is array);    // true
+print(ann is User);        // true
+print(ann is object);      // false
+print(nil is nil);         // true
+print(User is struct);     // true
 ```
 
-A variable named like a built-in type hides it, and testing against
-anything but a type is a `TypeError`:
+A struct value is not an object, and a struct type itself is a `struct`.
+
+`is T | U` accepts any of several types, and `!is` negates the test:
+
+```rune
+fun describe(id) {
+    if id is number | string { "id {id}" } else { "no id" }
+}
+
+print(describe(7));        // id 7
+print(describe("a7"));     // id a7
+print(describe(nil));      // no id
+print("42" !is number);    // true
+```
+
+The same tests appear in [`match`](pattern-matching.md#types) and in
+[`catch e is T`](error-handling.md#catching-by-type).
+
+A variable named like a built-in type hides it, and the right side of `is`
+must be a type:
 
 ```rune
 let string = "text";
-print("a" is string); // TypeError: Right operand of 'is' must be a type, got string.
+print("a" is string);    // TypeError: Right operand of 'is' must be a type, got string.
 ```
 
 ## Truthiness
 
-Falsy values are `nil`, `false`, `0`, `NaN` and anything empty: `""`,
-`[]`, `{}`, an empty map, set, bytes or buffer. Everything else is truthy.
+`if`, `while`, `!`, `&&` and `||` accept any value, not only booleans. These
+values count as false, or **falsy**:
+
+- `nil` and `false`
+- `0` and `NaN`
+- anything empty: `""`, `[]`, `{}`, an empty map, set, bytes or buffer
+
+Everything else is **truthy**, including `"0"`, `[0]` and `{ a: nil }`.
 
 ```rune
 for v in [nil, false, 0, "", [], {}, map(), "0", [0], { a: nil }] {
@@ -103,88 +168,102 @@ for v in [nil, false, 0, "", [], {}, map(), "0", [0], { a: nil }] {
 // {a: nil} is truthy
 ```
 
-So an emptiness check needs no `.len()`, and `||` gives a fallback for an
-empty value:
+This makes emptiness checks short. There is no need for `.len() > 0`, and
+`||` gives a fallback for an empty value:
 
 ```rune
 let user = { name: "ann", nickname: "", tags: [] };
-print(user.nickname || user.name);   // ann
-print(user.tags || ["guest"]);       // ["guest"]
+print(user.nickname || user.name);    // ann
+print(user.tags || ["guest"]);        // ["guest"]
 
-let mut cart = [];
-if !cart { print("cart is empty"); } // cart is empty
-cart.push("tea");
-while cart { print(cart.pop()); }    // tea
+let mut cart = ["tea", "milk"];
+while cart {
+    print("packing {cart.pop()}");
+}
+// packing milk
+// packing tea
 ```
 
 ## Membership
 
-`x in xs` tests that `xs` holds `x`: an element of an array (by `==`), a
-substring of a string, a key of an object, a map or a set, a byte or
-bytes in bytes or a buffer. `x !in xs` is its negation. `in` has the
-precedence of `==`.
+`x in xs` asks whether `xs` contains `x`, and `x !in xs` whether it does
+not. What "contains" means depends on `xs`:
+
+| `xs` | `x in xs` is true when |
+| --- | --- |
+| array | an element equals `x` |
+| string | `x` is a substring |
+| object, map | `x` is a key |
+| set | `x` is a member |
+| bytes, buffer | `x` is a byte or a run of bytes in it |
+| range | `x` is one of its numbers |
 
 ```rune
 let roles = ["admin", "ops"];
-print("ops" in roles);                  // true
-print("dev" !in roles);                 // true
-print("ell" in "hello");                // true
-print("port" in { port: 80 });          // true
-print(404 in map([[404, "Not Found"]])); // true
-print(0x89 in b"\x89PNG");              // true
+print("ops" in roles);                       // true
+print("dev" !in roles);                      // true
+print("ell" in "hello");                     // true
+print("port" in { host: "db", port: 80 });   // true
+print(404 in map([[404, "Not Found"]]));     // true
+print(0x89 in b"\x89PNG");                   // true
 ```
 
-A range is tested without making its array, so `x in 0..n` costs the same
-for any `n`; the step counts:
+A range answers `in` without building its array, so `x in 0..n` is just as
+fast for any `n`. A `step` counts:
 
 ```rune
-let code = 503;
-print(code in 500..600);         // true
-print(4 in 0..10 step 2);        // true
-print(2.5 in 1..=3);             // false
+let status = 503;
+print(status in 500..600);    // true
+print(4 in 0..10 step 2);     // true
+print(5 in 0..10 step 2);     // false
 ```
 
-Anything else on the right is a `TypeError`, and so is a left side the
-right one cannot hold, such as a number in a string:
+The left side must be something the right side can hold, so a number is
+never "in" a string:
 
 ```rune
-print(1 in "123"); // TypeError: Left operand of 'in' must be a string for string, got number.
+print(1 in "123");    // TypeError: Left operand of 'in' must be a string for string, got number.
 ```
 
 ## Equality
 
-`==` compares numbers (an integer with a float too), strings, bytes, booleans and `nil` by value, functions and streams by identity,
-and arrays, objects, maps, sets and structs structurally (element by element), so
-`[1, 2] == [1, 2]` is `true`. `in` and `indexOf` use the same equality.
-`NaN` equals nothing, itself included.
-Values of different types are never equal: `1 == "1"` is `false`.
+`==` and `!=` compare values by content:
+
+- numbers, strings, bytes, booleans and `nil` by value; an integer equals
+  the float with the same value, so `1 == 1.0`;
+- arrays, objects, maps, sets and structs element by element, so two
+  arrays with the same elements are equal;
+- functions and streams by identity: a function equals only itself.
+
+Values of different kinds are never equal, so `1 == "1"` is `false`. `NaN`
+equals nothing, not even itself. `in` and `indexOf` use this same equality.
 
 ```rune
-print(1 == 1.0);                                    // true
-print([1, [2, 3]] == [1, [2, 3]]);                  // true
-print({ role: "admin", tags: ["ops"] } == { tags: ["ops"], role: "admin" }); // true
-print(1 == "1");                                    // false
-print(nil == false);                                // false
+print(1 == 1.0);                     // true
+print([1, [2, 3]] == [1, [2, 3]]);   // true
+print({ role: "admin", tags: ["ops"] } == { tags: ["ops"], role: "admin" });    // true
+print(1 == "1");                     // false
+print(nil == false);                 // false
 
-let seen = [{ id: 1 }, { id: 2 }];
-print({ id: 2 } in seen);                    // true
-print(seen.indexOf({ id: 2 }));                     // 1
+let cart = [{ id: 1 }, { id: 2 }];
+print({ id: 2 } in cart);            // true
+print(cart.indexOf({ id: 2 }));      // 1
 
-let validate = order => order.qty > 0;
-let check = validate;
-print(check == validate);                           // true
-print((order => order.qty > 0) == validate);        // false
+let isValid = order => order.qty > 0;
+let check = isValid;
+print(check == isValid);                       // true
+print((order => order.qty > 0) == isValid);    // false
 ```
 
 ## Printing
 
-`print` shows strings inside arrays and objects quoted, so `["1", 1]` and `[1, 1]`
-look different; a string printed on its own is written as is. Objects print
+`print` writes a string on its own as is, but quotes strings inside arrays
+and objects, so `["1", 1]` and `[1, 1]` look different. Objects print
 their keys in the order they were added.
 
 ```rune
-print("1");                          // 1
-print(["1", 1]);                     // ["1", 1]
-print([nil, true, 2.5]);             // [nil, true, 2.5]
-print({ name: "ann", age: 31 });     // {name: "ann", age: 31}
+print("1");                         // 1
+print(["1", 1]);                    // ["1", 1]
+print([nil, true, 2.5]);            // [nil, true, 2.5]
+print({ name: "ann", age: 31 });    // {name: "ann", age: 31}
 ```

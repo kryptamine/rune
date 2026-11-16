@@ -56,3 +56,12 @@ b.write("x");
 fails(() => { b[0] = 256; });      // expect: ValueError: A buffer holds bytes from 0 to 255, got 256.
 fails(() => { let mut m = map(); m[b] = 1; }); // expect: TypeError: Cannot use a buffer as a key.
 print(b.len());                    // expect: 1
+
+let mut req = bytes.buffer();
+req.write("GET /health\n");
+print(req.text().trim());             // expect: GET /health
+print(req.indexOf(b"\n"));            // expect: 11
+print(req.indexOf(b"POST"));          // expect: nil
+print(b"GET /".indexOf(bytes.buffer(b"/"))); // expect: 4
+print(bytes.buffer(b"hi!").hex());    // expect: 686921
+print(bytes.buffer(b"hi!").base64()); // expect: aGkh

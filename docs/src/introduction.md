@@ -1,29 +1,31 @@
 # Rune
 
-Rune is a small, dynamically typed scripting language, inspired by
-JavaScript, Python, Rust and Swift. It is written in Go: the AST is compiled
-to register bytecode run by a VM, and the whole thing ships as a single
-static binary.
+Rune is a small, dynamically typed scripting language. It borrows freely
+from JavaScript, Python, Rust and Swift: familiar syntax, values that are
+immutable unless you say otherwise, structs and enums, and pattern
+matching. It is written in Go: your code is compiled to register bytecode
+and run by a VM, and the whole interpreter ships as one static binary.
 
 ## A Taste
 
-Classifying the lines of an access log, with a struct, destructuring,
-pattern matching and a `map`:
+This program reads an access log, turns each line into a `Request` struct,
+sorts requests into "ok", "slow" and "error" with `match`, and counts each
+kind in a `map`:
 
 ```rune
 struct Request { method, path, status, ms }
 
 fun parse(line) {
     let [method, path, status, ms] = line.split(" ");
-    return Request { method, path, status: int(status), ms: number(ms) };
+    Request { method, path, status: int(status), ms: number(ms) }
 }
 
-fun kind(r) {
-    return match r {
-        Request { status } if status >= 500 => "error",
+fun kind(req) {
+    match req {
+        Request { status: 500.. } => "error",
         Request { ms } if ms > 100 => "slow",
         _ => "ok",
-    };
+    }
 }
 
 let log = """
@@ -34,12 +36,26 @@ let log = """
     """;
 
 let mut counts = map();
+
 for line in log.split("\n") {
     let k = kind(parse(line));
     counts[k] = (counts?.[k] ?? 0) + 1;
 }
+
 print(counts);    // map {"ok": 2, "slow": 1, "error": 1}
 ```
+
+A few things to notice:
+
+- `let [method, path, status, ms] = ...` [destructures](language/destructuring.md)
+  an array into four variables.
+- A function gives the value of its last expression, so `parse` and `kind`
+  need no `return`.
+- `Request { status: 500.. }` is a [pattern](language/pattern-matching.md):
+  it matches any request whose status is 500 or more.
+- `counts` is declared `let mut` because it changes; plain `let` variables
+  never do.
+- `counts?.[k] ?? 0` reads a key that may be missing and falls back to `0`.
 
 New here? Start with [Getting Started](getting-started.md), then read the
 Language chapters in order.

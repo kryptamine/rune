@@ -373,7 +373,7 @@ var Methods = func() (out []Method) {
 	add(value.Map, true, mapInPlace)
 	add(value.Set, false, setMethods, lenMethod("set"))
 	add(value.Set, true, setInPlace)
-	add(value.Bytes, false, bytesMethods, readers("bytes"), lenMethod("bytes"))
+	add(value.Bytes, false, readers("bytes"), lenMethod("bytes"))
 	add(value.Buffer, false, bufferMethods)
 	add(value.Buffer, true, bufferInPlace)
 	add(value.Stream, false, streamMethods)

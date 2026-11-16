@@ -1,101 +1,177 @@
 # String Methods
 
-Strings are immutable: every method returns a new value. Indices and
-lengths count characters, not bytes.
+Strings never change: every method returns a new string, and the original
+stays as it was. Indices and lengths count characters, not bytes, so
+`"héllo".len()` is 5.
+
+| Method | Does |
+|---|---|
+| `len()` | number of characters |
+| `split(sep)` | array of the parts between `sep` |
+| `upper()`, `lower()` | change case |
+| `startsWith(p)`, `endsWith(s)` | test the start or the end |
+| `indexOf(sub)` | index of the first `sub`, or `nil` |
+| `replace(old, new)` | replace every `old` |
+| `repeat(n)` | the string `n` times |
+| `trim([chars])`, `trimStart([chars])`, `trimEnd([chars])` | strip whitespace or `chars` |
+| `removePrefix(p)`, `removeSuffix(s)` | strip one exact prefix or suffix |
+| `padStart(w[, pad])`, `padEnd(w[, pad])` | fill to width `w` |
+| `charCode([i])` | code point of character `i` |
+| `format(...)` | printf-style formatting |
+
+For patterns, see [regex](regex.md). For indexing, slices and `in`, see
+[Strings](../language/strings.md).
 
 ## Splitting and case
 
-`split(sep)` (`""` splits into characters), `upper()`, `lower()`,
-`startsWith(p)`, `endsWith(p)`.
+`split(sep)` cuts the string at each `sep`. An empty `sep` splits it into
+characters.
 
 ```rune
 let row = "2026-11-12,ann,checkout,42.50";
-print(row.split(","));               // ["2026-11-12", "ann", "checkout", "42.50"]
-print("abc".split(""));              // ["a", "b", "c"]
-print("Ann".upper());                // ANN
-print("Ann".lower());                // ann
-print("report.csv".endsWith(".csv")); // true
-print("https://x.io".startsWith("https://")); // true
+print(row.split(","));        // ["2026-11-12", "ann", "checkout", "42.50"]
+print("a,,b".split(","));     // ["a", "", "b"]
+print("héy".split(""));       // ["h", "é", "y"]
+
+let [date, user, action, amount] = row.split(",");
+print("{user} spent {amount} on {date}");   // ann spent 42.50 on 2026-11-12
+
+print("Ann".upper());         // ANN
+print("ÀNN".lower());         // ànn
+```
+
+`startsWith` and `endsWith` test the ends of a string:
+
+```rune
+let files = ["report.csv", "notes.txt", "data.csv"];
+print(files.filter(f => f.endsWith(".csv")));       // ["report.csv", "data.csv"]
+print("https://x.io".startsWith("https://"));       // true
 ```
 
 ## Searching and replacing
 
-`replace(old, new)` replaces all occurrences; `repeat(n)` and `indexOf`
-work as for arrays. A substring is tested with `in` and cut out
-with a [slice](../language/strings.md), `s[a..b]`.
+- `indexOf(sub)` is the index of the first `sub`, or `nil` if there is
+  none. To ask only whether it is there, use `sub in s`.
+- `replace(old, new)` replaces every `old`.
+- `repeat(n)` is the string `n` times over.
 
 ```rune
+let line = "ERROR disk full on /dev/sda1";
+
+print("disk" in line);                   // true
+print(line.indexOf("full"));             // 11
+print(line.indexOf("cpu"));              // nil
+print(line[line.indexOf("/")..]);        // /dev/sda1
+
 print("2026-11-12".replace("-", "/"));   // 2026/11/12
-print("=".repeat(10));                   // ==========
-print("héllo"[1..3]);              // él
-print("héllo"[-2..]);                // lo
-print("wor" in "hello world");    // true
-print("héllo".indexOf("l"));             // 2
-print("hello".indexOf("z"));             // nil
+print("=".repeat(12));                   // ============
 ```
 
 ## Trimming
 
-- `trim([chars])`, `trimStart([chars])`, `trimEnd([chars])` — the string without whitespace, or any of the characters of `chars`, at both ends, the start or the end.
-- `removePrefix(p)`, `removeSuffix(s)` — the string without `p` at its start or `s` at its end, if there.
+- `trim()`, `trimStart()`, `trimEnd()` strip whitespace from both ends,
+  the start, or the end. Given `chars`, they strip any of those characters
+  instead.
+- `removePrefix(p)` and `removeSuffix(s)` strip `p` or `s` once, if the
+  string has it.
 
 ```rune
-print("  ann  ".trim() + "|");            // ann|
-print("  ann  ".trimStart() + "|");       // ann  |
-print("  ann  ".trimEnd() + "|");         //   ann|
-print("--title--".trim("-"));             // title
-print("/usr/local/".trim("/"));           // usr/local
-print("v1.2.3".removePrefix("v"));        // 1.2.3
-print("report.csv".removeSuffix(".csv")); // report
-print("report.csv".removePrefix("x"));    // report.csv
+print("[" + "  ann  ".trim() + "]");        // [ann]
+print("[" + "  ann  ".trimStart() + "]");   // [ann  ]
+print("[" + "  ann  ".trimEnd() + "]");     // [  ann]
+print("--title--".trim("-"));               // title
+print("/usr/local/".trim("/"));             // usr/local
+print("0042".trimStart("0"));               // 42
+
+print("v1.2.3".removePrefix("v"));          // 1.2.3
+print("report.csv".removeSuffix(".csv"));   // report
+print("report.csv".removePrefix("x"));      // report.csv
 ```
 
-## Characters and padding
-
-- `charCode([i])` — the code point of character `i` (default 0); `string.fromCharCode(c, ...)` — the string of those code points.
-- `padStart(width[, pad])`, `padEnd(width[, pad])` — the string filled to `width` characters with `pad` (default `" "`), repeated and cut.
+`trim` strips every matching character, while `removePrefix` strips the
+exact prefix once:
 
 ```rune
+print("vvv1".trimStart("v"));      // 1
+print("vvv1".removePrefix("v"));   // vv1
+```
+
+## Padding and characters
+
+- `padStart(width[, pad])` and `padEnd(width[, pad])` fill the string to
+  `width` characters with `pad`, a space by default. A longer string stays
+  as it is.
+- `charCode([i])` is the code point of character `i`, 0 by default.
+  `string.fromCharCode(c, ...)` makes a string from code points.
+
+```rune
+print("7".padStart(3, "0"));           // 007
+print("ann".padEnd(6, ".") + "|");     // ann...|
+print("ab".padStart(7, "xy"));         // xyxyxab
+print("long name".padEnd(4) + "|");    // long name|
+
 print("A".charCode());                 // 65
 print("héllo".charCode(1));            // 233
 print(string.fromCharCode(72, 105));   // Hi
-print("7".padStart(3, "0"));           // 007
-print("ann".padEnd(6) + "|");          // ann   |
-print("ab".padStart(7, "xy"));         // xyxyxab
+```
+
+A Caesar shift, built from character codes:
+
+```rune
+fun shift(s, n) {
+    let a = "a".charCode();
+    s.split("").map(c => string.fromCharCode((c.charCode() - a + n) % 26 + a)).join("")
+}
+print(shift("hello", 3));   // khoor
 ```
 
 ## format
 
-`format(...)` is printf, the string being the format:
-`%[flags][width][.precision]verb`, flags `-+ 0#`. A width or precision
-of `*` takes the next argument, so a column can fit its widest value; a
-negative width pads on the right.
+`s.format(...)` is printf: `s` is the format, and each `%` verb takes the
+next argument.
 
-- `%s` shows a value as `print` does, `%q` as inside an array;
-- `%d %x %X %o %b` take integers, `%f %e %E %g %G` numbers;
-- `%%` is `%`.
+| Verb | Shows |
+|---|---|
+| `%s` | a value as `print` shows it |
+| `%q` | a value as it appears inside an array (strings quoted) |
+| `%d` | an integer |
+| `%x`, `%X`, `%o`, `%b` | an integer in hex, upper hex, octal, binary |
+| `%f`, `%e`, `%E`, `%g`, `%G` | a number |
+| `%%` | `%` |
 
-Widths count characters; a missing or extra argument is an `ArgumentError`.
+Between `%` and the verb come optional flags, a width and a precision:
+`%[flags][width][.precision]verb`.
+
+- Flags: `-` pads on the right, `+` always shows the sign, `0` pads with
+  zeros, ` ` leaves a space for the sign, `#` adds `0x` and the like.
+- Width is the minimum number of characters.
+- Precision is the number of digits after the point for `%f`.
+- `*` for a width or a precision takes it from the next argument.
 
 ```rune
 print("%s has %d items".format("cart", 3));        // cart has 3 items
-print("%-6s|%5.2f|%03d".format("ab", 3.14159, 7)); // ab    | 3.14|007
-print("%s and %q".format(["a"], "a"));             // ["a"] and "a"
+print("%.2f".format(3.14159));                      // 3.14
+print("%5.1f%%".format(12.345));                    //  12.3%
+print("%03d|%-5s|%5s|".format(7, "ab", "cd"));      // 007|ab   |   cd|
+print("%s and %q".format("hi", "hi"));             // hi and "hi"
 print("%x %X %o %b".format(255, 255, 8, 5));       // ff FF 10 101
+print("%#x".format(255));                          // 0xff
 print("%+d %e".format(5, 12345.678));              // +5 1.234568e+04
-print("100%%".format());                           // 100%
 ```
 
-A table, columns aligned:
+A receipt, its columns aligned:
 
 ```rune
-let items = [["coffee", 2, 3.5], ["bagel", 1, 2.25]];
+let items = [["coffee", 2, 3.5], ["bagel", 1, 2.25], ["juice", 3, 4]];
 for [name, qty, price] in items {
     print("%-8s %2d x %5.2f".format(name, qty, price));
 }
 // coffee    2 x  3.50
 // bagel     1 x  2.25
+// juice     3 x  4.00
 ```
+
+With `*`, a column takes the width of its widest value:
 
 ```rune
 let rows = [["GET /users", 12], ["POST /orders/batch", 340]];
@@ -107,6 +183,13 @@ for [path, ms] in rows {
 // POST /orders/batch  340ms
 ```
 
+An argument of the wrong type is a `TypeError`, and a missing or extra one
+an `ArgumentError`:
+
 ```rune
 "%d".format("7"); // TypeError: string.format() expects an integer as argument 1, got string.
+```
+
+```rune
+"%s and %s".format("tea"); // ArgumentError: string.format() '%s' at 7 has no argument.
 ```
