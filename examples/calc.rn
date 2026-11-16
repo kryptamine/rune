@@ -17,6 +17,18 @@ enum Node {
     FunDef { name, params, body },
 }
 
+impl Node {
+    fun kind(self) => match self {
+        _ is Node.Num => "Num",
+        _ is Node.Var => "Var",
+        _ is Node.Neg => "Neg",
+        _ is Node.Binary => "Binary",
+        _ is Node.Call => "Call",
+        _ is Node.Assign => "Assign",
+        _ is Node.FunDef => "FunDef",
+    };
+}
+
 struct CalcError { message, pos = nil }
 
 const TOKEN_RE = "(?P<num>\\d+(?:\\.\\d+)?)|(?P<id>[a-zA-Z_]\\w*)|(?P<op>\\*\\*|[-+*/%^(),=])|(?P<bad>\\S)";
@@ -227,7 +239,7 @@ impl Env {
 }
 
 fun show(v, digits = 6) => match v {
-    _ if type(v) == "string" => v,
+    _ is string => v,
     _ if math.isInt(v) => string(v),
     _ => regex.replace("\\.?0+$", "%.*f".format(digits, v), ""),
 };
@@ -241,7 +253,7 @@ fun run(mut env, line) {
             print(" ".repeat(e.pos) + "^");
         }
     } catch e is ValueError | TypeError {
-        print("{line.padEnd(32)} !! {type(e)}: {e.message}");
+        print("{line.padEnd(32)} !! {e}");
     }
 }
 
@@ -289,7 +301,7 @@ fun main(args) {
     let mut stats = map();
 
     for line in DEMO {
-        let kind = try type(parse(line)) catch => continue;
+        let kind = try parse(line).kind() catch => continue;
         stats[kind] = (stats?.[kind] ?? 0) + 1;
     }
 

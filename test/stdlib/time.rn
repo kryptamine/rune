@@ -48,5 +48,5 @@ try { time.parse("x", "%Q"); } catch e is ValueError { print(e.message); } // ex
 try { time.make({ year: 2000, second: nil }); } catch e is TypeError { print(e.message); } // expect: time.make() expects Date.second to be a number, got nil.
 try { time.make({ year: 2000, zone: nil }); } catch e is TypeError { print(e.message); } // expect: time.make() expects Date.zone to be a string, got nil.
 try { time.make({ year: 2000.5 }); } catch e is TypeError { print(e.message); } // expect: time.make() expects Date.year to be an integer, got number.
-print(type(time.date())); // expect: Date
+print(time.date() is Date); // expect: true
 print(time.now() > t);    // expect: true

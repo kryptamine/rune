@@ -1,5 +1,5 @@
 let mut buf = bytes.buffer();
-print(type(buf));   // expect: buffer
+print(buf is buffer);   // expect: true
 print(buf);         // expect: buffer(b"")
 print(buf is buffer); // expect: true
 buf.write("ab");
@@ -44,7 +44,7 @@ print(fs.readBytes(path)); // expect: b"xy"
 fs.removeAll(fs.dir(path));
 
 fun fails(f) {
-  try { f(); } catch e { print(type(e) + ": " + e.message); }
+  try { f(); } catch e { print(string(e)); }
 }
 let mut b = bytes.buffer();
 fails(() => b.writeUint(256, 1));  // expect: ValueError: buffer.writeUint() cannot write 256 as an unsigned 1-byte integer.

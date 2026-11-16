@@ -71,7 +71,7 @@ print("ab".padStart(7, "xy"));         // xyxyxab
 of `*` takes the next argument, so a column can fit its widest value; a
 negative width pads on the right.
 
-- `%v` and `%s` show a value as `print` does, `%q` as inside an array;
+- `%s` shows a value as `print` does, `%q` as inside an array;
 - `%d %x %X %o %b` take integers, `%f %e %E %g %G` numbers;
 - `%%` is `%`.
 
@@ -80,7 +80,7 @@ Widths count characters; a missing or extra argument is an `ArgumentError`.
 ```rune
 print("%s has %d items".format("cart", 3));        // cart has 3 items
 print("%-6s|%5.2f|%03d".format("ab", 3.14159, 7)); // ab    | 3.14|007
-print("%v and %q".format(["a"], "a"));             // ["a"] and "a"
+print("%s and %q".format(["a"], "a"));             // ["a"] and "a"
 print("%x %X %o %b".format(255, 255, 8, 5));       // ff FF 10 101
 print("%+d %e".format(5, 12345.678));              // +5 1.234568e+04
 print("100%%".format());                           // 100%

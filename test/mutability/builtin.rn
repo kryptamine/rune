@@ -1,2 +1,2 @@
-type = 1;
-print(type); // expect: 1
+int = 1;
+print(int); // expect: 1

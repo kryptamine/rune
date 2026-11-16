@@ -1,0 +1,11 @@
+struct AgeError { message, value }
+struct Note { message = 1 }
+
+let e = AgeError { message: "negative age", value: -1 };
+print(e); // expect: AgeError: negative age
+print([e]); // expect: [AgeError: negative age]
+print("{e}"); // expect: AgeError: negative age
+print(e.value); // expect: -1
+print(Note {}); // expect: Note {message: 1}
+
+try { [].pop(); } catch e { print(e); } // expect: ValueError: array.pop() got an empty array.

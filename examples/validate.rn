@@ -108,7 +108,7 @@ fun check(s, v, path, mut out) {
         },
         _ is Str => checkStr(s, v, path, out),
         Int { min, max } => {
-            if !want("number", v, path, out) {
+            if !want(v is number, "number", v, path, out) {
                 return nil;
             }
 
@@ -118,9 +118,9 @@ fun check(s, v, path, mut out) {
 
             return bounded(v, min, max, path, out);
         },
-        _ is Flag => want("boolean", v, path, out) ? v : nil,
+        _ is Flag => want(v is boolean, "boolean", v, path, out) ? v : nil,
         Duration { min, max } => {
-            if !want("string", v, path, out) {
+            if !want(v is string, "string", v, path, out) {
                 return nil;
             }
 
@@ -128,7 +128,7 @@ fun check(s, v, path, mut out) {
             return bounded(ms, min, max, path, out, duration);
         },
         Size { min, max } => {
-            if !want("string", v, path, out) {
+            if !want(v is string, "string", v, path, out) {
                 return nil;
             }
 
@@ -144,8 +144,8 @@ fun check(s, v, path, mut out) {
     };
 }
 
-fun want(t, v, path, mut out) {
-    if type(v) == t {
+fun want(ok, t, v, path, mut out) {
+    if ok {
         return true;
     }
 
@@ -166,7 +166,7 @@ fun bounded(v, min, max, path, mut out, unit = string) {
 }
 
 fun checkStr({ min, max, pattern, like, oneOf }, v, path, mut out) {
-    if !want("string", v, path, out) {
+    if !want(v is string, "string", v, path, out) {
         return nil;
     }
 
@@ -192,7 +192,7 @@ fun checkStr({ min, max, pattern, like, oneOf }, v, path, mut out) {
 const URL_RE = r"^(?P<scheme>[a-z][a-z0-9+.-]*)://(?P<host>[^/:?#\s]+)(?::(?P<port>\d+))?(?:[/?#]\S*)?$";
 
 fun checkUrl({ schemes }, v, path, mut out) {
-    if !want("string", v, path, out) {
+    if !want(v is string, "string", v, path, out) {
         return nil;
     }
 
@@ -211,7 +211,7 @@ fun checkUrl({ schemes }, v, path, mut out) {
 }
 
 fun checkAddr(v, path, mut out) {
-    if !want("string", v, path, out) {
+    if !want(v is string, "string", v, path, out) {
         return nil;
     }
 
@@ -223,7 +223,7 @@ fun checkAddr(v, path, mut out) {
 fun validPort(p) => p >= 1 && p <= 65535;
 
 fun checkList({ of, min, max, unique }, v, path, mut out) {
-    if !want("array", v, path, out) {
+    if !want(v is array, "array", v, path, out) {
         return nil;
     }
 
@@ -263,7 +263,7 @@ fun checkList({ of, min, max, unique }, v, path, mut out) {
 }
 
 fun checkDict({ of, key, min }, v, path, mut out) {
-    if !want("object", v, path, out) {
+    if !want(v is object, "object", v, path, out) {
         return nil;
     }
 
@@ -287,7 +287,7 @@ fun checkDict({ of, key, min }, v, path, mut out) {
 }
 
 fun checkObj({ fields, strict }, v, path, mut out) {
-    if !want("object", v, path, out) {
+    if !want(v is object, "object", v, path, out) {
         return nil;
     }
 
@@ -326,14 +326,14 @@ fun checkObj({ fields, strict }, v, path, mut out) {
 }
 
 fun checkTagged({ tag, variants }, v, path, mut out) {
-    if !want("object", v, path, out) {
+    if !want(v is object, "object", v, path, out) {
         return nil;
     }
 
     let at = [...path, tag];
     let kind = v?.[tag] ?? return fail(out, at, "missing required field");
 
-    if !want("string", kind, at, out) {
+    if !want(kind is string, "string", kind, at, out) {
         return nil;
     }
 

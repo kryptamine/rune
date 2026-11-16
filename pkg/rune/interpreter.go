@@ -183,7 +183,7 @@ func (p *Interpreter) CallValue(fn value.Value, args []value.Value, token *ast.T
 		case *BoundMethod:
 			return p.CallValue(value.NewFunction(f.fn), append([]value.Value{f.recv}, args...), token)
 		case *BoundNative:
-			return p.host.CallMethod(f.fn, append([]value.Value{f.recv}, args...), token, false)
+			return p.host.CallMethod(f.fn, append([]value.Value{f.recv}, args...), token)
 		case *stdlib.Native:
 			return p.host.Call(f, args, token)
 		}

@@ -30,9 +30,8 @@ fun walk(xs, depth) {
 }
 print(walk([1, 2], 3));    // expect: 45
 
-struct P { a, b }
 let mut keys = [];
-let p1 = P { a: 1, b: 2 };
+let p1 = { a: 1, b: 2 };
 for k in p1 { keys.push(k); }
 for k in p1 { keys.push(k); }
 for x in [9, 9, 9] { keys.push(x); }

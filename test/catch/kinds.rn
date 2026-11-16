@@ -1,5 +1,5 @@
 fun kind(f) {
-  try { f(); } catch e { return type(e) + ": " + e.message; }
+  try { f(); } catch e { return string(e); }
 }
 
 print(kind(() => { return 1 + nil; })); // expect: TypeError: Operands must be two numbers, two strings or two bytes.
@@ -15,5 +15,5 @@ try { 1 + nil; } catch e {
   print(e is IndexError); // expect: false
   print(e.line); // expect: 13
   print(e.cause); // expect: nil
-  print(e); // expect: TypeError {message: "Operands must be two numbers, two strings or two bytes.", line: 13, cause: nil}
+  print(e); // expect: TypeError: Operands must be two numbers, two strings or two bytes.
 }

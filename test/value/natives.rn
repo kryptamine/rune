@@ -4,7 +4,7 @@ let xs = [[1], [2]];
 
 let mut found = xs.find(x => x[0] == 1);
 found.push(0);
-let mut appended = xs.append([3]);
+let mut appended = [...xs, [3]];
 appended[0].push(0);
 let mut kept = xs.filter(x => true);
 kept[1].push(0);

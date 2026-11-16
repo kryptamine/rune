@@ -3,17 +3,8 @@
 A value is one of `nil`, a boolean, a [number](numbers.md), a
 [string](strings.md), an [array](../data/arrays.md), an object, a function,
 a [`map` or `set`](../data/map-and-set.md), [bytes](../data/bytes.md), a
-[struct](../data/structs.md) or a [stream](../stdlib/streams.md). `type`
-names it:
-
-```rune
-print(type(nil));              // nil
-print(type(42));               // number
-print(type("ann"));            // string
-print(type([1, 2]));           // array
-print(type({ name: "ann" }));  // object
-print(type(x => x * 2));       // function
-```
+[struct](../data/structs.md) or a [stream](../stdlib/streams.md);
+[`is`](#type-tests) tests which.
 
 An object holds data: its properties cannot be functions. Behavior goes in
 a struct's [`impl`](../data/methods.md#functions-in-fields).
@@ -62,8 +53,8 @@ the same function or stream.
 
 `v is T` tests that `v` is of type `T`: a struct or enum type, or one of
 the built-in `nil`, `boolean`, `number`, `string`, `array`, `object`,
-`function`, `map`, `set`, `bytes`, `buffer`, `stream`, `struct` and `enum`,
-which are what `type` says of a struct type and an enum type themselves.
+`function`, `map`, `set`, `bytes`, `buffer` and `stream`, or `struct` and
+`enum`, which a struct type and an enum type themselves are.
 `v !is T` is its negation. Both have the precedence of `==`; the same test
 is `name is T` in [match](pattern-matching.md) and `catch e is T`.
 

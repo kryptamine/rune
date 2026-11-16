@@ -53,9 +53,8 @@ func (e RuntimeError) hint() string { return e.fix }
 func (e RuntimeError) heading() (string, string) {
 	switch {
 	case e.thrown():
-		s := e.value.Shape()
-		if i := s.Index("message"); i >= 0 && e.value.Fields()[i].Kind() == value.String {
-			return s.Name, e.value.Fields()[i].Str()
+		if msg, ok := helpers.Message(e.value); ok {
+			return e.value.Shape().Name, msg
 		}
 
 		return "", helpers.Stringify(e.value)

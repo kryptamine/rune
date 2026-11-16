@@ -197,7 +197,7 @@ impl Store {
     }
 
     fun write(mut self, kind, key, value) {
-        if type(key) != "string" || key == "" {
+        if key !is string || key == "" {
             throw KvError { message: "keys are non-empty strings, got {key}" };
         }
 

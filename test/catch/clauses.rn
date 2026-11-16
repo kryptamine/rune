@@ -13,18 +13,18 @@ fun run(f) {
   try {
     f();
   } catch e is ParseError {
-    print("parse: " + e.message + " <- " + type(e.cause));
+    print("parse: {e.message} <- {e.cause}");
   } catch e is IndexError | KeyError {
     print("lookup: " + e.message);
   } catch e {
-    print("other: " + type(e));
+    print("other: {e}");
   }
 }
 
-run(() => { parse(nil); }); // expect: parse: bad number <- TypeError
+run(() => { parse(nil); }); // expect: parse: bad number <- TypeError: math.floor() expects a number as argument 1, got nil.
 run(() => { [1][5]; }); // expect: lookup: Index out of bounds: 5 of 1
 run(() => { ({}).k; }); // expect: lookup: Undefined property 'k'.
-run(() => { throw Note { text: "boom" }; }); // expect: other: Note
+run(() => { throw Note { text: "boom" }; }); // expect: other: Note {text: "boom"}
 
 try {
   try {

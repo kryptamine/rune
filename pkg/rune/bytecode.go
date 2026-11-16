@@ -138,11 +138,6 @@ const (
 // inoutSite is the bit of X of a call followed by write-backs.
 const inoutSite = 4
 
-// givenRecv is the bit of X of an invoke whose caller gives the receiver
-// up, which a native method may then change and return. X of an invoke
-// also has bit 1, frozen, and inoutSite, in its three bits.
-const givenRecv = 2
-
 // A of the jump after an inout site has a bit for the receiver and each
 // argument a mut parameter takes.
 const _ uint16 = 1 << maxArity

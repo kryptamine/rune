@@ -1,4 +1,4 @@
-print(type(os.platform)); // expect: string
+print(os.platform is string); // expect: true
 
 os.setEnv("RUNE_TEST_OS_VAR", "v1");
 print(os.env("RUNE_TEST_OS_VAR")); // expect: v1

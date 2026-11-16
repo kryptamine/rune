@@ -44,7 +44,7 @@ func TestHTTPRequest(t *testing.T) {
 		print(r.body);
 		print(r.headers["x-echo"]);
 		print(r.headers["x-multi"]);
-		print(type(r));
+		print(r is HttpResponse);
 
 		let nf = http.request("GET", "URL/missing", HttpOptions {});
 		print(nf.status);
@@ -59,7 +59,7 @@ func TestHTTPRequest(t *testing.T) {
 		try { http.request("BAD METHOD", "URL/"); } catch e is ValueError { print("bad method"); }
 
 		let raw = http.request("PUT", "URL/x", { body: b"\x01raw", stream: true });
-		print(type(raw.body));
+		print(raw.body is stream);
 		print(raw.body.readBytes());
 		raw.body.close();
 		for i, line in http.request("GET", "URL/lines", { stream: true }).body { print("{i}: {line}"); }
@@ -81,7 +81,7 @@ func TestHTTPRequest(t *testing.T) {
 POST hi
 t1
 a, b
-HttpResponse
+true
 404
 GET 
 get failed
@@ -91,7 +91,7 @@ http.request() expects header 'a' to be a string, got number.
 http.request() expects a positive timeout, got 0.
 HttpOptions has no field 'bogus'.
 bad method
-stream
+true
 b"PUT \x01raw"
 0: a
 1: b

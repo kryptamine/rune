@@ -1,7 +1,6 @@
 package stdlib
 
 import (
-	"rune/pkg/helpers"
 	"rune/pkg/value"
 	"unicode/utf8"
 )
@@ -9,9 +8,6 @@ import (
 // preludeNatives stay global; every other built-in lives in a namespace.
 var preludeNatives = []*Native{
 	writer("print", true, (*Stdio).Out),
-	{"type", 1, 1, func(c *call) value.Value {
-		return value.NewString(helpers.TypeName(c.args[0]))
-	}},
 }
 
 func length(c *call) value.Value {

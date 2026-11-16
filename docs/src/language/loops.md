@@ -30,8 +30,8 @@ for ch in "hé!" { print(ch); }
 ```
 
 It also walks [maps and sets](../data/map-and-set.md),
-[bytes](../data/bytes.md), [struct fields](../data/structs.md) and
-[streams](../stdlib/streams.md).
+[bytes](../data/bytes.md) and [streams](../stdlib/streams.md); a
+struct's fields are walked as an object, `for k, v in { ...s }`.
 
 ## break and continue
 

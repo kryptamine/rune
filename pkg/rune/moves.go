@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"maps"
 	"rune/pkg/ast"
-	"slices"
 )
 
 // liveSet holds the variables read again before they are set.
@@ -283,14 +282,9 @@ func (lv *liveness) expr(e ast.Expr, live liveSet) {
 		delete(live, n.Local)
 		lv.expr(n.Value, live)
 	case *ast.CallExpr:
-		args, prop := n.Args, (*ast.IndexExpr)(nil)
-		if p, ok := n.Callee.(*ast.IndexExpr); ok {
-			args, prop = append(slices.Clip(args), p.Array), p
-		}
+		given := lv.givable(n.Args, live)
 
-		given := lv.givable(args, live)
-
-		if prop != nil {
+		if prop, ok := n.Callee.(*ast.IndexExpr); ok {
 			lv.holds(prop.Array, live)
 		}
 

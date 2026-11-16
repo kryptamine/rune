@@ -1,6 +1,6 @@
 # Built-in Functions
 
-`print`, `type`, `object`, `string`, `bytes`, `number`, `int`, `map` and
+`print`, `object`, `string`, `bytes`, `number`, `int`, `map` and
 `set` are global; the name of a type converts to it, as `string(v)`,
 `number(v)` or `map(v)` do, and `string` and `bytes` also have members,
 such as `string.fromCharCode` and `bytes.fromHex`. The
@@ -22,24 +22,6 @@ print();                 // (an empty line)
 ["a", "b"].map(print);
 // a
 // b
-```
-
-## type
-
-`type(value)` is `"nil"`, `"boolean"`, `"number"`, `"string"`, `"array"`,
-`"object"`, `"function"`, `"map"`, `"set"`, `"bytes"`, `"buffer"`,
-`"stream"`, the name of a value's struct, `"Enum.Variant"` for a variant,
-`"struct"` for a struct type or `"enum"` for an enum type.
-
-```rune
-struct User { name }
-
-print(type(nil));                  // nil
-print(type(1.5));                  // number
-print(type([1]));                  // array
-print(type(x => x));               // function
-print(type(User { name: "ann" })); // User
-print(type(User));                 // struct
 ```
 
 ## object and string

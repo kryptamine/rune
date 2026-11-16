@@ -624,7 +624,7 @@ reload:
 					}
 				}
 
-				if err = p.callNativeMethod(fr.base+in.a(), in.b(), fn.Fn().(*stdlib.Native), fr.cl.proto.toks[pc-1], in.x()&givenRecv != 0); err != nil {
+				if err = p.callNativeMethod(fr.base+in.a(), in.b(), fn.Fn().(*stdlib.Native), fr.cl.proto.toks[pc-1]); err != nil {
 					goto fail
 				}
 

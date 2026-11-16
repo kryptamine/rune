@@ -45,6 +45,16 @@ func TypeName(v value.Value) string {
 	}
 }
 
+// Message is the string message field of the struct v, which makes it
+// print as an error does: Name: message.
+func Message(v value.Value) (string, bool) {
+	if i := v.Shape().Index("message"); i >= 0 && v.Fields()[i].Kind() == value.String {
+		return v.Fields()[i].Str(), true
+	}
+
+	return "", false
+}
+
 var quoter = strings.NewReplacer(`\`, `\\`, `"`, `\"`, "\n", `\n`, "\t", `\t`, "\r", `\r`)
 
 // quote writes s as a string literal the scanner accepts.
@@ -109,6 +119,10 @@ func Stringify(v value.Value) string {
 
 		return "{" + strings.Join(pairs, ", ") + "}"
 	case value.Struct:
+		if msg, ok := Message(v); ok {
+			return v.Shape().Name + ": " + msg
+		}
+
 		shape := v.Shape()
 		pairs := make([]string, len(shape.Fields))
 		for i, f := range v.Fields() {

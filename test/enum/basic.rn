@@ -4,8 +4,7 @@ let c = Color.White;
 print(c);                     // expect: Color.White
 print([c, Color.Black]);      // expect: [Color.White, Color.Black]
 print("{c} to move");         // expect: Color.White to move
-print(type(c));               // expect: Color.White
-print(type(Color));           // expect: enum
+print(Color is enum);           // expect: true
 print(Color);                 // expect: <enum Color>
 print(c is Color);            // expect: true
 print("White" is Color);      // expect: false

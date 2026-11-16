@@ -7,7 +7,7 @@ print(m);      // expect: map {1: "one", "1": "string one", true: "yes", nil: "n
 print(m[1]);   // expect: one
 print(m[1.0]); // expect: one
 print(m.len()); // expect: 4
-print(type(m)); // expect: map
+print(m is map); // expect: true
 
 m[1] = "uno";
 print(m[1]);   // expect: uno

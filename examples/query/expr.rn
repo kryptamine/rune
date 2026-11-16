@@ -309,10 +309,8 @@ export fun compare(a, b) {
         return 1;
     }
 
-    let [ta, tb] = [type(a), type(b)];
-
-    if ta != tb {
-        return ta == "number" ? -1 : 1;
+    if (a is number) != (b is number) {
+        return a is number ? -1 : 1;
     }
 
     return a < b ? -1 : 1;

@@ -23,13 +23,12 @@ let e = Expr.Add { left: Expr.num(1), right: Expr.Neg { expr: Expr.num(3) } };
 print(e);                  // expect: Expr.Add {left: Expr.Num {value: 1}, right: Expr.Neg {expr: Expr.Num {value: 3}, twice: false}}
 print(e.eval());           // expect: -2
 print(e.left.value);       // expect: 1
-print(type(e));            // expect: Expr.Add
 print(e is Expr);          // expect: true
 print(e is Expr.Add);      // expect: true
 print(e is Expr.Num);      // expect: false
 print(Expr.Zero is Expr);  // expect: true
 print(Expr.Add);           // expect: <struct Expr.Add>
-print(type(Expr.Add));     // expect: struct
+print(Expr.Add is struct);     // expect: true
 
 print(Expr.Add { ...e, right: Expr.Zero }.eval());  // expect: 1
 print(e == Expr.Add { left: Expr.num(1), right: Expr.Neg { expr: Expr.num(3) } }); // expect: true

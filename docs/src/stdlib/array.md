@@ -10,7 +10,8 @@ others return a new value and leave the array as it is.
 - `pop()` — removes the last element in place and returns it; an empty array is a `ValueError`.
 - `insert(i, v)` — inserts `v` before index `i` **in place** (`xs.len()` appends).
 - `remove(i)` — removes element `i` in place and returns it. A negative `i` counts from the end; one out of bounds is an `IndexError`.
-- `append(v1, ...)` — a new array with the values appended. It copies, so building an array with it in a loop is quadratic; use `push` for that.
+
+A new array with more elements is a [spread](../language/spread-and-rest.md), `[...xs, v]`.
 
 ```rune
 let mut queue = ["build", "test"];
@@ -19,7 +20,7 @@ print(queue.pop());                 // deploy
 queue.insert(0, "lint");
 print(queue);                       // ["lint", "build", "test"]
 print(queue.remove(-1));            // test
-print(queue.append("release"));     // ["lint", "build", "release"]
+print([...queue, "release"]);       // ["lint", "build", "release"]
 print(queue);                       // ["lint", "build"]
 ```
 

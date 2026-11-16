@@ -2,7 +2,7 @@ fun fails(f) {
   try {
     f();
   } catch e {
-    print(type(e) + ": " + e.message);
+    print(string(e));
   }
 }
 
