@@ -88,22 +88,6 @@ func NotOrdinal(enum *value.Shape) string {
 	return enum.Name + " has variants with fields; values(), " + enum.Name + "(n) and int() are for enums without."
 }
 
-// AssignFields sets the fields of shape that the keys of m name; any
-// other key is a KeyError.
-func AssignFields(token *ast.Token, shape *value.Shape, fields []value.Value, m *value.HashMap) error {
-	extra, ok := shape.Assign(fields, m)
-
-	switch {
-	case ok:
-		return nil
-	case extra.IsString():
-		return errors.NewRuntimeError(errors.KeyError, *token, errors.NoField(shape.Name, extra.Str()))
-	}
-
-	return errors.NewRuntimeError(errors.TypeError, *token, fmt.Sprintf(
-		"%s has no field %s; a field is named by a string.", shape.Name, helpers.Quoted(extra)))
-}
-
 // toString is string(v): v as print shows it.
 var toString = &Native{"string", 1, 1, func(c *call) value.Value {
 	if v := c.args[0]; v.IsString() {

@@ -163,13 +163,14 @@ print(cfg);      // Config {host: "example.com", port: 8080}
 print(cfg.port); // 8080
 ```
 
-Every key must be a field, and every field without a default must be
-given, by the map or by the literal. The check runs when the literal
-is built:
+Keys that name no field are skipped, so a struct takes only what it
+needs from a larger document. Every field without a default must be
+given, by the map or by the literal; the check runs when the literal is
+built:
 
 ```rune
 struct Config { host, port = 8080 }
-Config { ...["host": "example.com", "timeout": 5] }; // KeyError: Config has no field 'timeout'.
+print(Config { ...["host": "example.com", "timeout": 5] }); // Config {host: "example.com", port: 8080}
 ```
 
 ```rune

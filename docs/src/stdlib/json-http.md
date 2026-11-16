@@ -34,8 +34,8 @@ print(json.parse("42"));         // 42
 ```
 
 For typed access, spread the map into a [struct](../data/structs.md)
-literal. That checks its shape: every field without a default must be
-there, and no other key may be.
+literal. Every field without a default must be there; other keys are
+skipped.
 
 ```rune
 struct Order { id, total, items = [] }

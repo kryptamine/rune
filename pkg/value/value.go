@@ -373,28 +373,18 @@ func (s *Shape) Index(name string) int {
 	return -1
 }
 
-// Assign copies into fields the values of m whose keys name fields;
-// extra is the first key naming none.
-func (s *Shape) Assign(fields []Value, m *HashMap) (extra Value, ok bool) {
-	ok = true
-
+// Assign copies into fields the values of m whose keys name fields; it
+// skips any other key.
+func (s *Shape) Assign(fields []Value, m *HashMap) {
 	m.Each(func(k, v Value) bool {
-		slot := -1
 		if k.IsString() {
-			slot = s.Index(k.Str())
+			if slot := s.Index(k.Str()); slot >= 0 {
+				fields[slot] = Share(v)
+			}
 		}
-
-		if slot < 0 {
-			extra, ok = k, false
-			return false
-		}
-
-		fields[slot] = Share(v)
 
 		return true
 	})
-
-	return extra, ok
 }
 
 // Fill gives each undefined field its default; missing is

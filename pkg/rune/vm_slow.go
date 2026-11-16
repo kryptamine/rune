@@ -482,12 +482,12 @@ func spreadArgs(src value.Value) ([]value.Value, bool) {
 	return spreadItems(nil, src)
 }
 
-// spreadFields copies src, a struct of type shape, into the field
+// spreadFields copies src, a struct of type shape or a map, into the field
 // registers fields.
 func spreadFields(tok *ast.Token, shape *value.Shape, fields []value.Value, src value.Value) error {
 	switch {
 	case src.Kind() == value.Map:
-		return stdlib.AssignFields(tok, shape, fields, src.HashMap())
+		shape.Assign(fields, src.HashMap())
 	case src.Kind() == value.Struct && src.Shape() == shape:
 		value.ShareAll(src.Fields())
 		copy(fields, src.Fields())
