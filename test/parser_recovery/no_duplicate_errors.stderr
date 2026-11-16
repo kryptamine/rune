@@ -1,0 +1,13 @@
+error: Expect variable name.
+ --> no_duplicate_errors.rn:3:33
+  |
+2 | // [line: 3] Error at end: Expect '}' after block.
+3 | for i in 0..3 { if i == 1 { let } print(i); }
+  |                                 ^
+
+error: Expect '}' after block.
+ --> no_duplicate_errors.rn:3:46
+  |
+2 | // [line: 3] Error at end: Expect '}' after block.
+3 | for i in 0..3 { if i == 1 { let } print(i); }
+  |                                              ^

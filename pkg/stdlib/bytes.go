@@ -7,7 +7,6 @@ import (
 	"rune/pkg/errors"
 	"rune/pkg/helpers"
 	"rune/pkg/value"
-	"unicode/utf8"
 )
 
 func (c *call) bytes(i int) []byte {
@@ -17,30 +16,6 @@ func (c *call) bytes(i int) []byte {
 	}
 
 	return c.args[i].Bytes()
-}
-
-var bytesMethods = []*Native{
-	{"bytes.text", 1, 1, func(c *call) value.Value {
-		b := c.bytes(0)
-		if !c.ok() {
-			return value.NilValue
-		}
-
-		if !utf8.Valid(b) {
-			return c.fail(errors.ValueError, "got bytes that are not valid UTF-8.")
-		}
-
-		return value.NewString(string(b))
-	}},
-	{"bytes.indexOf", 2, 2, func(c *call) value.Value {
-		return found(bytes.Index(c.bytes(0), c.bytes(1)))
-	}},
-	{"bytes.hex", 1, 1, func(c *call) value.Value {
-		return value.NewString(hex.EncodeToString(c.bytes(0)))
-	}},
-	{"bytes.base64", 1, 1, func(c *call) value.Value {
-		return value.NewString(base64.StdEncoding.EncodeToString(c.bytes(0)))
-	}},
 }
 
 // toBytes is bytes(v): a string's UTF-8, an array of integers from 0 to

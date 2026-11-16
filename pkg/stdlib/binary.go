@@ -1,15 +1,19 @@
 package stdlib
 
 import (
+	"bytes"
 	"crypto/md5"
 	"crypto/sha1"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/binary"
+	"encoding/hex"
 	"hash/crc32"
 	"math"
 	"rune/pkg/errors"
 	"rune/pkg/value"
 	"slices"
+	"unicode/utf8"
 )
 
 // binaryData is argument i, bytes or a buffer, as what it holds now.
@@ -166,6 +170,26 @@ func digest(name string, sum func([]byte) []byte) *Native {
 // alike; prefix names the type.
 func readers(prefix string) []*Native {
 	return []*Native{
+		{prefix + ".text", 1, 1, func(c *call) value.Value {
+			b := c.binaryData(0)
+			switch {
+			case !c.ok():
+				return value.NilValue
+			case !utf8.Valid(b):
+				return c.fail(errors.ValueError, "got bytes that are not valid UTF-8.")
+			}
+
+			return value.NewString(string(b))
+		}},
+		{prefix + ".indexOf", 2, 2, func(c *call) value.Value {
+			return found(bytes.Index(c.binaryData(0), c.binaryData(1)))
+		}},
+		{prefix + ".hex", 1, 1, func(c *call) value.Value {
+			return value.NewString(hex.EncodeToString(c.binaryData(0)))
+		}},
+		{prefix + ".base64", 1, 1, func(c *call) value.Value {
+			return value.NewString(base64.StdEncoding.EncodeToString(c.binaryData(0)))
+		}},
 		readInt(prefix+".uint", false),
 		readInt(prefix+".int", true),
 		{prefix + ".float", 2, 4, func(c *call) value.Value {

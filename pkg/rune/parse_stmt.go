@@ -487,7 +487,7 @@ func (s *Parser) statement() (ast.Stmt, error) {
 	return s.expressionStatement()
 }
 
-// jumpStatement parses `return x;`, `break;` or `continue;` (the keyword
+// jumpStatement parses `return x;`, `break;` or `continue;`, the `;` optional before `}` (the keyword
 // is consumed).
 func (s *Parser) jumpStatement() (ast.Stmt, error) {
 	keyword := s.previous()
@@ -495,6 +495,10 @@ func (s *Parser) jumpStatement() (ast.Stmt, error) {
 	j, err := s.jumpExpr()
 	if err != nil {
 		return nil, err
+	}
+
+	if s.blockDepth > 0 && s.check(ast.RIGHT_BRACE) {
+		return j.Stmt, nil
 	}
 
 	if _, err := s.consume(ast.SEMICOLON, fmt.Sprintf("Expect ';' after '%s'.", keyword.Lexeme)); err != nil {

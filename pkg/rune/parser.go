@@ -185,7 +185,10 @@ func (s *Parser) safeDeclaration() ast.Stmt {
 
 // recover records err and skips past the statement it is in.
 func (s *Parser) recover(err error) {
-	s.errors = append(s.errors, err)
+	if n := len(s.errors); n == 0 || s.errors[n-1].Error() != err.Error() {
+		s.errors = append(s.errors, err)
+	}
+
 	s.synchronize()
 }
 

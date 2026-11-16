@@ -1,0 +1,15 @@
+exit: 65
+-- stdout --
+-- stderr --
+error: Expect expression.
+ --> syntax_error.rn:1:14
+  |
+1 | let x = (1 + ;
+  |              ^
+
+error: Expect ';' after expression.
+ --> syntax_error.rn:2:9
+  |
+1 | let x = (1 + ;
+2 | print(x)
+  |         ^
