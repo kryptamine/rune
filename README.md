@@ -20,11 +20,11 @@ compiled to register bytecode and run by a VM.
 <img src="assets/example.png" alt="Rune example" width="100%">
 
 ```
-skip: unknown shape 'hexagon'
-skip: int() cannot parse "x" as an integer.
-25      Shape.Rect {w: 5, h: 5}
-12.56   Shape.Circle {r: 2}
-12      Shape.Rect {w: 3, h: 4}
+api   ✓ up
+auth  ~ slow, 830ms
+cdn   ✗ gone
+db    ✗ HTTP 503
+cache ✗ number() cannot parse "ok" as a number.
 ```
 
 ## Features
