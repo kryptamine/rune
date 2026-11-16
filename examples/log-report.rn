@@ -31,13 +31,13 @@ fun normalize(path) {
 }
 
 fun statusClass(code) => match code {
-    _ if code < 200 => "1xx",
-    _ if code < 300 => "2xx",
+    ..200 => "1xx",
+    200..300 => "2xx",
     304 => "304",
-    _ if code < 400 => "3xx",
+    300..400 => "3xx",
     404 => "404",
     429 => "429",
-    _ if code < 500 => "4xx",
+    400..500 => "4xx",
     _ => "5xx",
 };
 
@@ -286,10 +286,10 @@ fun generate(path, n = 400) {
         let roll = rng.int(100);
 
         let status = match roll {
-            _ if roll < 82 => route.method == "POST" ? 201 : 200,
-            _ if roll < 88 => 304,
-            _ if roll < 93 => 404,
-            _ if roll < 95 => 429,
+            ..82 => route.method == "POST" ? 201 : 200,
+            82..88 => 304,
+            88..93 => 404,
+            93..95 => 429,
             _ => [500, 502, 503][rng.int(3)],
         };
 

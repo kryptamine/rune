@@ -1,0 +1,68 @@
+const LOW = 10;
+const HIGH = 20;
+
+fun class(code) {
+    return match code {
+        ..200 => "1xx",
+        200..300 => "2xx",
+        304 => "304",
+        300..=399 => "3xx",
+        500.. => "5xx",
+        _ => "4xx",
+    };
+}
+
+print(class(100));   // expect: 1xx
+print(class(199.9)); // expect: 1xx
+print(class(200));   // expect: 2xx
+print(class(299));   // expect: 2xx
+print(class(300));   // expect: 3xx
+print(class(304));   // expect: 304
+print(class(399));   // expect: 3xx
+print(class(399.5)); // expect: 4xx
+print(class(400));   // expect: 4xx
+print(class(500));   // expect: 5xx
+print(class(-5));    // expect: 1xx
+
+print(class("200")); // expect: 4xx
+print(class(nil));   // expect: 4xx
+print(class([200])); // expect: 4xx
+print(class(0 / 0)); // expect: 4xx
+print(class(1 / 0)); // expect: 5xx
+
+fun where(v) {
+    return match v {
+        -5..=-1 | LOW..HIGH => "in",
+        0.5..1.5 => "fraction",
+        ..=-100.5 => "far",
+        { status: 200..300 } => "ok",
+        [..0, 1..] => "pair",
+        n if n is number => "number",
+        _ => "other",
+    };
+}
+
+print(where(-5));              // expect: in
+print(where(-1));              // expect: in
+print(where(0));               // expect: number
+print(where(10));              // expect: in
+print(where(19.5));            // expect: in
+print(where(20));              // expect: number
+print(where(1));               // expect: fraction
+print(where(1.5));             // expect: number
+print(where(-100.5));           // expect: far
+print(where(-100));             // expect: number
+print(where({ status: 204 })); // expect: ok
+print(where({ status: 404 })); // expect: other
+print(where([-1, 1]));         // expect: pair
+print(where([0, 1]));          // expect: other
+
+let mut seen = [];
+for n in 0..6 {
+    match n {
+        ..2 => seen.push("low"),
+        4.. if n % 2 == 0 => seen.push("even high"),
+        _ => {}
+    }
+}
+print(seen); // expect: ["low", "low", "even high"]

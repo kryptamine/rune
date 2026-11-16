@@ -1,0 +1,14 @@
+struct P { x }
+enum E { A }
+const S = "s";
+let v = 1;
+match 1 { 5..5 => 1, _ => 2 }; // Error at '..': Range pattern matches no number.
+match 1 { 5..=4 => 1, _ => 2 }; // Error at '..=': Range pattern matches no number.
+match 1 { v..3 => 1, _ => 2 }; // Error at '..': A bound of a range pattern must be a number or a constant holding one.
+match 1 { 1..S => 1, _ => 2 }; // Error at '..': A bound of a range pattern must be a number or a constant holding one.
+match 1 { E.A.. => 1, _ => 2 }; // Error at '..': A bound of a range pattern must be a number or a constant holding one.
+match 1 { 1..P => 1, _ => 2 }; // Error at 'P': 'P' is a struct type; test it with '_ is P'.
+match 1 { 1..E.B => 1, _ => 2 }; // Error at 'B': E has no variant 'B'.
+match 1 { nil..3 => 1, _ => 2 }; // Error at '..': A bound of a range pattern must be a number or a constant holding one.
+match 1 { 1..x is P => 1, _ => 2 }; // Error at '..': A bound of a range pattern must be a number or a constant holding one.
+match 1 { ..5 => 1, 5..=5 => 2, 6.. => 3 };

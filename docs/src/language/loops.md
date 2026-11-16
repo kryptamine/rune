@@ -60,7 +60,8 @@ A body is always a block: `if order.total == 0 { continue; }`.
 Count with `a..b` (end excluded) or `a..=b` (end included), optionally
 `step n`; a `for`-`in` walks it, and `x in a..b` tests it, without building
 the array. Anywhere else a range is an array. In brackets it
-[slices](../data/arrays.md): `xs[1..]`. `..` binds looser than arithmetic
+[slices](../data/arrays.md), `xs[1..]`, and in a `match` it is a
+[pattern](pattern-matching.md#patterns), `200..300 => "ok"`. `..` binds looser than arithmetic
 and bitwise operators and tighter than comparisons, so `0..n + 1`,
 `x in 0..10` and `xs == 1..3` need no parentheses; a `??` or `? :` in a
 bound does.

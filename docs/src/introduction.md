@@ -55,7 +55,7 @@ Language chapters in order.
 - [functions](language/functions.md): closures, defaults, arrows `x => x * 2`, expression bodies `fun sq(x) => x * x;`
 - [spread and rest](language/spread-and-rest.md), [destructuring](language/destructuring.md): `let [head, ...tail] = xs;`
 - [nil safety](language/nil-safety.md): `resp?.data?.items ?? []`
-- [pattern matching](language/pattern-matching.md) on literals, types, structs, arrays and enums, exhaustive over enum variants
+- [pattern matching](language/pattern-matching.md) on literals, ranges, types, structs, arrays and enums, exhaustive over enum variants
 - [errors](language/error-handling.md): `throw`, `try`/`catch` by type, `try` as an expression, `defer`
 - `return`, `break`, `continue` and `throw` as expressions: `let v = x ?? return nil;`
 

@@ -109,7 +109,42 @@ func (s *Parser) matchPattern() (ast.Pattern, error) {
 	return &ast.OrPattern{Alts: alts}, nil
 }
 
+// patternAlt parses a pattern, or a range whose bounds are patterns: a
+// number or the name of a constant, which the resolver checks.
 func (s *Parser) patternAlt() (ast.Pattern, error) {
+	var lo ast.Pattern
+
+	if !s.check(ast.DOT_DOT) && !s.check(ast.DOT_DOT_EQUAL) {
+		var err error
+		if lo, err = s.patternAtom(); err != nil {
+			return nil, err
+		}
+	}
+
+	if !s.match(ast.DOT_DOT, ast.DOT_DOT_EQUAL) {
+		return lo, nil
+	}
+
+	pat := &ast.RangePattern{Op: s.previous(), Lo: lo, Inclusive: s.previous().TokenType == ast.DOT_DOT_EQUAL}
+
+	if s.check(ast.NUMBER) || s.check(ast.MINUS) || s.check(ast.IDENTIFIER) {
+		var err error
+		if pat.Hi, err = s.patternAtom(); err != nil {
+			return nil, err
+		}
+	}
+
+	switch {
+	case pat.Hi == nil && pat.Inclusive:
+		return nil, errors.NewSyntaxError(s.peek(), "Expect upper bound after '..='.")
+	case pat.Hi == nil && lo == nil:
+		return nil, errors.NewSyntaxError(s.peek(), "Expect a bound of the range pattern.")
+	}
+
+	return pat, nil
+}
+
+func (s *Parser) patternAtom() (ast.Pattern, error) {
 	switch {
 	case s.match(ast.NUMBER):
 		return s.numberPattern(s.previous(), false)
