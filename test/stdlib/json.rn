@@ -12,7 +12,7 @@ try { json.stringify(math.INF); } catch e is ValueError { print(e.message); } //
 
 let mut deep = [];
 for i in 0..1001 { deep = [deep]; }
-try { json.stringify(deep); } catch e is ValueError { print(e.message); } // expect: json.stringify() cannot encode a cyclic or too deeply nested value.
+try { json.stringify(deep); } catch e is ValueError { print(e.message); } // expect: json.stringify() cannot encode a value nested over 1000 deep.
 
 let doc = { name: "ann", tags: ["a"], empty: [], none: {}, nested: { ok: true } };
 print(json.stringify(doc, 2));

@@ -15,7 +15,7 @@ import (
 	"unicode/utf8"
 )
 
-// maxJSONDepth bounds stringify's nesting, which also stops it on a cycle.
+// maxJSONDepth bounds stringify's nesting.
 const maxJSONDepth = 1000
 
 var jsonNatives = []*Native{
@@ -160,7 +160,7 @@ func readJSON(d *json.Decoder) (value.Value, error) {
 // appendJSON encodes objects in key order and structs in field order.
 func appendJSON(c *call, buf []byte, v value.Value, depth int) []byte {
 	if depth > maxJSONDepth {
-		c.fail(errors.ValueError, "cannot encode a cyclic or too deeply nested value.")
+		c.fail(errors.ValueError, "cannot encode a value nested over %d deep.", maxJSONDepth)
 		return buf
 	}
 

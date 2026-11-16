@@ -82,9 +82,11 @@ fun byTag(posts) {
 
     for p in posts {
         for t in p.tags {
-            let mut list = tags?.[t] ?? [];
-            list.push(p);
-            tags[t] = list;
+            if t !in tags {
+                tags[t] = [];
+            }
+
+            tags[t].push(p);
         }
     }
 

@@ -19,9 +19,9 @@ print(type(x => x * 2));       // function
 
 Every value is copied where it goes: assigning it, passing it to a
 function, returning it, capturing it in a closure, storing it in an element,
-a property or a field. Arrays, objects, maps, sets and buffers are no
-exception, so two variables never hold one changeable container: changing
-one leaves the other as it was. A copy costs nothing until one of them is
+a property or a field. Arrays, objects, maps, sets, buffers and structs
+are no exception, so two values never hold one changeable container:
+changing one leaves the other as it was. A copy costs nothing until one of them is
 written, and none at all if the source is not read again.
 
 ```rune
@@ -34,16 +34,23 @@ print(b); // {tags: ["new", "sale"], price: 10}
 ```
 
 A function changes the caller's variable only through a
-[`mut` parameter](functions.md#mut-parameters). State that several
-functions change is a variable they capture:
+[`mut` parameter](functions.md#mut-parameters). The one way to share
+changeable state is a variable that functions capture; a copy taken from
+it keeps its value when they change it later:
 
 ```rune
 let mut seen = set();
 fun visit(id) { seen.add(id); }
 visit(1);
+let before = seen;
 visit(2);
-print(seen); // set {1, 2}
+print(seen);   // set {1, 2}
+print(before); // set {1}
 ```
+
+No value refers to another, so no container holds itself: a graph or a
+tree with links back is built on indices or keys, as in
+[the linked list](https://github.com/kryptamine/rune/blob/master/examples/linked-list.rn).
 
 Functions and streams are not data and are not copied: a copy of one is
 the same function or stream.
@@ -150,7 +157,7 @@ print(1 in "123"); // TypeError: Left operand of 'in' must be a string for strin
 ## Equality
 
 `==` compares numbers (an integer with a float too), strings, bytes, booleans and `nil` by value, functions and streams by identity,
-and arrays, objects, maps and sets structurally (element by element, cycles included), so
+and arrays, objects, maps, sets and structs structurally (element by element), so
 `[1, 2] == [1, 2]` is `true`. `in` and `indexOf` use the same equality.
 `NaN` equals nothing, itself included.
 Values of different types are never equal: `1 == "1"` is `false`.

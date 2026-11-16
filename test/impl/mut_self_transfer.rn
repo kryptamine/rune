@@ -55,7 +55,7 @@ fun params() {
 
 params();
 
-// A method that lets self go gives the variable a shared struct.
+// A method that keeps self keeps it as it was then.
 fun leaky() {
     let mut c = C {};
     c.incr();
@@ -81,7 +81,7 @@ fun failing() {
 
 failing();
 
-// Top-level variables own their structs too.
+// Top-level variables too.
 let mut t = C {};
 t.incr();
 let u = t;
@@ -120,7 +120,7 @@ fun boxed() {
 
 boxed();
 
-// A try in a caller further out does not see the struct.
+// An error in another function leaves the caller's variable alone.
 fun inner() {
     let mut c = C {};
     c.incr();
@@ -136,7 +136,7 @@ fun outer() {
 
 outer();
 
-// An error in a method that lets self go is traced to the call.
+// An error in a method that keeps self is traced to the call.
 impl C {
   fun bad(mut self) { kept.push(self); return self + 0; }
 }

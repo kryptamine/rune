@@ -32,7 +32,9 @@ be changed either: index and property assignment (`a[0] = 1`, `o.x += 1`,
 methods (`push`, `pop`, `sort`, `reverse`, `set.add`, `delete`, `clear`,
 ...) and of `mut self` methods are compile errors. Taking an in-place
 method as a value is a runtime `TypeError`. Methods that return a new value
-(`append`, `map`, ...) work as usual.
+(`append`, `map`, ...) work as usual. As every value is
+[copied](values.md#copies), nothing else can change it either: what a
+`let` holds never changes.
 
 ```rune
 let config = { db: { hosts: ["db1"] } };

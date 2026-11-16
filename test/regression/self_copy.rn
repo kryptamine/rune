@@ -7,6 +7,6 @@ let mut o = {name: "o"};
 o["self"] = o;
 print(o); // expect: {name: "o", self: {name: "o"}}
 
-// A value shared without a cycle is printed in full every time.
+// A value held twice is printed in full every time.
 let shared = [1, 2];
 print([shared, shared]); // expect: [[1, 2], [1, 2]]

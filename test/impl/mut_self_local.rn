@@ -1,6 +1,5 @@
-// A mutable local that never lets its struct go lends it to mut self
-// methods, which change it in place once it holds a copy of its own;
-// none of these may see it change.
+// A mut self method changes a local's struct in place unless another
+// holder has it; none of these may see it change.
 struct P { x = 0, y = 0 }
 
 impl P {

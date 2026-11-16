@@ -268,8 +268,11 @@ func (lv *liveness) expr(e ast.Expr, live liveSet) {
 			lv.holds(prop.Array, live)
 		}
 
-		for _, arg := range n.Args {
-			lv.holds(arg, live)
+		// A method that keeps its arguments takes copies, which may move.
+		if !n.Keeps {
+			for _, arg := range n.Args {
+				lv.holds(arg, live)
+			}
 		}
 
 		lv.exprs(n.Args, live)
