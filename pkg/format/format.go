@@ -1,6 +1,7 @@
 // Package format lays out rune source: indentation, spacing between
-// tokens, a line per statement and blank lines around blocks. Other line
-// breaks, comments and string literals stay as written.
+// tokens, a line per statement, a block holding another block on lines of
+// its own and blank lines around blocks. Other line breaks, comments and
+// string literals stay as written.
 package format
 
 import (
@@ -19,6 +20,8 @@ type atom struct {
 	text   string
 	role   role
 	before gap
+	// brace says what a { opens.
+	brace brace
 	// indent is how far the source line of the atom is indented.
 	indent int
 }
@@ -37,6 +40,16 @@ const (
 func (a *atom) ended() bool { return a.role == operand }
 
 // gap is what precedes an atom: comments, and the newlines before each.
+// brace is what a { opens: a block, a match body, or neither, as for an
+// object.
+type brace int
+
+const (
+	plain brace = iota
+	block
+	matchBody
+)
+
 type gap struct {
 	comments []comment
 	breaks   int
@@ -65,12 +78,13 @@ type printer struct {
 
 // Source formats src, or returns the syntax errors that stop it.
 func Source(src []byte) ([]byte, []error) {
-	tokens, errs := rune.Parse(src)
+	tokens, braces, errs := rune.Parse(src)
 	if len(errs) > 0 {
 		return nil, errs
 	}
 
-	atoms, tail := split(string(src), tokens)
+	atoms, tail := split(string(src), tokens, braces)
+	expand(atoms)
 	layout(atoms)
 
 	p := &printer{frames: []frame{{}}}
@@ -95,14 +109,22 @@ func Source(src []byte) ([]byte, []error) {
 	return out, nil
 }
 
-// split makes atoms of tokens, and returns them with the comments after
-// the last one.
-func split(s string, tokens []ast.Token) ([]atom, []comment) {
+// split makes atoms of tokens, marking what each { opens, and returns
+// them with the comments after the last one.
+func split(s string, tokens []ast.Token, braces rune.Braces) ([]atom, []comment) {
 	var atoms []atom
 	from, ended, importing := 0, false, false
+	blocks, matches := braces.Blocks, braces.Matches
 
 	for i := 0; i < len(tokens)-1; i++ {
 		t := tokens[i]
+		opens := plain
+		switch {
+		case len(blocks) > 0 && blocks[0] == i:
+			opens, blocks = block, blocks[1:]
+		case len(matches) > 0 && matches[0] == i:
+			opens, matches = matchBody, matches[1:]
+		}
 		start := t.Offset
 
 		if t.TokenType == ast.INTERPOLATION {
@@ -111,7 +133,7 @@ func split(s string, tokens []ast.Token) ([]atom, []comment) {
 			t.TokenType = ast.STRING
 		}
 
-		a := atom{tok: t, text: t.Lexeme, before: parseGap(s[from:start]), indent: lineIndent(s, start)}
+		a := atom{tok: t, text: t.Lexeme, before: parseGap(s[from:start]), indent: lineIndent(s, start), brace: opens}
 		a.role = classify(&a, ended)
 		if importing {
 			a.role = path
@@ -124,6 +146,62 @@ func split(s string, tokens []ast.Token) ([]atom, []comment) {
 	}
 
 	return atoms, parseGap(s[from:]).comments
+}
+
+// expand puts the inside of a block that holds another block on lines of
+// its own, each arm of a match body too, and so the blocks chained to it
+// by else or catch.
+func expand(atoms []atom) {
+	n := len(atoms)
+	closing, owner, chained := make([]int, n), make([]int, n), make([]int, n)
+	nested := make([]bool, n)
+
+	var opens []int
+	// link is the block an else or catch chains the next block at its depth to.
+	link := -1
+	for i := range atoms {
+		owner[i], chained[i] = -1, i
+		if len(opens) > 0 {
+			owner[i] = opens[len(opens)-1]
+		}
+
+		switch t := atoms[i].tok.TokenType; {
+		case opener(t):
+			if atoms[i].brace != plain {
+				for _, o := range opens {
+					nested[o] = true
+				}
+				if link >= 0 && owner[i] == owner[link] {
+					chained[i], link = chained[link], -1
+				}
+			}
+			opens = append(opens, i)
+		case closer(t) && len(opens) > 0:
+			o := opens[len(opens)-1]
+			opens = opens[:len(opens)-1]
+			closing[o] = i
+			if atoms[o].brace != plain && i+1 < n && (atoms[i+1].tok.TokenType == ast.ELSE || atoms[i+1].tok.TokenType == ast.CATCH) {
+				link = o
+			}
+		}
+	}
+
+	for i := range atoms {
+		if atoms[i].brace != plain && nested[i] {
+			nested[chained[i]] = true
+		}
+	}
+
+	open := func(o int) bool { return o >= 0 && atoms[o].brace != plain && nested[chained[o]] }
+	for i := range atoms {
+		switch {
+		case open(i) && closing[i] > i+1:
+			lineBreak(&atoms[i+1], 1)
+			lineBreak(&atoms[closing[i]], 1)
+		case atoms[i].tok.TokenType == ast.COMMA && open(owner[i]) && atoms[owner[i]].brace == matchBody && i+1 < closing[owner[i]]:
+			lineBreak(&atoms[i+1], 1)
+		}
+	}
 }
 
 // layout puts each statement on a line of its own, and blank lines

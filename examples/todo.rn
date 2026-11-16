@@ -48,6 +48,7 @@ fun parseDate(s, now) {
         } catch e is ValueError {
             throw UsageError { message: "bad date '{s}'" };
         }
+
         return s;
     }
 
@@ -254,18 +255,24 @@ fun run(mut store, [cmd = "list", ...args], now) {
             print("  added #{id}");
         },
         "list" | "ls" => list(store, args, now),
-        "done" => { for id in ids(args) {
-            let t = store.update(id, t => Task { ...t, completed: now });
-            print("  done #{id} {t.text}");
-        } },
-        "undo" => { for id in ids(args) {
-            store.update(id, t => Task { ...t, completed: nil });
-            print("  reopened #{id}");
-        } },
-        "rm" => { for id in ids(args) {
-            let t = store.remove(id);
-            print("  removed #{id} {t.text}");
-        } },
+        "done" => {
+            for id in ids(args) {
+                let t = store.update(id, t => Task { ...t, completed: now });
+                print("  done #{id} {t.text}");
+            }
+        },
+        "undo" => {
+            for id in ids(args) {
+                store.update(id, t => Task { ...t, completed: nil });
+                print("  reopened #{id}");
+            }
+        },
+        "rm" => {
+            for id in ids(args) {
+                let t = store.remove(id);
+                print("  removed #{id} {t.text}");
+            }
+        },
         "edit" => {
             let [id = throw UsageError { message: "which task? give an id" }, ...words] = args;
             let changes = parseTask(words, now);

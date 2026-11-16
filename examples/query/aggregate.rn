@@ -91,12 +91,16 @@ fun accumulate(mut acc, aggs, r) {
                 acc[i][0] += v;
                 acc[i][1] += 1;
             },
-            Agg.Min => { if acc[i] == nil || expr.compare(v, acc[i]) < 0 {
-                acc[i] = v;
-            } },
-            Agg.Max => { if acc[i] == nil || expr.compare(v, acc[i]) > 0 {
-                acc[i] = v;
-            } }
+            Agg.Min => {
+                if acc[i] == nil || expr.compare(v, acc[i]) < 0 {
+                    acc[i] = v;
+                }
+            },
+            Agg.Max => {
+                if acc[i] == nil || expr.compare(v, acc[i]) > 0 {
+                    acc[i] = v;
+                }
+            }
         }
     }
 }

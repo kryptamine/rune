@@ -13,7 +13,9 @@ import .codec;
 
 fun ms(since) { "%.1f ms".format((time.now() - since) * 1000) }
 
-fun kb(n) { if n < 1024 { "{n} B" } else { "%.1f KB".format(n / 1024) } }
+fun kb(n) {
+    if n < 1024 { "{n} B" } else { "%.1f KB".format(n / 1024) }
+}
 
 fun show(info) { "{info.keys} keys, {info.segments} segments, {kb(info.size)} on disk, {kb(info.dead)} dead" }
 
@@ -75,12 +77,23 @@ fun demo() {
     let mut broken = bytes.buffer(good);
     broken[100] ^= 0xFF;
     fs.write(first, broken);
-    try { store.Store.open(dir, opts); } catch e is store.KvError { print("  open failed: {e.message}"); }
+
+    try {
+        store.Store.open(dir, opts);
+    } catch e is store.KvError {
+        print("  open failed: {e.message}");
+    }
+
     fs.write(first, good);
 
     print("\n== a second writer");
     db = store.Store.open(dir, opts);
-    try { store.Store.open(dir, opts); } catch e is store.KvError { print("  open failed: {e.message.replace(dir, "<dir>")}"); }
+
+    try {
+        store.Store.open(dir, opts);
+    } catch e is store.KvError {
+        print("  open failed: {e.message.replace(dir, "<dir>")}");
+    }
 
     print("\n== compaction");
     t = time.now();

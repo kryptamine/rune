@@ -21,6 +21,8 @@ func (s *Parser) matchExpr() (*ast.MatchExpr, error) {
 		return nil, err
 	}
 
+	s.braces.Matches = append(s.braces.Matches, s.current-1)
+
 	var arms []ast.MatchArm
 
 	for !s.check(ast.RIGHT_BRACE) && !s.isAtEnd() {

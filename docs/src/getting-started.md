@@ -80,7 +80,9 @@ hello, ann!
 | `rune version` | Prints the interpreter's version. |
 
 `rune fmt` gives every program one layout: 4-space indents, spaces around
-operators, one statement per line.
+operators, one statement per line. A block that holds another block goes
+on lines of its own, and so do the blocks chained to it by `else` or
+`catch`, and each arm of such a `match`.
 
 ```sh
 $ cat messy.rn
