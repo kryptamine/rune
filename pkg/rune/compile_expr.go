@@ -223,6 +223,11 @@ func (fs *funcState) share(e ast.Expr, r int32) {
 		return
 	}
 
+	if p := paramMove(e); p > 0 {
+		fs.emit(ins{op: opShareParam, a: r, b: int32(p - 1)}, nil)
+		return
+	}
+
 	if n := len(fs.code); n > 0 {
 		last := &fs.code[n-1]
 
@@ -253,7 +258,7 @@ func fresh(e ast.Expr) bool {
 
 	switch n := unwrap(e).(type) {
 	case *ast.VarExpr:
-		return isConst(n) || n.Moves
+		return isConst(n) || n.Moves && n.Local.Param == 0
 	case *ast.LiteralExpr, *ast.ArrayExpr, *ast.ObjectExpr, *ast.StructExpr, *ast.CallExpr,
 		*ast.BinaryExpr, *ast.UnaryExpr, *ast.InterpolationExpr, *ast.RangeExpr, *ast.FunctionExpr,
 		*ast.SliceExpr, *ast.IsExpr, *ast.UpdateExpr:
@@ -265,6 +270,29 @@ func fresh(e ast.Expr) bool {
 	}
 
 	return false
+}
+
+// paramMove is the Param of the parameter e reads last, or 0: it gives
+// its value up only if the caller did.
+func paramMove(e ast.Expr) int {
+	if v, ok := unwrap(e).(*ast.VarExpr); ok && v.Moves {
+		return v.Local.Param
+	}
+
+	return 0
+}
+
+// givenUp has a bit for each argument of a call nothing else holds once
+// the caller passed it, as C of the call: a parameter owns it.
+func givenUp(args []ast.Expr, places []*lval) int32 {
+	var mask int32
+	for i, arg := range args {
+		if (places == nil || places[i] == nil) && fresh(arg) {
+			mask |= 1 << i
+		}
+	}
+
+	return mask
 }
 
 // arg compiles an argument: a parameter keeps it unshared, unless read
@@ -724,7 +752,7 @@ func (fs *funcState) call(n *ast.CallExpr, dst int32) {
 			}
 		}
 
-		fs.inoutCall(ins{op: opCall, a: base, b: int32(len(n.Args))}, places, places, base+1, &n.Token)
+		fs.inoutCall(ins{op: opCall, a: base, b: int32(len(n.Args)), c: givenUp(n.Args, places)}, places, places, base+1, &n.Token)
 		fs.move(dst, base)
 
 		return
@@ -798,7 +826,8 @@ func (fs *funcState) invoke(n *ast.CallExpr, prop *ast.IndexExpr, dst int32) {
 	}
 
 	name := fs.constant(value.NewString(prop.Token.Lexeme))
-	call := ins{op: opInvoke, a: base, b: int32(len(n.Args)), c: name, x: uint8(boolNum(n.Frozen)), y: uint8(boolNum(n.Writable))}
+	x := uint8(boolNum(n.Frozen)) | uint8(boolNum(fresh(prop.Array))*givenRecv)
+	call := ins{op: opInvoke, a: base, b: int32(len(n.Args)), c: name, x: x, y: uint8(boolNum(n.Writable))}
 	fs.inoutCall(call, all, guarded, self, &prop.Token)
 	fs.move(dst, base)
 }

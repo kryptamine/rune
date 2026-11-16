@@ -22,13 +22,19 @@ const maxRecursionDepth = 10_000
 // frame is a running call: its registers start at stack[base], and the
 // callee itself sits just below them, where its result goes.
 // inout has the bits of the arguments the frame's last call writes
-// back that are yet to go back.
+// back that are yet to go back, given those of its own arguments its
+// caller gave up.
 type frame struct {
 	cl    *Closure
 	pc    int
 	base  int
 	inout uint32
+	given uint32
 }
+
+// callSite is what a call passes on besides its arguments: the bits of
+// those it writes back and of those it gives up.
+type callSite struct{ inout, given uint32 }
 
 // handler is an active try: an error in frames[frame] or above resumes at
 // pc there, with the caught value in register reg if bind, and if keep
@@ -169,7 +175,7 @@ func (p *Interpreter) CallValue(fn value.Value, args []value.Value, token *ast.T
 			p.stack[at] = fn
 			copy(p.stack[at+1:], args)
 
-			if err := p.enter(f, at+1, len(args), token, 0); err != nil {
+			if err := p.enter(f, at+1, len(args), token, callSite{}); err != nil {
 				return value.NilValue, err
 			}
 
@@ -177,7 +183,7 @@ func (p *Interpreter) CallValue(fn value.Value, args []value.Value, token *ast.T
 		case *BoundMethod:
 			return p.CallValue(value.NewFunction(f.fn), append([]value.Value{f.recv}, args...), token)
 		case *BoundNative:
-			return p.host.CallMethod(f.fn, append([]value.Value{f.recv}, args...), token)
+			return p.host.CallMethod(f.fn, append([]value.Value{f.recv}, args...), token, false)
 		case *stdlib.Native:
 			return p.host.Call(f, args, token)
 		}
@@ -204,21 +210,21 @@ func (p *Interpreter) Required(fn value.Value) int {
 }
 
 // enter pushes a frame calling cl with the nargs arguments at stack[base:],
-// of which the call writes back those inout has bits for.
-func (p *Interpreter) enter(cl *Closure, base, nargs int, tok *ast.Token, inout uint32) error {
+// passing on what site does.
+func (p *Interpreter) enter(cl *Closure, base, nargs int, tok *ast.Token, site callSite) error {
 	f := cl.proto
 	if !f.accepts(nargs) || len(p.frames) > p.maxRecursion {
 		return p.callError(cl, nargs, tok)
 	}
 
 	if f.inout != 0 {
-		if lost := f.inout & (1<<nargs - 1) &^ inout; lost != 0 {
+		if lost := f.inout & (1<<nargs - 1) &^ site.inout; lost != 0 {
 			return errors.NewRuntimeError(errors.TypeError, *tok, fmt.Sprintf(
 				"Mut parameter '%s' of %s takes a mutable variable, element or property.", f.params[bits.TrailingZeros32(lost)], f.displayName()))
 		}
 	}
 
-	if m := f.inout & inout; m != 0 {
+	if m := f.inout & site.inout; m != 0 {
 		p.frames[len(p.frames)-1].skipToWriteBacks(m)
 	}
 
@@ -235,7 +241,7 @@ func (p *Interpreter) enter(cl *Closure, base, nargs int, tok *ast.Token, inout 
 		p.stack[base+f.arity] = value.NewArray(append([]value.Value(nil), rest...))
 	}
 
-	p.frames = append(p.frames, frame{cl: cl, base: base})
+	p.frames = append(p.frames, frame{cl: cl, base: base, given: site.given})
 
 	return nil
 }
@@ -319,14 +325,19 @@ func (p *Interpreter) restore(fr *frame) {
 	}
 }
 
-// siteInout has the bits of the places the call in, which fr just ran,
-// writes back: A of the jump after it, at an inout site.
-func (fr *frame) siteInout(in Instr) uint32 {
-	if in.x()&inoutSite == 0 {
-		return 0
+// site is what the call in, which fr just ran, passes on: A of the jump
+// after an inout site, and for opCall C.
+func (fr *frame) site(in Instr) callSite {
+	var s callSite
+	if in.x()&inoutSite != 0 {
+		s.inout = uint32(fr.cl.proto.code[fr.pc].a())
 	}
 
-	return uint32(fr.cl.proto.code[fr.pc].a())
+	if in.op() == opCall {
+		s.given = uint32(in.c())
+	}
+
+	return s
 }
 
 // skipToWriteBacks makes fr resume past the jump after its last call,

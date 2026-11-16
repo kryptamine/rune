@@ -72,7 +72,7 @@ func compile(stmts []ast.Stmt, builtins []namedLocal, main *ast.FunctionStmt, me
 		fs.declareStructs(stmts)
 		fs.declareTopLevel(stmts, builtins)
 		fs.declareMethods(stmts)
-		markMoves(stmts)
+		markMoves(nil, stmts)
 		fs.stmts(stmts)
 
 		if main == nil {
@@ -299,7 +299,13 @@ func (fs *funcState) functionNamed(decl *ast.FunctionStmt, name string, mutSelf 
 
 	f.proto.prologue = len(f.code)
 
-	markMoves(decl.Body)
+	for i, param := range decl.Parameters {
+		if !param.Mutable && !(decl.Rest && i == len(decl.Parameters)-1) {
+			param.Local.Param = i + 1
+		}
+	}
+
+	markMoves(decl.Parameters, decl.Body)
 	f.stmts(decl.Body)
 	f.returnSelf()
 	f.emit(ins{op: opReturnNil}, nil)

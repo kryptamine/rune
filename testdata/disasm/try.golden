@@ -19,7 +19,7 @@ exit: 0
    15  TRY           5 0 21
    16  MOVE          5 4 0
    17  LOADK         6 0 6
-   18  CALL          5 1 0
+   18  CALL          5 1 1
    19  ENDTRY        0 1 0
    20  JMP           0 0 21
    21  TRY           5 0 27  x=0 y=true
@@ -37,7 +37,7 @@ exit: 0
    33  JMP           0 0 37
    34  MOVE          6 4 0
    35  LOADK         7 0 7
-   36  CALL          6 1 0
+   36  CALL          6 1 1
    37  TRY           5 0 43  x=1 y=true
    38  ARRAY         6 7 0
    39  LOADK         7 0 7

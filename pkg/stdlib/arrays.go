@@ -9,8 +9,16 @@ import (
 )
 
 var arrayMethods = []*Native{
-	// append copies, so the result never shares a backing array with the input.
+	// append copies, unless the caller gave up an array nothing else
+	// holds, which it then grows.
 	{"array.append", 2, -1, func(c *call) value.Value {
+		if c.arr(0); c.given && c.ok() && !c.args[0].Shared() {
+			arr := c.args[0].ArrRef()
+			*arr = append(*arr, value.ShareAll(c.args[1:])...)
+
+			return c.args[0]
+		}
+
 		return sharedArray(slices.Concat(c.arr(0), c.args[1:]))
 	}},
 	{"array.join", 2, 2, func(c *call) value.Value {

@@ -3,6 +3,7 @@ package rune
 import (
 	"rune/pkg/ast"
 	"rune/pkg/value"
+	"slices"
 )
 
 // nilJump makes the optional chain being compiled nil if R[r] is.
@@ -118,7 +119,7 @@ func (fs *funcState) setIndex(n *ast.SetIndexExpr) int32 {
 		}
 
 		fs.share(n.Value, v)
-		pl.store(v)
+		pl.store(v, quiet(n))
 
 		return v
 	}
@@ -130,7 +131,7 @@ func (fs *funcState) setIndex(n *ast.SetIndexExpr) int32 {
 
 	v := fs.exprAny(n.Value)
 	fs.emit(binaryIns(n.Op.TokenType, old, old, v), n.Op)
-	pl.store(old)
+	pl.store(old, quiet(n))
 
 	return old
 }
@@ -206,6 +207,38 @@ func (fs *funcState) update(n *ast.UpdateExpr, dst int32) {
 
 	incr.a, incr.b = v, old
 	fs.emit(incr, op)
-	pl.store(v)
+	pl.store(v, reads(target))
 	fs.move(dst, old)
+}
+
+// quiet reports whether the write n shares nothing between loading the
+// path it writes and writing: its indices and value only read, and the
+// value is no part of the variable written.
+func quiet(n *ast.SetIndexExpr) bool {
+	return reads(n.Array) && reads(n.Index) && reads(n.Value) && !sameRoot(n.Value, n.Array)
+}
+
+// reads reports whether e only reads: no call, assignment or container
+// it makes holds anything.
+func reads(e ast.Expr) bool {
+	switch n := e.(type) {
+	case nil, *ast.LiteralExpr, *ast.VarExpr:
+		return true
+	case *ast.GroupingExpr:
+		return reads(n.Expr)
+	case *ast.UnaryExpr:
+		return reads(n.Right)
+	case *ast.BinaryExpr:
+		return reads(n.Left) && reads(n.Right)
+	case *ast.LogicalExpr:
+		return reads(n.Left) && reads(n.Right)
+	case *ast.ConditionalExpr:
+		return reads(n.Cond) && reads(n.Then) && reads(n.Else)
+	case *ast.IndexExpr:
+		return reads(n.Array) && reads(n.Index)
+	case *ast.InterpolationExpr:
+		return !slices.ContainsFunc(n.Parts, func(p ast.Expr) bool { return !reads(p) })
+	}
+
+	return false
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"maps"
 	"rune/pkg/ast"
+	"slices"
 )
 
 // liveSet holds the variables read again before they are set.
@@ -38,11 +39,18 @@ type liveness struct {
 type liveLoop struct{ head, out liveSet }
 
 // markMoves sets Moves on the reads in body after which the variable is
-// dead. A variable captured, exported or not given its value by a let
-// never moves: a parameter, a loop, catch or match variable
-// holds what its giver may still hold.
-func markMoves(body []ast.Stmt) {
+// dead. A variable captured, exported or not given its value by a let or
+// as a Param never moves: a mut parameter, a loop, catch or match
+// variable holds what its giver may still hold. A Param owns its value
+// only if the caller gave it up, which its moves test when they run.
+func markMoves(params []ast.Binding, body []ast.Stmt) {
 	lv := &liveness{owners: map[*ast.Local]bool{}, reads: map[*ast.VarExpr]bool{}, named: map[*ast.Local]int{}, pinned: liveSet{}}
+	for _, p := range params {
+		if p.Local.Param > 0 {
+			lv.owners[p.Local] = true
+		}
+	}
+
 	lv.stmts(body, liveSet{})
 
 	for v := range lv.reads {
@@ -275,7 +283,14 @@ func (lv *liveness) expr(e ast.Expr, live liveSet) {
 		delete(live, n.Local)
 		lv.expr(n.Value, live)
 	case *ast.CallExpr:
-		if prop, ok := n.Callee.(*ast.IndexExpr); ok {
+		args, prop := n.Args, (*ast.IndexExpr)(nil)
+		if p, ok := n.Callee.(*ast.IndexExpr); ok {
+			args, prop = append(slices.Clip(args), p.Array), p
+		}
+
+		given := lv.givable(args, live)
+
+		if prop != nil {
 			lv.holds(prop.Array, live)
 		}
 
@@ -288,6 +303,7 @@ func (lv *liveness) expr(e ast.Expr, live liveSet) {
 
 		lv.exprs(n.Args, live)
 		lv.expr(n.Callee, live)
+		lv.give(given)
 	case *ast.IndexExpr:
 		if n.Export != nil {
 			lv.expr(n.Export, live)
@@ -369,5 +385,32 @@ func (lv *liveness) holds(e ast.Expr, live liveSet) {
 
 	if v := rootVar(e); v != nil && v.Local != nil {
 		live[v.Local] = true
+	}
+}
+
+// givable are the arguments of a call that are a variable alone, dead
+// after it, with the count of its reads so far.
+func (lv *liveness) givable(args []ast.Expr, live liveSet) map[*ast.VarExpr]int {
+	var given map[*ast.VarExpr]int
+
+	for _, arg := range args {
+		if v, ok := unwrap(arg).(*ast.VarExpr); ok && v.Local != nil && !live[v.Local] && !lv.pinned[v.Local] && lv.inDefer == 0 {
+			if given == nil {
+				given = map[*ast.VarExpr]int{}
+			}
+
+			given[v] = lv.named[v.Local]
+		}
+	}
+
+	return given
+}
+
+// give moves each of given whose variable the call read only there: the
+// call holds what it reads in place, so a caller gives an argument up
+// only if nothing else in the call has it.
+func (lv *liveness) give(given map[*ast.VarExpr]int) {
+	for v, n := range given {
+		v.Moves = lv.named[v.Local] == n+1
 	}
 }

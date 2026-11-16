@@ -145,11 +145,13 @@ func Share(v Value) Value {
 	return v
 }
 
-// ShareAll shares each of vs.
-func ShareAll(vs []Value) {
+// ShareAll shares each of vs and returns them.
+func ShareAll(vs []Value) []Value {
 	for _, v := range vs {
 		Share(v)
 	}
+
+	return vs
 }
 
 // ShareDeep shares v and every container it holds, for a constant.

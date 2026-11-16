@@ -162,3 +162,55 @@ fun heldSubject() {
     };
 }
 print(heldSubject()); // expect: [1]
+
+// A caller gives an argument up when it is dead after the call and
+// nothing else in the call reads it; a parameter then owns it.
+{
+    fun grow(xs, x) { let mut ys = xs; ys.push(x); return ys; }
+    let mut acc = [];
+    for i in 0..3 { acc = grow(acc, i); }
+    print(acc); // expect: [0, 1, 2]
+
+    let mut start = [1];
+    let out = grow(start, 2);
+    print(start); // expect: [1]
+    print(out); // expect: [1, 2]
+
+    fun keepSecond(xs, ys) { let mut zs = ys; zs.push(9); return xs; }
+    fun twice() { let mut a = [1]; return keepSecond(a, a); }
+    print(twice()); // expect: [1]
+
+    fun same(xs) { return xs; }
+    fun passOn() { let mut a = [1]; let mut b = same(a); b.push(2); return b; }
+    print(passOn()); // expect: [1, 2]
+
+    let g = grow;
+    let mut c = [5];
+    print(g(c, 6)); // expect: [5, 6]
+    print(c); // expect: [5]
+}
+
+// append grows an array its caller gives up, and copies any other.
+{
+    let mut orig = [1];
+    let grown = orig.append(2);
+    print(orig); // expect: [1]
+    print(grown); // expect: [1, 2]
+
+    let mut built = [];
+    for i in 0..3 { built = built.append(i); }
+    print(built); // expect: [0, 1, 2]
+
+    let first9 = [9];
+    let mut alias = first9;
+    alias = alias.append(1);
+    print(first9); // expect: [9]
+    print(alias); // expect: [9, 1]
+
+    let inner = [0];
+    let mut outer = [];
+    outer = outer.append(inner);
+    outer[0].push(1);
+    print(inner); // expect: [0]
+    print(outer); // expect: [[0, 1]]
+}

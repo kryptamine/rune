@@ -69,6 +69,9 @@ type Local struct {
 	MutSelf bool
 	// Exported is set on a variable another module can read.
 	Exported bool
+	// Param is 1 + the index of a parameter that is neither mut nor rest,
+	// which owns its argument when the caller gives that up.
+	Param int
 	// Const is the value every read of a constant folds to, if IsConst.
 	Const   value.Value
 	IsConst bool

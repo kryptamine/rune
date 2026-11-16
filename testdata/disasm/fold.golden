@@ -13,6 +13,6 @@ exit: 0
     9  MULK          3 5 6
    10  MOVE          5 4 0
    11  LOADK         6 0 8
-   12  CALL          5 1 0
+   12  CALL          5 1 1
    13  RETURNNIL     0 0 0
 -- stderr --
