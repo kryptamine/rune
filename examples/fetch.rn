@@ -9,6 +9,10 @@ const BASE = "https://dummyjson.com";
 
 struct ApiError { status, message }
 
+impl ApiError {
+    fun from(status, data) { ApiError { status, message: data?.["message"] ?? "HTTP {status}" } }
+}
+
 struct Point { lat, lng }
 struct Address { city, country, coordinates }
 struct Company { name, title, department }
@@ -54,7 +58,7 @@ fun api(method, path, body = nil) {
     let data = json.parse(r.body);
 
     if r.status >= 400 {
-        throw ApiError { status: r.status, message: data?.["message"] ?? "HTTP {r.status}" };
+        throw ApiError.from(r.status, data);
     }
 
     return data;
