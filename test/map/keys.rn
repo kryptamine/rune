@@ -17,7 +17,7 @@ m[0.5] = "half";
 print(m[0.5]); // expect: half
 
 fun fails(f) {
-  try { f(); } catch e { print(type(e) + ": " + e.message); }
+  try { f(); } catch e { print(string(e)); }
 }
 fails(() => m[[1]]);            // expect: TypeError: Cannot use an array as a key.
 fails(() => m[{}] = 1);         // expect: TypeError: Cannot use an object as a key.

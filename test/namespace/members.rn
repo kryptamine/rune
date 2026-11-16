@@ -6,6 +6,6 @@ let abs = math.abs;
 print(abs(-2)); // expect: 2
 
 // string and bytes are conversions; their members are bound by name.
-print(type(string));                // expect: function
+print(string is function);                // expect: true
 print(string.fromCharCode(104));    // expect: h
 print(bytes.fromHex("ff"));         // expect: b"\xff"

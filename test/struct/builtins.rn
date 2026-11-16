@@ -2,15 +2,15 @@ struct Point { x, y = 0 }
 struct Empty {}
 
 let p = Point { x: 1 };
-print(type(p)); // expect: Point
-print(type(Point)); // expect: struct
-print(type(nil)); // expect: nil
-print(type(1)); // expect: number
-print(type("s")); // expect: string
-print(type([])); // expect: array
-print(type({})); // expect: object
-print(type(type)); // expect: function
-print(type(() => {})); // expect: function
+print(p is Point); // expect: true
+print(Point is struct); // expect: true
+print(nil is nil); // expect: true
+print(1 is number); // expect: true
+print("s" is string); // expect: true
+print([] is array); // expect: true
+print({} is object); // expect: true
+print(int is function); // expect: true
+print((() => {}) is function); // expect: true
 
 print({ ...p }.len()); // expect: 2
 print({ ...Empty {} }.len()); // expect: 0

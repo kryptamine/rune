@@ -1,5 +1,5 @@
 let m = math; // Error at 'math': Namespace 'math' is not a value; use its members, as in math.name.
-print(type(json)); // Error at 'json': Namespace 'json' is not a value; use its members, as in json.name.
+print(string(json)); // Error at 'json': Namespace 'json' is not a value; use its members, as in json.name.
 for k in fs { print(k); } // Error at 'fs': Namespace 'fs' is not a value; use its members, as in fs.name.
 let key = "ceil";
 print(math[key](1.2)); // Error at ']': Namespace members must be named, as in math.name.

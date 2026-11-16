@@ -32,7 +32,7 @@ be changed either: index and property assignment (`a[0] = 1`, `o.x += 1`,
 methods (`push`, `pop`, `sort`, `reverse`, `set.add`, `delete`, `clear`,
 ...) and of `mut self` methods are compile errors. Taking an in-place
 method as a value is a runtime `TypeError`. Methods that return a new value
-(`append`, `map`, ...) work as usual. As every value is
+(`map`, `filter`, ...) work as usual. As every value is
 [copied](values.md#copies), nothing else can change it either: what a
 `let` holds never changes.
 
@@ -43,7 +43,7 @@ config.db.hosts[0] = "db2";    // Error at 'config': Cannot mutate immutable var
 
 ```rune
 let scores = [70, 95];
-print(scores.append(80));       // [70, 95, 80]
+print([...scores, 80]);         // [70, 95, 80]
 print(scores);                  // [70, 95]
 scores.push(80);                // Error at 'scores': Cannot mutate immutable variable 'scores'.
 ```
@@ -145,8 +145,8 @@ let total = 10;
 }
 print(total);        // 10
 
-let type = 3;        // shadows the built-in type
-print(type);         // 3
+let int = 3;         // shadows the built-in int
+print(int);          // 3
 ```
 
 ```rune

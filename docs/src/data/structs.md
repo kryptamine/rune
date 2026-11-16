@@ -144,15 +144,15 @@ struct Config { host, port = 8080 }
 Config({ port: 80 }); // KeyError: Missing field 'host' of Config.
 ```
 
-## Type checks, equality, iteration
+## Type checks, equality, fields
 
 `v is User` is `true` only for a `User`, never for an object; see
 [Type Tests](../language/values.md#type-tests).
 
 `==` compares structs field by field and only if they are of the same
-struct, so a struct never equals an object. `for k, v in s` walks the
-fields in declaration order. `{ ...s }` copies a struct into a new
-object, `{ ...s }.len()` is its number of fields and `type(s)` its name.
+struct, so a struct never equals an object. `{ ...s }` copies a struct
+into a new object, its fields in declaration order, to walk them or
+count them.
 
 ```rune
 struct User { name, role = "member" }
@@ -163,7 +163,7 @@ print({ name: "ann" } is User);                // false
 print(ann == User { name: "ann" });            // true
 print(ann == { name: "ann", role: "member" }); // false
 
-for field, value in ann {
+for field, value in { ...ann } {
     print("{field}: {value}");
 }
 // name: ann
@@ -171,6 +171,4 @@ for field, value in ann {
 
 print({ ...ann });  // {name: "ann", role: "member"}
 print({ ...ann }.len()); // 2
-print(type(ann));   // User
-print(type(User));  // struct
 ```

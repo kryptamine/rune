@@ -2,7 +2,7 @@ let dir = fs.tempDir();
 let path = fs.join(dir, "data.txt");
 
 let w = fs.open(path, "w");
-print(type(w)); // expect: stream
+print(w is stream); // expect: true
 w.write("one\n");
 w.write(b"two\r\n");
 w.flush();
@@ -39,9 +39,9 @@ fs.write(path, b"\x00\x01");
 print(fs.readBytes(path)); // expect: b"\x00\x01"
 
 fun fails(f) {
-  try { f(); } catch e { print(type(e) + ": " + e.code); }
+  try { f(); } catch e { print(e.code); }
 }
-fails(() => fs.open(fs.join(dir, "nope")));   // expect: IOError: notFound
+fails(() => fs.open(fs.join(dir, "nope")));   // expect: notFound
 
 let closed = fs.open(path);
 closed.close();

@@ -5,9 +5,9 @@ exit: 0
     1  LOADK         2 0 1
     2  LOADK         3 0 2
     3  CLOSURE       4 0 0
-    4  METHOD        4 0 95
+    4  METHOD        4 0 94
     5  CLOSURE       4 0 1
-    6  METHOD        4 0 96
+    6  METHOD        4 0 95
     7  LOADK         4 0 3
     8  STRUCT        2 4 0
     9  MOVE          5 2 0
@@ -17,7 +17,7 @@ exit: 0
    13  MOVE          2 5 0
    14  MOVE          4 3 0
    15  MOVE          6 2 0
-   16  INVOKE        5 0 5  x=6 y=true
+   16  INVOKE        5 0 5  x=4 y=true
    17  JMP           1 0 20
    18  JMPNOINOUT    0 0 20
    19  MOVE          2 6 0

@@ -46,7 +46,7 @@ types, each with fields `{ message, line = nil, cause = nil }`:
 try {
     [].pop();
 } catch e {
-    print(type(e));   // ValueError
+    print(e);         // ValueError: array.pop() got an empty array.
     print(e.message); // array.pop() got an empty array.
     print(e.line);    // 2
 }
@@ -86,14 +86,14 @@ fun load(raw) {
     } catch e is ValueError {
         return "invalid JSON";
     } catch e {
-        return type(e);
+        return string(e);
     }
 }
 
 print(load(r"""{"port": 80}"""));   // 81
 print(load("\{}"));                 // missing: Undefined property 'port'.
 print(load("not json"));            // invalid JSON
-print(load(r"""{"port": "80"}""")); // TypeError
+print(load(r"""{"port": "80"}""")); // TypeError: Operands must be two numbers, two strings or two bytes.
 ```
 
 ## try as an Expression
@@ -114,7 +114,7 @@ print(field({ id: 7 }, "id"));    // 7
 print(field({ id: 7 }, "name"));  // nil
 print(field(5, "id"));            // not an object
 
-print(try json.parse("[1,") catch e => type(e)); // ValueError
+print(try json.parse("[1,") catch e => e is ValueError); // true
 ```
 
 A fallback may `return`, `break`, `continue` or `throw`:
@@ -150,8 +150,8 @@ try {
 }
 ```
 
-An uncaught throw stops the program like any runtime error, reported as
-`Name: message` when the struct has a string `message`:
+A struct with a string `message` prints as `Name: message`, and so is an
+uncaught throw reported, which stops the program like any runtime error:
 
 ```rune
 struct AgeError { message, value }
@@ -194,7 +194,7 @@ try {
     readConfig("port=80");
 } catch e {
     print(e.message);       // bad config
-    print(type(e.cause));   // ValueError
+    print(e.cause);         // ValueError: json.parse() could not parse JSON: invalid character 'p' looking for beginning of value
 }
 ```
 

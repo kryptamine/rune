@@ -1,7 +1,7 @@
 let b = b"hi\x00\xff";
 print(b);         // expect: b"hi\x00\xff"
 print(b.len());    // expect: 4
-print(type(b));   // expect: bytes
+print(b is bytes);   // expect: true
 print(b[0]);      // expect: 104
 print(b[3]);      // expect: 255
 print(b"\{\}\"\\\n\t"); // expect: b"\{\}\"\\\n\t"
@@ -35,7 +35,7 @@ print(bytes.fromBase64("aGkh"));    // expect: b"hi!"
 print(match b"x" { b"x" => "matched", _ => "no" }); // expect: matched
 
 fun fails(f) {
-  try { f(); } catch e { print(type(e) + ": " + e.message); }
+  try { f(); } catch e { print(string(e)); }
 }
 fails(() => b"\xff".text());   // expect: ValueError: bytes.text() got bytes that are not valid UTF-8.
 fails(() => bytes([256]));    // expect: ValueError: bytes() expects bytes from 0 to 255, got 256.

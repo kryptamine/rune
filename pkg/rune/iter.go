@@ -72,8 +72,8 @@ func indexed(at func(i int) (value.Value, bool)) func() (value.Value, value.Valu
 }
 
 // cursorOf walks what the loop shares, so a write in the body copies it.
-// Objects yield their keys in sorted order and structs in declaration order; a
-// loop that binds only one variable walks them like an array of keys.
+// Objects yield their keys in the order they were added; a loop that
+// binds only one variable walks them like an array of keys.
 func (p *Interpreter) cursorOf(v value.Value, hasKey bool, keyword *ast.Token) (*cursor, error) {
 	switch v.Kind() {
 	case value.Array:
@@ -101,17 +101,7 @@ func (p *Interpreter) cursorOf(v value.Value, hasKey bool, keyword *ast.Token) (
 			return value.NewInt(int64(b[i])), true
 		})}, nil
 	case value.Object:
-		o := v.Obj()
-		keys := make([]value.Value, 0, o.Len())
-		for k := range o.All() {
-			keys = append(keys, value.NewString(k))
-		}
-
-		return pairs(keys, hasKey, func(_ int, k value.Value) value.Value { x, _ := o.Get(k.Str()); return x }), nil
-	case value.Struct:
-		// Keys and fields never change, so the cursor shares them.
-		fields := v.Fields()
-		return pairs(v.Shape().Keys, hasKey, func(i int, _ value.Value) value.Value { return fields[i] }), nil
+		return objectCursor(v.Obj(), hasKey), nil
 	case value.Map, value.Set:
 		return tableCursor(v, hasKey && v.Kind() == value.Map), nil
 	case value.Stream:
@@ -119,11 +109,21 @@ func (p *Interpreter) cursorOf(v value.Value, hasKey bool, keyword *ast.Token) (
 	}
 
 	return nil, errors.NewRuntimeError(errors.TypeError, *keyword, fmt.Sprintf(
-		"Can only iterate over arrays, strings, objects, structs, maps, sets, bytes and streams, got %s.", helpers.TypeName(v)))
+		"Can only iterate over arrays, strings, objects, maps, sets, bytes and streams, got %s.", helpers.TypeName(v)))
 }
 
-// pairs walks keys, with their values if hasKey.
-func pairs(keys []value.Value, hasKey bool, val func(i int, k value.Value) value.Value) *cursor {
+// objectCursor walks the keys of o, with their values if hasKey.
+func objectCursor(o *value.Obj, hasKey bool) *cursor {
+	keys := make([]value.Value, 0, o.Len())
+	vals := make([]value.Value, 0, helpers.If(hasKey, o.Len(), 0))
+
+	for k, x := range o.All() {
+		keys = append(keys, value.NewString(k))
+		if hasKey {
+			vals = append(vals, x)
+		}
+	}
+
 	if !hasKey {
 		return &cursor{arr: keys}
 	}
@@ -137,7 +137,7 @@ func pairs(keys []value.Value, hasKey bool, val func(i int, k value.Value) value
 
 		i++
 
-		return keys[i-1], val(i-1, keys[i-1]), true, nil
+		return keys[i-1], vals[i-1], true, nil
 	}}
 }
 

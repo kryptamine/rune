@@ -14,6 +14,6 @@ let kind = v => match v {
 print([nil, P, "a", 1, []].map(kind)); // expect: ["nil or type", "nil or type", "scalar", "scalar", "other"]
 
 fun fails(f) {
-    try { f(); } catch e is nil | TypeError { print(type(e)); }
+    try { f(); } catch e is nil | TypeError { print(e is TypeError); }
 }
-fails(() => nil.x); // expect: TypeError
+fails(() => nil.x); // expect: true

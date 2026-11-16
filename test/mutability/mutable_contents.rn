@@ -7,4 +7,4 @@ print(arr); // expect: [[3], 3, 4]
 let mut obj = {x: 1};
 obj.x += 1;
 print(obj.x); // expect: 2
-print(arr.append(5)); // expect: [[3], 3, 4, 5]
+print([...arr, 5]); // expect: [[3], 3, 4, 5]

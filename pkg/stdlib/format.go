@@ -13,7 +13,7 @@ import (
 
 // format is printf: %[flags][width][.precision]verb, flags from "-+ 0#".
 // A width or precision of * takes the next argument, an integer; a
-// negative width pads on the right. %v and %s show a value as print does,
+// negative width pads on the right. %s shows a value as print does,
 // %q as it shows inside an array; %d %x %X %o %b take integers, %f %e %E
 // %g %G numbers; %% is a percent sign.
 func format(c *call, f string, args []value.Value) value.Value {
@@ -66,7 +66,7 @@ func format(c *call, f string, args []value.Value) value.Value {
 		// A bare directive needs no fmt.
 		if len(p.text) == 2 {
 			switch v := c.args[j]; {
-			case d.verb == 'v' || d.verb == 's':
+			case d.verb == 's':
 				b = helpers.AppendValue(b, v)
 				continue
 			case d.verb == 'd' && v.IsInt():
@@ -80,17 +80,16 @@ func format(c *call, f string, args []value.Value) value.Value {
 			return value.NilValue
 		}
 
-		// The directive as written is Go's, but for a star or a verb of ours.
+		// The directive as written is Go's, but for a star or %q, which
+		// formatArg quotes into a string.
 		goDirective := p.text
-		if d.star {
+		if d.star || d.verb == 'q' {
 			goDirective = "%" + d.flags + width
 			if d.dot {
 				goDirective += "." + precision
 			}
 
-			goDirective += goVerb(d.verb)
-		} else if d.verb == 'v' || d.verb == 'q' {
-			goDirective = p.text[:len(p.text)-1] + "s"
+			goDirective += string(helpers.If(d.verb == 'q', 's', d.verb))
 		}
 
 		b = fmt.Appendf(b, goDirective, arg)
@@ -235,22 +234,12 @@ func span(f string, j int, class uint8) (string, int) {
 	return f[from:j], j
 }
 
-// goVerb is the fmt verb for verb, given the string formatArg makes of
-// a value for %v and %q.
-func goVerb(verb byte) string {
-	if verb == 'v' || verb == 'q' {
-		return "s"
-	}
-
-	return string(verb)
-}
-
 // formatArg converts c.args[i] for verb, boxed in the host.
 func formatArg(c *call, verb byte, i int) (any, bool) {
 	v, h := c.args[i], c.host
 
 	switch verb {
-	case 'v', 's':
+	case 's':
 		if v.IsString() {
 			h.fmtStr = v.Str()
 		} else {

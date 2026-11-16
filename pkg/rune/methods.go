@@ -145,7 +145,7 @@ func (p *Interpreter) invoke(fr *frame, in Instr, tok *ast.Token) error {
 		}
 
 		caller := len(p.frames) - 1
-		if err := p.callNativeMethod(at, n, nat, tok, in.x()&givenRecv != 0); err != nil {
+		if err := p.callNativeMethod(at, n, nat, tok); err != nil {
 			return err
 		}
 

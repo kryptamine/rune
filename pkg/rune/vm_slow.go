@@ -422,7 +422,7 @@ func (p *Interpreter) callAt(at, n int, tok *ast.Token, site callSite) error {
 		copy(p.stack[at+2:], p.stack[at+1:at+1+n])
 		p.stack[at+1] = f.recv
 
-		return p.callNativeMethod(at, n, f.fn, tok, false)
+		return p.callNativeMethod(at, n, f.fn, tok)
 	}
 
 	v, err := p.host.Call(fn.Fn().(*stdlib.Native), p.stack[at+1:at+1+n], tok)
@@ -436,8 +436,8 @@ func (p *Interpreter) callAt(at, n int, tok *ast.Token, site callSite) error {
 
 // callNativeMethod calls nat on the receiver at stack[at+1] with the n
 // arguments after it, leaving the result at stack[at].
-func (p *Interpreter) callNativeMethod(at, n int, nat *stdlib.Native, tok *ast.Token, given bool) error {
-	v, err := p.host.CallMethod(nat, p.stack[at+1:at+2+n], tok, given)
+func (p *Interpreter) callNativeMethod(at, n int, nat *stdlib.Native, tok *ast.Token) error {
+	v, err := p.host.CallMethod(nat, p.stack[at+1:at+2+n], tok)
 	if err == nil {
 		p.stack[at] = v
 	}

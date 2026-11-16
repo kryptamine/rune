@@ -68,18 +68,18 @@ func (f *Host) Cancel() { f.cancel() }
 
 // Call runs n; it must not keep args.
 func (f *Host) Call(n *Native, args []value.Value, token *ast.Token) (value.Value, error) {
-	return f.run(n, args, token, 0, false)
+	return f.run(n, args, token, 0)
 }
 
-// CallMethod runs the method n with its receiver as args[0], which the
-// caller gave up if given; errors count the arguments after it.
-func (f *Host) CallMethod(n *Native, args []value.Value, token *ast.Token, given bool) (value.Value, error) {
-	return f.run(n, args, token, 1, given)
+// CallMethod runs the method n with its receiver as args[0]; errors
+// count the arguments after it.
+func (f *Host) CallMethod(n *Native, args []value.Value, token *ast.Token) (value.Value, error) {
+	return f.run(n, args, token, 1)
 }
 
-func (f *Host) run(n *Native, args []value.Value, token *ast.Token, self int, given bool) (value.Value, error) {
+func (f *Host) run(n *Native, args []value.Value, token *ast.Token, self int) (value.Value, error) {
 	c := f.get()
-	c.args, c.token, c.n, c.self, c.given = args, token, n, self, given
+	c.args, c.token, c.n, c.self = args, token, n, self
 
 	var v value.Value
 
@@ -137,11 +137,9 @@ type call struct {
 	args  []value.Value
 	token *ast.Token
 	n     *Native
-	// self is 1 for a method, whose receiver is args[0], which with given
-	// the caller gave up: nothing else holds it unless it is shared.
-	self  int
-	given bool
-	err   error
+	// self is 1 for a method, whose receiver is args[0].
+	self int
+	err  error
 }
 
 func (c *call) ok() bool { return c.err == nil }

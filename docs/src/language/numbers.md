@@ -1,6 +1,6 @@
 # Numbers
 
-A number is a 64-bit integer or a float; `type` says `"number"` for both
+A number is a 64-bit integer or a float; both are `number`
 and `math.isInt` tells them apart. A literal without a fraction or an
 exponent is an integer; `0x`, `0o` and `0b` prefix hex, octal and binary
 ones, and `_` may separate digits. A decimal integer literal past

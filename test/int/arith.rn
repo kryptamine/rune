@@ -20,8 +20,8 @@ print(math.isInt(1.0));   // expect: false
 print(1 == 1.0);    // expect: true
 print(2 < 2.5);     // expect: true
 print(3 >= 3.0);    // expect: true
-print(type(1));     // expect: number
-print(type(1.5));   // expect: number
+print(1 is number);     // expect: true
+print(1.5 is number);   // expect: true
 
 let mut i = 0;
 i++;

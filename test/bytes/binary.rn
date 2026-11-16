@@ -23,7 +23,7 @@ print(b"abc".sha1().hex());         // expect: a9993e364706816aba3e25717850c26c9
 print(b"abc".md5().hex());          // expect: 900150983cd24fb0d6963f7d28e17f72
 
 fun fails(f) {
-  try { f(); } catch e { print(type(e) + ": " + e.message); }
+  try { f(); } catch e { print(string(e)); }
 }
 fails(() => b"\x01".uint(0, 2));     // expect: IndexError: bytes.uint() cannot read 2 bytes at 0 of 1.
 fails(() => b"\x01".uint(-1, 1));    // expect: IndexError: bytes.uint() cannot read 1 bytes at -1 of 1.

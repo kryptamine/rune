@@ -189,28 +189,3 @@ print(heldSubject()); // expect: [1]
     print(g(c, 6)); // expect: [5, 6]
     print(c); // expect: [5]
 }
-
-// append grows an array its caller gives up, and copies any other.
-{
-    let mut orig = [1];
-    let grown = orig.append(2);
-    print(orig); // expect: [1]
-    print(grown); // expect: [1, 2]
-
-    let mut built = [];
-    for i in 0..3 { built = built.append(i); }
-    print(built); // expect: [0, 1, 2]
-
-    let first9 = [9];
-    let mut alias = first9;
-    alias = alias.append(1);
-    print(first9); // expect: [9]
-    print(alias); // expect: [9, 1]
-
-    let inner = [0];
-    let mut outer = [];
-    outer = outer.append(inner);
-    outer[0].push(1);
-    print(inner); // expect: [0]
-    print(outer); // expect: [[0, 1]]
-}

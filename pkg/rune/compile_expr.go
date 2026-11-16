@@ -826,7 +826,7 @@ func (fs *funcState) invoke(n *ast.CallExpr, prop *ast.IndexExpr, dst int32) {
 	}
 
 	name := fs.constant(value.NewString(prop.Token.Lexeme))
-	x := uint8(boolNum(n.Frozen)) | uint8(boolNum(fresh(prop.Array))*givenRecv)
+	x := uint8(boolNum(n.Frozen))
 	call := ins{op: opInvoke, a: base, b: int32(len(n.Args)), c: name, x: x, y: uint8(boolNum(n.Writable))}
 	fs.inoutCall(call, all, guarded, self, &prop.Token)
 	fs.move(dst, base)

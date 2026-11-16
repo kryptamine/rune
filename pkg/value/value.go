@@ -220,10 +220,8 @@ type Field struct {
 
 // Shape describes a struct type: its name and fields in declaration order.
 type Shape struct {
-	Name   string
-	Fields []string
-	// Keys holds Fields as values, for iteration.
-	Keys    []Value
+	Name    string
+	Fields  []string
 	Methods []Method
 	// Builtin makes a built-in type such as string, which 'is' tests
 	// values of Kind against.
@@ -309,7 +307,7 @@ func (s *Shape) HasCases() bool {
 // Define gives a case its fields.
 func (s *Shape) Define(decls []Field) {
 	d := NewShape(s.Name, decls)
-	s.Fields, s.Keys, s.decls = d.Fields, d.Keys, d.decls
+	s.Fields, s.decls = d.Fields, d.decls
 }
 
 // Method is a method of an impl block or a built-in type; ID indexes the
@@ -349,15 +347,13 @@ func FindMethod(ms []Method, name string) *Method {
 
 func NewShape(name string, decls []Field) *Shape {
 	fields := make([]string, len(decls))
-	keys := make([]Value, len(decls))
 
 	for i, f := range decls {
 		fields[i] = f.Name
-		keys[i] = NewString(f.Name)
 		ShareDeep(f.Default)
 	}
 
-	return &Shape{Name: name, Fields: fields, Keys: keys, decls: decls}
+	return &Shape{Name: name, Fields: fields, decls: decls}
 }
 
 // Default returns the default of field i, if it has one.
