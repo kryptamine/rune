@@ -220,7 +220,7 @@ impl Position {
                     kings[color(if p > 0 { 1 } else { -1 })] = sq(file, rank);
                 }
 
-                file++;
+                file += 1;
             }
 
             if file != 8 {
@@ -256,7 +256,7 @@ impl Position {
                 let p = self.board[sq(f, r)];
 
                 if p == EMPTY {
-                    gap++;
+                    gap += 1;
                     continue;
                 }
 
@@ -696,7 +696,7 @@ impl Search {
             return self.quiesce(alpha, beta, ply);
         }
 
-        self.nodes++;
+        self.nodes += 1;
 
         let entry = self.tt?.[self.pos.hash];
 
@@ -724,7 +724,7 @@ impl Search {
                 continue;
             }
 
-            legal++;
+            legal += 1;
             let score = -self.negamax(remaining - 1, -beta, -a, ply + 1);
             self.pos.unmake();
 
@@ -764,7 +764,7 @@ impl Search {
     }
 
     fun quiesce(mut self, alpha, beta, ply) {
-        self.nodes++;
+        self.nodes += 1;
         let stand = self.pos.score * self.pos.side;
 
         if stand >= beta {
@@ -1036,7 +1036,7 @@ fun options(args) {
         }
 
         out.rest.push(arg);
-        i++;
+        i += 1;
     }
 
     return out;

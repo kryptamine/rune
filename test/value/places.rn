@@ -13,7 +13,7 @@ print(grid); // expect: [[9, 0], [0, 9]]
 // Compound operators and increments.
 let g3 = grid;
 grid[0][1] += 5;
-grid[1][0]++;
+grid[1][0] += 1;
 print(g3); // expect: [[9, 0], [0, 9]]
 print(grid); // expect: [[9, 5], [1, 9]]
 
@@ -84,7 +84,7 @@ inner();
 
     let mut g = [[0, 0]];
     let row = g[0];
-    g[0][1]++;
+    g[0][1] += 1;
     g[0][0] += 3;
     print(row); // expect: [0, 0]
     print(g); // expect: [[3, 1]]

@@ -1,2 +1,0 @@
-let a = 1;
-(a)++; // [line: 2] Error at '++': Invalid increment target.

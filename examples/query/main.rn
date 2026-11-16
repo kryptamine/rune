@@ -84,12 +84,18 @@ fun main(args) {
 
     while i < args.len() {
         match args[i] {
-            "-d" => dir = args?.[++i] ?? return usage(),
-            "-f" => format = args?.[++i] ?? return usage(),
+            "-d" => {
+                i += 1;
+                dir = args?.[i] ?? return usage();
+            },
+            "-f" => {
+                i += 1;
+                format = args?.[i] ?? return usage();
+            },
             a => rest.push(a),
         }
 
-        i++;
+        i += 1;
     }
 
     if format !in output.FORMATS {
@@ -104,7 +110,7 @@ fun main(args) {
 
         while line != nil {
             if line.trim() != "" && !tryRun(line, catalog, format) {
-                failed++;
+                failed += 1;
             }
 
             line = io.readLine();

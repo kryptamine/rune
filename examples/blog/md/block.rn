@@ -26,20 +26,21 @@ export fun render(src) {
         let line = lines[i];
 
         if line.trim() == "" {
-            i++;
+            i += 1;
             continue;
         }
 
         if line.startsWith("```") {
             let lang = line[3..].trim();
             let mut code = [];
-            i++;
+            i += 1;
 
             while i < lines.len() && !lines[i].startsWith("```") {
-                code.push(lines[i++]);
+                code.push(lines[i]);
+                i += 1;
             }
 
-            i++;
+            i += 1;
             let cls = if lang == "" { "" } else { " class=\"lang-{lang}\"" };
             doc.html.push("<pre><code{cls}>{inline.escape(code.join("\n"))}</code></pre>");
             continue;
@@ -53,13 +54,13 @@ export fun render(src) {
             let id = slug(text);
             doc.headings.push(Heading { level, text, id });
             doc.html.push("""<h{level} id="{id}">{inline.render(text)}</h{level}>""");
-            i++;
+            i += 1;
             continue;
         }
 
         if regex.test(r"^(-{3,}|\*{3,})$", line.trim()) {
             doc.html.push("<hr>");
-            i++;
+            i += 1;
             continue;
         }
 
@@ -67,7 +68,8 @@ export fun render(src) {
             let mut quote = [];
 
             while i < lines.len() && lines[i].startsWith(">") {
-                quote.push(lines[i++][1..].trim());
+                quote.push(lines[i][1..].trim());
+                i += 1;
             }
 
             doc.html.push("<blockquote><p>{inline.render(quote.join(" "))}</p></blockquote>");
@@ -88,7 +90,7 @@ export fun render(src) {
                 }
 
                 items.push("<li>{inline.render(it.text)}</li>");
-                i++;
+                i += 1;
             }
 
             doc.html.push("<{tag}>{items.join("")}</{tag}>");
@@ -98,7 +100,8 @@ export fun render(src) {
         let mut para = [];
 
         while i < lines.len() && !startsBlock(lines[i]) {
-            para.push(lines[i++].trim());
+            para.push(lines[i].trim());
+            i += 1;
         }
 
         doc.html.push("<p>{inline.render(para.join(" "))}</p>");

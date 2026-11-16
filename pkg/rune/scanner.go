@@ -157,8 +157,6 @@ func (s *Scanner) scanToken() {
 		}
 	case '-':
 		switch {
-		case s.match('-'):
-			s.addToken(ast.MINUS_MINUS)
 		case s.match('='):
 			s.addToken(ast.MINUS_EQUAL)
 		default:
@@ -166,8 +164,6 @@ func (s *Scanner) scanToken() {
 		}
 	case '+':
 		switch {
-		case s.match('+'):
-			s.addToken(ast.PLUS_PLUS)
 		case s.match('='):
 			s.addToken(ast.PLUS_EQUAL)
 		default:

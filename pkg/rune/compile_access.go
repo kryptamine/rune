@@ -129,8 +129,15 @@ func (fs *funcState) setIndex(n *ast.SetIndexExpr) int32 {
 	old := fs.alloc()
 	pl.load(old)
 
-	v := fs.exprAny(n.Value)
-	fs.emit(binaryIns(n.Op.TokenType, old, old, v), n.Op)
+	arith, isArith := arithOps[n.Op.TokenType]
+	rc, rConst := literalOf(n.Value)
+
+	if k, ok := fs.operandConst(rc, rConst && isArith, maxC); ok {
+		fs.emit(arithConstIns(arith, old, old, k, rc), n.Op)
+	} else {
+		fs.emit(binaryIns(n.Op.TokenType, old, old, fs.exprAny(n.Value)), n.Op)
+	}
+
 	pl.store(old, quiet(n))
 
 	return old
@@ -151,64 +158,6 @@ func (fs *funcState) simple(e ast.Expr) bool {
 	}
 
 	return false
-}
-
-func (fs *funcState) update(n *ast.UpdateExpr, dst int32) {
-	op := &n.Operator
-	incr := ins{op: opIncr, x: uint8(boolNum(op.TokenType == ast.MINUS_MINUS))}
-
-	if t, ok := n.Target.(*ast.VarExpr); ok {
-		kind, r := fs.lookup(t.Local)
-
-		if kind == varLocal {
-			fs.checkDefined(t.Local, r, &t.Name)
-
-			if !n.Prefix {
-				fs.move(dst, r)
-			}
-
-			incr.a, incr.b = r, r
-			fs.emit(incr, op)
-
-			if n.Prefix {
-				fs.move(dst, r)
-			}
-
-			return
-		}
-
-		old := fs.alloc()
-		fs.varExpr(t, old)
-
-		v := old
-		if !n.Prefix {
-			v = fs.alloc()
-		}
-
-		incr.a, incr.b = v, old
-		fs.emit(incr, op)
-		fs.store(kind, r, v, false, &t.Name)
-		fs.move(dst, old)
-
-		return
-	}
-
-	target := n.Target.(*ast.IndexExpr)
-	pl := fs.place(target.Array, target.Index, target.Property, &target.Token)
-	pl.check()
-
-	old := fs.alloc()
-	pl.load(old)
-
-	v := old
-	if !n.Prefix {
-		v = fs.alloc()
-	}
-
-	incr.a, incr.b = v, old
-	fs.emit(incr, op)
-	pl.store(v, reads(target))
-	fs.move(dst, old)
 }
 
 // quiet reports whether the write n shares nothing between loading the

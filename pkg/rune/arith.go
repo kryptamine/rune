@@ -29,6 +29,16 @@ func binaryIns(op ast.TokenType, a, b, c int32) ins {
 	return ins{op: arithOp(arithOps[op], false), a: a, b: b, c: c}
 }
 
+// arithConstIns is the instruction applying op to register b and the
+// constant v, which is K[c].
+func arithConstIns(op value.Arith, a, b, c int32, v value.Value) ins {
+	if v.IsInt() && v.Int() == 1 && (op == value.OpAdd || op == value.OpSub) {
+		return ins{op: opIncr, x: uint8(op), a: a, b: b}
+	}
+
+	return ins{op: arithOp(op, true), a: a, b: b, c: c}
+}
+
 // binaryOp applies a binary operator; operator also locates errors.
 func binaryOp(operator *ast.Token, l, r value.Value) (value.Value, error) {
 	op := operator.TokenType
@@ -130,14 +140,6 @@ func negate(tok *ast.Token, v value.Value) (value.Value, error) {
 		return value.NewInt(-v.Int()), nil
 	case v.IsFloat():
 		return value.NewNumber(-v.Float()), nil
-	}
-
-	return value.NilValue, errors.NewRuntimeError(errors.TypeError, *tok, "Operand must be a number.")
-}
-
-func increment(tok *ast.Token, v value.Value, delta int64) (value.Value, error) {
-	if v.IsNumber() {
-		return arith(tok, value.OpAdd, v, value.NewInt(delta))
 	}
 
 	return value.NilValue, errors.NewRuntimeError(errors.TypeError, *tok, "Operand must be a number.")

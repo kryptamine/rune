@@ -20,7 +20,7 @@ let mut n = 0;
 while n < 2 {
     let mut c = w;
     c[0] = 9;
-    n++;
+    n += 1;
 }
 print(w); // expect: [0]
 

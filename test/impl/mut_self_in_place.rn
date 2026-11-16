@@ -5,7 +5,7 @@ struct P { x = 0, y = 0, log = [] }
 let mut kept = [];
 
 impl P {
-  fun bump(mut self) { self.x++; self.y += 2; }
+  fun bump(mut self) { self.x += 1; self.y += 2; }
   fun twice(mut self) { self.bump(); self.bump(); self.x *= 10; }
   fun keep(mut self) { self.x = 1; kept.push(self); self.x = 2; }
   fun alias(mut self) { let before = self; self.x = 5; return before.x; }

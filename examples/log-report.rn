@@ -49,11 +49,11 @@ impl Stats {
     fun new() { Stats {} }
 
     fun add(mut self, { status, bytes, latency }) {
-        self.count++;
+        self.count += 1;
         self.bytes += bytes;
 
         if status >= 500 {
-            self.errors++;
+            self.errors += 1;
         }
 
         self.latencies.push(latency);
@@ -83,7 +83,7 @@ impl Report {
     fun new() { Report {} }
 
     fun add(mut self, e) {
-        self.total++;
+        self.total += 1;
 
         let key = "{e.method} {e.path}";
 
@@ -100,7 +100,7 @@ impl Report {
             self.clients[e.ip] = { hits: 0, paths: set() };
         }
 
-        self.clients[e.ip].hits++;
+        self.clients[e.ip].hits += 1;
         self.clients[e.ip].paths.add(e.path);
 
         self.slowest.push(e);

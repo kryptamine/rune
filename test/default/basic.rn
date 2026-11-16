@@ -8,7 +8,7 @@ print(greet("ann", "yo", "?")); // expect: yo ann?
 print(greet("ann", nil)); // expect: nil ann.
 
 let mut evals = 0;
-fun next() { evals++; return evals; }
+fun next() { evals += 1; return evals; }
 fun f(a = next()) { return a; }
 print(f()); // expect: 1
 print(f()); // expect: 2

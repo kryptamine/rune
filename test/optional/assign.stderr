@@ -5,9 +5,9 @@ error: Invalid assignment target.
 2 | o?.a = 1; // Error at '=': Invalid assignment target.
   |      ^
 
-error: Invalid increment target.
- --> assign.rn:3:5
+error: Invalid assignment target.
+ --> assign.rn:3:6
   |
 2 | o?.a = 1; // Error at '=': Invalid assignment target.
-3 | o?.a++; // Error at '++': Invalid increment target.
-  |     ^^
+3 | o?.a += 1; // Error at '+=': Invalid assignment target.
+  |      ^^

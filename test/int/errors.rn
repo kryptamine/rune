@@ -20,5 +20,5 @@ fails(() => math.abs(math.MIN_INT)); // expect: ValueError: math.abs() integer o
 fails(() => int(math.INF));         // expect: ValueError: int() cannot convert inf to an integer.
 
 let mut m = math.MAX_INT;
-fails(() => { m++; });              // expect: ValueError: Integer overflow.
+fails(() => { m += 1; });              // expect: ValueError: Integer overflow.
 print(1 / 0);                        // expect: inf

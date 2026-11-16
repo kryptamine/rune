@@ -67,7 +67,7 @@ impl Parser {
 
     fun next(mut self) {
         let t = self.tokens[self.i];
-        self.i++;
+        self.i += 1;
         return t;
     }
 

@@ -18,7 +18,7 @@ var benchSources = map[string]string{
 	"push": `let mut a = []; for i in 0..2000 { a.push(i); }
 		let mut s = 0; for x in a { s += x; }`,
 	"map":      `let mut a = []; for i in 0..2000 { a.push(i); } for k in 0..20 { a.map(x => x * 2).filter(x => x % 3 == 0); }`,
-	"update":   `let mut s = 0; let mut i = 0; while i < 100000 { i++; s++; } let mut a = [0]; let mut j = 0; while j < 20000 { ++j; a[0]++; }`,
+	"update":   `let mut s = 0; let mut i = 0; while i < 100000 { i += 1; s += 1; } let mut a = [0]; let mut j = 0; while j < 20000 { j += 1; a[0] += 1; }`,
 	"locals":   `fun run() { let mut s = 0; for i in 0..100000 { s = s + i % 7; } return s; } run();`,
 	"strings":  `let mut s = ""; for i in 0..1000 { s = s + "ab"; } let mut n = 0; for c in s { if c == "a" { n += 1; } }`,
 	"objects":  `let mut o = {x: 0, y: 0}; for i in 0..20000 { o.x = o.x + 1; o["y"] += o.x; }`,
@@ -28,7 +28,7 @@ var benchSources = map[string]string{
 	"sfields":  `struct P { x, y, z } let p = P { x: 1, y: 2, z: 3 }; let mut s = 0; for i in 0..50000 { s += p.x + p.y + p.z; }`,
 	"methods":  `struct P { x } impl P { fun get(self, k) { return self.x + k; } } let p = P { x: 1 }; let mut s = 0; for i in 0..50000 { s += p.get(i); }`,
 	"funcs":    `struct P { x } fun get(p, k) { return p.x + k; } let p = P { x: 1 }; let mut s = 0; for i in 0..50000 { s += get(p, i); }`,
-	"mutself":  `struct C { n } impl C { fun incr(mut self) { self.n++; } } let mut c = C { n: 0 }; for i in 0..20000 { c.incr(); }`,
+	"mutself":  `struct C { n } impl C { fun incr(mut self) { self.n += 1; } } let mut c = C { n: 0 }; for i in 0..20000 { c.incr(); }`,
 	"objcall":  `let o = {a: 1, b: 2}; let mut s = 0; for i in 0..20000 { s += o.len(); }`,
 	"print":    `for i in 0..20000 { print(i); }`,
 	"format":   `let mut n = 0; for i in 0..20000 { n += "%-8s|%5.2f|%03d".format("ab", 3.14159, i).len(); }`,
@@ -150,7 +150,7 @@ func TestContainerMovesDoNotCopy(t *testing.T) {
 func TestPathWritesInPlace(t *testing.T) {
 	src := `let mut g = []; for i in 0..100 { g.push([0].repeat(100)); }
 		let mut o = { g };
-		for k in 0..%d { for i in 0..100 { g[i][k %% 100] = k; g[i][0] += 1; g[i][1]++; o.g[i][0] = k; } g[0].push(k); g[0].pop(); }`
+		for k in 0..%d { for i in 0..100 { g[i][k %% 100] = k; g[i][0] += 1; g[i][1] += 1; o.g[i][0] = k; } g[0].push(k); g[0].pop(); }`
 
 	if one, many := allocated(t, src, 1), allocated(t, src, 101); many > one+50<<10 {
 		t.Fatalf("path writes copy: %d bytes for 1 pass, %d for 101", one, many)

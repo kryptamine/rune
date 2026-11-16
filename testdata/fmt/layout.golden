@@ -10,7 +10,7 @@ export fun add(a, b = 1, ...rest) {
 fun main() {
     let x = -1;
     let y = - -x;
-    let z = x++ + ++y;
+    let z = x + y;
     let o = { a: 1, "b": 2, [k]: 3, ...rest };
     let e = {};
     let s = "hi {o.a + f("in {x}")} there";

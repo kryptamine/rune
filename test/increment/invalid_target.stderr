@@ -1,6 +1,0 @@
-error: Invalid increment target.
- --> invalid_target.rn:2:4
-  |
-1 | let a = 1;
-2 | (a)++; // [line: 2] Error at '++': Invalid increment target.
-  |    ^^

@@ -9,5 +9,5 @@ error: Cannot assign to constant 'A'.
  --> assign.rn:3:1
   |
 2 | A = 2; // Error at 'A': Cannot assign to constant 'A'.
-3 | A++; // Error at 'A': Cannot assign to constant 'A'.
+3 | A += 1; // Error at 'A': Cannot assign to constant 'A'.
   | ^

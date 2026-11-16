@@ -1,6 +1,6 @@
 fun make() {
   let mut n = 0;
-  fun inc() { n++; return n; }
+  fun inc() { n += 1; return n; }
   fun get() { return n; }
   return [inc, get];
 }

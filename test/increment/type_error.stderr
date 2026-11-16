@@ -1,6 +1,0 @@
-TypeError: Operand must be a number.
- --> type_error.rn:2:2
-  |
-1 | let mut s = "x";
-2 | s++; // expect runtime error: [line: 2] TypeError: Operand must be a number.
-  |  ^^

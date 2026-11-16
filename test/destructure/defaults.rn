@@ -21,7 +21,7 @@ let [q, r = 5, ...more] = [1, 2, 3, 4];
 print([q, r, more]); // expect: [1, 2, [3, 4]]
 
 let mut calls = 0;
-let { v = calls++ } = { v: 1 };
+let { v = (calls += 1) } = { v: 1 };
 print(calls); // expect: 0
 
 let g = k => {

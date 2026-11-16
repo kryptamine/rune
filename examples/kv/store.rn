@@ -126,7 +126,7 @@ impl Store {
                 self.replay(id, i == ids.len() - 1, rec);
             }
 
-            rec.segments++;
+            rec.segments += 1;
         }
 
         // A compacted segment, the one with a hint, is never appended to
@@ -180,7 +180,7 @@ impl Store {
             }
 
             self.apply(r.key, codec.Loc { seg: id, start: r.start, recLen: r.recLen, size: r.size }, r.kind);
-            rec.records++;
+            rec.records += 1;
             at += r.recLen;
         }
     }
@@ -191,7 +191,7 @@ impl Store {
         while at < data.len() {
             let h = codec.decodeHint(data, at, id) ?? throw KvError { message: "{fs.base(self.segs[id].hint)}: bad entry at byte {at}" };
             self.apply(h.key, h.loc, codec.PUT);
-            rec.hinted++;
+            rec.hinted += 1;
             at = h.next;
         }
     }
@@ -217,13 +217,13 @@ impl Store {
             self.out.flush();
         }
 
-        self.writes++;
+        self.writes += 1;
         self.apply(key, loc, kind);
     }
 
     fun rotate(mut self) {
         self.out.close();
-        self.active++;
+        self.active += 1;
         self.openActive();
     }
 
@@ -282,7 +282,7 @@ impl Store {
         let mut keydir = map();
 
         for chunk in chunks(self.keydir.entries(), self.maxSegment) {
-            self.active++;
+            self.active += 1;
             let mut log = bytes.buffer();
             let mut hints = bytes.buffer();
 
@@ -309,7 +309,7 @@ impl Store {
 
         self.segs = segs;
         self.keydir = keydir;
-        self.active++;
+        self.active += 1;
         self.openActive();
         return { before, after: self.info() };
     }

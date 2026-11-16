@@ -1,7 +1,7 @@
 struct C { n = 0, tag = "c" }
 
 impl C {
-  fun incr(mut self) { self.n++; }
+  fun incr(mut self) { self.n += 1; }
   fun add(mut self, k = 1) { self.n += k; return k; }
   fun twice(mut self) { self.incr(); self.incr(); }
   fun get(self) { return self.n; }

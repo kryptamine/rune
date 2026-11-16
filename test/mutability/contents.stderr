@@ -29,7 +29,7 @@ error: Cannot mutate immutable variable 'arr'.
  --> contents.rn:5:1
   |
 4 | arr[0] += 1; // [line: 4] Error at 'arr': Cannot mutate immutable variable 'arr'.
-5 | arr[0]++; // [line: 5] Error at 'arr': Cannot mutate immutable variable 'arr'.
+5 | arr[0] += 1; // [line: 5] Error at 'arr': Cannot mutate immutable variable 'arr'.
   | ^^^
   |
   = hint: declare it as 'mut arr' on line 1

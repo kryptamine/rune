@@ -12,7 +12,7 @@ let mut k = 0;
 while k < 3 {
   let c = k;
   gs.push(() => { return c; });
-  k++;
+  k += 1;
 }
 for g in gs { print(g()); } // expect: 0
 // expect: 1

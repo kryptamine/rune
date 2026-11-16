@@ -27,7 +27,7 @@ struct Counter { n = 0 }
 impl Counter {
   fun bump(mut self) {
     defer self.n += 10;
-    self.n++;
+    self.n += 1;
     return self.n;
   }
 }

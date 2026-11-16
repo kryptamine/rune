@@ -1,6 +1,0 @@
-TypeError: Cannot set field 'x' of Point outside its mut self methods.
-  --> increment_field.rn:10:3
-   |
- 9 | print(p); // expect: Point {x: 3, y: 1}
-10 | p.x++; // expect runtime error: [line: 10] TypeError: Cannot set field 'x' of Point outside its mut self methods.
-   |   ^

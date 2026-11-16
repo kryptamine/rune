@@ -305,9 +305,6 @@ func (lv *liveness) expr(e ast.Expr, live liveSet) {
 		lv.expr(n.Value, live)
 		lv.expr(n.Index, live)
 		lv.expr(n.Array, live)
-	case *ast.UpdateExpr:
-		lv.holds(n.Target, live)
-		lv.expr(n.Target, live)
 	case *ast.ArrayExpr:
 		lv.exprs(n.Items, live)
 	case *ast.InterpolationExpr:

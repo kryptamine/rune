@@ -3,7 +3,7 @@ export struct Point { x, y = 0 }
 impl Point {
   fun origin() { return Point { x: 0 }; }
   fun len(self) { return self.x + self.y; }
-  fun shift(mut self) { self.x++; }
+  fun shift(mut self) { self.x += 1; }
 }
 
 impl string {

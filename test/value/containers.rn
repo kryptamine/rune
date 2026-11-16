@@ -102,7 +102,7 @@ print(byId); // expect: map {1: {name: "bob", seen: set {5}, n: 2}}
 let mut cfg = { a: { b: { c: 1 } } };
 let ca = cfg.a;
 let cb = cfg.a.b;
-cfg.a.b.c++;
+cfg.a.b.c += 1;
 cfg.a.b.d = 0;
 print(ca); // expect: {b: {c: 1}}
 print(cb); // expect: {c: 1}

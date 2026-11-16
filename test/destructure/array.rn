@@ -29,7 +29,7 @@ print(capture([7])()); // expect: 7
 
 fun counter() {
   let [mut n] = [0];
-  return () => ++n;
+  return () => n += 1;
 }
 let next = counter();
 next();
