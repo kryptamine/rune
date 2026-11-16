@@ -1,4 +1,6 @@
-// HTTP and JSON into structs: users from DummyJSON, grouped by department
+// HTTP and JSON with structs: reads DummyJSON users into structs, groups
+// them by department, then sends structs back with POST, PUT, PATCH and
+// DELETE. DummyJSON answers writes as if they happened but keeps nothing.
 //
 //   ./rune run examples/fetch.rn        first 10 users
 //   ./rune run examples/fetch.rn 30     first 30
@@ -12,6 +14,10 @@ struct Address { city, country, coordinates }
 struct Company { name, title, department }
 struct User { id, firstName, lastName, email, age, address, company, phone = nil }
 struct Page { users, total, skip, limit }
+
+// What a client sends to create or replace a user, and what a delete returns.
+struct NewUser { firstName, lastName, email, age }
+struct Deleted { id, isDeleted, deletedOn }
 
 // A struct takes the keys it has fields for and skips the rest; nested
 // objects come in as maps, so each one is spread into its own struct.
@@ -31,15 +37,23 @@ impl Page {
     fun from(m) { Page { ...m, users: m["users"].map(User.from) } }
 }
 
-fun get(path) {
-    let r = http.request("GET", BASE + path, HttpOptions {
-        headers: ["Accept": "application/json"],
+// api sends body, any struct or map, as JSON and gives the parsed reply.
+fun api(method, path, body = nil) {
+    let mut headers = ["Accept": "application/json"];
+
+    if body != nil {
+        headers["Content-Type"] = "application/json";
+    }
+
+    let r = http.request(method, BASE + path, HttpOptions {
+        headers,
+        body: if body == nil { nil } else { json.stringify(body) },
         timeout: 10,
     });
 
     let data = json.parse(r.body);
 
-    if r.status != 200 {
+    if r.status >= 400 {
         throw ApiError { status: r.status, message: data?.["message"] ?? "HTTP {r.status}" };
     }
 
@@ -53,7 +67,7 @@ fun section(title) {
 
 fun main([limit = "10"]) {
     let page = try {
-        Page.from(get("/users?limit={limit}"))
+        Page.from(api("GET", "/users?limit={limit}"))
     } catch e is IOError {
         io.eprint("network: {e.message}");
         return 1;
@@ -91,16 +105,35 @@ fun main([limit = "10"]) {
     }
 
     section("one user");
-    let first = User.from(get("/users/{page.users[0].id}"));
+    let first = User.from(api("GET", "/users/{page.users[0].id}"));
     let { lat, lng } = first.address.coordinates;
     print("{first.name()} <{first.email}>, {first.phone ?? "no phone"}");
     print("{first.company.title} at {first.company.name}");
     print("lives at {"%.3f".format(lat)}, {"%.3f".format(lng)}");
     print(json.stringify(first.company));
 
+    section("create: POST a struct");
+    let ann = NewUser { firstName: "Ann", lastName: "Lee", email: "ann@example.com", age: 30 };
+    let created = User.from(api("POST", "/users/add", ann));
+    print("created #{created.id} {created.name()} <{created.email}>");
+
+    section("replace: PUT a struct built from another");
+    let whole = NewUser { ...map(first), lastName: "Owen" };
+    print("sent " + json.stringify(whole));
+    let replaced = User.from(api("PUT", "/users/{first.id}", whole));
+    print("now {replaced.name()}, {replaced.age}");
+
+    section("update: PATCH a map of the changes");
+    let patched = User.from(api("PATCH", "/users/{first.id}", ["age": first.age + 1]));
+    print("{patched.name()} is {patched.age} now, was {first.age}");
+
+    section("delete");
+    let gone = Deleted { ...api("DELETE", "/users/{first.id}") };
+    print("#{gone.id} deleted: {gone.isDeleted}, at {gone.deletedOn}");
+
     section("errors");
     try {
-        get("/users/9999");
+        api("PUT", "/users/9999", ann);
     } catch e is ApiError {
         print("{e.status}: {e.message}");
     }

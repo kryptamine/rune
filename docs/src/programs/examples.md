@@ -148,8 +148,9 @@ SHOP_USER=michaelw SHOP_PASS=michaelwpass rune run examples/shop.rn
 Fetches users from [DummyJSON](https://dummyjson.com) and turns the JSON
 into nested structs: each `from` spreads a map into its struct, which
 keeps the fields it has and skips the rest. Groups the users by department
-in a map, reads one user with an optional field, and throws a typed
-`ApiError` on a 404.
+in a map, then writes: POST a struct, PUT one built from another with
+`map(s)` and spread, PATCH a map of the changes, DELETE into a struct.
+Errors come back as a typed `ApiError`.
 
 ```sh
 rune run examples/fetch.rn        # first 10 users
