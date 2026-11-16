@@ -1,0 +1,6 @@
+ValueError: No match arm for "cash".
+  --> enum_head.rn:21:7
+   |
+20 | print(match (Payment.Cash is Payment) { true => "yes", false => "no" }); // expect: yes
+21 | print(match "cash" is Payment { Cash => 1, _ => 2 }); // expect runtime error: [line: 21] ValueError: No match arm for "cash".
+   |       ^^^^^

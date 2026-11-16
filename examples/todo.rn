@@ -295,9 +295,7 @@ fun exec(path, args, now) {
 fun demo() {
     let dir = fs.tempDir();
 
-    defer {
-        fs.removeAll(dir);
-    }
+    defer fs.removeAll(dir);
 
     let path = fs.join(dir, "todo.json");
     let now = today();

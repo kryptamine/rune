@@ -1,3 +1,8 @@
 fun f() {
-  defer print("x"); // Error at 'print': Expect '{' after 'defer'.
+  defer print("cleanup");
+  print("work");
 }
+
+f();
+// expect: work
+// expect: cleanup

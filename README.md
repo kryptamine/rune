@@ -33,7 +33,7 @@ skip: int() cannot parse "x" as an integer.
 - value semantics: arrays, objects, maps, sets and structs copy lazily, `mut` parameters are inout
 - structs and enums with fields, `impl` methods
 - blocks give their last expression: `fun sq(x) { x * x }`, `if c { a } else { b }`, block match arms
-- `match` on literals, ranges (`200..300`, `500..`), types, structs, arrays and enums, exhaustive over enum variants; destructuring, spread, rest
+- `match` on literals, ranges (`200..300`, `500..`), types, structs, arrays and enums, exhaustive over enum variants; the same nested patterns in `let`, parameters and `if x is { status: 200, body }`; spread, rest
 - membership `x in xs` (a range without making it), slices `xs[1..]`, `s[..-1]`
 - nil-safe chains `a?.b ?? c`; `return` / `break` / `continue` / `throw` as expressions
 - `try`/`catch` by error type, as a statement or an expression; `defer`

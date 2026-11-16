@@ -82,7 +82,7 @@ program at once, and `os.exit` exits even from inside `try`.
 ## Catching by Type
 
 `catch e is T` catches only errors of type `T`; `catch e is T | U`
-catches either. This is the same [test](values.md#type-tests) as
+catches either. This is the same [test](values.md#type-tests-and-patterns) as
 `v is T`. Clauses are tried in order. An error that no clause takes goes
 on up to the caller, with its trace intact. A clause without a type
 catches everything, so it must come last.
@@ -264,15 +264,16 @@ try {
 
 ## defer
 
-`defer { ... }` schedules a block to run when the enclosing block is
-left: at its end, by `return`, `break` or `continue`, or by an error,
-which then carries on up. It keeps cleanup next to the setup it undoes,
-so it cannot be forgotten on an early exit.
+`defer expression;` schedules an expression to run when the enclosing
+block is left: at its end, by `return`, `break` or `continue`, or by an
+error, which then carries on up. It keeps cleanup next to the setup it
+undoes, so it cannot be forgotten on an early exit. For cleanup of
+several statements, defer a block: `defer { ... }`.
 
 ```rune
 fun save(path, lines) {
     let out = fs.open(path, "w");
-    defer { out.close(); }
+    defer out.close();
 
     for line in lines {
         out.write(line + "\n");
@@ -280,7 +281,7 @@ fun save(path, lines) {
 }
 
 let dir = fs.tempDir();
-defer { fs.removeAll(dir); }
+defer fs.removeAll(dir);
 
 let path = fs.join(dir, "todo.txt");
 save(path, ["milk", "tea"]);
@@ -292,7 +293,7 @@ order, last registered first:
 
 ```rune
 fun step(n) {
-    defer { print("step {n}: cleanup"); }
+    defer print("step {n}: cleanup");
     if n == 0 {
         throw ValueError { message: "step 0 failed" };
     }
@@ -313,8 +314,8 @@ try {
 
 ```rune
 fun pipeline() {
-    defer { print("close file"); }
-    defer { print("flush buffer"); }
+    defer print("close file");
+    defer print("flush buffer");
     print("write data");
 }
 
@@ -322,6 +323,14 @@ pipeline();
 // write data
 // flush buffer
 // close file
+```
+
+A single expression is deferred without braces:
+
+```rune
+fun f() {
+    defer { print("bye"); } // Error at 'defer': Defer one expression without braces: defer expression;
+}
 ```
 
 A `return` computes its value before the defers run. A defer's body

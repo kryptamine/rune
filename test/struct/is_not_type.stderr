@@ -1,6 +1,6 @@
 TypeError: Right operand of 'is' must be a type, got number.
- --> is_not_type.rn:4:9
+ --> is_not_type.rn:6:12
   |
-3 | let p = Point { x: 1 };
-4 | print(p is 1); // expect runtime error: [line: 4] TypeError: Right operand of 'is' must be a type, got number.
-  |         ^^
+5 | print(p is 1); // expect: false
+6 | print(p is one); // expect runtime error: [line: 6] TypeError: Right operand of 'is' must be a type, got number.
+  |            ^^^

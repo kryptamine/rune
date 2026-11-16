@@ -94,7 +94,7 @@ does.
 Functions and streams are not data and are never copied: a "copy" of one is
 the same function or stream.
 
-## Type Tests
+## Type Tests and Patterns
 
 `v is T` asks whether `v` has type `T`. `T` is a struct or enum you
 declared, or one of the built-in type names:
@@ -132,6 +132,65 @@ print("42" !is number);    // true
 
 The same tests appear in [`match`](pattern-matching.md#types) and in
 [`catch e is T`](error-handling.md#catching-by-type).
+
+After `is` may come any [pattern](pattern-matching.md#patterns), in which
+a bare name is a type. `v is P` asks whether the pattern `P` matches `v`:
+
+```rune
+struct Point { x, y = 0 }
+enum Dir { North, South }
+
+let resp = { status: 204, body: "" };
+print(resp is { status: 200..300 });    // true
+print(7 is 1..10);                      // true
+print("b" is "a" | "b");                // true
+print([1, 2, 3] is [1, ..._]);          // true
+print(Point { x: 0 } is Point { x: 0 }); // true
+print(Dir.South is Dir.North);          // false
+```
+
+### Binding in Conditions
+
+In the condition of an `if` or a `while`, a pattern after `is` may bind
+variables. They hold in the body, and on the right of an `&&` after the
+test:
+
+```rune
+fun handle(resp) {
+    if resp is { status: 200..300, body } && body {
+        "got {body}"
+    } else if resp is { status } {
+        "status {status}"
+    } else {
+        "no response"
+    }
+}
+
+print(handle({ status: 200, body: "hi" }));    // got hi
+print(handle({ status: 404 }));                // status 404
+print(handle(nil));                            // no response
+```
+
+A `while` loop runs as long as the pattern matches, here until the queue
+gives something that is not a job:
+
+```rune
+let mut queue = [nil, { id: 2 }, { id: 1 }];
+while queue.pop() is { id } {
+    print("job {id}");
+}
+// job 1
+// job 2
+```
+
+To bind the whole value, write `name is P`, as in a
+[match arm](pattern-matching.md#types): `while queue.pop() is n is number`.
+
+Anywhere else, and after `!is` or `||`, a test cannot bind:
+
+```rune
+let ok = { a: 1 } is { a }; // Error at 'a': Only an if or while condition can bind variables with 'is'.
+```
 
 A variable named like a built-in type hides it, and the right side of `is`
 must be a type:

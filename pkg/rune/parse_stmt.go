@@ -349,26 +349,21 @@ func (s *Parser) parameter(i int, rest bool) (ast.Binding, ast.Stmt, error) {
 func (s *Parser) varDeclaration() (ast.Stmt, error) {
 	mutable := s.match(ast.MUT)
 
-	if s.match(ast.LEFT_BRACE) {
-		d, err := s.pattern(mutable)
+	if s.check(ast.LEFT_BRACE) || s.check(ast.LEFT_BRACKET) {
+		pat, err := s.destructuring()
 		if err != nil {
 			return nil, err
 		}
 
-		d.Initializer, err = s.patternInitializer()
-
-		return d, err
-	}
-
-	if s.match(ast.LEFT_BRACKET) {
-		d, err := s.arrayPattern(mutable)
-		if err != nil {
-			return nil, err
+		if mutable {
+			for _, b := range ast.Bindings(pat) {
+				b.Mutable = true
+			}
 		}
 
-		d.Initializer, err = s.patternInitializer()
+		init, err := s.patternInitializer()
 
-		return d, err
+		return &ast.PatternStmt{Pattern: pat, Initializer: init}, err
 	}
 
 	name, err := s.consume(ast.IDENTIFIER, "Expect variable name.")
@@ -436,14 +431,7 @@ func (s *Parser) statement() (ast.Stmt, error) {
 	}
 
 	if s.match(ast.DEFER) {
-		keyword := s.previous()
-
-		body, err := s.body("'defer'")
-		if err != nil {
-			return nil, err
-		}
-
-		return &ast.DeferStmt{Keyword: keyword, Body: body}, nil
+		return s.deferStatement()
 	}
 
 	if s.atTryStatement() {
@@ -602,6 +590,33 @@ func (s *Parser) blockOf(valued bool) (*ast.BlockStmt, error) {
 
 func hasValue(values []ast.Expr) bool {
 	return slices.ContainsFunc(values, func(e ast.Expr) bool { return e != nil })
+}
+
+// deferStatement parses defer { ... } or defer expression; after "defer".
+func (s *Parser) deferStatement() (ast.Stmt, error) {
+	keyword := s.previous()
+
+	if s.check(ast.LEFT_BRACE) {
+		body, err := s.statement()
+		if b, ok := body.(*ast.BlockStmt); ok && len(b.Stmts) == 1 {
+			if _, ok := b.Stmts[0].(*ast.ExprStmt); ok {
+				s.errors = append(s.errors, errors.NewSyntaxError(keyword, "Defer one expression without braces: defer expression;"))
+			}
+		}
+
+		return &ast.DeferStmt{Keyword: keyword, Body: body}, err
+	}
+
+	e, err := s.expression()
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := s.consume(ast.SEMICOLON, "Expect ';' after deferred expression."); err != nil {
+		return nil, err
+	}
+
+	return &ast.DeferStmt{Keyword: keyword, Body: ast.NewBlockStmt([]ast.Stmt{ast.NewExprStmt(e)})}, nil
 }
 
 func (s *Parser) ifStatement() (*ast.IfStmt, error) {

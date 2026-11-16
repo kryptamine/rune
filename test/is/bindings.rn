@@ -1,0 +1,35 @@
+struct Point { x, y = 0 }
+
+fun handle(r) {
+    if r is { status: 200..300, body } && body {
+        "ok: {body}"
+    } else if r is { status } {
+        "status {status}"
+    } else {
+        "not a response"
+    }
+}
+
+print(handle({ status: 200, body: "hi" })); // expect: ok: hi
+print(handle({ status: 200, body: "" })); // expect: status 200
+print(handle({ status: 404 })); // expect: status 404
+print(handle(5)); // expect: not a response
+
+let p = Point { x: 3 };
+if p is Point { x } {
+    print(x); // expect: 3
+}
+
+let x = 9;
+print(if p is Point { x } else { 0 }); // expect: 9
+
+let mut queue = [3, "skip", 1, 2];
+let mut total = 0;
+let mut later = [];
+while queue.pop() is n is number {
+    total += n;
+    later.push(() => n);
+}
+print(total); // expect: 3
+print(later.map(f => f())); // expect: [2, 1]
+print(queue); // expect: [3]

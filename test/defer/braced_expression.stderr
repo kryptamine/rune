@@ -1,0 +1,6 @@
+error: Defer one expression without braces: defer expression;
+ --> braced_expression.rn:2:5
+  |
+1 | fun f() {
+2 |     defer { print("x"); } // Error at 'defer': Defer one expression without braces: defer expression;
+  |     ^^^^^

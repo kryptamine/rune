@@ -1,0 +1,21 @@
+enum Payment {
+    Card { last4, brand = "visa" },
+    Transfer { iban },
+    Cash,
+    Credit,
+}
+
+fun describe(p) {
+    match p is Payment {
+        Card { brand, last4 } => "{brand} card {last4}",
+        Transfer => "transfer",
+        Cash | Credit => "on delivery",
+    }
+}
+
+print(describe(Payment.Card { last4: "4242" })); // expect: visa card 4242
+print(describe(Payment.Transfer { iban: "DE89" })); // expect: transfer
+print(describe(Payment.Credit)); // expect: on delivery
+print(match Payment.Cash is Payment { Cash => 1, _ => 2 }); // expect: 1
+print(match (Payment.Cash is Payment) { true => "yes", false => "no" }); // expect: yes
+print(match "cash" is Payment { Cash => 1, _ => 2 }); // expect runtime error: [line: 21] ValueError: No match arm for "cash".

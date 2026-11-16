@@ -1,0 +1,25 @@
+let { user: { name, tags: [first, ...more] }, size = 1 } = { user: { name: "ann", tags: ["a", "b", "c"] } };
+print(name); // expect: ann
+print(first); // expect: a
+print(more); // expect: ["b", "c"]
+print(size); // expect: 1
+
+let [x, [y, z = 9], { w }] = [1, [2], { w: 4 }];
+print(x + y + z + w); // expect: 16
+
+let mut { pos: [px, py] } = { pos: [1, 2] };
+px += 10;
+print(px, py); // expect: 11 2
+
+let { pos, pos: { x: posX } } = { pos: { x: 3 } };
+print(pos, posX); // expect: {x: 3} 3
+
+fun area({ size: [w, h] = [1, 1] }) { w * h }
+print(area({ size: [3, 4] })); // expect: 12
+print(area({})); // expect: 1
+
+for [key, { n }] in [["a", { n: 1 }], ["b", { n: 2 }]] {
+    print(key, n);
+}
+// expect: a 1
+// expect: b 2

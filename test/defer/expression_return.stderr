@@ -1,0 +1,6 @@
+error: Cannot return from a 'defer' body.
+ --> expression_return.rn:2:11
+  |
+1 | fun f() {
+2 |     defer return 1; // Error at 'return': Cannot return from a 'defer' body.
+  |           ^^^^^^

@@ -33,9 +33,7 @@ impl Catalog {
 fun loadCsv(path) {
     let src = fs.open(path);
 
-    defer {
-        src.close();
-    }
+    defer src.close();
 
     let header = src.readLine() ?? throw ast.SqlError { message: "{path} is empty" };
     let columns = splitCsv(header).map(c => c.trim());

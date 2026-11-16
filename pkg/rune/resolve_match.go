@@ -15,8 +15,16 @@ func (p *Resolver) VisitMatchStmt(stmt *ast.MatchStmt) error {
 func (p *Resolver) VisitMatchExpr(expr *ast.MatchExpr) (value.Value, error) {
 	p.resolveExpr(expr.Subject)
 
+	if expr.Enum != nil {
+		expr.EnumShape = p.enumNamed(expr.Enum)
+	}
+
 	for i := range expr.Arms {
 		arm := &expr.Arms[i]
+
+		if expr.Enum != nil {
+			arm.Pattern = variantArm(arm.Pattern, expr.Enum, expr.EnumShape)
+		}
 
 		if i > 0 && reachedAll(&expr.Arms[i-1]) {
 			p.error(arm.Token, "Unreachable match arm.")
@@ -39,6 +47,56 @@ func (p *Resolver) VisitMatchExpr(expr *ast.MatchExpr) (value.Value, error) {
 	p.checkExhaustive(expr)
 
 	return value.NilValue, nil
+}
+
+// enumNamed returns the enum t names, reporting it if it names none.
+func (p *Resolver) enumNamed(t *ast.VarExpr) *value.Shape {
+	s := p.typeNamed(t)
+	if s == nil || !s.Enum || s.Builtin || s.Parent != nil {
+		p.error(t.Name, "'"+qualified(t.Module, t.Name)+"' is not an enum; match x is Enum { ... } names its variants bare.")
+		return nil
+	}
+
+	return s
+}
+
+// variantArm returns the pattern of an arm of a match on the enum e, of
+// type enum unless nil, with the bare names of its variants qualified.
+func variantArm(pat ast.Pattern, e *ast.VarExpr, enum *value.Shape) ast.Pattern {
+	switch n := pat.(type) {
+	case *ast.BindPattern:
+		if enum != nil && hasFields(enum, n.Name.Lexeme) {
+			return &ast.IsPattern{Inner: &ast.WildcardPattern{Token: n.Name}, Test: &ast.TypeTestPattern{Token: n.Name, Type: variantOf(e, n.Name)}}
+		}
+
+		return namePattern(variantOf(e, n.Name))
+	case *ast.StructPattern:
+		if n.Type.Module == nil {
+			n.Type = variantOf(e, n.Type.Name)
+		}
+	case *ast.OrPattern:
+		for i, alt := range n.Alts {
+			n.Alts[i] = variantArm(alt, e, enum)
+		}
+	}
+
+	return pat
+}
+
+func hasFields(enum *value.Shape, variant string) bool {
+	v, ok := enum.Variant(variant)
+	return ok && v.Kind() == value.Type
+}
+
+// variantOf is the name of the variant v of the enum e, as Enum.v or m.Enum.v.
+func variantOf(e *ast.VarExpr, v ast.Token) *ast.VarExpr {
+	if e.Module != nil {
+		return &ast.VarExpr{Module: e.Module, Name: e.Name, Case: &v}
+	}
+
+	enum := e.Name
+
+	return &ast.VarExpr{Module: &enum, Name: v}
 }
 
 // checkExhaustive reports a match without a catch-all arm that names
@@ -71,18 +129,16 @@ func (p *Resolver) checkExhaustive(expr *ast.MatchExpr) {
 			if n.Shape != nil && n.Shape.Parent != nil {
 				cover(n.Shape.Parent, value.NewType(n.Shape), full && fieldsIrrefutable(n.Fields))
 			}
-		case *ast.TypePattern:
-			full = full && ast.Irrefutable(n.Inner)
-
-			for _, t := range n.Shapes {
-				switch {
-				case t == nil:
-				case t.Parent != nil:
-					cover(t.Parent, value.NewType(t), full)
-				case t.Enum && !t.Builtin:
-					for _, v := range t.Variants {
-						cover(t, v, full)
-					}
+		case *ast.IsPattern:
+			visit(n.Test, full && ast.Irrefutable(n.Inner))
+		case *ast.TypeTestPattern:
+			switch t := n.Shape; {
+			case t == nil:
+			case t.Parent != nil:
+				cover(t.Parent, value.NewType(t), full)
+			case t.Enum && !t.Builtin:
+				for _, v := range t.Variants {
+					cover(t, v, full)
 				}
 			}
 		}
@@ -124,181 +180,4 @@ func fieldsIrrefutable(fields []ast.FieldPattern) bool {
 // reachedAll reports whether arm matches every value, so no arm after it runs.
 func reachedAll(arm *ast.MatchArm) bool {
 	return arm.Guard == nil && ast.Irrefutable(arm.Pattern)
-}
-
-// resolvePattern returns pat with each bare name of a constant replaced by
-// a test of its value; any other bare name binds.
-func (p *Resolver) resolvePattern(pat ast.Pattern) ast.Pattern {
-	switch n := pat.(type) {
-	case *ast.BindPattern:
-		if l := p.constNamed(n.Name.Lexeme); l != nil && !n.Mutable {
-			return p.constPattern(n.Name, l)
-		}
-
-		p.checkBind(n)
-	case *ast.TypePattern:
-		n.Shapes = p.resolveTypes(n.Types)
-
-		if b, ok := n.Inner.(*ast.BindPattern); ok {
-			p.checkBind(b)
-		}
-	case *ast.RangePattern:
-		n.Lo, n.Hi = p.rangeBound(n.Op, n.Lo), p.rangeBound(n.Op, n.Hi)
-
-		lo, _ := n.Lo.(*ast.LiteralPattern)
-		hi, _ := n.Hi.(*ast.LiteralPattern)
-
-		if lo != nil && hi != nil && lo.Value.IsNumber() && hi.Value.IsNumber() {
-			if c, _ := value.CompareNum(lo.Value, hi.Value); c > 0 || c == 0 && !n.Inclusive {
-				p.error(n.Op, "Range pattern matches no number.")
-			}
-		}
-	case *ast.OrPattern:
-		for i, alt := range n.Alts {
-			n.Alts[i] = p.resolvePattern(alt)
-
-			if bs := ast.Bindings(n.Alts[i]); len(bs) > 0 {
-				p.error(bs[0].Name, "Cannot bind variables in '|' patterns.")
-			}
-		}
-	case *ast.StructPattern:
-		if t := n.Type; t.Module != nil {
-			p.resolveExpr(t)
-			n.Shape = p.structType(t)
-		} else if n.Shape = p.structNamed(t.Name.Lexeme); n.Shape == nil {
-			p.error(t.Name, "'"+t.Name.Lexeme+"' is not a struct.")
-		}
-
-		if n.Shape != nil && n.Shape.Enum {
-			p.error(n.Type.Name, notStruct(n.Shape))
-		}
-
-		for _, f := range n.Fields {
-			if n.Shape != nil && n.Shape.Index(f.Key.Lexeme) < 0 {
-				p.noField(f.Key, n.Shape)
-			}
-		}
-
-		p.resolveFields(n.Fields)
-	case *ast.ObjectPattern:
-		p.resolveFields(n.Fields)
-	case *ast.ArrayPattern:
-		for i, e := range n.Elems {
-			n.Elems[i] = p.resolvePattern(e)
-		}
-
-		if n.Rest != nil {
-			p.checkBind(n.Rest)
-		}
-	case *ast.VariantPattern:
-		return p.resolveVariantPattern(n)
-	}
-
-	return pat
-}
-
-// rangeBound returns the bound b of the range pattern at op, if it has
-// one, as the test of its number.
-func (p *Resolver) rangeBound(op ast.Token, b ast.Pattern) ast.Pattern {
-	if b == nil {
-		return nil
-	}
-
-	errs := len(p.errors)
-	b = p.resolvePattern(b)
-
-	// A name that is no constant is reported once, by what it is not.
-	if lit, ok := b.(*ast.LiteralPattern); (!ok || !lit.Value.IsNumber()) && len(p.errors) == errs {
-		p.error(op, "A bound of a range pattern must be a number or a constant holding one.")
-	}
-
-	return b
-}
-
-// resolveTypes returns the type each of types names, reporting those
-// that name something else; a missing module member is reported already.
-func (p *Resolver) resolveTypes(types []*ast.VarExpr) []*value.Shape {
-	shapes := make([]*value.Shape, len(types))
-
-	for i, t := range types {
-		if shapes[i] = p.typeNamed(t); shapes[i] == nil && (t.Module == nil || t.Local != nil) {
-			p.error(t.Name, "'"+qualified(t.Module, t.Name)+"' is not a type.")
-		}
-	}
-
-	return shapes
-}
-
-// typeNamed resolves t and returns the type it names: a struct type, or
-// a built-in one such as string; nil for anything else.
-func (p *Resolver) typeNamed(t *ast.VarExpr) *value.Shape {
-	if s := p.kindType(t); s != nil {
-		return s
-	}
-
-	p.resolveExpr(t)
-
-	return p.structs[t.Local]
-}
-
-var kindTypes = func() map[string]*value.Shape {
-	ts := map[string]*value.Shape{}
-	for name, k := range builtinKinds {
-		ts[name] = &value.Shape{Name: name, Builtin: true, Kind: k}
-	}
-
-	ts["nil"] = &value.Shape{Name: "nil", Builtin: true, Kind: value.Nil}
-	ts["struct"] = &value.Shape{Name: "struct", Builtin: true, Kind: value.Type}
-	ts["enum"] = &value.Shape{Name: "enum", Builtin: true, Kind: value.Type, Enum: true}
-
-	return ts
-}()
-
-// kindType returns the built-in type t names, as in v is string, unless
-// a declaration or an import hides it.
-func (p *Resolver) kindType(t ast.Expr) *value.Shape {
-	v, ok := t.(*ast.VarExpr)
-	if !ok || v.Module != nil {
-		return nil
-	}
-
-	name := v.Name.Lexeme
-	if p.lookupScopes(name) != nil || p.mod.topLevel[name] != nil || p.mod.imports[name] != nil {
-		return nil
-	}
-
-	return kindTypes[name]
-}
-
-func (p *Resolver) resolveFields(fields []ast.FieldPattern) {
-	for i := range fields {
-		if f := &fields[i]; f.Shorthand {
-			p.checkBind(f.Pattern.(*ast.BindPattern))
-		} else {
-			f.Pattern = p.resolvePattern(f.Pattern)
-		}
-	}
-}
-
-func (p *Resolver) checkBind(n *ast.BindPattern) {
-	if name := n.Name.Lexeme; p.structNamed(name) != nil {
-		p.error(n.Name, "'"+name+"' is a struct type; test it with '_ is "+name+"'.")
-	}
-}
-
-// structNamed returns the struct type name denotes here, if it is one.
-func (p *Resolver) structNamed(name string) *value.Shape {
-	if p.lookupScopes(name) != nil {
-		return nil
-	}
-
-	if l := p.mod.topLevel[name]; l != nil {
-		return p.structs[l]
-	}
-
-	if v, ok := builtinValues()[name]; ok && v.Kind() == value.Type {
-		return v.TypeShape()
-	}
-
-	return nil
 }

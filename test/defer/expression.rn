@@ -1,0 +1,14 @@
+fun f() {
+    defer print("close");
+    defer {
+        print("flush");
+        print("sync");
+    }
+    print("work");
+}
+
+f();
+// expect: work
+// expect: flush
+// expect: sync
+// expect: close

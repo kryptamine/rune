@@ -1,0 +1,4 @@
+let v = { a: 1 };
+let ok = v is { a }; // Error at 'a': Only an if or while condition can bind variables with 'is'.
+if v !is { b } {} // Error at 'b': Cannot bind variables in a '!is' test.
+if v is { c } || true {} // Error at 'c': Only an if or while condition can bind variables with 'is'.

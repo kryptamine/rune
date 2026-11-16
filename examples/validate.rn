@@ -718,9 +718,7 @@ let BROKEN = r"""
 fun demo() {
     let dir = fs.tempDir();
 
-    defer {
-        fs.removeAll(dir);
-    }
+    defer fs.removeAll(dir);
 
     let files = { "edge.json": EDGE, "billing.json": BILLING_V1, "broken.json": BROKEN };
 

@@ -319,12 +319,16 @@ type Method struct {
 	Self, Mut, InPlace bool
 }
 
+// RecordType has the objects and the instances of structs: the values
+// whose keys a pattern reads.
+var RecordType = &Shape{Name: "record", Builtin: true, Kind: Object}
+
 // Has reports whether v is of the type s.
 func (s *Shape) Has(v Value) bool {
 	k := v.Kind()
 	switch {
 	case k == Struct:
-		return v.Shape() == s || v.Shape().Parent == s
+		return v.Shape() == s || v.Shape().Parent == s || s == RecordType
 	case k == Enum:
 		return v.Variant().Shape == s
 	case k == Type && s.Builtin:

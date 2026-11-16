@@ -279,9 +279,7 @@ fun generate(path, n = 400) {
     let mut rng = Rng.new(42);
     let out = fs.open(path, "w");
 
-    defer {
-        out.close();
-    }
+    defer out.close();
 
     for i in 0..n {
         let route = rng.pick(ROUTES);
@@ -329,9 +327,7 @@ fun run(path, flags) {
 fun main(args) {
     let started = time.now();
 
-    defer {
-        print("\ndone in %.1f ms".format((time.now() - started) * 1000));
-    }
+    defer print("\ndone in %.1f ms".format((time.now() - started) * 1000));
 
     let [path, ...flags] = args || [nil];
 
@@ -341,9 +337,7 @@ fun main(args) {
 
     let tmp = fs.tempDir();
 
-    defer {
-        fs.removeAll(tmp);
-    }
+    defer fs.removeAll(tmp);
 
     let sample = fs.join(tmp, "access.log");
     generate(sample);

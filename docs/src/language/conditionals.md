@@ -147,4 +147,7 @@ for amount in [20, -5, 0, 40, 999] {
 print(paid);    // [20, 40]
 ```
 
-To choose between many values, see [`match`](pattern-matching.md).
+To test the shape of a value and take it apart in one step, as in
+`if resp is { status: 200, body } { ... }`, see
+[Binding in Conditions](values.md#binding-in-conditions). To choose
+between many values, see [`match`](pattern-matching.md).

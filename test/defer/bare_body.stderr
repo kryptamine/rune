@@ -1,6 +1,0 @@
-error: Expect '{' after 'defer'.
- --> bare_body.rn:2:9
-  |
-1 | fun f() {
-2 |   defer print("x"); // Error at 'print': Expect '{' after 'defer'.
-  |         ^^^^^

@@ -1,0 +1,17 @@
+struct Point { x, y = 0 }
+
+fun f(v) {
+    match v {
+        n is 1..10 => "small {n}",
+        p is Point { x: 0 } => "on the axis: {p}",
+        s is "a" | "b" => "letter {s}",
+        n is number => "number {n}",
+        _ => "other",
+    }
+}
+
+print(f(3)); // expect: small 3
+print(f(42)); // expect: number 42
+print(f(Point { x: 0, y: 2 })); // expect: on the axis: Point {x: 0, y: 2}
+print(f("b")); // expect: letter b
+print(f(Point { x: 1 })); // expect: other

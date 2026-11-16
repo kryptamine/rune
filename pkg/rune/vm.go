@@ -413,7 +413,7 @@ reload:
 			}
 
 		case opJmpNotLen:
-			if v := at(regs, in.a()); v.Kind() != value.Array || !(len(v.Arr()) == in.b() || in.x() != 0 && len(v.Arr()) > in.b()) {
+			if v := at(regs, in.a()); v.Kind() != value.Array || !lenFits(len(v.Arr()), in.b(), in.x()) {
 				pc = in.c()
 			}
 
@@ -812,4 +812,10 @@ func compareStrings(op uint8, l, r string) bool {
 	default:
 		return l != r
 	}
+}
+
+// lenFits reports whether n is want, or with lenAtLeast or lenAtMost at
+// least or at most want.
+func lenFits(n, want int, x uint8) bool {
+	return n == want || x == lenAtLeast && n > want || x == lenAtMost && n < want
 }

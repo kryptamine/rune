@@ -271,19 +271,15 @@ func (n *StructExpr) Accept(v ExprVisitor) (value.Value, error) {
 	return v.VisitStructExpr(n)
 }
 
-// IsExpr is value is T | U; the resolver sets Shapes[i] when Types[i]
-// names a type, else Types[i] is evaluated.
+// IsExpr is value is pattern, whose bare names are types; Negate makes it
+// value !is pattern. Only a test the resolver marks Cond, of an if or
+// while condition, may bind variables, for its body and the right of its &&.
 type IsExpr struct {
-	Value  Expr
-	Types  []Expr
-	Token  Token
-	Shapes []*value.Shape
-	// Negate makes it value !is T | U.
-	Negate bool
-}
-
-func NewIsExpr(v Expr, types []Expr, token Token, negate bool) Expr {
-	return &IsExpr{Value: v, Types: types, Token: token, Negate: negate, Shapes: make([]*value.Shape, len(types))}
+	Value   Expr
+	Pattern Pattern
+	Token   Token
+	Negate  bool
+	Cond    bool
 }
 
 func (n *IsExpr) Accept(v ExprVisitor) (value.Value, error) {

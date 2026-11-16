@@ -53,6 +53,35 @@ This `match` has no `_` arm, and it does not need one: it lists every
 variant. If a variant is later added to `Status`, the compiler points at
 each `match` that forgot it; see [Matching every variant](#matching-every-variant).
 
+When every arm names a variant of one enum, say so once in the head,
+`match s is Status`, and name the variants bare. The value must then be a
+`Status`; anything else is a `ValueError`, as when no arm matches:
+
+```rune
+enum Status { Pending, Paid, Shipped, Cancelled }
+
+fun label(s) {
+    match s is Status {
+        Pending => "waiting for payment",
+        Paid | Shipped => "on its way",
+        Cancelled => "cancelled",
+    }
+}
+
+print(label(Status.Shipped)); // on its way
+print(label("paid"));         // ValueError: No match arm for "paid".
+```
+
+A bare name in such a match is always a variant, so a typo is caught:
+
+```rune
+enum Status { Pending, Paid }
+match Status.Paid is Status { Pendin => 1, _ => 2 }; // Error at 'Pendin': Status has no variant 'Pendin'.
+```
+
+To match on whether a value is a `Status`, put the test in parentheses:
+`match (s is Status) { true => ..., false => ... }`.
+
 ## Numbers and Names
 
 Variants are numbered from 0 in declaration order. `int(v)` gives a
@@ -161,11 +190,11 @@ enum Expr {
 }
 
 fun eval(e) {
-    match e {
-        Expr.Num { value } => value,
-        Expr.Add { left, right } => eval(left) + eval(right),
-        Expr.Mul { left, right } => eval(left) * eval(right),
-        Expr.Neg { expr } => -eval(expr),
+    match e is Expr {
+        Num { value } => value,
+        Add { left, right } => eval(left) + eval(right),
+        Mul { left, right } => eval(left) * eval(right),
+        Neg { expr } => -eval(expr),
     }
 }
 

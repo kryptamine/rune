@@ -60,7 +60,7 @@ const (
 	opJmpNotType // if R[A] is not of type K[B]: pc = C
 	opJmpNil     // if (R[A] is nil) == Y: pc = C
 	opJmpDefined // if R[A] is defined: pc = C
-	opJmpNotLen  // if R[A] is not an array of B elements, or with X at least B: pc = C
+	opJmpNotLen  // if R[A] is not an array of B elements, or with X lenAtLeast at least, lenAtMost at most: pc = C
 
 	opArray  // R[A] = [R[B], ..., R[B+C-1]]
 	opConcat // R[A] = R[B] .. R[B+C-1] as printed, appended to R[A] if X
@@ -195,6 +195,8 @@ type ins struct {
 }
 
 const (
+	lenAtLeast  = 1
+	lenAtMost   = 2
 	unpackShift = 10
 	maxUnpack   = 1<<unpackShift - 1
 )

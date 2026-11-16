@@ -5,6 +5,11 @@ reading `user.name` and `user.age` into two variables by hand, you write
 the shape you expect and Rune fills in the names. Patterns work in `let`,
 in function parameters and in `for`-`in` variables.
 
+These are the same patterns as in [`match`](pattern-matching.md) and
+[`is`](values.md#type-tests-and-patterns). The difference is what happens
+when the value does not fit: `match` tries the next arm, `is` gives
+`false`, and destructuring fails with an error.
+
 ## Objects and Structs
 
 An object pattern binds properties to variables of the same name:
@@ -178,7 +183,50 @@ Anything that is not an array is a `TypeError`:
 let [a, b] = "ab"; // TypeError: Cannot destructure string as an array.
 ```
 
-Patterns do not nest: each element or property binds a plain variable.
+## Nesting
+
+A property or element can be a pattern itself, so one `let` reaches deep
+into a value:
+
+```rune
+let resp = { user: { name: "ann", tags: ["admin", "ops", "dev"] }, status: 200 };
+let { user: { name, tags: [first, ...others] }, status } = resp;
+
+print(name);      // ann
+print(first);     // admin
+print(others);    // ["ops", "dev"]
+print(status);    // 200
+```
+
+The same key may appear twice, to keep the whole value and take it apart
+too:
+
+```rune
+let { pos, pos: { x } } = { pos: { x: 3, y: 4 } };
+print(pos);    // {x: 3, y: 4}
+print(x);      // 3
+```
+
+Nested patterns work in parameters and `for` loops as well:
+
+```rune
+fun label({ name, size: [w, h] }) { "{name} {w}x{h}" }
+print(label({ name: "logo", size: [64, 32] }));    // logo 64x32
+
+for [day, { hits }] in [["mon", { hits: 10 }], ["tue", { hits: 3 }]] {
+    print("{day}: {hits}");
+}
+// mon: 10
+// tue: 3
+```
+
+A pattern here only takes a value apart. Testing it, with a literal, a
+range, `|` or a type, belongs in [`match`](pattern-matching.md) or
+[`is`](values.md#type-tests-and-patterns):
+
+```rune
+let [cmd, "now"] = ["run", "now"]; // Error at '"now"': This pattern only takes a value apart; test the value with match or 'is'.
+```
 
 ## Defaults
 

@@ -8,8 +8,7 @@ import (
 type StmtVisitor interface {
 	VisitExprStmt(exprStmt *ExprStmt) error
 	VisitVarStmt(VarStmt *VarStmt) error
-	VisitDestructureStmt(stmt *DestructureStmt) error
-	VisitArrayDestructureStmt(stmt *ArrayDestructureStmt) error
+	VisitPatternStmt(stmt *PatternStmt) error
 	VisitBlockStmt(blockStmt *BlockStmt) error
 	VisitIfStmt(ifStmt *IfStmt) error
 	VisitWhileStmt(whileStmt *WhileStmt) error
@@ -48,75 +47,15 @@ func NewVarStmt(initializer Expr, binding Binding) Stmt {
 	return &VarStmt{Initializer: initializer, Binding: binding}
 }
 
-// PatternVar is a variable a pattern binds, and its default, if any, taken
-// when the value has no such property or element.
-type PatternVar struct {
-	Binding
-	Default Expr
-}
-
-// DestructureField binds the property Key (by its Lexeme) of the value.
-type DestructureField struct {
-	Key Token
-	PatternVar
-}
-
-// DestructureStmt is let { a, mut b = 1, c: d, ...rest } = value; Rest,
-// if any, binds an object of the other properties or fields.
-type DestructureStmt struct {
-	Brace       Token
-	Fields      []DestructureField
-	Rest        *PatternVar
+// PatternStmt is let pattern = value; and the destructuring of a pattern
+// parameter or for-in variable: each part the pattern names must be there.
+type PatternStmt struct {
+	Pattern     Pattern
 	Initializer Expr
 }
 
-// ArrayDestructureStmt is let [a, _, mut b = 1, ...rest] = value; Elems
-// binds the elements in order, nil for _, and Rest, if any, the others.
-type ArrayDestructureStmt struct {
-	Bracket     Token
-	Elems       []*PatternVar
-	Rest        *PatternVar
-	Initializer Expr
-}
-
-// Required is the number of elements the value must have: those before
-// the first with a default.
-func (s *ArrayDestructureStmt) Required() int {
-	for i, e := range s.Elems {
-		if e != nil && e.Default != nil {
-			return i
-		}
-	}
-
-	return len(s.Elems)
-}
-
-// PatternVars returns the variables a destructuring stmt binds, in order.
-func PatternVars(stmt Stmt) []*PatternVar {
-	var vs []*PatternVar
-
-	switch s := stmt.(type) {
-	case *DestructureStmt:
-		for i := range s.Fields {
-			vs = append(vs, &s.Fields[i].PatternVar)
-		}
-
-		if s.Rest != nil {
-			vs = append(vs, s.Rest)
-		}
-	case *ArrayDestructureStmt:
-		for _, e := range s.Elems {
-			if e != nil {
-				vs = append(vs, e)
-			}
-		}
-
-		if s.Rest != nil {
-			vs = append(vs, s.Rest)
-		}
-	}
-
-	return vs
+func (n *PatternStmt) Accept(v StmtVisitor) error {
+	return v.VisitPatternStmt(n)
 }
 
 // Declared returns the variables stmt declares, structs and discards aside.
@@ -128,10 +67,8 @@ func Declared(stmt Stmt) []*Binding {
 		bs = []*Binding{&s.Binding}
 	case *FunctionStmt:
 		bs = []*Binding{&s.Binding}
-	case *DestructureStmt, *ArrayDestructureStmt:
-		for _, v := range PatternVars(s) {
-			bs = append(bs, &v.Binding)
-		}
+	case *PatternStmt:
+		bs = Bindings(s.Pattern)
 	}
 
 	return slices.DeleteFunc(bs, func(b *Binding) bool { return b.Discards() })
@@ -374,14 +311,6 @@ func (n *ExprStmt) Accept(v StmtVisitor) error {
 
 func (n *VarStmt) Accept(v StmtVisitor) error {
 	return v.VisitVarStmt(n)
-}
-
-func (n *DestructureStmt) Accept(v StmtVisitor) error {
-	return v.VisitDestructureStmt(n)
-}
-
-func (n *ArrayDestructureStmt) Accept(v StmtVisitor) error {
-	return v.VisitArrayDestructureStmt(n)
 }
 
 func (n *BlockStmt) Accept(v StmtVisitor) error {

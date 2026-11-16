@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"maps"
 	"rune/pkg/ast"
+	"slices"
 )
 
 // liveSet holds the variables read again before they are set.
@@ -116,10 +117,14 @@ func (lv *liveness) stmt(stmt ast.Stmt, live liveSet) {
 
 		lv.own(s.Local, live)
 		lv.expr(s.Initializer, live)
-	case *ast.DestructureStmt:
-		lv.destructure(s, s.Initializer, live)
-	case *ast.ArrayDestructureStmt:
-		lv.destructure(s, s.Initializer, live)
+	case *ast.PatternStmt:
+		bs, es := ast.Bindings(s.Pattern), ast.Exprs(s.Pattern)
+		for _, b := range slices.Backward(bs) {
+			lv.own(b.Local, live)
+		}
+
+		lv.exprs(es, live)
+		lv.expr(s.Initializer, live)
 	case *ast.BlockStmt:
 		lv.stmts(s.Stmts, live)
 	case *ast.IfStmt:
@@ -167,16 +172,6 @@ func (lv *liveness) stmt(stmt ast.Stmt, live liveSet) {
 	default:
 		panic(fmt.Sprintf("moves: unknown statement %T", stmt))
 	}
-}
-
-func (lv *liveness) destructure(s ast.Stmt, init ast.Expr, live liveSet) {
-	vars := ast.PatternVars(s)
-	for i := len(vars) - 1; i >= 0; i-- {
-		lv.own(vars[i].Local, live)
-		lv.expr(vars[i].Default, live)
-	}
-
-	lv.expr(init, live)
 }
 
 // loop takes live from after a loop to its head. body takes live from
@@ -234,6 +229,7 @@ func (lv *liveness) match(m *ast.MatchExpr, live liveSet) {
 		lv.stmt(arm.Body, in)
 		in.add(next)
 		lv.expr(arm.Guard, in)
+		lv.exprs(ast.Exprs(arm.Pattern), in)
 		next.add(in)
 	}
 
@@ -332,11 +328,9 @@ func (lv *liveness) expr(e ast.Expr, live liveSet) {
 			lv.expr(n.Pairs[i].Value, live)
 		}
 	case *ast.IsExpr:
-		for i := len(n.Types) - 1; i >= 0; i-- {
-			if n.Shapes[i] == nil {
-				lv.holds(n.Value, live)
-				lv.expr(n.Types[i], live)
-			}
+		if es := ast.Exprs(n.Pattern); len(es) > 0 {
+			lv.holds(n.Value, live)
+			lv.exprs(es, live)
 		}
 
 		lv.expr(n.Value, live)

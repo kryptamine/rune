@@ -1,1 +1,1 @@
-let {} = {}; // Error at '}': Expect property name in pattern.
+let {} = {}; // Error at '{': Expect property name in pattern.
