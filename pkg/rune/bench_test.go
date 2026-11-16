@@ -126,6 +126,23 @@ func TestMovesDoNotCopy(t *testing.T) {
 	}
 }
 
+// A container a pass hands from variable to variable is never copied.
+func TestContainerMovesDoNotCopy(t *testing.T) {
+	for name, src := range map[string]string{
+		"object": `let mut a = {}; for i in 0..1000 { a[string(i)] = i; } for k in 0..%d { let mut b = a; b["0"] = k; a = b; }`,
+		"map":    `let mut a = map(); for i in 0..1000 { a[i] = i; } for k in 0..%d { let mut b = a; b[0] = k; a = b; }`,
+		"set":    `let mut a = set(); for i in 0..1000 { a.add(i); } for k in 0..%d { let mut b = a; b.delete(k); a = b; }`,
+		"buffer": `let mut a = bytes.buffer(); for i in 0..1000 { a.writeUint(0, 8); } for k in 0..%d { let mut b = a; b[0] = k %% 256; a = b; }`,
+		"path":   `let mut o = { m: map({ a: {} }) }; for i in 0..1000 { o.m["a"][string(i)] = i; } for k in 0..%d { o.m["a"]["0"] = k; o.m["a"].delete("1"); }`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			if one, many := allocated(t, src, 1), allocated(t, src, 101); many > one+20<<10 {
+				t.Fatalf("copies: %d bytes for 1 pass, %d for 101", one, many)
+			}
+		})
+	}
+}
+
 // A grid of 100 rows of 100 takes some 170KB; writes along paths no
 // other holder shares take none.
 func TestPathWritesInPlace(t *testing.T) {

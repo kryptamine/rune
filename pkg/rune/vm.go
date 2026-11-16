@@ -469,7 +469,7 @@ reload:
 					arr[idx] = *at(regs, in.c())
 					continue
 				}
-			} else if t.Kind() == value.Object && i.IsString() {
+			} else if t.Kind() == value.Object && i.IsString() && !t.Shared() {
 				if t.Obj().SetInterned(i, *at(regs, in.c())) {
 					continue
 				}
@@ -512,7 +512,7 @@ reload:
 
 		case opSetProp:
 			t := *at(regs, in.a())
-			if k := t.Kind(); k == value.Object {
+			if k := t.Kind(); k == value.Object && !t.Shared() {
 				if t.Obj().SetInterned(*at(consts, in.b()), *at(regs, in.c())) {
 					continue
 				}

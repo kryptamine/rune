@@ -11,16 +11,15 @@ import (
 //
 // slots is probed linearly from a key's hash and holds the index of its
 // entry plus one, or zero. A deleted entry stays as a hole, keys[i]
-// undefined, until an insert rebuilds the table; inserting a key bumps
-// version, so a walk can tell its positions went stale.
+// undefined, until an insert rebuilds the table.
 type HashMap struct {
-	keys    []Value
-	vals    []Value
-	hashes  []uint64
-	slots   []uint32
-	shift   uint8
-	holes   int
-	version int
+	keys   []Value
+	shared bool
+	vals   []Value
+	hashes []uint64
+	slots  []uint32
+	shift  uint8
+	holes  int
 }
 
 const minSlots = 8
@@ -235,7 +234,6 @@ func (m *HashMap) add(k, v Value, h uint64) {
 		m.rebuild(slotsFor(n + 1))
 	}
 
-	m.version++
 	m.keys = append(m.keys, k)
 	m.vals = append(m.vals, v)
 	m.hashes = append(m.hashes, h)
@@ -315,31 +313,25 @@ func (m *HashMap) Delete(k Value) (bool, error) {
 }
 
 func (m *HashMap) Clear() {
-	m.version++
 	clear(m.slots)
 	clear(m.keys)
 	clear(m.vals)
 	m.keys, m.vals, m.hashes, m.holes = m.keys[:0], m.vals[:0], m.hashes[:0], 0
 }
 
-// Walk returns a function yielding the entries in order, which says stale
-// once a key was added since the walk began.
-func (m *HashMap) Walk() func() (k, v Value, ok, stale bool) {
-	i, version := 0, m.version
+// Walk returns a function yielding the entries in order.
+func (m *HashMap) Walk() func() (k, v Value, ok bool) {
+	i := 0
 
-	return func() (k, v Value, ok, stale bool) {
-		if m.version != version {
-			return k, v, false, true
-		}
-
+	return func() (k, v Value, ok bool) {
 		for ; i < len(m.keys); i++ {
 			if k := m.keys[i]; !k.IsUndefined() {
 				i++
-				return k, m.vals[i-1], true, false
+				return k, m.vals[i-1], true
 			}
 		}
 
-		return k, v, false, false
+		return k, v, false
 	}
 }
 

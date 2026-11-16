@@ -80,8 +80,8 @@ fun retry(attempts) {
 }
 ```
 
-An array is a value, so `let mut b = a;` gives `b` a copy of its own:
-changing `b` leaves `a` as it was.
+A container is a value too, so `let mut b = a;` gives `b` a copy of its
+own: changing `b` leaves `a` as it was (see [Copies](values.md#copies)).
 
 ```rune
 let scores = [70, 95];
@@ -122,9 +122,8 @@ const LIMIT = 10;
 LIMIT = 20;    // Error at 'LIMIT': Cannot assign to constant 'LIMIT'.
 ```
 
-A constant array never changes: each read is a copy of it. A constant
-object is one object, shared by every read. Spreads and computed keys are
-not constant.
+A constant never changes: each read is a copy of it. Spreads and computed
+keys are not constant.
 
 In a [pattern](pattern-matching.md#patterns) a constant's name tests for
 its value; an array or object constant cannot be one.

@@ -1,6 +1,0 @@
-ValueError: Cannot add to a map while iterating over it.
- --> iterate_add.rn:8:1
-  |
-7 | let mut n = map([[1, 1]]);
-8 | for k in n { // expect runtime error: [line: 8] ValueError: Cannot add to a map while iterating over it.
-  | ^^^

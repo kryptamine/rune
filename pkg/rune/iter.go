@@ -71,8 +71,8 @@ func indexed(at func(i int) (value.Value, bool)) func() (value.Value, value.Valu
 	}
 }
 
-// cursorOf snapshots arrays and walks maps and sets in place. Objects
-// yield their keys in sorted order and structs in declaration order; a
+// cursorOf walks what the loop shares, so a write in the body copies it.
+// Objects yield their keys in sorted order and structs in declaration order; a
 // loop that binds only one variable walks them like an array of keys.
 func (p *Interpreter) cursorOf(v value.Value, hasKey bool, keyword *ast.Token) (*cursor, error) {
 	switch v.Kind() {
@@ -113,7 +113,7 @@ func (p *Interpreter) cursorOf(v value.Value, hasKey bool, keyword *ast.Token) (
 		fields := v.Fields()
 		return pairs(v.Shape().Keys, hasKey, func(i int, _ value.Value) value.Value { return fields[i] }), nil
 	case value.Map, value.Set:
-		return tableCursor(v, hasKey && v.Kind() == value.Map, *keyword), nil
+		return tableCursor(v, hasKey && v.Kind() == value.Map), nil
 	case value.Stream:
 		return streamCursor(v.Internal().(*stdlib.Stream), *keyword), nil
 	}
@@ -141,22 +141,14 @@ func pairs(keys []value.Value, hasKey bool, val func(i int, k value.Value) value
 	}}
 }
 
-// tableCursor walks a Map or a Set in place, by key with keys, else by
-// index; adding a key while it walks is an error.
-func tableCursor(v value.Value, keys bool, keyword ast.Token) *cursor {
+// tableCursor walks a Map or a Set, by key with keys, else by index.
+func tableCursor(v value.Value, keys bool) *cursor {
 	walk, n := v.HashMap().Walk(), 0
 
 	return &cursor{next: func() (value.Value, value.Value, bool, error) {
-		k, x, ok, stale := walk()
-
-		switch {
-		case stale:
-			return k, x, false, errors.NewRuntimeError(errors.ValueError, keyword,
-				"Cannot add to a "+helpers.TypeName(v)+" while iterating over it.")
-		case !ok:
-			return k, x, false, nil
-		case keys:
-			return k, x, true, nil
+		k, x, ok := walk()
+		if !ok || keys {
+			return k, x, ok, nil
 		}
 
 		n++

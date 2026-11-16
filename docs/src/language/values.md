@@ -15,6 +15,39 @@ print(type({ name: "ann" }));  // object
 print(type(x => x * 2));       // function
 ```
 
+## Copies
+
+Every value is copied where it goes: assigning it, passing it to a
+function, returning it, capturing it in a closure, storing it in an element,
+a property or a field. Arrays, objects, maps, sets and buffers are no
+exception, so two variables never hold one changeable container: changing
+one leaves the other as it was. A copy costs nothing until one of them is
+written, and none at all if the source is not read again.
+
+```rune
+let a = { tags: ["new"] };
+let mut b = a;
+b.tags.push("sale");
+b.price = 10;
+print(a); // {tags: ["new"]}
+print(b); // {tags: ["new", "sale"], price: 10}
+```
+
+A function changes the caller's variable only through a
+[`mut` parameter](functions.md#mut-parameters). State that several
+functions change is a variable they capture:
+
+```rune
+let mut seen = set();
+fun visit(id) { seen.add(id); }
+visit(1);
+visit(2);
+print(seen); // set {1, 2}
+```
+
+Functions and streams are not data and are not copied: a copy of one is
+the same function or stream.
+
 ## Type Tests
 
 `v is T` tests that `v` is of type `T`: a struct or enum type, or one of

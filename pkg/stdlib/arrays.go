@@ -152,7 +152,6 @@ func pushFast(args []value.Value) (value.Value, bool) {
 	}
 
 	arr := args[0].ArrRef()
-	value.ShareAll(args[1:])
 	*arr = append(*arr, args[1:]...)
 
 	return value.NilValue, true
@@ -166,7 +165,6 @@ var arrayInPlace = []*Native{
 		}
 
 		arr := c.args[0].ArrRef()
-		value.ShareAll(c.args[1:])
 		*arr = append(*arr, c.args[1:]...)
 
 		return value.NilValue
@@ -201,7 +199,6 @@ var arrayInPlace = []*Native{
 			return value.NilValue
 		}
 
-		value.Share(c.args[2])
 		*arr = slices.Insert(*arr, i, c.args[2])
 
 		return value.NilValue

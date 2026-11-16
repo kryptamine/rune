@@ -97,8 +97,7 @@ func NewString(s string) Value {
 }
 
 // array is the heap object of an array. items comes first, so a pointer
-// to it is one to the slice. A shared array has another holder; it is
-// cloned before a write.
+// to it is one to the slice.
 type array struct {
 	items  []Value
 	shared bool
@@ -108,17 +107,26 @@ func NewArray(items []Value) Value {
 	return Value{p: unsafe.Pointer(&array{items: items}), n: uint64(Array) << kindShift}
 }
 
-// Share marks v as held twice, if an array.
-func Share(v Value) {
-	if v.isArray() {
-		(*array)(v.p).shared = true
-	}
+// A shared container has another holder; it is cloned before a write.
+// Each keeps its flag right after a slice heading its heap object.
+const sharedAt = unsafe.Offsetof(array{}.shared)
+
+var _ = [1]struct{}{}[unsafe.Offsetof(Obj{}.shared)-sharedAt+unsafe.Offsetof(HashMap{}.shared)-sharedAt+unsafe.Offsetof(ByteBuf{}.shared)-sharedAt]
+
+const containers = 1<<Array | 1<<Object | 1<<Map | 1<<Set | 1<<Buffer
+
+// container reports whether v is an array, object, map, set or buffer:
+// only theirs among the kinds in containers have an n of the kind alone,
+// which rules out all but numbers with that payload.
+func (v Value) container() bool {
+	return v.n&(1<<kindShift-1) == 0 && containers>>(v.n>>kindShift)&1 != 0 && v.p != intTag() && v.p != numTag()
 }
 
-// isArray is Kind() == Array: only an array's n is its kind alone, which
-// rules out all but numbers with that payload.
-func (v Value) isArray() bool {
-	return v.n == uint64(Array)<<kindShift && v.p != intTag() && v.p != numTag()
+// Share marks v as held twice, if a container.
+func Share(v Value) {
+	if v.container() {
+		*(*bool)(unsafe.Add(v.p, sharedAt)) = true
+	}
 }
 
 // ShareAll shares each of vs.
@@ -128,11 +136,12 @@ func ShareAll(vs []Value) {
 	}
 }
 
-// ShareDeep shares v and every array it holds, for a constant.
+// ShareDeep shares v and every container it holds, for a constant.
 func ShareDeep(v Value) {
+	Share(v)
+
 	switch v.Kind() {
 	case Array:
-		Share(v)
 		for _, x := range v.Arr() {
 			ShareDeep(x)
 		}
@@ -140,23 +149,39 @@ func ShareDeep(v Value) {
 		for _, x := range v.Obj().All() {
 			ShareDeep(x)
 		}
+	case Map:
+		v.HashMap().Each(func(_, x Value) bool { ShareDeep(x); return true })
 	}
 }
 
-// Shared reports whether v is an array with another holder.
-func (v Value) Shared() bool { return v.isArray() && (*array)(v.p).shared }
+// Shared reports whether v is a container with another holder.
+func (v Value) Shared() bool { return v.container() && *(*bool)(unsafe.Add(v.p, sharedAt)) }
 
-// Unshare returns v as an array of its own: v unless shared, else a
-// copy, whose elements are then held twice.
+// Unshare returns v as a container of its own: v unless shared, else a
+// shallow copy, whose elements are then held twice.
 func Unshare(v Value) Value {
 	if !v.Shared() {
 		return v
 	}
 
-	items := slices.Clone(v.Arr())
-	ShareAll(items)
+	switch v.Kind() {
+	case Array:
+		items := slices.Clone(v.Arr())
+		ShareAll(items)
+		return NewArray(items)
+	case Object:
+		c := v.Obj().clone()
+		ShareAll(c.vals)
+		return NewObject(c)
+	case Map:
+		c := v.HashMap().Clone()
+		ShareAll(c.vals)
+		return NewMap(c)
+	case Set:
+		return NewSet(v.HashMap().Clone())
+	}
 
-	return NewArray(items)
+	return NewBuffer(&ByteBuf{Data: slices.Clone(v.Buf().Data)})
 }
 
 func NewObject(o *Obj) Value {
@@ -573,7 +598,10 @@ func NewBytes(b []byte) Value {
 func (v Value) Bytes() []byte { return unsafe.Slice((*byte)(v.p), int(v.n&lenMask)) }
 
 // ByteBuf is the payload of a buffer.
-type ByteBuf struct{ Data []byte }
+type ByteBuf struct {
+	Data   []byte
+	shared bool
+}
 
 func NewBuffer(b *ByteBuf) Value { return Value{p: unsafe.Pointer(b), n: uint64(Buffer) << kindShift} }
 

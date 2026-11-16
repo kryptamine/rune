@@ -157,8 +157,10 @@ type CallExpr struct {
 	Optional bool
 	Writable bool
 	Frozen   bool
-	// InPlace is set when only built-in in-place methods have its name.
+	// InPlace is set when only built-in in-place methods have its name,
+	// Keeps when one has, which may keep its arguments.
 	InPlace bool
+	Keeps   bool
 	// Inout has a bit for each argument that a mut parameter of the
 	// function called may write back to.
 	Inout uint32

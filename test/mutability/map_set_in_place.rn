@@ -5,7 +5,7 @@ print(1 in s); // expect: true
 
 let mut mm = m;
 mm["b"] = 2;
-print(m); // expect: map {"a": 1, "b": 2}
+print(m); // expect: map {"a": 1}
 
 let a = [2, 1];
 try { let f = a.push; } catch e is TypeError { print(e.message); } // expect: Cannot take in-place method 'push' of array as a value.

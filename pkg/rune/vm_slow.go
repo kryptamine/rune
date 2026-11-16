@@ -186,7 +186,7 @@ func (p *Interpreter) slow(in Instr) error {
 			}
 
 			return err
-		case in.op() == opSetIndex:
+		case in.op() == opSetIndex || t.Kind() == value.Object:
 			if t.Shared() {
 				t = value.Unshare(t)
 				regs[in.a()] = t

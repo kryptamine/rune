@@ -95,7 +95,8 @@ A buffer is binary data that changes in place: `bytes.buffer()` makes an
 empty one and `bytes.buffer(data)` one holding a copy of a string, bytes or
 another buffer. `buf[i]` reads a byte and `buf[i] = x` sets one; it
 iterates, spreads and compares like bytes, and every reading method of
-bytes works on it too. Like an array, it needs a `let mut` to change.
+bytes works on it too. Like an array, it needs a `let mut` to change, and
+like every value it is [copied](../language/values.md#copies) where it goes.
 
 - `write(data)` — appends a string, bytes or a buffer;
 - `writeUint(x, size[, order])`, `writeInt(x, size[, order])`, `writeFloat(x[, size[, order]])`, `writeUvarint(x)`, `writeVarint(x)` — append a number, the counterparts of the reads above; a number that does not fit is a `ValueError`;

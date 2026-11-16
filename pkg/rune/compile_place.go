@@ -70,7 +70,7 @@ func (pl *place) set(v int32, back bool) {
 
 	set := fs.emit(ins{op: pick(pl.prop, opSetProp, opSetIndex), a: t.reg, b: pl.i, c: v, y: uint8(boolNum(self))}, pl.tok)
 
-	if !self && pl.prop || !t.held() {
+	if !t.held() {
 		return
 	}
 

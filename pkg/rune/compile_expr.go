@@ -805,7 +805,7 @@ func (fs *funcState) invoke(n *ast.CallExpr, prop *ast.IndexExpr, dst int32) {
 		switch {
 		case places != nil && places[i] != nil:
 			fs.inoutArg(n, prop.Array, places, i, fs.alloc())
-		case sameRoot(arg, prop.Array):
+		case n.Keeps || sameRoot(arg, prop.Array):
 			fs.copyExpr(arg, fs.alloc())
 		default:
 			fs.arg(arg, fs.alloc())
