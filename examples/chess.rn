@@ -207,7 +207,7 @@ impl Position {
                     continue;
                 }
 
-                let t = PIECE_CHARS.indexOf(ch.lower());
+                let t = PIECE_CHARS.indexOf(ch.lower()) ?? 0;
 
                 if t <= 0 || file > 7 {
                     throw FenError { message: "bad rank '{row}'" };

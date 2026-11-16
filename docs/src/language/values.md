@@ -55,8 +55,9 @@ the same function or stream.
 the built-in `nil`, `boolean`, `number`, `string`, `array`, `object`,
 `function`, `map`, `set`, `bytes`, `buffer` and `stream`, or `struct` and
 `enum`, which a struct type and an enum type themselves are.
-`v !is T` is its negation. Both have the precedence of `==`; the same test
-is `name is T` in [match](pattern-matching.md) and `catch e is T`.
+`v is T | U` tests that it is one of them, `v !is T | U` that it is none.
+Both have the precedence of `==`; the same test is `name is T` in
+[match](pattern-matching.md) and `catch e is T`.
 
 ```rune
 struct User { name }
@@ -68,6 +69,8 @@ print(User { name: "ann" } is User);  // true
 print(User { name: "ann" } is object); // false
 print(nil is nil);                    // true
 print("42" !is number);               // true
+print("42" is number | string);       // true
+print(nil !is number | string);       // true
 print(User is struct);                // true
 ```
 

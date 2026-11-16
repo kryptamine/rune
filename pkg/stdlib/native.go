@@ -223,6 +223,15 @@ func (c *call) invoke(fn value.Value, args []value.Value) value.Value {
 
 func count(n int) value.Value { return value.NewInt(int64(n)) }
 
+// found is the index i, or nil when i < 0, for a search that found nothing.
+func found(i int) value.Value {
+	if i < 0 {
+		return value.NilValue
+	}
+
+	return count(i)
+}
+
 // Builtin is a global defined before a program runs.
 type Builtin struct {
 	Name  string

@@ -60,7 +60,7 @@ var arrayMethods = []*Native{
 		return value.NilValue
 	}},
 	{"array.findIndex", 2, 2, func(c *call) value.Value {
-		return count(firstWhere(c, true))
+		return found(firstWhere(c, true))
 	}},
 	{"array.reduce", 2, 3, func(c *call) value.Value {
 		items, f := c.arr(0), c.fn(1)

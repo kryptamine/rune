@@ -26,7 +26,7 @@ var arraySequenceMethods = []*Native{
 		return sharedArray(slices.Repeat(items, n))
 	}},
 	{"array.indexOf", 2, 2, func(c *call) value.Value {
-		return count(arrayIndex(c))
+		return found(arrayIndex(c))
 	}},
 }
 
@@ -38,7 +38,7 @@ var stringSequenceMethods = []*Native{
 			return count(utf8.RuneCountInString(s[:i]))
 		}
 
-		return count(-1)
+		return value.NilValue
 	}},
 }
 

@@ -106,13 +106,7 @@ impl Store {
     }
 
     fun find(self, id) {
-        let i = self.tasks.findIndex(t => t.id == id);
-
-        if i < 0 {
-            throw UsageError { message: "no task #{id}" };
-        }
-
-        return i;
+        return self.tasks.findIndex(t => t.id == id) ?? throw UsageError { message: "no task #{id}" };
     }
 
     fun update(mut self, id, f) {

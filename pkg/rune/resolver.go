@@ -391,10 +391,12 @@ func (p *Resolver) VisitFunctionStmt(fnStmt *ast.FunctionStmt) error {
 func (p *Resolver) VisitIsExpr(expr *ast.IsExpr) (value.Value, error) {
 	p.resolveExpr(expr.Value)
 
-	if t, ok := expr.Type.(*ast.VarExpr); ok {
-		expr.Shape = p.typeNamed(t)
-	} else {
-		p.resolveExpr(expr.Type)
+	for i, typ := range expr.Types {
+		if t, ok := typ.(*ast.VarExpr); ok {
+			expr.Shapes[i] = p.typeNamed(t)
+		} else {
+			p.resolveExpr(typ)
+		}
 	}
 
 	return value.NilValue, nil

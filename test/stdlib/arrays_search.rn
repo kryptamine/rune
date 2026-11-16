@@ -7,7 +7,7 @@ print([].some(x => true));           // expect: false
 print(xs.find(x => x > 4));          // expect: 8
 print(xs.find(x => x > 9));          // expect: nil
 print(xs.findIndex(x => x > 4));     // expect: 1
-print(xs.findIndex(x => x > 9));     // expect: -1
+print(xs.findIndex(x => x > 9));     // expect: nil
 
 let mut calls = 0;
 xs.some(x => { calls++; return x == 8; });

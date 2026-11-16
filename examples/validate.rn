@@ -248,7 +248,7 @@ fun checkList({ of, min, max, unique }, v, path, mut out) {
 
         let [key, keyAt] = unique == true ? [item, at] : [item is object ? item?.[unique] : nil, [...at, unique]];
 
-        if !(key is string || key is number) {
+        if key !is string | number {
             continue;
         }
 

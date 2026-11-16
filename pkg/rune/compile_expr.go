@@ -109,7 +109,7 @@ func assigns(e ast.Expr) bool {
 	case *ast.StructExpr:
 		return pairsAssign(n.Pairs)
 	case *ast.IsExpr:
-		return assigns(n.Value) || assigns(n.Type)
+		return assigns(n.Value) || anyAssigns(n.Types)
 	case *ast.IndexExpr:
 		return assigns(n.Array) || assigns(n.Index)
 	case *ast.RangeExpr:
@@ -370,13 +370,7 @@ func (fs *funcState) expr(e ast.Expr, dst int32) {
 	case *ast.StructExpr:
 		fs.structLiteral(n, dst)
 	case *ast.IsExpr:
-		if n.Shape != nil {
-			fs.isType(n, dst)
-			break
-		}
-
-		v := fs.operand(n.Value, n.Type)
-		fs.emit(ins{op: opIs, a: dst, b: v, c: fs.exprAny(n.Type), y: uint8(boolNum(n.Negate))}, &n.Token)
+		fs.isTypes(n, dst)
 	case *ast.IndexExpr:
 		fs.index(n, dst)
 	case *ast.SliceExpr:
@@ -914,10 +908,37 @@ func pick(cond bool, a, b Op) Op {
 	return b
 }
 
-// isType sets R[dst] to whether the value of n is of the type n.Shape.
-func (fs *funcState) isType(n *ast.IsExpr, dst int32) {
-	v := fs.exprAny(n.Value)
-	t := fs.alloc()
-	fs.emit(ins{op: opLoadK, a: t, c: fs.constant(value.NewType(n.Shape))}, nil)
-	fs.emit(ins{op: opIs, a: dst, b: v, c: t, y: uint8(boolNum(n.Negate))}, &n.Token)
+// isTypes sets R[dst] to whether the value of n is of one of its types,
+// testing them in order until one decides.
+func (fs *funcState) isTypes(n *ast.IsExpr, dst int32) {
+	v := fs.operand(n.Value, n.Types...)
+	neg := uint8(boolNum(n.Negate))
+	r := dst
+	if len(n.Types) > 1 {
+		r = fs.alloc()
+	}
+
+	var ends []int
+
+	for i, typ := range n.Types {
+		var t int32
+		if n.Shapes[i] != nil {
+			t = fs.alloc()
+			fs.emit(ins{op: opLoadK, a: t, c: fs.constant(value.NewType(n.Shapes[i]))}, nil)
+		} else {
+			t = fs.exprAny(typ)
+		}
+
+		fs.emit(ins{op: opIs, a: r, b: v, c: t, y: neg}, &n.Token)
+
+		if i < len(n.Types)-1 {
+			ends = append(ends, fs.emit(ins{op: opJmpIf, a: r, y: 1 - neg}, nil))
+		}
+	}
+
+	fs.patch(ends)
+
+	if r != dst {
+		fs.emit(ins{op: opMove, a: dst, b: r}, nil)
+	}
 }

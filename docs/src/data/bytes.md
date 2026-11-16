@@ -49,7 +49,7 @@ print(bytes.fromBase64("aGk="));   // b"hi"
 ## Methods
 
 `text()` (the bytes as UTF-8 text, as a stream's `readText()` reads it;
-anything else is a `ValueError`), `indexOf(sub)` (`-1` if missing), `hex()`
+anything else is a `ValueError`), `indexOf(sub)` (`nil` if missing), `hex()`
 and `base64()`. `[...b]` is the bytes as an array of integers, and `+`
 joins them; to join many, write them to a [buffer](#buffers).
 

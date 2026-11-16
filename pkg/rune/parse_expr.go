@@ -211,29 +211,53 @@ func (s *Parser) equality() (ast.Expr, error) {
 	for s.match(ast.BANG_EQUAL, ast.EQUAL_EQUAL, ast.IS, ast.BANG_IS, ast.IN, ast.BANG_IN) {
 		operator := s.previous()
 
-		right, err := s.equalityOperand(operator)
+		if t := operator.TokenType; t == ast.IS || t == ast.BANG_IS {
+			types, err := s.isTypes()
+			if err != nil {
+				return nil, err
+			}
+
+			expr = ast.NewIsExpr(expr, types, operator, t == ast.BANG_IS)
+
+			continue
+		}
+
+		right, err := s.comparison()
 		if err != nil {
 			return nil, err
 		}
 
-		if t := operator.TokenType; t == ast.IS || t == ast.BANG_IS {
-			expr = ast.NewIsExpr(expr, right, operator, t == ast.BANG_IS)
-		} else {
-			expr = ast.NewBinaryExpr(expr, right, operator)
-		}
+		expr = ast.NewBinaryExpr(expr, right, operator)
 	}
 
 	return expr, nil
 }
 
-// equalityOperand parses what follows ==, != or is; after is, nil and
-// struct name types.
-func (s *Parser) equalityOperand(operator ast.Token) (ast.Expr, error) {
-	if (operator.TokenType == ast.IS || operator.TokenType == ast.BANG_IS) && isTypeKeyword(s.peek().TokenType) {
-		return s.typeName()
-	}
+// isTypes parses the types after is or !is, joined by '|': nil, struct,
+// enum, or an operand that evaluates to a type.
+func (s *Parser) isTypes() ([]ast.Expr, error) {
+	var types []ast.Expr
 
-	return s.comparison()
+	for {
+		var typ ast.Expr
+		var err error
+
+		if isTypeKeyword(s.peek().TokenType) {
+			typ, err = s.typeName()
+		} else {
+			typ, err = parseBitXor(s)
+		}
+
+		if err != nil {
+			return nil, err
+		}
+
+		types = append(types, typ)
+
+		if !s.match(ast.PIPE) {
+			return types, nil
+		}
+	}
 }
 
 func (s *Parser) comparison() (ast.Expr, error) {
