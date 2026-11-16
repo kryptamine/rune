@@ -85,22 +85,31 @@ func (o *Obj) Interned(key Value) (Value, bool) {
 	return NilValue, false
 }
 
-// SetInterned sets a property internedSlot finds.
+// SetInterned sets a property internedSlot finds to v. It leaves to Set
+// any v with the kind byte of a function, numbers with that byte too.
 func (o *Obj) SetInterned(key, v Value) bool {
 	i := o.internedSlot(key)
-	if i >= 0 {
-		o.vals[i] = v
+	if i < 0 || v.n>>kindShift == uint64(Function) {
+		return false
 	}
 
-	return i >= 0
+	o.vals[i] = v
+
+	return true
 }
 
 func (o *Obj) Has(k string) bool { return o.find(k) >= 0 }
 
-func (o *Obj) Set(k string, v Value) {
+// Set sets property k to v. An object holds data, so it takes no
+// function and reports false for one.
+func (o *Obj) Set(k string, v Value) bool {
+	if v.IsFunction() {
+		return false
+	}
+
 	if i := o.find(k); i >= 0 {
 		o.vals[i] = v
-		return
+		return true
 	}
 
 	o.keys, o.vals = append(o.keys, k), append(o.vals, v)
@@ -111,6 +120,8 @@ func (o *Obj) Set(k string, v Value) {
 	case n > indexedObj:
 		o.reindex(0)
 	}
+
+	return true
 }
 
 // Delete removes k, keeping the order of the rest; found is whether it

@@ -1,4 +1,5 @@
-let { f, n } = { f: () => { return n; }, n: 5 };
+struct Pair { f, n }
+let { f, n } = Pair { f: () => { return n; }, n: 5 };
 print(f()); // expect: 5
 
 fun make() {

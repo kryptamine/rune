@@ -158,14 +158,14 @@ fun parse(src) {
     return ast;
 }
 
-let BUILTINS = {
-    sqrt: math.sqrt,
-    abs: math.abs,
-    floor: math.floor,
-    max: math.max,
-    min: math.min,
-    sum: (...xs) => xs.reduce((a, b) => a + b, 0),
-};
+let BUILTINS = map([
+    ["sqrt", math.sqrt],
+    ["abs", math.abs],
+    ["floor", math.floor],
+    ["max", math.max],
+    ["min", math.min],
+    ["sum", (...xs) => xs.reduce((a, b) => a + b, 0)],
+]);
 
 struct Env { vars, funs }
 
@@ -221,7 +221,7 @@ impl Env {
             return self.eval(f.body, locals);
         }
 
-        let builtin = BUILTINS?.[name] ?? throw CalcError { message: "unknown function '{name}'" };
+        let builtin = BUILTINS[name] ?? throw CalcError { message: "unknown function '{name}'" };
         return builtin(...args);
     }
 }

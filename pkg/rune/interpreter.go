@@ -142,7 +142,7 @@ func (p *Interpreter) grow(n int) {
 // CallValue calls fn with args from a native; fn does not keep args.
 func (p *Interpreter) CallValue(fn value.Value, args []value.Value, token *ast.Token) (value.Value, error) {
 	// A closure taking just args, as for opCall.
-	if fn.Kind() == value.Function && fn.TypeID() == closureID {
+	if fn.IsFunction() && fn.TypeID() == closureID {
 		if f := (*Closure)(fn.Ptr()); len(args) == f.proto.exact && f.proto.inout == 0 && len(p.frames) <= p.maxRecursion {
 			top := &p.frames[len(p.frames)-1]
 			at := top.base + top.cl.proto.nregs
@@ -187,7 +187,7 @@ func (p *Interpreter) CallValue(fn value.Value, args []value.Value, token *ast.T
 }
 
 func (p *Interpreter) Required(fn value.Value) int {
-	if fn.Kind() == value.Function {
+	if fn.IsFunction() {
 		switch f := fn.Fn().(type) {
 		case *Closure:
 			return f.proto.required

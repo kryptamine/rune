@@ -573,7 +573,7 @@ func (s *Parser) objectLiteral() (ast.Expr, error) {
 		if s.check(ast.DOT_DOT_DOT) {
 			tok := s.peek()
 			v, err := s.item(true)
-			pairs = append(pairs, ast.ObjectPair{Value: v})
+			pairs = append(pairs, ast.ObjectPair{Token: tok, Value: v})
 
 			return "", tok, err
 		}
@@ -603,7 +603,7 @@ func (s *Parser) objectLiteral() (ast.Expr, error) {
 		tok := s.previous()
 
 		if tok.TokenType == ast.IDENTIFIER && endsItem(s.peekAt(0)) {
-			pairs = append(pairs, ast.ObjectPair{Key: key, Value: ast.NewVarExpr(tok)})
+			pairs = append(pairs, ast.ObjectPair{Key: key, Token: tok, Value: ast.NewVarExpr(tok)})
 			return key, tok, nil
 		}
 
@@ -615,12 +615,12 @@ func (s *Parser) objectLiteral() (ast.Expr, error) {
 
 		if computed != nil {
 			computed.Value = v
-			pairs = append(pairs, ast.ObjectPair{Value: computed})
+			pairs = append(pairs, ast.ObjectPair{Token: computed.Bracket, Value: computed})
 
 			return "", tok, err
 		}
 
-		pairs = append(pairs, ast.ObjectPair{Key: key, Value: v})
+		pairs = append(pairs, ast.ObjectPair{Key: key, Token: tok, Value: v})
 
 		return key, tok, err
 	})

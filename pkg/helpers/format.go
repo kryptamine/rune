@@ -208,3 +208,16 @@ func Plural(n int, word string) string {
 
 	return fmt.Sprintf("%d %ss", n, word)
 }
+
+// FunctionProperty is the error of putting a function in property key of
+// an object, which holds data only; key is empty if not known.
+func FunctionProperty(key string) string {
+	if key == "" {
+		return "A property of an object cannot hold a function."
+	}
+
+	return "Property '" + key + "' of an object cannot hold a function."
+}
+
+// FunctionPropertyHint is the fix for FunctionProperty.
+const FunctionPropertyHint = "objects hold data; give the behavior to a struct with an impl"

@@ -118,7 +118,10 @@ var collectionNatives = []*Native{
 				break
 			}
 
-			obj.Set(k.Str(), value.Share(v))
+			if !obj.Set(k.Str(), value.Share(v)) {
+				c.fail(errors.TypeError, "%s", helpers.FunctionProperty(k.Str()))
+				break
+			}
 		}
 
 		return c.result(value.NewObject(obj))

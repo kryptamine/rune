@@ -15,6 +15,9 @@ print(type({ name: "ann" }));  // object
 print(type(x => x * 2));       // function
 ```
 
+An object holds data: its properties cannot be functions. Behavior goes in
+a struct's [`impl`](../data/methods.md#functions-in-fields).
+
 ## Copies
 
 Every value is copied where it goes: assigning it, passing it to a

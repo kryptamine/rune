@@ -464,6 +464,11 @@ func (v Value) IsInt() bool    { return v.p == intTag() }
 func (v Value) IsFloat() bool  { return v.p == numTag() }
 func (v Value) IsString() bool { return v.Kind() == String }
 
+// IsFunction tests the kind's byte first, which numbers alone share.
+func (v Value) IsFunction() bool {
+	return v.n>>kindShift == uint64(Function) && v.p != intTag() && v.p != numTag()
+}
+
 func (v Value) IsUndefined() bool {
 	return v.p == otherTag() && v.n == uint64(Undefined)<<kindShift
 }

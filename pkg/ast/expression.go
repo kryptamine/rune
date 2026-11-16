@@ -346,9 +346,11 @@ func Standalone(e Expr) bool {
 
 // ObjectPair is a single "key: value" entry of an object literal, or a
 // spread or computed property, whose Value is a *SpreadExpr or a
-// *ComputedExpr.
+// *ComputedExpr. Token is its key, the [ of a computed one or the ... of
+// a spread.
 type ObjectPair struct {
 	Key   string
+	Token Token
 	Value Expr
 }
 

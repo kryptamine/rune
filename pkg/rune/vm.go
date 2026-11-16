@@ -514,8 +514,11 @@ reload:
 					continue
 				}
 
+				if !t.Obj().Set(at(consts, in.b()).Str(), *at(regs, in.c())) {
+					goto slow
+				}
+
 				fr.pc = pc
-				t.Obj().Set(at(consts, in.b()).Str(), *at(regs, in.c()))
 
 				goto reload
 			} else if k != value.Struct || !in.y() {
@@ -550,7 +553,7 @@ reload:
 
 		case opCall:
 			fn := *at(regs, in.a())
-			if fn.Kind() != value.Function || fn.TypeID() != closureID {
+			if !fn.IsFunction() || fn.TypeID() != closureID {
 				goto slow
 			}
 
