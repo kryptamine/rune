@@ -34,8 +34,7 @@ $ echo $?
 2
 ```
 
-Arguments are always strings; convert them yourself, with `int`,
-`number` and the like.
+Arguments are always strings; convert them yourself, with `number` and the like.
 
 ## Destructuring Arguments
 
@@ -45,7 +44,7 @@ names the arguments and gives defaults to the optional ones:
 ```rune
 // repeat.rn
 fun main([word, times = "1"]) {
-    print(word.repeat(int(times)));
+    print(word.repeat(number(times)));
 }
 ```
 

@@ -127,12 +127,13 @@ print(shift("hello", 3));   // khoor
 
 ## format
 
-`s.format(...)` is printf: `s` is the format, and each `%` verb takes the
-next argument.
+`s.format(...)` is printf for numbers: `s` is the format, and each `%`
+verb takes the next argument. Text goes in by
+[interpolation](../language/strings.md#joining-and-interpolation), and is
+aligned with `padStart` and `padEnd`.
 
 | Verb | Shows |
 |---|---|
-| `%s` | a value as `print` shows it |
 | `%q` | a value as it appears inside an array (strings quoted) |
 | `%d` | an integer |
 | `%x`, `%X`, `%o`, `%b` | an integer in hex, upper hex, octal, binary |
@@ -149,11 +150,11 @@ Between `%` and the verb come optional flags, a width and a precision:
 - `*` for a width or a precision takes it from the next argument.
 
 ```rune
-print("%s has %d items".format("cart", 3));        // cart has 3 items
+print("%d items".format(3));                       // 3 items
 print("%.2f".format(3.14159));                      // 3.14
 print("%5.1f%%".format(12.345));                    //  12.3%
-print("%03d|%-5s|%5s|".format(7, "ab", "cd"));      // 007|ab   |   cd|
-print("%s and %q".format("hi", "hi"));             // hi and "hi"
+print("%03d|%-5d|%5d|".format(7, 12, 34));          // 007|12   |   34|
+print("%q".format("hi"));                          // "hi"
 print("%x %X %o %b".format(255, 255, 8, 5));       // ff FF 10 101
 print("%#x".format(255));                          // 0xff
 print("%+d %e".format(5, 12345.678));              // +5 1.234568e+04
@@ -164,20 +165,20 @@ A receipt, its columns aligned:
 ```rune
 let items = [["coffee", 2, 3.5], ["bagel", 1, 2.25], ["juice", 3, 4]];
 for [name, qty, price] in items {
-    print("%-8s %2d x %5.2f".format(name, qty, price));
+    print("{name.padEnd(8)} {"%2d x %5.2f".format(qty, price)}");
 }
 // coffee    2 x  3.50
 // bagel     1 x  2.25
 // juice     3 x  4.00
 ```
 
-With `*`, a column takes the width of its widest value:
+A column can take the width of its widest value:
 
 ```rune
 let rows = [["GET /users", 12], ["POST /orders/batch", 340]];
 let width = rows.reduce((w, [path, _]) => math.max(w, path.len()), 0);
 for [path, ms] in rows {
-    print("%-*s %4dms".format(width, path, ms));
+    print("{path.padEnd(width)} {"%4d".format(ms)}ms");
 }
 // GET /users           12ms
 // POST /orders/batch  340ms
@@ -191,5 +192,5 @@ an `ArgumentError`:
 ```
 
 ```rune
-"%s and %s".format("tea"); // ArgumentError: string.format() '%s' at 7 has no argument.
+"%d and %d".format(1); // ArgumentError: string.format() '%d' at 7 has no argument.
 ```

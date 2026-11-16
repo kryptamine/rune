@@ -117,7 +117,7 @@ separate `if`:
 ```rune
 fun port(cfg) {
     let p = cfg?.port ?? return 80;
-    int(p)
+    number(p)
 }
 
 print(port({ port: "8080" }));    // 8080

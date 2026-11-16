@@ -203,7 +203,7 @@ fun checkUrl({ schemes }, v, path, mut out) {
         return fail(out, path, "scheme {scheme} is not allowed, use {schemes.join(" or ")}");
     }
 
-    if port != nil && !validPort(int(port)) {
+    if port != nil && !validPort(number(port)) {
         return fail(out, path, "port {port} is out of range 1-65535");
     }
 
@@ -216,7 +216,7 @@ fun checkAddr(v, path, mut out) {
     }
 
     let m = regex.find(r"^(?:[\w.-]*|\[[0-9a-fA-F:]+\]):(\d+)$", v) ?? return fail(out, path, "{show(v)} is not host:port");
-    let port = int(m.groups[0]);
+    let port = number(m.groups[0]);
     return if validPort(port) { v } else { fail(out, path, "port {port} is out of range 1-65535") };
 }
 
@@ -457,13 +457,17 @@ fun upgrade(raw, mut notes) {
     while true {
         let v = cfg?.version ?? 1;
 
-        cfg = try match v {
-            1 => v1to2(cfg, notes),
-            2 => v2to3(cfg, notes),
-            LATEST => return cfg,
-            _ if v is number && v > LATEST => throw MigrationError { message: "version {v} is newer than this tool knows ({LATEST})" },
-            _ => throw MigrationError { message: "unknown version {show(v)}" },
-        } catch e is KeyError | TypeError => throw MigrationError { message: "cannot migrate v{v} to v{v + 1}: {e.message}" };
+        cfg = try {
+            match v {
+                1 => v1to2(cfg, notes),
+                2 => v2to3(cfg, notes),
+                LATEST => return cfg,
+                _ if v is number && v > LATEST => throw MigrationError { message: "version {v} is newer than this tool knows ({LATEST})" },
+                _ => throw MigrationError { message: "unknown version {show(v)}" },
+            }
+        } catch e is KeyError | TypeError {
+            throw MigrationError { message: "cannot migrate v{v} to v{v + 1}: {e.message}" }
+        };
     }
 }
 
@@ -532,12 +536,12 @@ fun parseDuration(s) {
         return nil;
     }
 
-    return regex.findAll(r"(\d+)(ms|s|m|h)", s).reduce((ms, m) => ms + int(m.groups[0]) * UNITS[m.groups[1]], 0);
+    return regex.findAll(r"(\d+)(ms|s|m|h)", s).reduce((ms, m) => ms + number(m.groups[0]) * UNITS[m.groups[1]], 0);
 }
 
 fun parseSize(s) {
     let m = regex.find(r"^(\d+)\s*(B|KB|MB|GB)$", s) ?? return nil;
-    return int(m.groups[0]) * SIZES[m.groups[1]];
+    return number(m.groups[0]) * SIZES[m.groups[1]];
 }
 
 fun inUnits(n, units) {
@@ -560,7 +564,7 @@ fun report(issues) {
 
     for { path, message, level } in issues {
         let tag = match level { Level.Error => "error", Level.Warning => "warn" };
-        print("  %-5s  %-*s  %s".format(tag, width, fmtPath(path), message));
+        print("  {tag.padEnd(5)}  {fmtPath(path).padEnd(width)}  {message}");
     }
 
     print(match [errors, warnings] {
@@ -580,7 +584,7 @@ struct UsageError { message }
 
 fun load(path) {
     let text = fs.readText(path);
-    return try json.parse(text) catch e is ValueError => throw ValueError { message: "{path} is not valid JSON: {e.message}", cause: e };
+    return try { json.parse(text) } catch e is ValueError { throw ValueError { message: "{path} is not valid JSON: {e.message}", cause: e } };
 }
 
 fun run([cmd = "help", path = nil, ...flags]) {

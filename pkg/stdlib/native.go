@@ -40,9 +40,9 @@ type Host struct {
 	// regexes caches the patterns compiled so far.
 	regexes map[string]*regexp.Regexp
 	streams map[*Stream]struct{}
-	// buf and tmp are scratch for print and format, which box their
-	// arguments for fmt in the fields after.
-	buf, tmp []byte
+	// buf is scratch for print and format, which box their arguments
+	// for fmt in the fields after.
+	buf      []byte
 	fmtInt   int64
 	fmtFloat float64
 	fmtStr   string

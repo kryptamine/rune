@@ -347,24 +347,18 @@ func (s *Parser) parameter(i int, rest bool) (ast.Binding, ast.Stmt, error) {
 }
 
 func (s *Parser) varDeclaration() (ast.Stmt, error) {
-	mutable := s.match(ast.MUT)
-
 	if s.check(ast.LEFT_BRACE) || s.check(ast.LEFT_BRACKET) {
 		pat, err := s.destructuring()
 		if err != nil {
 			return nil, err
 		}
 
-		if mutable {
-			for _, b := range ast.Bindings(pat) {
-				b.Mutable = true
-			}
-		}
-
 		init, err := s.patternInitializer()
 
 		return &ast.PatternStmt{Pattern: pat, Initializer: init}, err
 	}
+
+	mutable := s.match(ast.MUT)
 
 	name, err := s.consume(ast.IDENTIFIER, "Expect variable name.")
 	if err != nil {
@@ -434,8 +428,7 @@ func (s *Parser) statement() (ast.Stmt, error) {
 		return s.deferStatement()
 	}
 
-	if s.atTryStatement() {
-		s.advance()
+	if s.match(ast.TRY) {
 		return s.tryStatement()
 	}
 
@@ -568,15 +561,10 @@ func (s *Parser) blockOf(valued bool) (*ast.BlockStmt, error) {
 			}
 
 			b.Valued = valued
-		case *ast.IfStmt:
+		case ast.ValuedStmt:
 			b.Valued = valued && hasValue(st.Values())
 			if b.Valued {
-				*last = ast.NewExprStmt(&ast.IfExpr{If: st})
-			}
-		case *ast.MatchStmt:
-			b.Valued = valued && hasValue(st.Match.Values())
-			if b.Valued {
-				*last = ast.NewExprStmt(st.Match)
+				*last = ast.NewExprStmt(st.AsExpr())
 			}
 		}
 	}
@@ -668,9 +656,6 @@ func stmtKeyword(t ast.TokenType) bool {
 
 	return false
 }
-
-// atTryStatement reports whether "try {" is ahead; any other try is an expression.
-func (s *Parser) atTryStatement() bool { return s.check(ast.TRY) && s.peekAt(1) == ast.LEFT_BRACE }
 
 // body parses an if/else/while/for body, a block.
 func (s *Parser) body(after string) (ast.Stmt, error) {
@@ -789,14 +774,9 @@ func (s *Parser) forBindings() (key *ast.Binding, val ast.Binding, unpack ast.St
 	return key, val, unpack, s.match(ast.IN)
 }
 
-// tryStatement parses `try { ... }` and its catch clauses: `catch { ... }`,
-// `catch (name) { ... }` or `catch (name: Type, ...) { ... }`.
-func (s *Parser) tryStatement() (ast.Stmt, error) {
-	if _, err := s.consume(ast.LEFT_BRACE, "Expect '{' after 'try'."); err != nil {
-		return nil, err
-	}
-
-	body, err := s.block()
+// tryStatement parses `try { ... }` and its catch clauses, `catch [name [is T | U]] { ... }`.
+func (s *Parser) tryStatement() (*ast.TryStmt, error) {
+	body, err := s.branch("'try'")
 	if err != nil {
 		return nil, err
 	}
@@ -805,38 +785,24 @@ func (s *Parser) tryStatement() (ast.Stmt, error) {
 		return nil, err
 	}
 
-	var catches []ast.CatchClause
+	st := &ast.TryStmt{Body: body}
 
 	for {
-		c, err := s.catchClause()
+		c, err := s.catchHead()
 		if err != nil {
 			return nil, err
 		}
 
-		catches = append(catches, c)
+		if c.Body, err = s.branch("'catch'"); err != nil {
+			return nil, err
+		}
+
+		st.Catches = append(st.Catches, c)
 
 		if !s.match(ast.CATCH) {
-			break
+			return st, nil
 		}
 	}
-
-	return ast.NewTryStmt(ast.NewBlockStmt(body), catches), nil
-}
-
-func (s *Parser) catchClause() (ast.CatchClause, error) {
-	c, err := s.catchHead()
-	if err != nil {
-		return c, err
-	}
-
-	if _, err := s.consume(ast.LEFT_BRACE, "Expect '{' after 'catch'."); err != nil {
-		return c, err
-	}
-
-	handler, err := s.block()
-	c.Body = handler
-
-	return c, err
 }
 
 // catchHead parses what follows "catch": [name [is T | U]].

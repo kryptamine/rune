@@ -85,12 +85,9 @@ spaces around it: `"42"`, `" -2.5e1 "`, `"0xff"`, `"1_000"`. The result is
 an integer, unless the literal has a fraction or an exponent, or is too big
 for a 64-bit integer.
 
-`int(v)` makes an integer:
-
-- from a number, by cutting off the fraction (toward zero);
-- from a string holding an integer literal, as `number` reads it;
-- with `int(s, base)`, from digits in `base`, 2 to 36, optionally
-  separated by `_`.
+`int(v)` makes an integer from a number, by cutting off the fraction
+(toward zero). `int(s, base)` reads the digits of `s` in `base`, 2 to 36,
+optionally separated by `_`.
 
 ```rune
 print(number("42"));         // 42
@@ -100,7 +97,6 @@ print(number("1_000"));      // 1000
 
 print(int(3.9));             // 3
 print(int(-3.9));            // -3
-print(int("42"));            // 42
 print(int("ff", 16));        // 255
 print(int("0755", 8));       // 493
 print(int("1010", 2));       // 10
@@ -111,7 +107,7 @@ Reading the numbers out of a CSV row:
 ```rune
 let row = "2026-11-12,3,12.50";
 let [date, qty, price] = row.split(",");
-print(int(qty) * number(price));   // 37.5
+print(number(qty) * number(price));   // 37.5
 ```
 
 Text that is not a number is a `ValueError`. That includes `".5"`, `"+1"`,
@@ -121,13 +117,13 @@ Text that is not a number is a `ValueError`. That includes `".5"`, `"+1"`,
 number("12 apples"); // ValueError: number() cannot parse "12 apples" as a number.
 ```
 
-`int` without a base takes only integers:
+A string is read by `number`; `int` takes it only with a base:
 
 ```rune
-int("12.5"); // ValueError: int() cannot parse "12.5" as an integer.
+int("12"); // TypeError: int() expects a number as argument 1, got string.
 ```
 
-So does `int` with a number too big for a 64-bit integer:
+A number too big for a 64-bit integer is a `ValueError`:
 
 ```rune
 int(1e300); // ValueError: int() cannot convert 1e+300 to an integer.

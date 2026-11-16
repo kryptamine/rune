@@ -1,4 +1,4 @@
-let mut { x, y: why } = { x: 1, y: 2 };
+let { mut x, y: mut why } = { x: 1, y: 2 };
 x += 10;
 why += 20;
 print(x); // expect: 11

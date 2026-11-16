@@ -203,7 +203,7 @@ impl Position {
 
             for ch in row {
                 if regex.test(r"^[1-8]$", ch) {
-                    file += int(ch);
+                    file += number(ch);
                     continue;
                 }
 
@@ -240,8 +240,8 @@ impl Position {
             }
         }
 
-        let epSquare = if ep == "-" { 0 } else { sq("abcdefgh".indexOf(ep[0]), int(ep[1]) - 1) };
-        let pos = Position { board, side: if side == "w" { 1 } else { -1 }, castle: rights, ep: epSquare, half: int(half), kings };
+        let epSquare = if ep == "-" { 0 } else { sq("abcdefgh".indexOf(ep[0]), number(ep[1]) - 1) };
+        let pos = Position { board, side: if side == "w" { 1 } else { -1 }, castle: rights, ep: epSquare, half: number(half), kings };
         return Position { ...pos, hash: pos.computeHash(), score: pos.computeScore() };
     }
 
@@ -896,7 +896,7 @@ fun scoreText(score) {
 
 fun printInfo({ depth, score, nodes, seconds, pv }) {
     let nps = if seconds > 0 { math.round(nodes / seconds) } else { 0 };
-    print("  depth %2d  %-9s  nodes %8d  nps %7d  pv %s".format(depth, scoreText(score), nodes, nps, pv.join(" ")));
+    print("  depth {"%2d".format(depth)}  {scoreText(score).padEnd(9)}  nodes {"%8d".format(nodes)}  nps {"%7d".format(nps)}  pv {pv.join(" ")}");
 }
 
 fun search(pos, seconds = 5, maxDepth = 64, report = printInfo) {
@@ -934,7 +934,8 @@ fun demo() {
             let start = time.now();
             let got = perft(pos, i + 1);
             let ms = math.round((time.now() - start) * 1000);
-            print("  %-9s depth %d  %7d %s  %5d ms".format(name, i + 1, got, if got == want { "ok" } else { "WRONG, want {want}" }, ms));
+            let verdict = if got == want { "ok" } else { "WRONG, want {want}" };
+            print("  {name.padEnd(9)} depth {i + 1}  {"%7d".format(got)} {verdict}  {"%5d".format(ms)} ms");
         }
     }
 
@@ -1026,7 +1027,7 @@ fun options(args) {
             let value = args?.[i + 1] ?? throw UsageError { message: "{arg} needs a value" };
 
             if arg == "-d" {
-                out.depth = int(value);
+                out.depth = number(value);
             } else {
                 out.seconds = number(value);
             }
@@ -1049,7 +1050,7 @@ fun main(args) {
 
         match command {
             "demo" => demo(),
-            "perft" => perftCommand(int(free?.[0] ?? "4"), free[1..].join(" ") || START_FEN),
+            "perft" => perftCommand(number(free?.[0] ?? "4"), free[1..].join(" ") || START_FEN),
             "go" => {
                 let pos = Position.fromFen(free.join(" ") || START_FEN);
                 print(pos.show());

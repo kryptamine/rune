@@ -1,7 +1,7 @@
 try {
-  http.get(123);
+  http.request("GET", 123);
 } catch err {
-  print(err.message); // expect: http.get() expects a string as argument 1, got number.
+  print(err.message); // expect: http.request() expects a string as argument 2, got number.
 }
 
 try {

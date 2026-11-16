@@ -111,7 +111,7 @@ fun showCarts(carts) {
         let mut top = cart.products[..];
         top.sort((a, b) => b.discountedTotal - a.discountedTotal);
         for { title, quantity, price, discountPercentage } in top[..3] {
-            print("  %-28s %2d × %9s  -%4.1f%%".format(title[..28], quantity, money(price), discountPercentage));
+            print("  {title[..28].padEnd(28)} {"%2d".format(quantity)} × {money(price).padStart(9)}  -{"%4.1f".format(discountPercentage)}%");
         }
     }
 }
@@ -123,7 +123,7 @@ fun showProducts(query, { products, total }) {
     for { id, title, price, rating, stock } in byRating {
         let stars = "★".repeat(math.round(rating)) + "☆".repeat(5 - math.round(rating));
         let low = if stock < 10 { "  low stock: {stock}" } else { "" };
-        print("  #%-4d %-32s %9s  %s{low}".format(id, title[..32], money(price), stars));
+        print("  #{"%-4d".format(id)} {title[..32].padEnd(32)} {money(price).padStart(9)}  {stars}{low}");
     }
 }
 

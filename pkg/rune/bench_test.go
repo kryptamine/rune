@@ -31,7 +31,7 @@ var benchSources = map[string]string{
 	"mutself":  `struct C { n } impl C { fun incr(mut self) { self.n += 1; } } let mut c = C { n: 0 }; for i in 0..20000 { c.incr(); }`,
 	"objcall":  `let o = {a: 1, b: 2}; let mut s = 0; for i in 0..20000 { s += o.len(); }`,
 	"print":    `for i in 0..20000 { print(i); }`,
-	"format":   `let mut n = 0; for i in 0..20000 { n += "%-8s|%5.2f|%03d".format("ab", 3.14159, i).len(); }`,
+	"format":   `let mut n = 0; for i in 0..20000 { n += "%5.2f|%03d".format(3.14159, i).len(); }`,
 }
 
 var containerSources = map[string]string{

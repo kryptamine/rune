@@ -1,1 +1,0 @@
-let a = try 1 catch 2; // Error at '2': Expect '=>' after 'catch'.

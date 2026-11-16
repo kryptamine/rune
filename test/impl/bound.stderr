@@ -1,0 +1,6 @@
+TypeError: 'plus' is a method of Point values; call it on one.
+  --> bound.rn:14:7
+   |
+13 | try { let f = "a".upper; } catch e is TypeError { print(e.message); } // expect: Cannot take method 'upper' of string as a value.
+14 | Point.plus(p, 1); // expect runtime error: [line: 14] TypeError: 'plus' is a method of Point values; call it on one.
+   |       ^^^^

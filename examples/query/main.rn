@@ -51,7 +51,7 @@ fun showDemo() {
 
     defer fs.removeAll(dir);
 
-    let n = int(os.env("ORDERS") ?? "100000");
+    let n = number(os.env("ORDERS") ?? "100000");
 
     let mut started = time.now();
     demo.generate(dir, n);
@@ -62,7 +62,7 @@ fun showDemo() {
     for name in demo.TABLES {
         started = time.now();
         let t = catalog.load(name);
-        print("loaded %-10s %7d rows  %6.0f ms".format(name, t.rows.len(), (time.now() - started) * 1000));
+        print("loaded {name.padEnd(10)} {"%7d rows  %6.0f ms".format(t.rows.len(), (time.now() - started) * 1000)}");
     }
 
     for src in demo.QUERIES {

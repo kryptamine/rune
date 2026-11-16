@@ -142,7 +142,7 @@ fun zero(x, y) { return 0; }
 fun heldBase() {
     let mut a = [1];
     let mut b = [];
-    return try a[zero(b = a, b.push(9)) + 1] catch => "out";
+    return try { a[zero(b = a, b.push(9)) + 1] } catch { "out" };
 }
 print(heldBase()); // expect: out
 

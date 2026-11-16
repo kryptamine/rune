@@ -202,11 +202,7 @@ func (lv *liveness) try(live liveSet, catches []ast.CatchClause, body func()) {
 	caught := liveSet{}
 	for _, c := range catches {
 		in := maps.Clone(live)
-		if c.Value != nil {
-			lv.expr(c.Value, in)
-		} else {
-			lv.stmts(c.Body, in)
-		}
+		lv.stmt(c.Body, in)
 
 		caught.add(in)
 	}
@@ -343,7 +339,7 @@ func (lv *liveness) expr(e ast.Expr, live liveSet) {
 		clear(live)
 		lv.expr(n.Value, live)
 	case *ast.TryExpr:
-		lv.try(live, n.Catches, func() { lv.expr(n.Value, live) })
+		lv.stmt(n.Try, live)
 	case *ast.JumpExpr:
 		lv.stmt(n.Stmt, live)
 	case *ast.MatchExpr:

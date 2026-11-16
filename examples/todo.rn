@@ -43,14 +43,18 @@ fun daysBetween(from, to) {
 
 fun parseDate(s, now) {
     if regex.test(r"^\d{4}-\d{2}-\d{2}$", s) {
-        try time.parse(s, DAY) catch e is ValueError => throw UsageError { message: "bad date '{s}'" };
+        try {
+            time.parse(s, DAY);
+        } catch e is ValueError {
+            throw UsageError { message: "bad date '{s}'" };
+        }
         return s;
     }
 
     let rel = regex.find(r"^\+(\d+)d$", s);
 
     if rel {
-        return addDays(now, int(rel.groups[0]));
+        return addDays(now, number(rel.groups[0]));
     }
 
     return match s {
@@ -58,7 +62,7 @@ fun parseDate(s, now) {
         "tomorrow" => addDays(now, 1),
         _ if s in WEEKDAYS => {
             let wd = time.date(time.parse(now, DAY)).weekday;
-            return addDays(now, (WEEKDAYS.indexOf(s) + 1 - wd + 6) % 7 + 1);
+            return addDays(now, (WEEKDAYS.findIndex(d => d == s) + 1 - wd + 6) % 7 + 1);
         },
         _ => throw UsageError { message: "bad date '{s}': use YYYY-MM-DD, today, tomorrow, +Nd or a weekday" },
     };
@@ -90,7 +94,7 @@ impl Store {
         }
 
         let data = json.parse(fs.readText(path));
-        return Store { path, tasks: data.tasks.map(o => Task({ ...o, priority: Priority(o.priority) })), nextId: data.nextId };
+        return Store { path, tasks: data.tasks.map(o => Task { ...o, priority: Priority(o.priority) }), nextId: data.nextId };
     }
 
     fun save(self) {
@@ -100,7 +104,7 @@ impl Store {
     }
 
     fun add(mut self, task) {
-        self.tasks.push(Task({ ...task, id: self.nextId }));
+        self.tasks.push(Task { ...task, id: self.nextId });
         self.nextId += 1;
         return self.nextId - 1;
     }
@@ -150,7 +154,7 @@ fun ids(args) {
             throw UsageError { message: "bad id '{a}'" };
         }
 
-        return int(a);
+        return number(a);
     });
 }
 
@@ -183,7 +187,7 @@ fun show(t, now) {
     let prio = match t.priority { Priority.High => "↑", Priority.Low => "↓", Priority.Normal => " " };
     let due = if t.due != nil { relative(t.due, now) } else { "" };
     let tags = t.tags.map(tag => "+" + tag).join(" ");
-    return "[%s] %3d %s %-28s %-10s %s".format(mark, t.id, prio, t.text, due, tags).trimEnd();
+    return "[{mark}] {"%3d".format(t.id)} {prio} {t.text.padEnd(28)} {due.padEnd(10)} {tags}".trimEnd();
 }
 
 fun list(store, args, now) {
@@ -233,7 +237,7 @@ fun stats(store, now) {
     let mut rows = byTag.entries();
     rows.sort(([_, a], [_, b]) => b - a);
     for [tag, n] in rows {
-        print("  %-10s %s %d".format("+" + tag, "#".repeat(n), n));
+        print("  {("+" + tag).padEnd(10)} {"#".repeat(n)} {n}");
     }
 }
 
@@ -265,7 +269,7 @@ fun run(mut store, [cmd = "list", ...args], now) {
         "edit" => {
             let [id = throw UsageError { message: "which task? give an id" }, ...words] = args;
             let changes = parseTask(words, now);
-            store.update(ids([id])[0], t => Task({ ...t, ...changes, tags: [...t.tags, ...changes.tags] }));
+            store.update(ids([id])[0], t => Task { ...t, ...changes, tags: [...t.tags, ...changes.tags] });
             print("  edited #{id}");
         },
         "stats" => stats(store, now),

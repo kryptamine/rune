@@ -15,7 +15,7 @@ take an element out.
 | `sort([cmp])` | sorts, **in place** |
 | `reverse()` | reverses, **in place** |
 | `map(f)`, `filter(f)`, `reduce(f[, init])` | transform |
-| `every(f)`, `some(f)`, `find(f)`, `findIndex(f)`, `indexOf(v)` | search |
+| `every(f)`, `some(f)`, `find(f)`, `findIndex(f)` | search |
 | `join(sep)`, `repeat(n)` | build strings and arrays |
 
 Arrays are values, so changing one in place never changes a copy of it:
@@ -118,7 +118,7 @@ but only when `f` requires two. So `map(int)`, whose `base` is optional,
 gets the element alone:
 
 ```rune
-print(["10", "2", "33"].map(int));               // [10, 2, 33]
+print([10.5, 2.9, 33.1].map(int));               // [10, 2, 33]
 print(["a", "b"].map((x, i) => "{i}:{x}"));      // ["0:a", "1:b"]
 print([5, 6, 7, 8].filter((_, i) => i % 2 == 0)); // [5, 7]
 ```
@@ -183,8 +183,6 @@ mixed.sort(); // TypeError: array.sort() without a comparator needs all numbers 
   any. They stop as soon as the answer is known.
 - `find(f)` — the first element for which `f` is truthy, or `nil`.
 - `findIndex(f)` — the index of that element, or `nil`.
-- `indexOf(v)` — the index of the first element equal to `v`, or `nil`.
-  Arrays and objects compare by content.
 
 To ask only whether a value is there, use [`in`](../language/values.md#membership).
 
@@ -201,9 +199,8 @@ print(users.find(u => u.name == "eve"));        // nil
 print(users.findIndex(u => u.name == "bob"));   // 1
 
 print(20 in [10, 20, 30]);                      // true
-print([10, 20, 30].indexOf(30));                // 2
-print([10, 20, 30].indexOf(99));                // nil
-print([[1, 2], [3, 4]].indexOf([3, 4]));        // 1
+print([10, 20, 30].findIndex(x => x == 30));    // 2
+print([[1, 2], [3, 4]].findIndex(x => x == [3, 4])); // 1
 ```
 
 `find` returns `nil` when nothing matches, so `??` gives a fallback:

@@ -248,7 +248,9 @@ type Proto struct {
 	consts   []value.Value
 	protos   []*Proto
 	keys     [][]string
-	upvals   []upvalDesc
+	// keyToks locates each key of an object literal's keys, for its errors.
+	keyToks [][]ast.Token
+	upvals  []upvalDesc
 }
 
 // accepts reports whether f takes n arguments.

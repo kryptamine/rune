@@ -1,3 +1,0 @@
-struct Point { x }
-
-print(Point([1])); // expect runtime error: [line: 3] TypeError: Cannot convert array to Point.

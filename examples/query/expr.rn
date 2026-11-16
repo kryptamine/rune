@@ -62,7 +62,8 @@ export struct Ctx { scope, group = nil }
 
 export fun compile(e, ctx) {
     if ctx.group != nil {
-        let k = ctx.group.indexOf(ast.sql(e));
+        let text = ast.sql(e);
+        let k = ctx.group.findIndex(g => g == text);
 
         if k != nil {
             return row => row[k];

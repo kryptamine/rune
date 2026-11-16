@@ -22,6 +22,13 @@ let scores = [72, 95, 88];
 print(math.max(...scores));    // 95
 ```
 
+A method call takes no spread:
+
+```rune
+let mut xs = [1];
+xs.push(...[2, 3]); // Error at '...': Cannot spread arguments into a method call.
+```
+
 Sets spread too, in their order, and bytes spread as integers:
 
 ```rune
@@ -64,17 +71,15 @@ let p = Point { x: 1, y: 2 };
 print({ ...p, z: 3 });    // {x: 1, y: 2, z: 3}
 ```
 
-In a struct literal, spreading a struct of the same type makes an updated
-copy (see [Structs](../data/structs.md#updating-with-spread)):
+In a struct literal, spreading a struct of the same type, or an object,
+fills its fields (see [Structs](../data/structs.md#updating-with-spread)):
 
 ```rune
 struct Point { x, y = 0 }
 let p = Point { x: 1, y: 2 };
 print(Point { ...p, y: 5 });    // Point {x: 1, y: 5}
+print(Point { ...{ x: 3 } });   // Point {x: 3, y: 0}
 ```
-
-To build a struct from an object, [convert](../data/structs.md#converting)
-it: `Point({ ...o, y: 5 })`.
 
 Spreading anything else is a `TypeError`:
 

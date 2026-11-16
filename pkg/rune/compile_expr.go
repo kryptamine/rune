@@ -83,8 +83,6 @@ func assigns(e ast.Expr) bool {
 		return assigns(n.Left) || assigns(n.Right)
 	case *ast.ThrowExpr:
 		return assigns(n.Value)
-	case *ast.TryExpr:
-		return assigns(n.Value) || slices.ContainsFunc(n.Catches, func(c ast.CatchClause) bool { return assigns(c.Value) })
 	case *ast.JumpExpr:
 		r, ok := n.Stmt.(*ast.ReturnStmt)
 		return ok && assigns(r.Value)
@@ -263,22 +261,16 @@ func fresh(e ast.Expr) bool {
 		return true
 	case *ast.LogicalExpr:
 		return fresh(n.Left) && fresh(n.Right)
-	case *ast.IfExpr, *ast.MatchExpr:
-		return !slices.ContainsFunc(values(n), func(v ast.Expr) bool { return !fresh(v) })
+	case valuedExpr:
+		return !slices.ContainsFunc(n.Values(), func(v ast.Expr) bool { return !fresh(v) })
 	}
 
 	return false
 }
 
-// values returns what each branch of an if or match expression gives,
-// nil for one that gives nil.
-func values(e ast.Expr) []ast.Expr {
-	if n, ok := e.(*ast.IfExpr); ok {
-		return n.If.Values()
-	}
-
-	return e.(*ast.MatchExpr).Values()
-}
+// valuedExpr is an if, match or try giving the value of the branch
+// taken; Values has nil for a branch giving nil.
+type valuedExpr interface{ Values() []ast.Expr }
 
 // paramMove is the Param of the parameter e reads last, or 0: it gives
 // its value up only if the caller did.
@@ -369,11 +361,13 @@ func (fs *funcState) expr(e ast.Expr, dst int32) {
 	case *ast.ObjectExpr:
 		fs.literal(dst, len(n.Pairs), true, func(i int) ast.Expr { return n.Pairs[i].Value }, func(from, to int, base int32) ins {
 			keys := make([]string, 0, to-from)
+			toks := make([]ast.Token, 0, to-from)
 			for _, pair := range n.Pairs[from:to] {
 				keys = append(keys, pair.Key)
+				toks = append(toks, pair.Token)
 			}
 
-			return ins{op: opObject, b: base, c: fs.keyList(keys)}
+			return ins{op: opObject, b: base, c: fs.keyList(keys, toks)}
 		})
 	case *ast.StructExpr:
 		fs.structLiteral(n, dst)
@@ -398,7 +392,7 @@ func (fs *funcState) expr(e ast.Expr, dst int32) {
 		fs.expr(n.Value, dst)
 		fs.emit(ins{op: opThrow, a: dst}, &n.Keyword)
 	case *ast.TryExpr:
-		fs.tryExpr(n, dst)
+		fs.tryStmt(n.Try, dst)
 	case *ast.JumpExpr:
 		fs.stmt(n.Stmt)
 	default:
@@ -552,8 +546,8 @@ func writesEarly(e ast.Expr) bool {
 	switch n := unwrap(e).(type) {
 	case *ast.LogicalExpr, *ast.AssignExpr, *ast.SetIndexExpr, *ast.ThrowExpr, *ast.TryExpr:
 		return true
-	case *ast.IfExpr, *ast.MatchExpr:
-		return slices.ContainsFunc(values(n), writesEarly)
+	case valuedExpr:
+		return slices.ContainsFunc(n.Values(), writesEarly)
 	}
 
 	return false
@@ -717,7 +711,7 @@ func (fs *funcState) unary(n *ast.UnaryExpr, dst int32) {
 func (fs *funcState) call(n *ast.CallExpr, dst int32) {
 	spread := slices.ContainsFunc(n.Args, ast.IsSpread)
 
-	if prop, ok := n.Callee.(*ast.IndexExpr); ok && isMethodCall(prop) && !n.Optional && !spread {
+	if prop, ok := n.Callee.(*ast.IndexExpr); ok && isMethodCall(prop) && !n.Optional {
 		fs.invoke(n, prop, dst)
 		return
 	}

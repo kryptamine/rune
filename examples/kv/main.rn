@@ -75,12 +75,12 @@ fun demo() {
     let mut broken = bytes.buffer(good);
     broken[100] ^= 0xFF;
     fs.write(first, broken);
-    try store.Store.open(dir, opts) catch e is store.KvError => print("  open failed: {e.message}");
+    try { store.Store.open(dir, opts); } catch e is store.KvError { print("  open failed: {e.message}"); }
     fs.write(first, good);
 
     print("\n== a second writer");
     db = store.Store.open(dir, opts);
-    try store.Store.open(dir, opts) catch e is store.KvError => print("  open failed: {e.message.replace(dir, "<dir>")}");
+    try { store.Store.open(dir, opts); } catch e is store.KvError { print("  open failed: {e.message.replace(dir, "<dir>")}"); }
 
     print("\n== compaction");
     t = time.now();
@@ -170,7 +170,7 @@ fun cli(dir, cmd, rest) {
     defer db.close();
 
     return match [cmd, ...rest] {
-        ["put", key, value] => db.put(key, try json.parse(value) catch _ => value),
+        ["put", key, value] => db.put(key, try { json.parse(value) } catch { value }),
         ["get", key] => {
             if !db.has(key) {
                 return 1;
@@ -195,7 +195,7 @@ fun main(args) {
         return match args {
             [] => demo(),
             ["bench"] => bench(20000),
-            ["bench", n] => bench(int(n)),
+            ["bench", n] => bench(number(n)),
             [dir, cmd, ...rest] => cli(dir, cmd, rest),
             _ => throw UsageError { message: "usage: main.rn <dir> <command> ..." },
         };

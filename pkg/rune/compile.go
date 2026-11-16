@@ -364,12 +364,14 @@ func (fs *funcState) declare(l *ast.Local) int32 {
 }
 
 // keyList adds the property names of an object literal or pattern.
-func (fs *funcState) keyList(keys []string) int32 {
+// keyList adds keys to the key lists; toks locates them, or is nil.
+func (fs *funcState) keyList(keys []string, toks []ast.Token) int32 {
 	for i, k := range keys {
 		keys[i] = fs.unit.intern(k)
 	}
 
 	fs.proto.keys = append(fs.proto.keys, keys)
+	fs.proto.keyToks = append(fs.proto.keyToks, toks)
 	return int32(len(fs.proto.keys) - 1)
 }
 

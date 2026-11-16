@@ -7,7 +7,7 @@ print(size); // expect: 1
 let [x, [y, z = 9], { w }] = [1, [2], { w: 4 }];
 print(x + y + z + w); // expect: 16
 
-let mut { pos: [px, py] } = { pos: [1, 2] };
+let { pos: [mut px, py] } = { pos: [1, 2] };
 px += 10;
 print(px, py); // expect: 11 2
 

@@ -146,7 +146,7 @@ func (fs *funcState) stmt(stmt ast.Stmt) {
 	case *ast.ReturnStmt:
 		fs.returnStmt(s)
 	case *ast.TryStmt:
-		fs.tryStmt(s)
+		fs.tryStmt(s, noReg)
 	case *ast.DeferStmt:
 		fs.deferStmt(s, func() {})
 	case *ast.MatchStmt:
@@ -523,18 +523,17 @@ func (fs *funcState) rangeParts(r *ast.RangeExpr) int32 {
 	return base
 }
 
-func (fs *funcState) tryStmt(s *ast.TryStmt) {
-	fs.tryCatch(s.Catches, fs.nactive, func() { fs.stmt(s.Body) }, func(c *ast.CatchClause, r int32) {
-		fs.bindCatch(c, r)
-		fs.stmts(c.Body)
-	})
-}
+// tryStmt compiles s, with the value of the block that ran into dst
+// unless it is noReg; the error goes above every live register.
+func (fs *funcState) tryStmt(s *ast.TryStmt, dst int32) {
+	at := fs.nactive
+	if dst != noReg {
+		at = max(fs.free, dst+1)
+	}
 
-// tryExpr puts the error above every live register, dst included.
-func (fs *funcState) tryExpr(t *ast.TryExpr, dst int32) {
-	fs.tryCatch(t.Catches, max(fs.free, dst+1), func() { fs.expr(t.Value, dst) }, func(c *ast.CatchClause, r int32) {
+	fs.tryCatch(s.Catches, at, func() { fs.block(s.Body, dst) }, func(c *ast.CatchClause, r int32) {
 		fs.bindCatch(c, r)
-		fs.expr(c.Value, dst)
+		fs.block(c.Body, dst)
 	})
 }
 

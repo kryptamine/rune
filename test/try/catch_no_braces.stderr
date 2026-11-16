@@ -1,0 +1,5 @@
+error: Expect '{' after 'catch'.
+ --> catch_no_braces.rn:1:25
+  |
+1 | let a = try { 1 } catch => 0; // Error at '=>': Expect '{' after 'catch'.
+  |                         ^^

@@ -14,7 +14,7 @@ fun page({ title, root = "." }, [w = 80, h = w / 2] = []) {
 print(page({ title: "t" })); // expect: t . 80 40
 print(page({ title: "t", root: ".." }, [10])); // expect: t .. 10 5
 
-let mut [p = 0, ...rest] = [];
+let [mut p = 0, ...rest] = [];
 print([p, rest]); // expect: [0, []]
 
 let [q, r = 5, ...more] = [1, 2, 3, 4];

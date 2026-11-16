@@ -1,6 +1,6 @@
 TypeError: Cannot spread array into Task.
-  --> spread.rn:31:8
+  --> spread.rn:32:8
    |
-30 | try { Task { ...p }; } catch e is TypeError { print(e.message); } // expect: Cannot spread Point into Task.
-31 | Task { ...[1] }; // expect runtime error: [line: 31] TypeError: Cannot spread array into Task.
+31 | try { Task { ...p }; } catch e is TypeError { print(e.message); } // expect: Cannot spread Point into Task.
+32 | Task { ...[1] }; // expect runtime error: [line: 32] TypeError: Cannot spread array into Task.
    |        ^^^

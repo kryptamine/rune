@@ -12,7 +12,7 @@ print(t); // expect: [2, 3]
 let [...all] = [];
 print(all); // expect: []
 
-let mut [p, q] = [1, 2];
+let [mut p, q] = [1, 2];
 p += q;
 print(p); // expect: 3
 

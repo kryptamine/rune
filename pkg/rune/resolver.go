@@ -380,10 +380,7 @@ func (p *Resolver) VisitTryStmt(tryStmt *ast.TryStmt) error {
 }
 
 func (p *Resolver) VisitTryExpr(expr *ast.TryExpr) (value.Value, error) {
-	p.resolveExpr(expr.Value)
-	p.resolveCatches(expr.Catches)
-
-	return value.NilValue, nil
+	return value.NilValue, p.VisitTryStmt(expr.Try)
 }
 
 func (p *Resolver) resolveCatches(catches []ast.CatchClause) {
@@ -412,7 +409,7 @@ func (p *Resolver) resolveCatches(catches []ast.CatchClause) {
 }
 
 func (p *Resolver) resolveCatch(c *ast.CatchClause) {
-	scoped := c.Param != nil || declaresLocals(c.Body)
+	scoped := c.Param != nil || declaresLocals(c.Body.Stmts)
 	if scoped {
 		p.beginScope()
 		defer p.endScope()
@@ -424,9 +421,7 @@ func (p *Resolver) resolveCatch(c *ast.CatchClause) {
 		p.define(*c.Param)
 	}
 
-	p.resolveStmts(c.Body)
-
-	p.resolveExpr(c.Value)
+	p.resolveStmts(c.Body.Stmts)
 }
 
 func (p *Resolver) VisitAssignExpr(expr *ast.AssignExpr) (value.Value, error) {
@@ -459,6 +454,10 @@ func (p *Resolver) VisitCallExpr(callExpr *ast.CallExpr) (value.Value, error) {
 
 	if prop, ok := callExpr.Callee.(*ast.IndexExpr); ok && isMethodCall(prop) {
 		p.checkMutation(callExpr, prop)
+
+		if i := slices.IndexFunc(callExpr.Args, ast.IsSpread); i >= 0 {
+			p.error(callExpr.Args[i].(*ast.SpreadExpr).Token, "Cannot spread arguments into a method call.")
+		}
 	}
 
 	p.inout(callExpr)

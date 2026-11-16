@@ -162,9 +162,11 @@ func (p *Interpreter) CallValue(fn value.Value, args []value.Value, token *ast.T
 		}
 	}
 
+	if isEnum(fn) {
+		return variant(token, fn.TypeShape(), args)
+	}
+
 	switch fn.Kind() {
-	case value.Type:
-		return convert(token, fn.TypeShape(), args)
 	case value.Function:
 		switch f := fn.Fn().(type) {
 		case *Closure:
@@ -180,10 +182,6 @@ func (p *Interpreter) CallValue(fn value.Value, args []value.Value, token *ast.T
 			}
 
 			return p.run(len(p.frames) - 1)
-		case *BoundMethod:
-			return p.CallValue(value.NewFunction(f.fn), append([]value.Value{f.recv}, args...), token)
-		case *BoundNative:
-			return p.host.CallMethod(f.fn, append([]value.Value{f.recv}, args...), token)
 		case *stdlib.Native:
 			return p.host.Call(f, args, token)
 		}
@@ -197,10 +195,6 @@ func (p *Interpreter) Required(fn value.Value) int {
 		switch f := fn.Fn().(type) {
 		case *Closure:
 			return f.proto.required
-		case *BoundMethod:
-			return f.fn.proto.required - 1
-		case *BoundNative:
-			return f.fn.Min() - 1
 		case *stdlib.Native:
 			return f.Min()
 		}

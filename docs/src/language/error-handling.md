@@ -3,11 +3,9 @@
 In Rune an error is an ordinary [struct](../data/structs.md) value.
 The runtime throws one when something goes wrong, such as a file that is
 missing or a string that is not a number, and your code throws its own
-with `throw`. There are three tools for dealing with them:
+with `throw`. There are two tools for dealing with them:
 
 - `try`/`catch` runs code and handles the error if one is thrown;
-- `try value catch => fallback` is the same thing as an expression, for
-  the common "use this, or that if it fails" case;
 - `defer` runs cleanup code however a block is left.
 
 ## try and catch
@@ -18,7 +16,7 @@ runs with the error, and the program carries on after it.
 ```rune
 fun parsePort(s) {
     try {
-        return int(s);
+        return number(s);
     } catch e {
         print("bad port: " + e.message);
         return 80;
@@ -28,7 +26,7 @@ fun parsePort(s) {
 print(parsePort("8080"));
 print(parsePort("http"));
 // 8080
-// bad port: int() cannot parse "http" as an integer.
+// bad port: number() cannot parse "http" as a number.
 // 80
 ```
 
@@ -58,7 +56,7 @@ has the fields `message`, `line` (the line it was thrown on) and
 |---|---|---|
 | `TypeError` | a value of the wrong type | `1 + nil`, calling a number |
 | `ArgumentError` | the wrong number of arguments | `math.sqrt()` |
-| `ValueError` | the right type but a bad value | `[].pop()`, `int("x")` |
+| `ValueError` | the right type but a bad value | `[].pop()`, `number("x")` |
 | `IndexError` | an index out of bounds | `[1, 2][5]` |
 | `KeyError` | a missing property or struct field | `{ a: 1 }.b` |
 | `NameError` | an undefined variable | |
@@ -124,49 +122,40 @@ print(setting(config, "port")); // 8080
 print(setting(config, "host")); // nil
 ```
 
-## try as an Expression
+## try Gives a Value
 
-`try value catch => fallback` gives `value`, or `fallback` if computing
-`value` throws. It turns "parse this, or use a default" into one line:
+Like [`if`](conditionals.md#if-as-an-expression), `try` is an
+expression: it gives the last expression of the block that ran, the
+`try` block or the `catch` that handled the error. That turns "parse
+this, or use a default" into one line:
 
 ```rune
-let port = try int("http") catch => 80;
+let port = try { number("http") } catch { 80 };
 print(port); // 80
 ```
 
-A clause can name the error and the types it handles, just like the
-statement form: `catch e is T | U => fallback`. Several clauses may
-follow one another, and an error none of them handles goes on up.
-
 ```rune
 fun field(record, key) {
-    try record[key]
-        catch e is KeyError => "-"
-        catch e is TypeError => "not a record"
+    try { record[key] } catch e is KeyError { "-" } catch e is TypeError { "not a record" }
 }
 
 print(field({ id: 7 }, "id"));   // 7
 print(field({ id: 7 }, "name")); // -
 print(field(5, "id"));           // not a record
 
-print(try json.parse("[1,") catch e => e is ValueError); // true
+print(try { json.parse("[1,") } catch e { e is ValueError }); // true
 ```
 
-The fallback may also `return`, `break`, `continue` or `throw`. This
+A `catch` block may also `return`, `break`, `continue` or `throw`. This
 loop keeps only the numbers it can parse:
 
 ```rune
 let mut ports = [];
 for s in ["80", "http", "443"] {
-    ports.push(try int(s) catch => continue);
+    ports.push(try { number(s) } catch { continue });
 }
 print(ports); // [80, 443]
 ```
-
-Both `value` and each fallback extend as far to the right as they can,
-so wrap them in parentheses when they are part of a larger expression.
-At the start of a statement, `try {` begins a `try` statement; any other
-`try` is an expression.
 
 ## throw
 

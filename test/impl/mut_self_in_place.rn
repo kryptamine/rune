@@ -9,7 +9,6 @@ impl P {
   fun twice(mut self) { self.bump(); self.bump(); self.x *= 10; }
   fun keep(mut self) { self.x = 1; kept.push(self); self.x = 2; }
   fun alias(mut self) { let before = self; self.x = 5; return before.x; }
-  fun bound(mut self) { let f = self.get; self.x = 7; return f(); }
   fun get(self) { return self.x; }
   fun leak(self) { kept.push(self); }
   fun viaLeak(mut self) { self.x = 3; self.leak(); self.x = 4; }
@@ -30,7 +29,6 @@ p.keep();
 print([kept[0].x, p.x]);       // expect: [1, 2]
 
 print([p.alias(), p.x]);       // expect: [2, 5]
-print([p.bound(), p.x]);       // expect: [5, 7]
 
 p.viaLeak();
 print([kept[1].x, p.x]);       // expect: [3, 4]

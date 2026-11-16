@@ -10,13 +10,9 @@ import (
 	"strings"
 )
 
-// Convert is Shape(v): v itself if already of that shape, or a struct
-// built from an object holding every required field and no other.
+// Convert is v as a struct of shape: v itself if already one, or a
+// struct built from an object holding every required field and no other.
 func Convert(token *ast.Token, shape *value.Shape, v value.Value) (value.Value, error) {
-	if shape.Enum {
-		return variantOf(token, shape, v)
-	}
-
 	switch v.Kind() {
 	case value.Struct:
 		if v.Shape() == shape {
@@ -30,9 +26,9 @@ func Convert(token *ast.Token, shape *value.Shape, v value.Value) (value.Value, 
 		"Cannot convert %s to %s.", helpers.TypeName(v), shape.Name))
 }
 
-// variantOf is Enum(v): v itself if a variant of it, or the variant at
+// Variant is Enum(v): v itself if a variant of it, or the variant at
 // ordinal v, or named v.
-func variantOf(token *ast.Token, shape *value.Shape, v value.Value) (value.Value, error) {
+func Variant(token *ast.Token, shape *value.Shape, v value.Value) (value.Value, error) {
 	switch {
 	case shape.Has(v):
 		return v, nil
@@ -60,20 +56,28 @@ func NotOrdinal(enum *value.Shape) string {
 	return enum.Name + " has variants with fields; values(), " + enum.Name + "(n) and int() are for enums without."
 }
 
+// AssignFields sets the fields of shape that obj has keys for; a key
+// that is no field is a KeyError.
+func AssignFields(token *ast.Token, shape *value.Shape, fields []value.Value, obj *value.Obj) error {
+	if extra, ok := shape.Assign(fields, obj); !ok {
+		return errors.NewRuntimeError(errors.KeyError, *token, errors.NoField(shape.Name, extra))
+	}
+
+	return nil
+}
+
 func structOf(token *ast.Token, shape *value.Shape, obj *value.Obj) (value.Value, error) {
 	v, fields := value.NewStruct(shape)
 	for i := range fields {
 		fields[i] = value.UndefinedValue
 	}
 
-	extra, known := shape.Assign(fields, obj)
+	if err := AssignFields(token, shape, fields, obj); err != nil {
+		return value.NilValue, err
+	}
 
 	if missing, ok := shape.Fill(fields); !ok {
 		return value.NilValue, errors.NewRuntimeError(errors.KeyError, *token, errors.MissingField(shape.Name, missing))
-	}
-
-	if !known {
-		return value.NilValue, errors.NewRuntimeError(errors.KeyError, *token, errors.NoField(shape.Name, extra))
 	}
 
 	return v, nil
@@ -114,7 +118,7 @@ var conversionNatives = []*Native{
 			return truncate(c, v)
 		}
 
-		return intLiteral(c)
+		return c.typeError(0, "a number")
 	}},
 }
 
@@ -140,20 +144,6 @@ func truncate(c *call, v value.Value) value.Value {
 	}
 
 	return value.NewInt(n)
-}
-
-// intLiteral is int(s): the integer literal s holds, as number reads it.
-func intLiteral(c *call) value.Value {
-	s := c.str(0)
-	if !c.ok() {
-		return value.NilValue
-	}
-
-	if n, ok := helpers.ParseNumber(strings.TrimSpace(s)); ok && n.IsInt() {
-		return n
-	}
-
-	return c.fail(errors.ValueError, "cannot parse %s as an integer.", helpers.Quoted(c.args[0]))
 }
 
 // intInBase is int(s, base): the digits of s in base.

@@ -68,7 +68,7 @@ print(regex.find(r"(cat)|(dog)", "dog").groups);    // [nil, "dog"]
 
 ```rune
 let text = "ids: 7, 42, 108";
-print(regex.findAll(r"\d+", text).map(m => int(m.text)));      // [7, 42, 108]
+print(regex.findAll(r"\d+", text).map(m => number(m.text)));      // [7, 42, 108]
 print(regex.findAll(r"\d+", text, 2).map(m => m.text));        // ["7", "42"]
 
 let pairs = regex.findAll(r"(\w+)=(\w+)", "user=ann role=admin");
@@ -92,7 +92,7 @@ With a function, each replacement can be computed:
 
 ```rune
 let recipe = "3 eggs, 200 g flour, 1 cup milk";
-print(regex.replace(r"\d+", recipe, m => string(int(m.text) * 2)));
+print(regex.replace(r"\d+", recipe, m => string(number(m.text) * 2)));
 // 6 eggs, 400 g flour, 2 cup milk
 ```
 

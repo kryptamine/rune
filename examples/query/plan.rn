@@ -228,7 +228,8 @@ fun output(q, scope) {
     let having = if q.having == nil { nil } else { unalias(q.having) };
 
     let order = q.orderBy.map(({ expr: e, desc }) => {
-        let i = ordinal(e, items, "ORDER BY") ?? texts.indexOf(ast.sql(unalias(e)));
+        let text = ast.sql(unalias(e));
+        let i = ordinal(e, items, "ORDER BY") ?? texts.findIndex(t => t == text);
         return SortKey { column: i, expr: unalias(e), desc, text: ast.sql(e) };
     });
 

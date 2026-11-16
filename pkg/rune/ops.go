@@ -44,14 +44,18 @@ func setField(token *ast.Token, target, key, v value.Value) error {
 	return nil
 }
 
-// convert is a call of the struct type shape, which takes one value.
-func convert(token *ast.Token, shape *value.Shape, args []value.Value) (value.Value, error) {
+// isEnum reports whether v is an enum type, which a call gives a variant of.
+func isEnum(v value.Value) bool { return v.Kind() == value.Type && v.TypeShape().Enum }
+
+// variant is a call of the enum type shape: the variant its one argument
+// numbers or names.
+func variant(token *ast.Token, shape *value.Shape, args []value.Value) (value.Value, error) {
 	if len(args) != 1 {
 		return value.NilValue, errors.NewRuntimeError(errors.ArgumentError, *token, fmt.Sprintf(
 			"%s() expects 1 argument, got %d.", shape.Name, len(args)))
 	}
 
-	return stdlib.Convert(token, shape, args[0])
+	return stdlib.Variant(token, shape, args[0])
 }
 
 // propertyTarget fails unless target can have a property set, as only

@@ -283,10 +283,6 @@ func (s *Parser) unary() (ast.Expr, error) {
 		return &ast.ThrowExpr{Value: v, Keyword: keyword}, nil
 	}
 
-	if s.match(ast.TRY) {
-		return s.tryExpr()
-	}
-
 	if s.match(ast.RETURN, ast.BREAK, ast.CONTINUE) {
 		j, err := s.jumpExpr()
 		if err != nil {
@@ -308,44 +304,6 @@ func (s *Parser) unary() (ast.Expr, error) {
 	}
 
 	return s.call()
-}
-
-// tryExpr parses `try value catch [name [is T | U]] => value ...`; "try"
-// has already been consumed.
-func (s *Parser) tryExpr() (ast.Expr, error) {
-	t := &ast.TryExpr{Keyword: s.previous()}
-
-	v, err := s.assignment()
-	if err != nil {
-		return nil, err
-	}
-
-	t.Value = v
-
-	if _, err := s.consume(ast.CATCH, "Expect 'catch' after try expression."); err != nil {
-		return nil, err
-	}
-
-	for {
-		c, err := s.catchHead()
-		if err != nil {
-			return nil, err
-		}
-
-		if _, err := s.consume(ast.ARROW, "Expect '=>' after 'catch'."); err != nil {
-			return nil, err
-		}
-
-		if c.Value, err = s.assignment(); err != nil {
-			return nil, err
-		}
-
-		t.Catches = append(t.Catches, c)
-
-		if !s.match(ast.CATCH) {
-			return t, nil
-		}
-	}
 }
 
 // jumpExpr parses return, break or continue in an expression (the keyword
@@ -410,7 +368,16 @@ func (s *Parser) primary() (ast.Expr, error) {
 			return nil, err
 		}
 
-		return &ast.IfExpr{If: st}, nil
+		return st.AsExpr(), nil
+	}
+
+	if s.match(ast.TRY) {
+		st, err := s.tryStatement()
+		if err != nil {
+			return nil, err
+		}
+
+		return st.AsExpr(), nil
 	}
 
 	if s.match(ast.TRUE) {

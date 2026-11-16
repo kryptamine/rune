@@ -213,7 +213,7 @@ Everything else is **truthy**, including `"0"`, `[0]` and `{ a: nil }`.
 
 ```rune
 for v in [nil, false, 0, "", [], {}, map(), "0", [0], { a: nil }] {
-    print("%q is %s".format(v, if v { "truthy" } else { "falsy" }));
+    print("{"%q".format(v)} is {if v { "truthy" } else { "falsy" }}");
 }
 // nil is falsy
 // false is falsy
@@ -295,7 +295,7 @@ print(1 in "123");    // TypeError: Left operand of 'in' must be a string for st
 - functions and streams by identity: a function equals only itself.
 
 Values of different kinds are never equal, so `1 == "1"` is `false`. `NaN`
-equals nothing, not even itself. `in` and `indexOf` use this same equality.
+equals nothing, not even itself. `in` uses this same equality.
 
 ```rune
 print(1 == 1.0);                     // true
@@ -306,7 +306,6 @@ print(nil == false);                 // false
 
 let cart = [{ id: 1 }, { id: 2 }];
 print({ id: 2 } in cart);            // true
-print(cart.indexOf({ id: 2 }));      // 1
 
 let isValid = order => order.qty > 0;
 let check = isValid;
