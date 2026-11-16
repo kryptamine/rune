@@ -16,7 +16,8 @@ print(kind("king")); // expect: king
 print(kind(2)); // expect: other 2
 
 // A shorthand key, mut and a local still bind.
-match { PAWN: 5, piece: 6 } {
+struct Piece { PAWN, piece }
+match Piece { PAWN: 5, piece: 6 } {
     { PAWN, piece: KING } => print(PAWN), // expect: 5
     _ => print("no"),
 }

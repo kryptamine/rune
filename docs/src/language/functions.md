@@ -14,6 +14,8 @@ print(greet("ann"));    // hello, ann!
 A body can run any statements before that final value:
 
 ```rune
+struct Item { price, qty }
+
 fun total(items) {
     let mut sum = 0;
     for item in items {
@@ -22,7 +24,7 @@ fun total(items) {
     sum
 }
 
-let cart = [{ price: 10, qty: 2 }, { price: 5, qty: 1 }];
+let cart = [Item { price: 10, qty: 2 }, Item { price: 5, qty: 1 }];
 print(total(cart));    // 25
 ```
 
@@ -52,14 +54,16 @@ When the body ends with an `if` or a `match`, the branch taken gives the
 result. `return` leaves early, which keeps guard checks flat:
 
 ```rune
+struct Order { total }
+
 fun shipping(order) {
     if order.total <= 0 { return "nothing to ship" }
     if order.total >= 50 { "free" } else { "$4.99" }
 }
 
-print(shipping({ total: 0 }));     // nothing to ship
-print(shipping({ total: 80 }));    // free
-print(shipping({ total: 20 }));    // $4.99
+print(shipping(Order { total: 0 }));     // nothing to ship
+print(shipping(Order { total: 80 }));    // free
+print(shipping(Order { total: 20 }));    // $4.99
 
 fun httpStatus(code) {
     match code {
@@ -72,14 +76,6 @@ fun httpStatus(code) {
 
 print(httpStatus(404));    // not found
 print(httpStatus(503));    // server error
-```
-
-A `{` that starts a body is always a block, so to give an object, wrap it
-in parentheses:
-
-```rune
-fun origin() { ({ x: 0, y: 0 }) }
-print(origin());    // {x: 0, y: 0}
 ```
 
 Methods work the same way:
@@ -147,25 +143,15 @@ Parameters may be [patterns](destructuring.md), which takes just the
 fields you need:
 
 ```rune
-let users = [{ name: "ann", age: 31 }, { name: "bob", age: 17 }];
+struct User { name, age }
+
+let users = [User { name: "ann", age: 31 }, User { name: "bob", age: 17 }];
 
 print(users.map(({ name }) => name));                    // ["ann", "bob"]
 print(users.filter(u => u.age >= 18).map(u => u.name));  // ["ann"]
 ```
 
-After `=>` a `{` starts a block, both here and in a `match` arm. To return
-an object, wrap it in parentheses:
-
-```rune
-let point = (x, y) => ({ x, y });
-print(point(1, 2));    // {x: 1, y: 2}
-```
-
-Forgetting the parentheses is a compile error with a hint:
-
-```rune
-let wrap = name => { name: name }; // Error at '{': A '{' here starts a block; wrap an object in parentheses: ({ ... }).
-```
+After `=>` a `{` starts a block, both here and in a `match` arm.
 
 ## Default Parameters
 
@@ -260,9 +246,9 @@ let mut tags = ["new"];
 addTag(tags, "sale");
 print(tags);         // ["new", "sale"]
 
-let mut user = { name: "ann", tags: [] };
-addTag(user.tags, "admin");
-print(user.tags);    // ["admin"]
+let mut user = ["name": "ann", "tags": []];
+addTag(user["tags"], "admin");
+print(user["tags"]);    // ["admin"]
 ```
 
 The argument must be a mutable place: a `let mut` variable, a `mut`

@@ -73,12 +73,12 @@ fun nested() {
 fun struct_like() {}
 print(nested());                    // expect: [9, 0]
 
-fun objects() {
-  let mut o = { x: 1 };
-  o.x = 2;
-  return o.x;
+fun maps() {
+  let mut m = ["x": 1];
+  m["x"] = 2;
+  return m["x"];
 }
-print(objects());                   // expect: 2
+print(maps());                      // expect: 2
 
 fun empty() {
   let mut p;

@@ -1,4 +1,3 @@
 let _ = 1;
 print(_); // Error at '_': Cannot read '_'.
 _ = 2; // Error at '_': Cannot assign to '_'.
-let o = { _ }; // Error at '_': Cannot read '_'.

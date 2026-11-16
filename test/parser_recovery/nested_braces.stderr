@@ -4,17 +4,17 @@ error: Expect '}' after pattern.
 1 | fun page({ title, root ! "." }) { // Error at '!': Expect '}' after pattern.
   |                        ^
 
-error: Expect '}' after object properties.
- --> nested_braces.rn:6:20
+error: Expect ']' after map entries.
+ --> nested_braces.rn:6:21
   |
 5 | fun a() {
-6 |     let y = { k: 1 ! }; // Error at '!': Expect '}' after object properties.
-  |                    ^
+6 |     let y = ["k": 1 ! ]; // Error at '!': Expect ']' after map entries.
+  |                     ^
 
 error: Expect expression.
  --> nested_braces.rn:7:21
   |
-6 |     let y = { k: 1 ! }; // Error at '!': Expect '}' after object properties.
+6 |     let y = ["k": 1 ! ]; // Error at '!': Expect ']' after map entries.
 7 |     if y { print(1 +); } // Error at ')': Expect expression.
   |                     ^
 

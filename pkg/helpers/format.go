@@ -2,7 +2,6 @@ package helpers
 
 import (
 	"fmt"
-	"rune/pkg/ast"
 	"rune/pkg/value"
 	"strconv"
 	"strings"
@@ -22,8 +21,6 @@ func TypeName(v value.Value) string {
 		return "string"
 	case value.Array:
 		return "array"
-	case value.Object:
-		return "object"
 	case value.Struct:
 		return v.Shape().Name
 	case value.Type:
@@ -60,19 +57,6 @@ var quoter = strings.NewReplacer(`\`, `\\`, `"`, `\"`, "\n", `\n`, "\t", `\t`, "
 // quote writes s as a string literal the scanner accepts.
 func quote(s string) string { return `"` + quoter.Replace(s) + `"` }
 
-// isIdentifier reports whether s can be an unquoted key in an object literal.
-func isIdentifier(s string) bool {
-	for i, r := range s {
-		if !IsAlpha(r) && (i == 0 || !IsDigit(r)) {
-			return false
-		}
-	}
-
-	_, keyword := ast.Keywords[s]
-
-	return s != "" && !keyword
-}
-
 // Quoted renders v as print does inside a container, strings quoted.
 func Quoted(v value.Value) string { return element(v) }
 
@@ -105,19 +89,6 @@ func Stringify(v value.Value) string {
 		}
 
 		return "[" + strings.Join(items, ", ") + "]"
-	case value.Object:
-		obj := v.Obj()
-		pairs := make([]string, 0, obj.Len())
-		for key, x := range obj.All() {
-			name := key
-			if !isIdentifier(key) {
-				name = quote(key)
-			}
-
-			pairs = append(pairs, name+": "+element(x))
-		}
-
-		return "{" + strings.Join(pairs, ", ") + "}"
 	case value.Struct:
 		if msg, ok := Message(v); ok {
 			return v.Shape().Name + ": " + msg
@@ -147,17 +118,21 @@ func Stringify(v value.Value) string {
 	}
 }
 
+// stringifyTable writes a map as its literal, a set as set {x, ...}.
 func stringifyTable(v value.Value) string {
 	m := v.HashMap()
-	name := TypeName(v)
+	isSet := v.Kind() == value.Set
 
-	if m.Len() == 0 {
-		return name + " {}"
+	switch {
+	case m.Len() == 0 && isSet:
+		return "set {}"
+	case m.Len() == 0:
+		return "[:]"
 	}
 
 	items := make([]string, 0, m.Len())
 	m.Each(func(k, x value.Value) bool {
-		if v.Kind() == value.Set {
+		if isSet {
 			items = append(items, element(k))
 		} else {
 			items = append(items, element(k)+": "+element(x))
@@ -166,7 +141,11 @@ func stringifyTable(v value.Value) string {
 		return true
 	})
 
-	return name + " {" + strings.Join(items, ", ") + "}"
+	if isSet {
+		return "set {" + strings.Join(items, ", ") + "}"
+	}
+
+	return "[" + strings.Join(items, ", ") + "]"
 }
 
 // QuoteBytes writes b as a bytes literal: printable ASCII as is, other
@@ -222,16 +201,3 @@ func Plural(n int, word string) string {
 
 	return fmt.Sprintf("%d %ss", n, word)
 }
-
-// FunctionProperty is the error of putting a function in property key of
-// an object, which holds data only; key is empty if not known.
-func FunctionProperty(key string) string {
-	if key == "" {
-		return "A property of an object cannot hold a function."
-	}
-
-	return "Property '" + key + "' of an object cannot hold a function."
-}
-
-// FunctionPropertyHint is the fix for FunctionProperty.
-const FunctionPropertyHint = "objects hold data; give the behavior to a struct with an impl"

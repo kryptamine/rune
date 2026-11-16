@@ -1,3 +1,0 @@
-let m = map([["f", x => x]]);
-print(m["f"](1)); // expect: 1
-let o = object(m); // expect runtime error: [line: 3] TypeError: object() Property 'f' of an object cannot hold a function.

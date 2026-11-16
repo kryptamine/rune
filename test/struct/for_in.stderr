@@ -1,5 +1,5 @@
-TypeError: Can only iterate over arrays, strings, objects, maps, sets, bytes and streams, got P.
+TypeError: Can only iterate over arrays, strings, maps, sets, bytes and streams, got P.
   --> for_in.rn:10:1
    |
-10 | for k in p { print(k); } // expect runtime error: [line: 10] TypeError: Can only iterate over arrays, strings, objects, maps, sets, bytes and streams, got P.
+10 | for k in p { print(k); } // expect runtime error: [line: 10] TypeError: Can only iterate over arrays, strings, maps, sets, bytes and streams, got P.
    | ^^^

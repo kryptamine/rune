@@ -25,9 +25,9 @@ let mut cs = [Counter {}, Counter { n: 5 }];
 cs[1].incr();
 print(cs); // expect: [Counter {n: 0}, Counter {n: 6}]
 
-let mut o = { c: Counter {} };
-o.c.add(3);
-print(o.c.n); // expect: 3
+let mut o = ["c": Counter {}];
+o["c"].add(3);
+print(o["c"].n); // expect: 3
 
 let mut g = Counter {};
 fun bump() { g.incr(); }

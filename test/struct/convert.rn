@@ -1,16 +1,16 @@
 struct Point { x, y = 0 }
 struct Box { item, tag = "box" }
 
-print(Point { ...{x: 1} }); // expect: Point {x: 1, y: 0}
-print(Point { ...{"y": 2, "x": 1} }); // expect: Point {x: 1, y: 2}
-print(Point { ...{x: [1, 2]} }.x); // expect: [1, 2]
-print(Box { ...{item: Point { ...{x: 5} }} }); // expect: Box {item: Point {x: 5, y: 0}, tag: "box"}
-print(Point { ...{x: 1, y: 2}, y: 3 }); // expect: Point {x: 1, y: 3}
-print(Point { y: 3, ...{x: 1, y: 2} }); // expect: Point {x: 1, y: 2}
+print(Point { ...["x": 1] }); // expect: Point {x: 1, y: 0}
+print(Point { ...["y": 2, "x": 1] }); // expect: Point {x: 1, y: 2}
+print(Point { ...["x": [1, 2]] }.x); // expect: [1, 2]
+print(Box { ...["item": Point { ...["x": 5] }] }); // expect: Box {item: Point {x: 5, y: 0}, tag: "box"}
+print(Point { ...["x": 1, "y": 2], y: 3 }); // expect: Point {x: 1, y: 3}
+print(Point { y: 3, ...["x": 1, "y": 2] }); // expect: Point {x: 1, y: 2}
 
-let mut o = {x: 1};
+let mut o = ["x": 1];
 let q = Point { ...o };
-o.x = 2;
+o["x"] = 2;
 print(q.x); // expect: 1
 
-print(Point { x: 1 } == Point { ...{ x: 1 } }); // expect: true
+print(Point { x: 1 } == Point { ...["x": 1] }); // expect: true

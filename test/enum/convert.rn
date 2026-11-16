@@ -6,9 +6,9 @@ print(Dir("East"));                  // expect: Dir.East
 print(Dir(Dir.North));               // expect: Dir.North
 print(Dir.values());                 // expect: [Dir.North, Dir.East, Dir.South, Dir.West]
 print(Dir.values().map(int));        // expect: [0, 1, 2, 3]
-print(json.stringify({ to: Dir.East })); // expect: {"to":"East"}
+print(json.stringify(["to": Dir.East])); // expect: {"to":"East"}
 
-let mut seen = map();
+let mut seen = [:];
 seen[Dir.East] = "e";
 print(seen[Dir.East]);               // expect: e
 print(set([Dir.East, Dir.East]).len()); // expect: 1

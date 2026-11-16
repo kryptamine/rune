@@ -1,3 +1,5 @@
+struct Id { id }
+
 fun shape(v) {
     return match v {
         [] => "empty",
@@ -22,13 +24,13 @@ print(shape([1, [2, 3]]));        // expect: nested 2 3
 print(shape([1, 2, 3, 4]));       // expect: 1 then 3 more
 print(shape([1, 2]));             // expect: pair 1 2
 print(shape(["a", 1, 2]));        // expect: starts with a string
-print(shape([{ id: 9 }, 1, 2]));  // expect: [1, 2, 9]
+print(shape([Id { id: 9 }, 1, 2])); // expect: [1, 2, 9]
 print(shape([1, 2, 3]));          // expect: other
 
 // Only arrays match, and the length must fit.
 print(shape("ab"));               // expect: other
 print(shape(nil));                // expect: other
-print(shape({ a: 1 }));           // expect: other
+print(shape(["a": 1]));           // expect: other
 print(match [1] { [a, b] => "two", [a] => "one {a}" }); // expect: one 1
 print(match [1] { [_, ...rest] => rest });              // expect: []
 
@@ -48,7 +50,7 @@ print(apply([Op.Sub, 2, 3])); // expect: -1
 print(apply([10, 1]));        // expect: limit
 
 // Elements match without being copied out first when the pair is a key.
-let counts = map({ a: 2, b: 0 });
+let counts = ["a": 2, "b": 0];
 for pair in counts.entries() {
     print(match pair { [k, 0] => "{k}: none", [k, n] => "{k}: {n}" });
 }

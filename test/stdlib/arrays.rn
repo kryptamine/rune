@@ -17,6 +17,7 @@ print(xs); // expect: [1, 2, 3]
 xs.sort((a, b) => { return b - a; });
 print(xs); // expect: [3, 2, 1]
 
-let mut people = [{name: "bob", age: 25}, {name: "ann", age: 31}, {name: "cid", age: 25}];
+struct Person { name, age }
+let mut people = [Person { name: "bob", age: 25 }, Person { name: "ann", age: 31 }, Person { name: "cid", age: 25 }];
 people.sort((a, b) => { return a.age - b.age; });
 print(people.map(p => { return p.name; })); // expect: ["bob", "cid", "ann"]

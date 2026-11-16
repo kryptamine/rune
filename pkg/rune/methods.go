@@ -23,22 +23,24 @@ func (p *Interpreter) methodsOf(v value.Value) ([]value.Method, string) {
 	return p.kinds[v.Kind()], helpers.TypeName(v)
 }
 
-// own returns the field or property of t that key names, which comes
-// before any method of that name.
-func own(tok *ast.Token, t, key value.Value) (value.Value, bool) {
-	if k := t.Kind(); k != value.Object && k != value.Struct {
+// own returns the field of t that key names, which comes before any
+// method of that name.
+func own(t, key value.Value) (value.Value, bool) {
+	if t.Kind() != value.Struct {
 		return value.NilValue, false
 	}
 
-	v, found, _ := lookup(tok, t, key)
+	if i := t.Shape().Index(key.Str()); i >= 0 {
+		return t.Fields()[i], true
+	}
 
-	return v, found
+	return value.NilValue, false
 }
 
-// property reads t.key: its own field or property, else a method; one an
-// object or struct does not have is missing, unless that is nil.
+// property reads t.key: its own field, else a method; a field a struct
+// does not have is missing, unless that is nil.
 func (p *Interpreter) property(tok *ast.Token, t, key value.Value, missing *value.Value) (value.Value, error) {
-	if v, ok := own(tok, t, key); ok {
+	if v, ok := own(t, key); ok {
 		return v, nil
 	}
 
@@ -51,7 +53,7 @@ func (p *Interpreter) property(tok *ast.Token, t, key value.Value, missing *valu
 		return p.methodValue(tok, t, m, owner)
 	}
 
-	if k := t.Kind(); missing != nil && (k == value.Object || k == value.Struct) {
+	if missing != nil && t.Kind() == value.Struct {
 		return *missing, nil
 	}
 
@@ -106,7 +108,7 @@ func (p *Interpreter) invoke(fr *frame, in Instr, tok *ast.Token) error {
 
 		return err
 	case m == nil:
-		if v, ok := own(tok, t, key); ok && v.IsFunction() {
+		if v, ok := own(t, key); ok && v.IsFunction() {
 			return notMethod(tok, owner, key.Str())
 		}
 
@@ -168,8 +170,6 @@ func (p *Interpreter) callWithout(at, n int, tok *ast.Token) error {
 
 func missingMember(tok *ast.Token, t value.Value, name string, ms []value.Method) error {
 	switch t.Kind() {
-	case value.Object:
-		return undefinedProperty(tok, t, name)
 	case value.Struct:
 		return undefinedField(tok, t.Shape(), name)
 	case value.Type:

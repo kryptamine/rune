@@ -2,5 +2,5 @@ error: Cannot read local variable in its own initializer.
  --> defaults_own.rn:2:15
   |
 1 | fun f() {
-2 |     let { x = y, y } = {}; // Error at 'y': Cannot read local variable in its own initializer.
+2 |     let { x = y, y } = nil; // Error at 'y': Cannot read local variable in its own initializer.
   |               ^

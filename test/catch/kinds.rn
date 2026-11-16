@@ -4,7 +4,7 @@ fun kind(f) {
 
 print(kind(() => { return 1 + nil; })); // expect: TypeError: Operands must be two numbers, two strings or two bytes.
 print(kind(() => { return [][0]; })); // expect: IndexError: Index out of bounds: 0 of 0
-print(kind(() => { return {}.x; })); // expect: KeyError: Undefined property 'x'.
+print(kind(() => { return [:]["x"]; })); // expect: KeyError: Key not found: "x".
 print(kind(() => { return nope; })); // expect: NameError: Undefined variable 'nope'.
 print(kind(() => { return math.floor(); })); // expect: ArgumentError: math.floor() expects 1 argument, got 0.
 print(kind(() => { return "a".repeat(-1); })); // expect: ValueError: string.repeat() count must not be negative.

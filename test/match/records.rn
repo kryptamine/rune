@@ -1,0 +1,24 @@
+struct Bin { op, a, b }
+struct Num { num }
+struct Point { x, y }
+
+fun eval(e) {
+    return match e {
+        { op: "+", a, b } => eval(a) + eval(b),
+        { op: "*", a, b } => eval(a) * eval(b),
+        { num } => num,
+    };
+}
+
+print(eval(Bin { op: "+", a: Num { num: 2 }, b: Bin { op: "*", a: Num { num: 3 }, b: Num { num: 4 } } })); // expect: 14
+
+// A missing field is no match; extra fields are fine.
+print(match Num { num: 1 } { { b } => "b", { num } => num, _ => "none" }); // expect: 1
+print(match Point { x: 1, y: 2 } { { x: _ } => "has x" });                // expect: has x
+print(match Point { x: 1, y: 2 } { { x, y } => x + y });                  // expect: 3
+print(match (Point { x: 1, y: 2 }) { { z } => z, _ => "no z" });          // expect: no z
+
+// Only structs have fields.
+print(match ["a": 1] { { a } => a, _ => "not a struct" }); // expect: not a struct
+print(match 5 { { a } => a, _ => "not a struct" });        // expect: not a struct
+print(match "s" { { length } => length, _ => "not a struct" }); // expect: not a struct

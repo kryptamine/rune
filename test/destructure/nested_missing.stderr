@@ -1,5 +1,6 @@
-KeyError: Undefined property 'b'.
- --> nested_missing.rn:1:12
+KeyError: Inner has no field 'b'.
+ --> nested_missing.rn:3:12
   |
-1 | let { a: { b } } = { a: {} }; // expect runtime error: [line: 1] KeyError: Undefined property 'b'.
+2 | struct Inner { c }
+3 | let { a: { b } } = Outer { a: Inner { c: 1 } }; // expect runtime error: [line: 3] KeyError: Inner has no field 'b'.
   |            ^

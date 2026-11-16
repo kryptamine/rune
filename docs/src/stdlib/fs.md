@@ -64,8 +64,10 @@ Saving and loading settings as JSON:
 ```rune
 let path = fs.join(fs.tempDir(), "settings.json");
 
-fs.write(path, json.stringify({ theme: "dark", fontSize: 14 }, 2));
-let settings = json.parse(fs.readText(path));
+struct Settings { theme, fontSize }
+
+fs.write(path, json.stringify(Settings { theme: "dark", fontSize: 14 }, 2));
+let settings = Settings { ...json.parse(fs.readText(path)) };
 print(settings.theme);      // dark
 print(settings.fontSize);   // 14
 

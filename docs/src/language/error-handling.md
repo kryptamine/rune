@@ -58,7 +58,7 @@ has the fields `message`, `line` (the line it was thrown on) and
 | `ArgumentError` | the wrong number of arguments | `math.sqrt()` |
 | `ValueError` | the right type but a bad value | `[].pop()`, `number("x")` |
 | `IndexError` | an index out of bounds | `[1, 2][5]` |
-| `KeyError` | a missing property or struct field | `{ a: 1 }.b` |
+| `KeyError` | a missing map key or struct field | `["a": 1]["b"]` |
 | `NameError` | an undefined variable | |
 | `IOError` | a failed [file](../stdlib/fs.md) or `http` call | `fs.readText("nope")` |
 
@@ -88,7 +88,7 @@ catches everything, so it must come last.
 ```rune
 fun loadPort(raw) {
     try {
-        return json.parse(raw).port + 1;
+        return json.parse(raw)["port"] + 1;
     } catch e is KeyError | IndexError {
         return "missing: " + e.message;
     } catch e is ValueError {
@@ -99,13 +99,13 @@ fun loadPort(raw) {
 }
 
 print(loadPort(r"""{"port": 80}"""));   // 81
-print(loadPort("\{}"));                 // missing: Undefined property 'port'.
+print(loadPort("\{}"));                 // missing: Key not found: "port".
 print(loadPort("not json"));            // invalid JSON
 print(loadPort(r"""{"port": "80"}""")); // other: TypeError: Operands must be two numbers, two strings or two bytes.
 ```
 
 Catch only what you expect. Here a missing key gives a default, but a
-bug, such as reading from something that is not an object, still
+bug, such as indexing something that is not a map, still
 surfaces:
 
 ```rune
@@ -117,7 +117,7 @@ fun setting(config, key) {
     }
 }
 
-let config = { port: 8080 };
+let config = ["port": 8080];
 print(setting(config, "port")); // 8080
 print(setting(config, "host")); // nil
 ```
@@ -139,8 +139,8 @@ fun field(record, key) {
     try { record[key] } catch e is KeyError { "-" } catch e is TypeError { "not a record" }
 }
 
-print(field({ id: 7 }, "id"));   // 7
-print(field({ id: 7 }, "name")); // -
+print(field(["id": 7], "id"));   // 7
+print(field(["id": 7], "name")); // -
 print(field(5, "id"));           // not a record
 
 print(try { json.parse("[1,") } catch e { e is ValueError }); // true
@@ -167,14 +167,14 @@ error can carry whatever the handler needs:
 struct StockError { message, item, left }
 
 fun reserve(stock, item, qty) {
-    let left = stock[item] ?? 0;
+    let left = stock?.[item] ?? 0;
     if qty > left {
         throw StockError { message: "only {left} {item} left", item, left };
     }
     left - qty
 }
 
-let stock = { apple: 3 };
+let stock = ["apple": 3];
 
 try {
     reserve(stock, "apple", 5);
@@ -213,7 +213,7 @@ fun positive(n) {
     if n > 0 { n } else { throw ValueError { message: "not positive: {n}" } }
 }
 
-let config = { port: 8080 };
+let config = ["port": 8080];
 print(require(config, "port")); // 8080
 
 try {

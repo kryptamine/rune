@@ -4,10 +4,10 @@ fun get(o, k) {
     return o?.[k] ?? throw E { message: "no {k}" };
 }
 
-print(get({ a: 1 }, "a")); // expect: 1
+print(get(["a": 1], "a")); // expect: 1
 
 try {
-    get({}, "b");
+    get([:], "b");
 } catch e is E {
     print(e.message); // expect: no b
 }

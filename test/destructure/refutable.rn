@@ -1,3 +1,3 @@
 let [a, 1] = [1, 1]; // Error at '1': This pattern only takes a value apart; test the value with match or 'is'.
-let { b: "x" } = { b: "x" }; // Error at '"x"': This pattern only takes a value apart; test the value with match or 'is'.
+let { b: "x" } = nil; // Error at '"x"': This pattern only takes a value apart; test the value with match or 'is'.
 fun f([c, 2 | 3]) {} // Error at '2': This pattern only takes a value apart; test the value with match or 'is'.

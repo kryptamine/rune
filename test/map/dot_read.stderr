@@ -1,0 +1,8 @@
+TypeError: Cannot read property 'a' of map.
+ --> dot_read.rn:2:9
+  |
+1 | let m = ["a": 1];
+2 | print(m.a); // expect runtime error: [line: 2] TypeError: Cannot read property 'a' of map.
+  |         ^
+  |
+  = hint: a map's keys are read by index, as m["a"]

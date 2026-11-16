@@ -1,2 +1,2 @@
 let mut s = "ab";
-for mut c in s {} // expect runtime error: [line: 2] TypeError: A 'for mut' loop writes back into an array, object or map, not string.
+for mut c in s {} // expect runtime error: [line: 2] TypeError: A 'for mut' loop writes back into an array or map, not string.

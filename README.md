@@ -30,7 +30,7 @@ skip: int() cannot parse "x" as an integer.
 ## Features
 
 - immutable by default (`let` / `let mut`), compile-time `const`
-- value semantics: arrays, objects, maps, sets and structs copy lazily, `mut` parameters are inout
+- value semantics: arrays, maps, sets and structs copy lazily, `mut` parameters are inout
 - structs and enums with fields, `impl` methods
 - blocks give their last expression: `fun sq(x) { x * x }`, `if c { a } else { b }`, block match arms
 - `match` on literals, ranges (`200..300`, `500..`), types, structs, arrays and enums, exhaustive over enum variants; the same nested patterns in `let`, parameters and `if x is { status: 200, body }`; spread, rest

@@ -138,7 +138,7 @@ func TestHints(t *testing.T) {
 		{"name of another language", "let x = null;\n", "Rune writes it 'nil'"},
 		{"typo of a field", "struct User { name }\nprint(User { name: 1 }.nmae);\n", "did you mean 'name'?"},
 		{"typo of a field in a literal", "struct User { name }\nUser { nmae: 1 };\n", "did you mean 'name'?"},
-		{"typo of a property", "let o = {width: 1};\nprint(o.widht);\n", "did you mean 'width'?"},
+		{"typo of a field", "struct Box { width }\nlet o = Box { width: 1 };\nprint(o.widht);\n", "did you mean 'width'?"},
 		{"typo of a method", "struct U {}\nimpl U { fun greet(self) { 1 } }\nU {}.gret();\n", "did you mean 'greet'?"},
 		{"method of another language", "print([1].length);\n", "use 'len' instead"},
 		{"membership method", "print([1].includes(1));\n", "test membership with the in operator: 'x in xs'"},

@@ -1,4 +1,0 @@
-let obj = {"first name": "Ann", age: 3};
-print(obj["first name"]); // expect: Ann
-print(obj.len()); // expect: 2
-print("Þॐ".len()); // expect: 2

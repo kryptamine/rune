@@ -1,3 +1,4 @@
+struct A { a }
 {
-  let { a } = { a: a }; // Error at 'a': Cannot read local variable in its own initializer.
+  let { a } = A { a: a }; // Error at 'a': Cannot read local variable in its own initializer.
 }

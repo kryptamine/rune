@@ -12,7 +12,7 @@
 
 | JSON | Rune |
 |---|---|
-| object | object, keys in order |
+| object | map, keys in order |
 | array | array |
 | string, `true`, `false` | string, boolean |
 | number | integer if it has no fraction or exponent, else float |
@@ -23,18 +23,19 @@ where neither is special.
 
 ```rune
 let user = json.parse(r"""{"name": "ann", "tags": ["admin"], "age": 31, "manager": null}""");
-print(user);              // {name: "ann", tags: ["admin"], age: 31, manager: nil}
-print(user.tags[0]);      // admin
-print(user.manager);      // nil
-print(user?.email ?? "-"); // -
+print(user);                    // ["name": "ann", "tags": ["admin"], "age": 31, "manager": nil]
+print(user["name"]);            // ann
+print(user["tags"][0]);         // admin
+print(user["manager"]);         // nil
+print(user?.["email"] ?? "-");  // -
 
 print(json.parse("[1, 2.5]"));   // [1, 2.5]
 print(json.parse("42"));         // 42
 ```
 
-Spreading the result into a [struct](../data/structs.md) literal checks
-its shape: every field without a default must be there, and no other key
-may be.
+For typed access, spread the map into a [struct](../data/structs.md)
+literal. That checks its shape: every field without a default must be
+there, and no other key may be.
 
 ```rune
 struct Order { id, total, items = [] }
@@ -60,13 +61,13 @@ json.parse("not json"); // ValueError: json.parse() could not parse JSON: invali
 `json.stringify(v)` encodes `v` as compact JSON. It takes:
 
 - `nil`, booleans, numbers, strings and arrays;
-- objects, keys in order, and structs, fields in order;
-- maps with string keys, as objects, and sets, as arrays.
+- maps with string keys, keys in order, and structs, fields in order;
+- sets, as arrays.
 
 ```rune
 struct Order { id, total, items = [] }
 
-print(json.stringify({ name: "ann", active: true, manager: nil }));
+print(json.stringify(["name": "ann", "active": true, "manager": nil]));
 // {"name":"ann","active":true,"manager":null}
 print(json.stringify(Order { id: 7, total: 19.99 }));
 // {"id":7,"total":19.99,"items":[]}
@@ -78,7 +79,7 @@ With `indent`, a number of spaces or a string of spaces and tabs (at most
 10), each element goes on its own line:
 
 ```rune
-print(json.stringify({ name: "ann", tags: ["admin"] }, 2));
+print(json.stringify(["name": "ann", "tags": ["admin"]], 2));
 // {
 //   "name": "ann",
 //   "tags": [
@@ -97,14 +98,14 @@ json.stringify(Button { label: "save", onClick: () => nil }); // TypeError: json
 So is a map with keys other than strings:
 
 ```rune
-json.stringify(map([[1, "one"]])); // TypeError: json.stringify() cannot encode a map with keys other than strings.
+json.stringify([1: "one"]); // TypeError: json.stringify() cannot encode a map with keys other than strings.
 ```
 
 An infinite or NaN number, or a value nested more than 1000 deep, is a
 `ValueError`:
 
 ```rune
-json.stringify({ ratio: math.INF }); // ValueError: json.stringify() cannot encode a non-finite number.
+json.stringify(["ratio": math.INF]); // ValueError: json.stringify() cannot encode a non-finite number.
 ```
 
 ## http.request
@@ -113,16 +114,16 @@ json.stringify({ ratio: math.INF }); // ValueError: json.stringify() cannot enco
 `HttpResponse { status, headers, body }`:
 
 - `status` — the status code; any status is a response, not an error;
-- `headers` — an object, names lowercased, repeated headers joined with
+- `headers` — a map, names lowercased, repeated headers joined with
   `", "`;
 - `body` — the body as a string.
 
 A network error or a timeout is an `IOError`.
 
-`opts` is an `HttpOptions { headers, body, timeout, stream }`, or an
-object with any of those keys:
+`opts` is an `HttpOptions { headers, body, timeout, stream }`; every
+field is optional:
 
-- `headers` — an object of strings;
+- `headers` — a map of strings;
 - `body` — a string or bytes;
 - `timeout` — in seconds, 30 by default;
 - `stream` — `true` to read the body as a [stream](streams.md).
@@ -131,22 +132,22 @@ The examples below talk to a made-up `api.example.com`; the output shows
 what such a server would answer.
 
 ```rune
-let todos = json.parse(http.request("GET", "https://api.example.com/todos").body).todos;
-print(todos.filter(t => !t.done).map(t => t.title));   // ["buy milk"]
+let todos = json.parse(http.request("GET", "https://api.example.com/todos").body)["todos"];
+print(todos.filter(t => !t["done"]).map(t => t["title"]));   // ["buy milk"]
 ```
 
 Creating a user with a JSON body:
 
 ```rune
-let r = http.request("POST", "https://api.example.com/users", {
-    headers: { "Content-Type": "application/json" },
-    body: json.stringify({ name: "ann" }),
+let r = http.request("POST", "https://api.example.com/users", HttpOptions {
+    headers: ["Content-Type": "application/json"],
+    body: json.stringify(["name": "ann"]),
     timeout: 5,
 });
 
 print(r.status);                 // 201
 print(r.headers["location"]);    // /users/42
-print(json.parse(r.body).id);    // 42
+print(json.parse(r.body)["id"]); // 42
 ```
 
 A status like 404 is a normal response, to check yourself:
@@ -154,7 +155,7 @@ A status like 404 is a normal response, to check yourself:
 ```rune
 let r = http.request("GET", "https://api.example.com/users/99");
 if r.status != 200 {
-    print("failed: {r.status} {json.parse(r.body).error}");   // failed: 404 not found
+    print("failed: {r.status} {json.parse(r.body)["error"]}");   // failed: 404 not found
 }
 ```
 
@@ -163,7 +164,7 @@ close. The timeout covers only getting the response, so a large download
 is read piece by piece and never held whole:
 
 ```rune
-let r = http.request("GET", "https://api.example.com/export.csv", { stream: true });
+let r = http.request("GET", "https://api.example.com/export.csv", HttpOptions { stream: true });
 for i, line in r.body {
     if i == 0 { continue }
     let [id, total] = line.split(",");

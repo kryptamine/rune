@@ -29,7 +29,7 @@ bytecode. This page describes what makes that fast.
 
 ## Value semantics without copying
 
-Arrays, objects, maps, sets, buffers and structs behave as values: every
+Arrays, maps, sets, buffers and structs behave as values: every
 assignment or argument is a copy. Copies are lazy, so this costs little:
 
 - A copy only marks the value as shared. The next write to a shared value

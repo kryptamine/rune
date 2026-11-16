@@ -151,7 +151,7 @@ fun joinStep(s, pushed) {
     let rk = expr.compile(b, expr.Ctx { scope: right });
 
     return Step { label: "{outer}hash join {label}", run: rows => {
-        let mut index = map();
+        let mut index = [:];
 
         for r in rightRows(table.rows) {
             let k = rk(r);

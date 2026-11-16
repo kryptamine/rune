@@ -11,9 +11,9 @@ ps[0].moveBy(2, 0);
 print(ps);    // expect: [Point {x: 3, y: 2}]
 print(first); // expect: Point {x: 1, y: 2}
 
-let mut o = { p: Point { x: 0, y: 0 } };
-o.p.moveBy(0, 9);
-print(o.p); // expect: Point {x: 0, y: 9}
+let mut o = ["p": Point { x: 0, y: 0 }];
+o["p"].moveBy(0, 9);
+print(o["p"]); // expect: Point {x: 0, y: 9}
 
 let mut l = Line { from: Point { x: 0, y: 0 }, to: Point { x: 1, y: 1 } };
 l.from.moveBy(-4, 0); // expect runtime error: [line: 19] TypeError: Cannot set field 'from' of Line outside its mut self methods.

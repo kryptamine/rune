@@ -56,7 +56,7 @@ func (p *Resolver) evalConst(s *ast.VarStmt) bool {
 
 		switch {
 		case !ok:
-			p.error(s.Name, "Constant '"+s.Name.Lexeme+"' must be a constant: a literal, a const or operators on them, an enum variant, or an array, object, map() or set() of them.")
+			p.error(s.Name, "Constant '"+s.Name.Lexeme+"' must be a constant: a literal, a const or operators on them, an enum variant, or an array, map or set() of them.")
 		case l != nil && p.constDecls[l] == s:
 			l.Const, l.IsConst = v, true
 			state = constDone
@@ -95,10 +95,10 @@ func (p *Resolver) evalOperands(e ast.Expr) bool {
 		}
 
 		return ok
-	case *ast.ObjectExpr:
+	case *ast.MapExpr:
 		ok := true
-		for _, pair := range n.Pairs {
-			ok = p.evalOperands(pair.Value) && ok
+		for _, e := range n.Items {
+			ok = p.evalOperands(e) && ok
 		}
 
 		return ok

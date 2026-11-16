@@ -1,2 +1,3 @@
-let module = { dir: "mine" };
+struct Module { dir }
+let module = Module { dir: "mine" };
 print(module.dir); // expect: mine

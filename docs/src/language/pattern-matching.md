@@ -39,6 +39,8 @@ arm's value is its last expression, written without a `;`. Arms are
 separated by `,`, and a trailing `,` after the last is fine.
 
 ```rune
+struct Order { country, total }
+
 fun shipping(order) {
     match order.country {
         "US" => 5,
@@ -50,14 +52,13 @@ fun shipping(order) {
     }
 }
 
-print(shipping({ country: "US", total: 40 }));  // 5
-print(shipping({ country: "DE", total: 40 }));  // 20
-print(shipping({ country: "DE", total: 150 })); // 10
+print(shipping(Order { country: "US", total: 40 }));  // 5
+print(shipping(Order { country: "DE", total: 40 }));  // 20
+print(shipping(Order { country: "DE", total: 150 })); // 10
 ```
 
 After `=>`, a `{` always starts a block, as it does after an arrow
-function's `=>`. To give an object, wrap it in parentheses:
-`200 => ({ ok: true })`.
+function's `=>`.
 
 `return`, `break`, `continue` and `throw` are expressions, so an arm can
 leave the function or the loop: `"quit" => return "bye",`.
@@ -75,7 +76,7 @@ leave the function or the loop: `"quit" => return "bye",`.
 | `_ is T`, `name is T \| U`, `name is P` | a value of the given [type](values.md#type-tests-and-patterns), or one `P` matches, bound to `name` |
 | `Point { x, y: 0 }` | a `Point` whose fields match |
 | `Color.White`, `Expr.Num { value }` | that [enum](../data/enums.md) variant |
-| `{ key, "other key": p, key = d, ...rest }` | an object or struct that has the keys |
+| `{ field, field: p, field = d, ...rest }` | any struct that has the fields |
 | `[p, q]`, `[p, q = d]`, `[p, ...rest]` | an array of that many elements, or at least that many |
 
 Any pattern may be followed by a guard, `pattern if condition`, which is
@@ -114,7 +115,7 @@ print(next(3));          // give up
 ```
 
 A constant binds instead of matching in two spots: after `mut`, and as a
-bare key in an object pattern, `{ LIMIT }`.
+bare field in a record pattern, `{ LIMIT }`.
 
 ## Ranges
 
@@ -152,6 +153,7 @@ guard. To use the number, bind a name and test it in the guard:
 
 ```rune
 const SLOW = 250;
+struct Resp { status, ms }
 
 fun grade(resp) {
     match resp {
@@ -163,11 +165,11 @@ fun grade(resp) {
     }
 }
 
-print(grade({ status: 200, ms: 12.5 })); // fast
-print(grade({ status: 204, ms: 90 }));   // ok
-print(grade({ status: 201, ms: 400 }));  // slow
-print(grade({ status: 503, ms: 1 }));    // error
-print(grade({ status: 404, ms: 1 }));    // other
+print(grade(Resp { status: 200, ms: 12.5 })); // fast
+print(grade(Resp { status: 204, ms: 90 }));   // ok
+print(grade(Resp { status: 201, ms: 400 }));  // slow
+print(grade(Resp { status: 503, ms: 1 }));    // error
+print(grade(Resp { status: 404, ms: 1 }));    // other
 ```
 
 ```rune
@@ -204,7 +206,7 @@ fun describe(v) {
         nil => "nothing",
         n is number => "the number {n}",
         s is string => "text of {s.len()} characters",
-        _ is array | object => "a collection",
+        _ is array | map => "a collection",
         _ => "something else",
     }
 }
@@ -213,7 +215,7 @@ print(describe(nil));        // nothing
 print(describe(4.5));        // the number 4.5
 print(describe("hello"));    // text of 5 characters
 print(describe([1, 2]));     // a collection
-print(describe({ id: 1 }));  // a collection
+print(describe(["id": 1])); // a collection
 print(describe(true));       // something else
 ```
 
@@ -267,41 +269,48 @@ print(locate(Point { x: 1, y: 2 }));  // somewhere else
 print(locate(42));                    // not a point
 ```
 
-## Objects
+## Records
 
-`{ key, ... }` matches any object, or struct, that has the listed keys;
-extra keys are ignored and a missing one means no match. Keys that are
-not names are quoted. This is a short way to dispatch on the shape of
-data, as in a tiny calculator:
+`{ field, ... }` matches any struct that has the listed fields; extra
+fields are ignored and a missing one means no match. This dispatches on
+the shape of data without naming its type, as in a tiny calculator:
 
 ```rune
+struct Bin { op, a, b }
+struct Neg { a }
+
 fun eval(e) {
     match e {
         { op: "+", a, b } => eval(a) + eval(b),
         { op: "*", a, b } => eval(a) * eval(b),
-        { op: "neg", a } => -eval(a),
+        Neg { a } => -eval(a),
         n => n,
     }
 }
 
 // 1 + 2 * 3
-print(eval({ op: "+", a: 1, b: { op: "*", a: 2, b: 3 } })); // 7
+print(eval(Bin { op: "+", a: 1, b: Bin { op: "*", a: 2, b: 3 } })); // 7
 ```
 
 ```rune
+struct Click { target }
+struct KeyPress { key }
+struct KeyRelease { key }
+struct Scroll { dy }
+
 fun handle(event) {
     match event {
-        { type: "click", "target id": id } => "clicked {id}",
-        { type: "key", key: "Enter" | "Return" } => "submitted",
-        { type: "key", key } => "pressed {key}",
+        Click { target } => "clicked {target}",
+        { key: "Enter" | "Return" } => "submitted",
+        { key } => "key {key}",
         _ => "ignored",
     }
 }
 
-print(handle({ type: "click", "target id": "save" })); // clicked save
-print(handle({ type: "key", key: "Enter" }));          // submitted
-print(handle({ type: "key", key: "q" }));              // pressed q
-print(handle({ type: "scroll" }));                     // ignored
+print(handle(Click { target: "save" }));     // clicked save
+print(handle(KeyPress { key: "Enter" }));    // submitted
+print(handle(KeyRelease { key: "q" }));      // key q
+print(handle(Scroll { dy: 3 }));             // ignored
 ```
 
 ## Arrays
@@ -330,7 +339,7 @@ print(run(["ls", "-l"]));           // unknown command ls
 ```
 
 ```rune
-let results = map({ passed: 12, failed: 0, skipped: 2 });
+let results = ["passed": 12, "failed": 0, "skipped": 2];
 
 for pair in results.entries() {
     print(match pair {
@@ -345,9 +354,9 @@ for pair in results.entries() {
 
 ## Defaults and Rest
 
-A property or element may have a default, `name = value`, used when it is
-missing, so one arm covers data with optional parts. `...rest` in an
-object pattern binds an object of the other keys. These work exactly as
+A field or element may have a default, `name = value`, used when it is
+missing, so one arm covers data with optional parts. `...rest` in a
+record pattern binds a map of the other fields. These work exactly as
 in [destructuring](destructuring.md#defaults):
 
 ```rune
@@ -362,6 +371,9 @@ print(command(["ls"]));            // ls .
 print(command(["ls", "/tmp"]));    // ls /tmp
 print(command(["ls", "a", "b"]));  // usage: cmd [target]
 
+struct Guest { name }
+struct Member { name, role, id }
+
 fun user(v) {
     match v {
         { name, role = "member", ...extra } => "{name} ({role}) {extra}",
@@ -369,9 +381,9 @@ fun user(v) {
     }
 }
 
-print(user({ name: "ann" }));                     // ann (member) {}
-print(user({ name: "bob", role: "admin", id: 7 })); // bob (admin) {id: 7}
-print(user(5));                                   // not a user
+print(user(Guest { name: "ann" }));                         // ann (member) [:]
+print(user(Member { name: "bob", role: "admin", id: 7 }));  // bob (admin) ["id": 7]
+print(user(5));                                             // not a user
 ```
 
 ## Expression or Statement

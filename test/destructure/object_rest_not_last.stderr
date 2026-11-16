@@ -1,5 +1,0 @@
-error: Rest element must be last.
- --> object_rest_not_last.rn:1:11
-  |
-1 | let { ...r, a } = { a: 1 }; // Error at ',': Rest element must be last.
-  |           ^

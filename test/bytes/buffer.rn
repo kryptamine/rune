@@ -54,7 +54,7 @@ fails(() => b.writeUvarint(-1));   // expect: ValueError: buffer.writeUvarint() 
 fails(() => { b[0] = 1; });        // expect: IndexError: Index out of bounds: 0 of 0
 b.write("x");
 fails(() => { b[0] = 256; });      // expect: ValueError: A buffer holds bytes from 0 to 255, got 256.
-fails(() => { let mut m = map(); m[b] = 1; }); // expect: TypeError: Cannot use a buffer as a key.
+fails(() => { let mut m = [:]; m[b] = 1; }); // expect: TypeError: Cannot use a buffer as a key.
 print(b.len());                    // expect: 1
 
 let mut req = bytes.buffer();

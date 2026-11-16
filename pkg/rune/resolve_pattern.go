@@ -26,7 +26,7 @@ func (p *Resolver) resolveDestructuring(pat ast.Pattern) {
 	case *ast.DefaultPattern:
 		p.resolveExpr(n.Default)
 		p.resolveDestructuring(n.Pattern)
-	case *ast.ObjectPattern:
+	case *ast.RecordPattern:
 		for _, f := range n.Fields {
 			p.resolveDestructuring(f.Pattern)
 		}
@@ -162,7 +162,7 @@ func (p *Resolver) resolvePattern(pat ast.Pattern) ast.Pattern {
 		}
 
 		p.resolveFields(n.Fields)
-	case *ast.ObjectPattern:
+	case *ast.RecordPattern:
 		p.resolveFields(n.Fields)
 
 		if n.Rest != nil {
@@ -377,7 +377,7 @@ func patternToken(pat ast.Pattern) ast.Token {
 		return patternToken(n.Inner)
 	case *ast.DefaultPattern:
 		return patternToken(n.Pattern)
-	case *ast.ObjectPattern:
+	case *ast.RecordPattern:
 		return n.Brace
 	case *ast.ArrayPattern:
 		return n.Bracket

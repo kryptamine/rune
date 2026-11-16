@@ -20,7 +20,7 @@ export fun load(dir, drafts = false) {
         let path = fs.join(dir, f.name);
         let { meta, body } = fm.parse(fs.readText(path), path);
 
-        if meta?.draft == true && !drafts {
+        if meta?.["draft"] == true && !drafts {
             skipped.push(f.name);
             continue;
         }
@@ -29,10 +29,10 @@ export fun load(dir, drafts = false) {
 
         posts.push(Post {
             slug: fs.stem(f.name),
-            title: meta?.title ?? headings[0]?.text ?? f.name,
-            date: meta?.date ?? "0000-00-00",
-            tags: meta?.tags ?? [],
-            draft: meta?.draft ?? false,
+            title: meta?.["title"] ?? headings[0]?.text ?? f.name,
+            date: meta?.["date"] ?? "0000-00-00",
+            tags: meta?.["tags"] ?? [],
+            draft: meta?.["draft"] ?? false,
             html,
             headings,
             words: regex.split(r"\s+", body.trim()).len(),
@@ -56,11 +56,11 @@ export fun write(site, out) {
             {p.html}
             </article>
             """;
-        fs.write(fs.join(out, "posts", p.slug + ".html"), tpl.page({ title: p.title, body, root: ".." }));
+        fs.write(fs.join(out, "posts", p.slug + ".html"), tpl.page(p.title, body, ".."));
     }
 
     let list = site.posts.map(p => tpl.postLink(p)).join("\n");
-    fs.write(fs.join(out, "index.html"), tpl.page({ title: "Posts", body: "<h1>Posts</h1>\n<ul>\n{list}\n</ul>" }));
+    fs.write(fs.join(out, "index.html"), tpl.page("Posts", "<h1>Posts</h1>\n<ul>\n{list}\n</ul>"));
 
     let tags = byTag(site.posts);
     let mut sections = [];
@@ -72,13 +72,13 @@ export fun write(site, out) {
         sections.push("<h2 id=\"{tag}\">#{tag}</h2>\n<ul>\n{items}\n</ul>");
     }
 
-    fs.write(fs.join(out, "tags.html"), tpl.page({ title: "Tags", body: "<h1>Tags</h1>\n" + sections.join("\n") }));
+    fs.write(fs.join(out, "tags.html"), tpl.page("Tags", "<h1>Tags</h1>\n" + sections.join("\n")));
 
     return 3 + site.posts.len();
 }
 
 fun byTag(posts) {
-    let mut tags = map();
+    let mut tags = [:];
 
     for p in posts {
         for t in p.tags {

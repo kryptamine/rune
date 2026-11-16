@@ -81,10 +81,10 @@ type DefaultPattern struct {
 	Default Expr
 }
 
-// ObjectPattern is { key: pattern, ..., ...rest }, matching an object or a
-// struct that has every key without a default; other keys are allowed and
-// Rest, unless nil, binds an object of them.
-type ObjectPattern struct {
+// RecordPattern is { field: pattern, ..., ...rest }, matching a struct
+// that has every field without a default; other fields are allowed and
+// Rest, unless nil, binds a map of them.
+type RecordPattern struct {
 	Brace  Token
 	Fields []FieldPattern
 	Rest   *BindPattern
@@ -118,7 +118,7 @@ func (*LiteralPattern) patternNode()  {}
 func (*RangePattern) patternNode()    {}
 func (*OrPattern) patternNode()       {}
 func (*StructPattern) patternNode()   {}
-func (*ObjectPattern) patternNode()   {}
+func (*RecordPattern) patternNode()   {}
 func (*IsPattern) patternNode()       {}
 func (*TypeTestPattern) patternNode() {}
 func (*DefaultPattern) patternNode()  {}
@@ -150,7 +150,7 @@ func Walk(p Pattern, visit func(Pattern) bool) {
 		Walk(n.Pattern, visit)
 	case *StructPattern:
 		fields(n.Fields)
-	case *ObjectPattern:
+	case *RecordPattern:
 		fields(n.Fields)
 
 		if n.Rest != nil {

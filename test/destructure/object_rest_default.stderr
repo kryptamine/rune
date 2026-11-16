@@ -1,5 +1,0 @@
-error: A rest element or _ cannot have a default.
- --> object_rest_default.rn:1:12
-  |
-1 | let { ...r = {} } = {}; // Error at '=': A rest element or _ cannot have a default.
-  |            ^

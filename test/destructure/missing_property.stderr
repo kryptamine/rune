@@ -1,5 +1,6 @@
-KeyError: Undefined property 'y'.
- --> missing_property.rn:1:10
+KeyError: P has no field 'y'.
+ --> missing_property.rn:2:10
   |
-1 | let { x, y } = { x: 1 }; // expect runtime error: [line: 1] KeyError: Undefined property 'y'.
+1 | struct P { x }
+2 | let { x, y } = P { x: 1 }; // expect runtime error: [line: 2] KeyError: P has no field 'y'.
   |          ^

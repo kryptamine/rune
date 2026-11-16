@@ -58,7 +58,7 @@ var foreignMethods = map[string]string{
 // Rune is the in operator, and containers the kinds it tests.
 var (
 	foreignTests = []string{"includes", "contains", "has", "hasKey", "containsKey"}
-	containers   = []value.Kind{value.Array, value.String, value.Object, value.Map, value.Set, value.Bytes, value.Buffer}
+	containers   = []value.Kind{value.Array, value.String, value.Map, value.Set, value.Bytes, value.Buffer}
 )
 
 // foreignKeyword is the error of a statement that starts with a keyword
@@ -134,7 +134,11 @@ func memberHint(t value.Value, name string, ms []value.Method) string {
 		return "test membership with the in operator: 'x in xs'"
 	}
 
-	return errors.DidYouMean(name, methodNames(ms))
+	if hint := errors.DidYouMean(name, methodNames(ms)); hint != "" || t.Kind() != value.Map {
+		return hint
+	}
+
+	return "a map's keys are read by index, as m[\"" + name + "\"]"
 }
 
 func methodNames(ms []value.Method) iter.Seq[string] {

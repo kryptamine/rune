@@ -1,0 +1,16 @@
+struct P { x, y }
+struct Q { a, b, extra }
+
+let { x, y } = P { x: 1, y: 2 };
+print(x); // expect: 1
+print(y); // expect: 2
+
+let { a: first, b: second, } = Q { a: "A", b: "B", extra: 0 };
+print(first); // expect: A
+print(second); // expect: B
+
+{
+  let { x: mut n, y: m } = P { x: 1, y: 10 };
+  n += m;
+  print(n); // expect: 11
+}

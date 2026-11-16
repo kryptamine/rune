@@ -3,12 +3,12 @@
 The standard library comes in three parts:
 
 - **Global functions**, listed on this page: `print`, `string`, `number`,
-  `int`, `object`, plus `map`, `set` and `bytes`, which make
+  `int`, plus `map`, `set` and `bytes`, which make
   [maps, sets](../data/map-and-set.md) and [bytes](../data/bytes.md).
   The name of a type converts a value to it: `string(v)`, `number(v)`,
   `map(v)`.
 - **Methods**, called on a value: `xs.map(f)`, `s.split(",")`. See
-  [arrays](array.md), [objects](object.md), [strings](string.md),
+  [arrays](array.md), [strings](string.md),
   [maps and sets](../data/map-and-set.md), [bytes](../data/bytes.md) and
   [streams](streams.md).
 - **Namespaces**, groups of functions under one name:
@@ -30,7 +30,7 @@ let cart = ["tea", "milk"];
 print("hello");                       // hello
 print("user:", user, "items:", 2);    // user: ann items: 2
 print(cart);                          // ["tea", "milk"]
-print({ id: 7, tags: cart });         // {id: 7, tags: ["tea", "milk"]}
+print(["id": 7, "tags": cart]);       // ["id": 7, "tags": ["tea", "milk"]]
 print(nil, true, 3.5);                // nil true 3.5
 ```
 
@@ -50,13 +50,13 @@ To write without a newline, or to stderr, use [`io`](io.md):
 ## len
 
 Every collection has a `len()` method: the number of elements of an array,
-characters of a string, keys of an object, entries of a map or a set, and
+characters of a string, entries of a map or a set, and
 bytes of `bytes`.
 
 ```rune
 print([10, 20, 30].len());           // 3
 print("héllo".len());                // 5
-print({ host: "x", port: 80 }.len()); // 2
+print(["host": "x", "port": 80].len()); // 2
 print(set(["a", "b", "a"]).len());   // 2
 print(b"héllo".len());               // 6
 ```
@@ -129,26 +129,21 @@ A number too big for a 64-bit integer is a `ValueError`:
 int(1e300); // ValueError: int() cannot convert 1e+300 to an integer.
 ```
 
-## object
+## map
 
-`object(src)` makes an object from a map or an
-array of `[key, value]` pairs; the keys must be strings. To copy an object
-or a struct into a new object, use [spread](../language/spread-and-rest.md):
-`{ ...src }`.
+`map(src)` makes a map from a struct, its fields as keys, or from an
+array of `[key, value]` pairs. For a map written out, use a
+[literal](../data/map-and-set.md#making-one): `["a": 1]`, `[:]`.
 
 ```rune
+struct Server { host, port }
+
 let pairs = [["host", "localhost"], ["port", 8080]];
-print(object(pairs));                       // {host: "localhost", port: 8080}
+print(map(pairs));                                // ["host": "localhost", "port": 8080]
+print(map(Server { host: "x.io", port: 443 }));   // ["host": "x.io", "port": 443]
 
-let headers = map([["accept", "json"]]);
-print(object(headers));                     // {accept: "json"}
-
-let counts = ["a", "b"].map((k, i) => [k, i]);
-print(object(counts));                      // {a: 0, b: 1}
-```
-
-```rune
-object(map([[1, "one"]])); // TypeError: object() expects string keys, got 1.
+let index = ["a", "b"].map((k, i) => [k, i]);
+print(map(index));                                // ["a": 0, "b": 1]
 ```
 
 ## Namespaces

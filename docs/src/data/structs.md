@@ -34,8 +34,8 @@ print(User { name, role }); // User {name: "bob", role: "admin"}
 
 A default must be a constant: a literal or operators on literals
 (`60 * 60`), a [`const`](../language/variables.md#constants), a variant
-of an [enum](enums.md) in the same file, an array or object of these,
-`map()` or `set()`.
+of an [enum](enums.md) in the same file, an array or map literal of
+these, or `set()`.
 
 ```rune
 const DAY = 24 * 60 * 60;
@@ -117,7 +117,7 @@ let mut ann = User { name: "ann" };
 ann.role = "admin"; // TypeError: Cannot set field 'role' of User outside its mut self methods.
 ```
 
-A struct also owns what its fields hold. An array, object, map, set or
+A struct also owns what its fields hold. An array, map, set or
 another struct in a field is part of it, so changing it in place,
 `ann.tags.push(x)`, counts as setting the field:
 
@@ -132,8 +132,8 @@ Inside a `mut self` method all of this is allowed: `self.tags.push(x)`,
 
 ## Updating with Spread
 
-A struct literal may spread a struct of its own type, or an object,
-then list the fields to change: `Config { ...base, debug: true }`.
+A struct literal may spread a struct of its own type, or a map, then
+list the fields to change: `Config { ...base, debug: true }`.
 Items apply in order, so later ones win.
 
 ```rune
@@ -150,10 +150,10 @@ print(base); // Config {host: "localhost", port: 8080, debug: false}
 
 A struct of another type is a runtime error.
 
-## From an Object
+## From a Map
 
-Spreading an object into a struct literal is how data from `json.parse`
-becomes a struct:
+Spreading a map with string keys into a struct literal is how data from
+`json.parse` becomes a struct:
 
 ```rune
 struct Config { host, port = 8080 }
@@ -164,52 +164,52 @@ print(cfg.port); // 8080
 ```
 
 Every key must be a field, and every field without a default must be
-given, by the object or by the literal. The check runs when the literal
+given, by the map or by the literal. The check runs when the literal
 is built:
 
 ```rune
 struct Config { host, port = 8080 }
-Config { ...{ host: "example.com", timeout: 5 } }; // KeyError: Config has no field 'timeout'.
+Config { ...["host": "example.com", "timeout": 5] }; // KeyError: Config has no field 'timeout'.
 ```
 
 ```rune
 struct Config { host, port = 8080 }
-Config { ...{ port: 80 } }; // KeyError: Missing field 'host' of Config.
+Config { ...["port": 80] }; // KeyError: Missing field 'host' of Config.
 ```
 
 ## Type Tests and Equality
 
-`v is User` is `true` only for a `User`, never for an object that
-happens to have the same keys; see
+`v is User` is `true` only for a `User`, never for a map or another
+struct with the same fields; see
 [Type Tests](../language/values.md#type-tests-and-patterns).
 
 `==` compares two structs of the same type field by field. A struct
-never equals an object or a struct of another type.
+never equals a map or a struct of another type.
 
 ```rune
 struct User { name, role = "member" }
 let ann = User { name: "ann" };
 
 print(ann is User);                            // true
-print({ name: "ann" } is User);                // false
-print(ann == User { name: "ann" });            // true
-print(ann == { name: "ann", role: "member" }); // false
+print(["name": "ann"] is User);                  // false
+print(ann == User { name: "ann" });              // true
+print(ann == ["name": "ann", "role": "member"]); // false
 ```
 
 ## Walking the Fields
 
-`{ ...s }` copies a struct into a plain object, its fields in
-declaration order. Use it to loop over the fields or count them:
+`map(s)` copies a struct into a map, its fields in declaration order.
+Use it to loop over the fields or count them:
 
 ```rune
 struct User { name, role = "member" }
 let ann = User { name: "ann" };
 
-for field, value in { ...ann } {
+for field, value in map(ann) {
     print("{field}: {value}");
 }
 // name: ann
 // role: member
 
-print({ ...ann }.len()); // 2
+print(map(ann).len()); // 2
 ```

@@ -1,0 +1,2 @@
+let mut m = ["a": 1];
+m.a = 2; // expect runtime error: [line: 2] TypeError: Cannot set property 'a' of map.

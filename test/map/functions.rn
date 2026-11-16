@@ -1,0 +1,9 @@
+let mut m = ["inc": x => x + 1];
+print(m["inc"](1)); // expect: 2
+m["dbl"] = x => x * 2;
+print(m["dbl"](3)); // expect: 6
+print(map([["f", x => x]])["f"](4)); // expect: 4
+
+struct S { a, f }
+let { a, ...rest } = S { a: 1, f: x => -x };
+print(rest["f"](5)); // expect: -5

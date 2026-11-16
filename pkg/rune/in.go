@@ -12,7 +12,7 @@ import (
 )
 
 // contains is x in xs: an element of an array, a substring of a string,
-// a key of an object, a map or a set, a byte or bytes in bytes or a
+// a key of a map or a set, a byte or bytes in bytes or a
 // buffer.
 func contains(tok *ast.Token, x, xs value.Value) (bool, error) {
 	switch xs.Kind() {
@@ -24,12 +24,6 @@ func contains(tok *ast.Token, x, xs value.Value) (bool, error) {
 		}
 
 		return strings.Contains(xs.Str(), x.Str()), nil
-	case value.Object:
-		if !x.IsString() {
-			return false, inOperand(tok, "a string", x, xs)
-		}
-
-		return xs.Obj().Has(x.Str()), nil
 	case value.Map, value.Set:
 		_, found, err := xs.HashMap().Get(x)
 		if err != nil {
@@ -51,7 +45,7 @@ func contains(tok *ast.Token, x, xs value.Value) (bool, error) {
 	}
 
 	return false, errors.NewRuntimeError(errors.TypeError, *tok, fmt.Sprintf(
-		"Right operand of 'in' must be an array, a string, an object, a map, a set, bytes or a range, got %s.", helpers.TypeName(xs)))
+		"Right operand of 'in' must be an array, a string, a map, a set, bytes or a range, got %s.", helpers.TypeName(xs)))
 }
 
 func inOperand(tok *ast.Token, want string, x, xs value.Value) error {

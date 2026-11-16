@@ -367,8 +367,6 @@ var Methods = func() (out []Method) {
 	add(value.Array, false, arrayMethods, arraySequenceMethods, lenMethod("array"))
 	add(value.Array, true, arrayInPlace)
 	add(value.String, false, stringMethods, stringSequenceMethods, lenMethod("string"))
-	add(value.Object, false, objectMethods, lenMethod("object"))
-	add(value.Object, true, objectInPlace)
 	add(value.Map, false, mapMethods, lenMethod("map"))
 	add(value.Map, true, mapInPlace)
 	add(value.Set, false, setMethods, lenMethod("set"))

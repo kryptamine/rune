@@ -31,58 +31,58 @@ let slug = Str { pattern: NAME, like: "lowercase letters, digits and dashes", ma
 
 let AUTH = Tagged {
     tag: "type",
-    variants: {
-        none: Obj { fields: {} },
-        jwt: Obj { fields: {
-            issuer: Url { schemes: ["https"] },
-            audience: Opt { of: Str { min: 1 } },
-            leeway: Opt { of: Duration { max: 5 * 60 * 1000 }, default: "30s" },
-        } },
-        basic: Obj { fields: {
-            realm: Opt { of: Str { min: 1 }, default: "restricted" },
-            users: List { of: Str { pattern: r"^[^:]+:\$2[aby]\$", like: "htpasswd lines with bcrypt hashes" }, min: 1 },
-        } },
-        apiKey: Obj { fields: {
-            header: Opt { of: Str { pattern: r"^[A-Za-z][A-Za-z0-9-]*$", like: "a header name" }, default: "X-Api-Key" },
-            keys: List { of: Str { min: 24 }, min: 1, unique: true },
-        } },
-    },
+    variants: [
+        "none": Obj { fields: [:] },
+        "jwt": Obj { fields: [
+            "issuer": Url { schemes: ["https"] },
+            "audience": Opt { of: Str { min: 1 } },
+            "leeway": Opt { of: Duration { max: 5 * 60 * 1000 }, default: "30s" },
+        ] },
+        "basic": Obj { fields: [
+            "realm": Opt { of: Str { min: 1 }, default: "restricted" },
+            "users": List { of: Str { pattern: r"^[^:]+:\$2[aby]\$", like: "htpasswd lines with bcrypt hashes" }, min: 1 },
+        ] },
+        "apiKey": Obj { fields: [
+            "header": Opt { of: Str { pattern: r"^[A-Za-z][A-Za-z0-9-]*$", like: "a header name" }, default: "X-Api-Key" },
+            "keys": List { of: Str { min: 24 }, min: 1, unique: true },
+        ] },
+    ],
 };
 
-let HEALTH = Obj { fields: {
-    path: Opt { of: Str { pattern: "^/", like: "a path starting with /" }, default: "/healthz" },
-    interval: Opt { of: Duration { min: 1000 }, default: "10s" },
-    timeout: Opt { of: Duration { min: 100 }, default: "2s" },
-} };
+let HEALTH = Obj { fields: [
+    "path": Opt { of: Str { pattern: "^/", like: "a path starting with /" }, default: "/healthz" },
+    "interval": Opt { of: Duration { min: 1000 }, default: "10s" },
+    "timeout": Opt { of: Duration { min: 100 }, default: "2s" },
+] };
 
-let SCHEMA = Obj { fields: {
-    version: Int { min: 1, max: LATEST },
-    name: slug,
-    listen: Addr {},
-    tls: Opt { of: Obj { fields: { cert: Str { min: 1 }, key: Str { min: 1 } } } },
-    log: Opt { default: {}, of: Obj { fields: {
-        level: Opt { of: Str { oneOf: ["debug", "info", "warn", "error"] }, default: "info" },
-        format: Opt { of: Str { oneOf: ["json", "text"] }, default: "json" },
-        color: Deprecated { of: Flag {}, hint: "colors follow the terminal now, remove it" },
-    } } },
-    limits: Opt { default: {}, of: Obj { fields: {
-        timeout: Opt { of: Duration { min: 100, max: 5 * 60 * 1000 }, default: "30s" },
-        body: Opt { of: Size { max: 100 * MB }, default: "1MB" },
-        rate: Opt { of: Int { min: 1 } },
-    } } },
-    upstreams: Dict { key: slug, min: 1, of: Obj { fields: {
-        url: Url {},
-        weight: Opt { of: Int { min: 1, max: 100 }, default: 1 },
-        health: Opt { of: HEALTH },
-    } } },
-    routes: List { min: 1, unique: "pattern", of: Obj { fields: {
-        pattern: Str { pattern: r"^/\S*$", like: "a path starting with /" },
-        upstream: Str { min: 1 },
-        methods: Opt { of: List { of: Str { oneOf: METHODS }, min: 1, unique: true }, default: ["GET"] },
-        auth: Opt { of: AUTH, default: { type: "none" } },
-        stripPrefix: Opt { of: Flag {}, default: false },
-    } } },
-} };
+let SCHEMA = Obj { fields: [
+    "version": Int { min: 1, max: LATEST },
+    "name": slug,
+    "listen": Addr {},
+    "tls": Opt { of: Obj { fields: ["cert": Str { min: 1 }, "key": Str { min: 1 }] } },
+    "log": Opt { default: [:], of: Obj { fields: [
+        "level": Opt { of: Str { oneOf: ["debug", "info", "warn", "error"] }, default: "info" },
+        "format": Opt { of: Str { oneOf: ["json", "text"] }, default: "json" },
+        "color": Deprecated { of: Flag {}, hint: "colors follow the terminal now, remove it" },
+    ] } },
+    "limits": Opt { default: [:], of: Obj { fields: [
+        "timeout": Opt { of: Duration { min: 100, max: 5 * 60 * 1000 }, default: "30s" },
+        "body": Opt { of: Size { max: 100 * MB }, default: "1MB" },
+        "rate": Opt { of: Int { min: 1 } },
+    ] } },
+    "upstreams": Dict { key: slug, min: 1, of: Obj { fields: [
+        "url": Url {},
+        "weight": Opt { of: Int { min: 1, max: 100 }, default: 1 },
+        "health": Opt { of: HEALTH },
+    ] } },
+    "routes": List { min: 1, unique: "pattern", of: Obj { fields: [
+        "pattern": Str { pattern: r"^/\S*$", like: "a path starting with /" },
+        "upstream": Str { min: 1 },
+        "methods": Opt { of: List { of: Str { oneOf: METHODS }, min: 1, unique: true }, default: ["GET"] },
+        "auth": Opt { of: AUTH, default: ["type": "none"] },
+        "stripPrefix": Opt { of: Flag {}, default: false },
+    ] } },
+] };
 
 // --- checking: each node returns the normalized value, or nil after reporting why not ---
 
@@ -197,7 +197,8 @@ fun checkUrl({ schemes }, v, path, mut out) {
     }
 
     let m = regex.find(URL_RE, v) ?? return fail(out, path, "{show(v)} is not a URL");
-    let { scheme, port } = m.named;
+    let scheme = m.named["scheme"];
+    let port = m.named["port"];
 
     if scheme !in schemes {
         return fail(out, path, "scheme {scheme} is not allowed, use {schemes.join(" or ")}");
@@ -235,7 +236,7 @@ fun checkList({ of, min, max, unique }, v, path, mut out) {
         fail(out, path, "has {v.len()} items, at most {max} allowed");
     }
 
-    let mut seen = map();
+    let mut seen = [:];
     let mut items = [];
 
     for i, item in v {
@@ -246,7 +247,7 @@ fun checkList({ of, min, max, unique }, v, path, mut out) {
             continue;
         }
 
-        let [key, keyAt] = if unique == true { [item, at] } else { [if item is object { item?.[unique] } else { nil }, [...at, unique]] };
+        let [key, keyAt] = if unique == true { [item, at] } else { [if item is map { item?.[unique] } else { nil }, [...at, unique]] };
 
         if key !is string | number {
             continue;
@@ -263,7 +264,7 @@ fun checkList({ of, min, max, unique }, v, path, mut out) {
 }
 
 fun checkDict({ of, key, min }, v, path, mut out) {
-    if !want(v is object, "object", v, path, out) {
+    if !want(v is map, "object", v, path, out) {
         return nil;
     }
 
@@ -271,7 +272,7 @@ fun checkDict({ of, key, min }, v, path, mut out) {
         fail(out, path, if min == 1 { "must not be empty" } else { "needs at least {min} entries" });
     }
 
-    let mut entries = {};
+    let mut entries = [:];
 
     for k, item in v {
         let at = [...path, k];
@@ -287,11 +288,11 @@ fun checkDict({ of, key, min }, v, path, mut out) {
 }
 
 fun checkObj({ fields, strict }, v, path, mut out) {
-    if !want(v is object, "object", v, path, out) {
+    if !want(v is map, "object", v, path, out) {
         return nil;
     }
 
-    let mut result = {};
+    let mut result = [:];
 
     for field, s in fields {
         let at = [...path, field];
@@ -326,7 +327,7 @@ fun checkObj({ fields, strict }, v, path, mut out) {
 }
 
 fun checkTagged({ tag, variants }, v, path, mut out) {
-    if !want(v is object, "object", v, path, out) {
+    if !want(v is map, "object", v, path, out) {
         return nil;
     }
 
@@ -340,18 +341,18 @@ fun checkTagged({ tag, variants }, v, path, mut out) {
     let variant = variants?.[kind]
         ?? return fail(out, at, "unknown {tag} {show(kind)}, expected {variants.keys().join(", ")}" + suggest(kind, variants.keys()));
 
-    let rest = check(variant, object(v.entries().filter(([k, _]) => k != tag)), path, out) ?? return nil;
-    return { [tag]: kind, ...rest };
+    let rest = check(variant, without(v, [tag]), path, out) ?? return nil;
+    return merge([tag: kind], rest);
 }
 
 // --- checks across fields, on the normalized config; any part of it may be missing ---
 
 fun knownUpstreams(cfg, mut out) {
-    let names = (cfg?.upstreams ?? {}).keys();
+    let names = (cfg?.["upstreams"] ?? [:]).keys();
     let mut used = set();
 
-    for i, route in cfg?.routes ?? [] {
-        let up = route?.upstream ?? continue;
+    for i, route in cfg?.["routes"] ?? [] {
+        let up = route?.["upstream"] ?? continue;
         used.add(up);
         if up !in names {
             fail(out, ["routes", i, "upstream"], "no upstream named {show(up)}" + suggest(up, names));
@@ -366,27 +367,29 @@ fun knownUpstreams(cfg, mut out) {
 }
 
 fun tlsOnHttpsPort(cfg, mut out) {
-    let port = regex.find(r":(\d+)$", cfg?.listen ?? "")?.groups[0];
-    if port == "443" && cfg?.tls == nil {
+    let port = regex.find(r":(\d+)$", cfg?.["listen"] ?? "")?.groups[0];
+    if port == "443" && cfg?.["tls"] == nil {
         fail(out, ["tls"], "required when listening on port 443");
     }
 }
 
 fun probesFitInterval(cfg, mut out) {
-    for n, up in cfg?.upstreams ?? {} {
-        let h = up?.health ?? continue;
+    for n, up in cfg?.["upstreams"] ?? [:] {
+        let h = up?.["health"] ?? continue;
 
-        if h?.timeout == nil || h?.interval == nil {
+        if h?.["timeout"] == nil || h?.["interval"] == nil {
             continue;
         }
 
-        if h.timeout >= h.interval {
-            fail(out, ["upstreams", n, "health", "timeout"], "{duration(h.timeout)} must be shorter than the interval {duration(h.interval)}");
+        if h["timeout"] >= h["interval"] {
+            fail(out, ["upstreams", n, "health", "timeout"], "{duration(h["timeout"])} must be shorter than the interval {duration(h["interval"])}");
         }
     }
 }
 
 let RULES = [knownUpstreams, tlsOnHttpsPort, probesFitInterval];
+
+struct Checked { cfg, issues }
 
 fun validate(raw) {
     let mut issues = [];
@@ -396,7 +399,7 @@ fun validate(raw) {
         rule(cfg, issues);
     }
 
-    return { cfg, issues };
+    return Checked { cfg, issues };
 }
 
 // --- migrations: each takes a config of one version to the next, noting what it changed ---
@@ -404,23 +407,29 @@ fun validate(raw) {
 struct MigrationError { message }
 
 fun v1to2(cfg, mut notes) {
-    let { server = {}, log_level = nil, version: _, ...rest } = cfg;
-    let { host = "0.0.0.0", port = 80, timeout = nil, ...dropped } = server;
+    let server = cfg?.["server"] ?? [:];
+    let host = server?.["host"] ?? "0.0.0.0";
+    let port = server?.["port"] ?? 80;
 
-    let mut next = { version: 2, ...rest, listen: "{host}:{port}" };
+    let mut next = merge(["version": 2], without(cfg, ["server", "log_level", "version"]));
+    next["listen"] = "{host}:{port}";
     notes.push("server.host, server.port → listen \"{host}:{port}\"");
 
+    let timeout = server?.["timeout"];
+
     if timeout != nil {
-        next.limits = { timeout: "{timeout}s" };
+        next["limits"] = ["timeout": "{timeout}s"];
         notes.push("server.timeout {timeout} (seconds) → limits.timeout \"{timeout}s\"");
     }
 
-    if log_level != nil {
-        next.log = { level: log_level };
+    let level = cfg?.["log_level"];
+
+    if level != nil {
+        next["log"] = ["level": level];
         notes.push("log_level → log.level");
     }
 
-    for k in dropped.keys() {
+    for k in without(server, ["host", "port", "timeout"]).keys() {
         notes.push("server.{k} dropped, no longer supported");
     }
 
@@ -428,34 +437,58 @@ fun v1to2(cfg, mut notes) {
 }
 
 fun v2to3(cfg, mut notes) {
-    let { version: _, backends = [], routes = [], ...rest } = cfg;
+    let mut upstreams = [:];
 
-    let mut upstreams = {};
-
-    for { name, ...up } in backends {
-        upstreams[name] = up;
+    for b in cfg?.["backends"] ?? [] {
+        upstreams[b["name"]] = without(b, ["name"]);
     }
 
     notes.push("backends → upstreams, keyed by name");
 
-    let next = routes.map(({ path, backend, auth = "none", ...more }) => {
-        return { pattern: if path.endsWith("/") { path + "*" } else { path }, upstream: backend, ...more, auth: { type: auth } };
+    let routes = (cfg?.["routes"] ?? []).map(r => {
+        let path = r["path"];
+        let mut route = merge(["pattern": if path.endsWith("/") { path + "*" } else { path }, "upstream": r["backend"]], without(r, ["path", "backend", "auth"]));
+        route["auth"] = ["type": r?.["auth"] ?? "none"];
+        return route;
     });
 
     notes.push("routes: path → pattern, backend → upstream, auth \"name\" → auth.type");
 
-    return { version: 3, ...rest, upstreams, routes: next };
+    let mut next = merge(["version": 3], without(cfg, ["version", "backends", "routes"]));
+    next["upstreams"] = upstreams;
+    next["routes"] = routes;
+    return next;
+}
+
+fun without(m, keys) {
+    let mut rest = m;
+
+    for k in keys {
+        rest.delete(k);
+    }
+
+    return rest;
+}
+
+fun merge(a, b) {
+    let mut m = a;
+
+    for k, v in b {
+        m[k] = v;
+    }
+
+    return m;
 }
 
 fun upgrade(raw, mut notes) {
-    if !(raw is object) {
+    if raw !is map {
         return raw;
     }
 
     let mut cfg = raw;
 
     while true {
-        let v = cfg?.version ?? 1;
+        let v = cfg?.["version"] ?? 1;
 
         cfg = try {
             match v {
@@ -528,8 +561,8 @@ fun distance(a, b) {
     return prev[b.len()];
 }
 
-const UNITS = { h: 60 * 60 * 1000, m: 60 * 1000, s: 1000, ms: 1 };
-const SIZES = { GB: 1024 * MB, MB, KB: 1024, B: 1 };
+const UNITS = ["h": 60 * 60 * 1000, "m": 60 * 1000, "s": 1000, "ms": 1];
+const SIZES = ["GB": 1024 * MB, "MB": MB, "KB": 1024, "B": 1];
 
 fun parseDuration(s) {
     if !regex.test(r"^(\d+(ms|s|m|h))+$", s) {
@@ -724,7 +757,7 @@ fun demo() {
 
     defer fs.removeAll(dir);
 
-    let files = { "edge.json": EDGE, "billing.json": BILLING_V1, "broken.json": BROKEN };
+    let files = ["edge.json": EDGE, "billing.json": BILLING_V1, "broken.json": BROKEN];
 
     for file, text in files {
         fs.write(fs.join(dir, file), text);

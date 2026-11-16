@@ -631,6 +631,8 @@ const TT_LIMIT = 1 << 20;
 
 struct Entry { depth, score, bound, move }
 
+struct Best { move = 0, score = 0, depth = 0, nodes = 0, seconds = 0, pv = [] }
+
 struct Search {
     pos,
     deadline,
@@ -638,7 +640,7 @@ struct Search {
     nodes = 0,
     stopped = false,
     rootMove = 0,
-    tt = map(),
+    tt = [:],
     killers = [],
 }
 
@@ -653,7 +655,7 @@ impl Search {
         }
 
         let start = time.now();
-        let mut best = { move: 0, score: 0, depth: 0 };
+        let mut best = Best {};
 
         for depth in 1..=self.maxDepth {
             let score = self.negamax(depth, -INF, INF, 0);
@@ -662,10 +664,10 @@ impl Search {
                 break;
             }
 
-            best = { move: self.rootMove, score, depth };
+            best = Best { move: self.rootMove, score, depth };
 
             if report != nil {
-                report({ ...best, nodes: self.nodes, seconds: time.now() - start, pv: self.pv(depth) });
+                report(Best { ...best, nodes: self.nodes, seconds: time.now() - start, pv: self.pv(depth) });
             }
 
             if math.abs(score) > MATE - 1000 {
@@ -920,12 +922,14 @@ fun gameOver(mut pos) {
     return nil;
 }
 
+struct Suite { name, fen, counts }
+
 fun demo() {
     print("perft");
     let suites = [
-        { name: "start", fen: START_FEN, counts: [20, 400, 8902] },
-        { name: "kiwipete", fen: "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", counts: [48, 2039] },
-        { name: "endgame", fen: "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", counts: [14, 191, 2812] },
+        Suite { name: "start", fen: START_FEN, counts: [20, 400, 8902] },
+        Suite { name: "kiwipete", fen: "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", counts: [48, 2039] },
+        Suite { name: "endgame", fen: "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", counts: [14, 191, 2812] },
     ];
 
     for { name, fen, counts } in suites {
@@ -1016,8 +1020,12 @@ fun play(human, seconds) {
 
 struct UsageError { message }
 
+struct Options { rest = [], depth = 64, seconds = 5 }
+
 fun options(args) {
-    let mut out = { rest: [], depth: 64, seconds: 5 };
+    let mut rest = [];
+    let mut depth = 64;
+    let mut seconds = 5;
     let mut i = 0;
 
     while i < args.len() {
@@ -1027,20 +1035,20 @@ fun options(args) {
             let value = args?.[i + 1] ?? throw UsageError { message: "{arg} needs a value" };
 
             if arg == "-d" {
-                out.depth = number(value);
+                depth = number(value);
             } else {
-                out.seconds = number(value);
+                seconds = number(value);
             }
 
             i += 2;
             continue;
         }
 
-        out.rest.push(arg);
+        rest.push(arg);
         i += 1;
     }
 
-    return out;
+    return Options { rest, depth, seconds };
 }
 
 fun main(args) {

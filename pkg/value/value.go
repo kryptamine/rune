@@ -4,7 +4,6 @@ package value
 import (
 	"fmt"
 	"iter"
-	"maps"
 	"slices"
 	"sync"
 	"sync/atomic"
@@ -19,7 +18,6 @@ const (
 	Number
 	String
 	Array
-	Object
 	Function
 	// Undefined marks a variable not yet defined; never a language value.
 	Undefined
@@ -114,7 +112,7 @@ const containerShared = unsafe.Offsetof(array{}.shared)
 
 // sharedAt is the offset of the flag by the top byte of n, or 0.
 var sharedAt = func() (at [256]uint8) {
-	for _, k := range []Kind{Array, Object, Map, Set, Buffer} {
+	for _, k := range []Kind{Array, Map, Set, Buffer} {
 		at[k] = uint8(containerShared)
 	}
 
@@ -163,10 +161,6 @@ func ShareDeep(v Value) {
 		for _, x := range v.Arr() {
 			ShareDeep(x)
 		}
-	case Object:
-		for _, x := range v.Obj().All() {
-			ShareDeep(x)
-		}
 	case Map:
 		v.HashMap().Each(func(_, x Value) bool { ShareDeep(x); return true })
 	}
@@ -190,10 +184,6 @@ func Unshare(v Value) Value {
 		items := slices.Clone(v.Arr())
 		ShareAll(items)
 		return NewArray(items)
-	case Object:
-		c := v.Obj().clone()
-		ShareAll(c.vals)
-		return NewObject(c)
 	case Map:
 		c := v.HashMap().Clone()
 		ShareAll(c.vals)
@@ -205,10 +195,6 @@ func Unshare(v Value) Value {
 	}
 
 	return NewBuffer(&ByteBuf{Data: slices.Clone(v.Buf().Data)})
-}
-
-func NewObject(o *Obj) Value {
-	return Value{p: unsafe.Pointer(o), n: uint64(Object) << kindShift}
 }
 
 // Field declares a struct field; Default is unused when Required.
@@ -319,9 +305,9 @@ type Method struct {
 	Self, Mut, InPlace bool
 }
 
-// RecordType has the objects and the instances of structs: the values
-// whose keys a pattern reads.
-var RecordType = &Shape{Name: "record", Builtin: true, Kind: Object}
+// RecordType has the instances of all structs: the values whose fields
+// a pattern without a type reads.
+var RecordType = &Shape{Name: "record", Builtin: true, Kind: Struct}
 
 // Has reports whether v is of the type s.
 func (s *Shape) Has(v Value) bool {
@@ -366,10 +352,10 @@ func (s *Shape) Default(i int) (Value, bool) {
 	return f.Default, !f.Required
 }
 
-// Mutable reports whether v is an array, object, map or set.
+// Mutable reports whether v is an array, map or set.
 func Mutable(v Value) bool {
 	switch v.Kind() {
-	case Array, Object, Map, Set:
+	case Array, Map, Set:
 		return true
 	}
 
@@ -387,18 +373,26 @@ func (s *Shape) Index(name string) int {
 	return -1
 }
 
-// Assign copies into fields the keys of obj that name fields; extra is
-// the first key naming none.
-func (s *Shape) Assign(fields []Value, obj *Obj) (extra string, ok bool) {
+// Assign copies into fields the values of m whose keys name fields;
+// extra is the first key naming none.
+func (s *Shape) Assign(fields []Value, m *HashMap) (extra Value, ok bool) {
 	ok = true
 
-	for k, v := range obj.All() {
-		if slot := s.Index(k); slot >= 0 {
-			fields[slot] = Share(v)
-		} else if ok {
-			extra, ok = k, false
+	m.Each(func(k, v Value) bool {
+		slot := -1
+		if k.IsString() {
+			slot = s.Index(k.Str())
 		}
-	}
+
+		if slot < 0 {
+			extra, ok = k, false
+			return false
+		}
+
+		fields[slot] = Share(v)
+
+		return true
+	})
 
 	return extra, ok
 }
@@ -476,7 +470,7 @@ func (v Value) IsUndefined() bool {
 }
 
 // Truthy is false for nil, false, 0, NaN and anything empty: a string, bytes,
-// a buffer, an array, an object, a map or a set.
+// a buffer, an array, a map or a set.
 func (v Value) Truthy() bool {
 	switch v.p {
 	case nil:
@@ -496,8 +490,6 @@ func (v Value) Truthy() bool {
 		return v.n&lenMask != 0
 	case Array:
 		return len(v.Arr()) != 0
-	case Object:
-		return v.Obj().Len() != 0
 	case Map, Set:
 		return v.HashMap().Len() != 0
 	case Buffer:
@@ -629,9 +621,6 @@ func NewStream(x any) Value { return boxed(Stream, x) }
 func (v Value) Arr() []Value { return *(*[]Value)(v.p) }
 
 func (v Value) ArrRef() *[]Value { return (*[]Value)(v.p) }
-
-// Obj returns the object payload; only meaningful when Kind() == Object.
-func (v Value) Obj() *Obj { return (*Obj)(v.p) }
 
 // FieldPairs walks a struct's fields by name, in declaration order.
 func (v Value) FieldPairs() iter.Seq2[string, Value] {
@@ -768,7 +757,7 @@ func (v Value) unbox() any {
 }
 
 // FromGo converts a plain Go value (as produced by literals or encoding/json)
-// into a Value, recursively converting slices and maps.
+// into a Value, recursively converting slices.
 func FromGo(x any) Value {
 	switch v := x.(type) {
 	case nil:
@@ -791,12 +780,6 @@ func FromGo(x any) Value {
 			items[i] = FromGo(item)
 		}
 		return NewArray(items)
-	case map[string]any:
-		o := NewObj(len(v))
-		for _, k := range slices.Sorted(maps.Keys(v)) {
-			o.Set(k, FromGo(v[k]))
-		}
-		return NewObject(o)
 	default:
 		panic(fmt.Sprintf("value.FromGo: unsupported type %T", x))
 	}

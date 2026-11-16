@@ -7,5 +7,5 @@ impl map {
 }
 
 print([1, 2].map(x => x * 2)); // expect: mine
-print(map().get("a")); // expect: own a
+print([:].get("a")); // expect: own a
 print([3, 1, 2].sort()); // expect: nil

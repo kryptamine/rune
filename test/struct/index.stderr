@@ -1,0 +1,6 @@
+TypeError: Can only index arrays, strings, maps, bytes and buffers, got Point.
+ --> index.rn:8:12
+  |
+7 | let mut p = Point { x: 1, y: 2 };
+8 | print(p["x"]); // expect runtime error: [line: 8] TypeError: Can only index arrays, strings, maps, bytes and buffers, got Point.
+  |            ^

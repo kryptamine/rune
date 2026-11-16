@@ -11,8 +11,8 @@ fun main() {
     let x = -1;
     let y = - -x;
     let z = x + y;
-    let o = { a: 1, "b": 2, [k]: 3, ...rest };
-    let e = {};
+    let o = ["a": 1, k: 3, "c": rest];
+    let e = [];
     let s = "hi {o.a + f("in {x}")} there";
     let t = """
         line {x}
@@ -32,7 +32,7 @@ fun main() {
     let r = xs
         .map(x => x * 2)
         .filter(x => x > 1);
-    let q = if c { 1 } else { ({ a: 2 }) };
+    let q = if c { 1 } else { [:] };
 
     let t = if c {
         let n = 1;

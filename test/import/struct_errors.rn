@@ -3,7 +3,7 @@ import _lib.math;
 math.Vec { x: 1, z: 1 }; // Error at 'z': Vec has no field 'z'.
 math.square { x: 1 }; // Error at 'square': 'math.square' is not a struct.
 math.Nope { x: 1 }; // Error at 'Nope': Module 'math' has no export 'Nope'.
-let o = {};
+let o = [:];
 o.Vec { x: 1 }; // Error at 'o': 'o' is not a module.
 try {} catch e is math.square {} // Error at 'square': 'math.square' is not a type.
 try {} catch e is math.MathError | math.MathError {} // Error at 'MathError': 'math.MathError' is already caught.

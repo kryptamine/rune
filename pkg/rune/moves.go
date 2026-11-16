@@ -309,13 +309,8 @@ func (lv *liveness) expr(e ast.Expr, live liveSet) {
 		}
 
 		lv.exprs(n.Parts, live)
-	case *ast.ObjectExpr:
-		for i := len(n.Pairs) - 1; i >= 0; i-- {
-			lv.expr(n.Pairs[i].Value, live)
-		}
-	case *ast.ComputedExpr:
-		lv.expr(n.Value, live)
-		lv.expr(n.Key, live)
+	case *ast.MapExpr:
+		lv.exprs(n.Items, live)
 	case *ast.StructExpr:
 		for i := len(n.Pairs) - 1; i >= 0; i-- {
 			lv.expr(n.Pairs[i].Value, live)

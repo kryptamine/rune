@@ -1,0 +1,1 @@
+let { a } = ["a": 1]; // expect runtime error: [line: 1] TypeError: Cannot read property 'a' of map.

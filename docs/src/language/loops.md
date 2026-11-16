@@ -20,7 +20,8 @@ for task in tasks {
 ```
 
 With two variables you get the position as well. Over an array that is the
-index, over an object the key and the value, in the order they were added:
+index, over a [map](../data/map-and-set.md) the key and the value, in the
+order they were added:
 
 ```rune
 for i, name in ["ann", "bob"] {
@@ -29,7 +30,7 @@ for i, name in ["ann", "bob"] {
 // 1. ann
 // 2. bob
 
-let stock = { pears: 0, apples: 5 };
+let stock = ["pears": 0, "apples": 5];
 for fruit, count in stock {
     print("{fruit}: {count}");
 }
@@ -48,9 +49,9 @@ for ch in "hé!" {
 // !
 ```
 
-`for` also walks [maps and sets](../data/map-and-set.md),
+`for` also walks [sets](../data/map-and-set.md),
 [bytes](../data/bytes.md) and [streams](../stdlib/streams.md). To walk a
-struct's fields, spread it into an object first: `for k, v in { ...s }`.
+struct's fields, turn it into a map first: `for k, v in map(s)`.
 
 ## break and continue
 
@@ -58,11 +59,13 @@ struct's fields, spread it into an object first: `for k, v in { ...s }`.
 `break` leaves the loop. Both work in `for` and `while`.
 
 ```rune
+struct Order { id, total }
+
 let orders = [
-    { id: 1, total: 30 },
-    { id: 2, total: 0 },
-    { id: 3, total: 120 },
-    { id: 4, total: 15 },
+    Order { id: 1, total: 30 },
+    Order { id: 2, total: 0 },
+    Order { id: 3, total: 120 },
+    Order { id: 4, total: 15 },
 ];
 
 for order in orders {
@@ -169,14 +172,14 @@ collection. `for mut x in xs` makes it change: each iteration gets its own
 copy of the element, and the copy is written back into `xs` when the
 iteration ends, whether by reaching the end of the body, `continue`,
 `break`, `return` or a throw. It works on arrays and on the values of
-objects and maps.
+maps.
 
 ```rune
-let mut prices = { apple: 1.2, pear: 2.5 };
+let mut prices = ["apple": 1.2, "pear": 2.5];
 for fruit, mut price in prices {
     price *= 2;
 }
-print(prices);    // {apple: 2.4, pear: 5}
+print(prices);    // ["apple": 2.4, "pear": 5]
 
 let mut grid = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
 for i, mut row in grid {

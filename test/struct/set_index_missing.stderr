@@ -1,9 +1,0 @@
-KeyError: Point has no field 'z'.
- --> set_index_missing.rn:4:35
-  |
-3 | impl Point {
-4 |   fun set(mut self, k, v) { self[k] = v; }
-  |                                   ^
-
-  at Point.set (set_index_missing.rn:4)
-  at <script> (set_index_missing.rn:8)

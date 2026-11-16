@@ -2,8 +2,8 @@ print(try { number("12") } catch { 0 }); // expect: 12
 print(try { number("x") } catch { -1 }); // expect: -1
 print(try { number("x") } catch e { e is ValueError }); // expect: true
 
-fun read(o) { try { o.k } catch e is TypeError { "type" } catch e is KeyError { "key" } }
-print([read({}), read(1), read({ k: 2 })]); // expect: ["key", "type", 2]
+fun read(o) { try { o["k"] } catch e is TypeError { "type" } catch e is KeyError { "key" } }
+print([read([:]), read(1), read(["k": 2])]); // expect: ["key", "type", 2]
 
 print([1, try { [].pop() } catch { 9 }, 3]); // expect: [1, 9, 3]
 print(try { number("5") + 1 } catch { 0 }); // expect: 6

@@ -20,13 +20,13 @@ func (fs *funcState) destructure(pat ast.Pattern, src int32) {
 	switch n := pat.(type) {
 	case *ast.BindPattern:
 		fs.initialize(n.Local, func(dst int32) { fs.move(dst, src) })
-	case *ast.ObjectPattern:
+	case *ast.RecordPattern:
 		for _, f := range n.Fields {
 			fs.destructureField(src, f)
 		}
 
 		if r := n.Rest; r != nil {
-			c := fs.keyList(fieldKeys(n.Fields), nil)
+			c := fs.keyList(fieldKeys(n.Fields))
 			fs.initialize(r.Local, func(dst int32) {
 				fs.emit(ins{op: opOmit, a: dst, b: src, c: c}, &n.Brace)
 			})
@@ -151,7 +151,7 @@ func (fs *funcState) pattern(p ast.Pattern, s int32) []int {
 		return append(fs.pattern(n.Test, s), fs.pattern(n.Inner, s)...)
 	case *ast.TypeTestPattern:
 		return []int{fs.typeTestOf(s, n)}
-	case *ast.ObjectPattern:
+	case *ast.RecordPattern:
 		var miss []int
 		if n.Rest != nil || slices.ContainsFunc(n.Fields, hasDefault) {
 			miss = append(miss, fs.typeTest(s, value.RecordType))
@@ -162,7 +162,7 @@ func (fs *funcState) pattern(p ast.Pattern, s int32) []int {
 		}
 
 		if n.Rest != nil {
-			c := fs.keyList(fieldKeys(n.Fields), nil)
+			c := fs.keyList(fieldKeys(n.Fields))
 			fs.emit(ins{op: opOmit, a: fs.locals[n.Rest.Local], b: s, c: c}, &n.Brace)
 		}
 
@@ -312,7 +312,7 @@ func (fs *funcState) jumpCmpConst(s int32, v value.Value, cmp, y uint8, tok *ast
 }
 
 // fieldTest matches field f of R[s]: of a struct already known to have
-// it, or of an object or struct that may not.
+// it, or of any struct, which may not.
 func (fs *funcState) fieldTest(s int32, f ast.FieldPattern, mayMiss bool) []int {
 	if _, ok := f.Pattern.(*ast.WildcardPattern); ok && !mayMiss {
 		return nil

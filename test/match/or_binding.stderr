@@ -5,15 +5,15 @@ error: Cannot bind variables in '|' patterns.
   |               ^
 
 error: Cannot bind variables in '|' patterns.
- --> or_binding.rn:2:14
+ --> or_binding.rn:2:15
   |
 1 | match 1 { 1 | n => 1 }; // [line: 1] Error at 'n': Cannot bind variables in '|' patterns.
-2 | match {} { { a } | { b: 1 } => 1 }; // [line: 2] Error at 'a': Cannot bind variables in '|' patterns.
-  |              ^
+2 | match nil { { a } | { b: 1 } => 1 }; // [line: 2] Error at 'a': Cannot bind variables in '|' patterns.
+  |               ^
 
 error: Cannot bind variables in '|' patterns.
  --> or_binding.rn:3:14
   |
-2 | match {} { { a } | { b: 1 } => 1 }; // [line: 2] Error at 'a': Cannot bind variables in '|' patterns.
+2 | match nil { { a } | { b: 1 } => 1 }; // [line: 2] Error at 'a': Cannot bind variables in '|' patterns.
 3 | match [1] { [a] | [1, 2] => 1 }; // [line: 3] Error at 'a': Cannot bind variables in '|' patterns.
   |              ^

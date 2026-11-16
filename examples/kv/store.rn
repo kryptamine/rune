@@ -8,6 +8,27 @@ import .codec;
 
 export struct KvError { message }
 
+// sync: fsync after every write, not only flush it to the system
+export struct Options { maxSegment = 4 << 20, sync = false }
+
+export struct Info { keys, segments, size, live, dead, writes }
+
+export struct Truncation { file, at, dropped, reason }
+
+export struct Recovery { segments = 0, records = 0, hinted = 0, truncated = [], ms = 0 }
+
+impl Recovery {
+    fun counted(mut self, segments, records, hinted) {
+        self.segments += segments;
+        self.records += records;
+        self.hinted += hinted;
+    }
+
+    fun torn(mut self, t) {
+        self.truncated.push(t);
+    }
+}
+
 struct Segment { log, hint, size = 0, live = 0, reader = nil }
 
 impl Segment {
@@ -75,13 +96,15 @@ fun chunks(entries, max) {
     return out;
 }
 
+export struct Compaction { before, after }
+
 export struct Store {
     dir,
     maxSegment,
     sync,
     lock,
-    keydir = map(),
-    segs = map(),
+    keydir = [:],
+    segs = [:],
     active = 0,
     out = nil,
     recovery = nil,
@@ -89,8 +112,7 @@ export struct Store {
 }
 
 impl Store {
-    // sync: fsync after every write, not only flush it to the system
-    fun open(dir, { maxSegment = 4 << 20, sync = false } = {}) {
+    fun open(dir, { maxSegment, sync } = Options {}) {
         fs.mkdir(dir);
 
         let lock = try {
@@ -113,7 +135,7 @@ impl Store {
 
     fun boot(mut self) {
         let started = time.now();
-        let mut rec = { segments: 0, records: 0, hinted: 0, truncated: [], ms: 0 };
+        let mut rec = Recovery {};
 
         for f in fs.list(self.dir) {
             if f.name.endsWith(".tmp") {
@@ -132,15 +154,14 @@ impl Store {
                 self.replay(id, i == ids.len() - 1, rec);
             }
 
-            rec.segments += 1;
+            rec.counted(1, 0, 0);
         }
 
         // A compacted segment, the one with a hint, is never appended to
         let last = if ids { ids[-1] } else { 0 };
         self.active = if last > 0 && !fs.exists(self.segs[last].hint) { last } else { last + 1 };
         self.openActive();
-        rec.ms = (time.now() - started) * 1000;
-        self.recovery = rec;
+        self.recovery = Recovery { ...rec, ms: (time.now() - started) * 1000 };
     }
 
     fun openActive(mut self) {
@@ -181,12 +202,12 @@ impl Store {
                 }
 
                 fs.truncate(seg.log, at);
-                rec.truncated.push({ file: seg.name(), at, dropped: data.len() - at, reason: r.name.lower() });
+                rec.torn(Truncation { file: seg.name(), at, dropped: data.len() - at, reason: r.name.lower() });
                 break;
             }
 
             self.apply(r.key, codec.Loc { seg: id, start: r.start, recLen: r.recLen, size: r.size }, r.kind);
-            rec.records += 1;
+            rec.counted(0, 1, 0);
             at += r.recLen;
         }
     }
@@ -197,7 +218,7 @@ impl Store {
         while at < data.len() {
             let h = codec.decodeHint(data, at, id) ?? throw KvError { message: "{fs.base(self.segs[id].hint)}: bad entry at byte {at}" };
             self.apply(h.key, h.loc, codec.PUT);
-            rec.hinted += 1;
+            rec.counted(0, 0, 1);
             at = h.next;
         }
     }
@@ -272,7 +293,7 @@ impl Store {
             live += s.live;
         }
 
-        return { keys: self.keydir.len(), segments: self.segs.len(), size, live, dead: size - live, writes: self.writes };
+        return Info { keys: self.keydir.len(), segments: self.segs.len(), size, live, dead: size - live, writes: self.writes };
     }
 
     // Copies every live record into new segments numbered after the old
@@ -283,9 +304,9 @@ impl Store {
         let before = self.info();
         self.out.close();
         let old = self.segs.values();
-        let mut data = map();
-        let mut segs = map();
-        let mut keydir = map();
+        let mut data = [:];
+        let mut segs = [:];
+        let mut keydir = [:];
 
         for chunk in chunks(self.keydir.entries(), self.maxSegment) {
             self.active += 1;
@@ -317,7 +338,7 @@ impl Store {
         self.keydir = keydir;
         self.active += 1;
         self.openActive();
-        return { before, after: self.info() };
+        return Compaction { before, after: self.info() };
     }
 
     fun close(self) {

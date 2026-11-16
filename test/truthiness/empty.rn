@@ -1,11 +1,11 @@
-for v in [nil, false, 0, 0.0, "", [], {}, map(), set(), b"", bytes.buffer()] {
+for v in [nil, false, 0, 0.0, "", [], [:], set(), b"", bytes.buffer()] {
     if v { print("truthy"); }
 }
-for v in [true, 1, -0.5, "0", [0], { a: nil }, map({ a: 1 }), set([nil]), b"\x00", bytes.buffer("a"), x => x] {
+for v in [true, 1, -0.5, "0", [0], [nil: nil], set([nil]), b"\x00", bytes.buffer("a"), x => x] {
     if !v { print("falsy"); }
 }
 print([] || "fallback"); // expect: fallback
-print({} && 1); // expect: {}
+print([:] && 1); // expect: [:]
 print([1].filter(x => [])); // expect: []
 let mut out = [];
 while out { out.pop(); }

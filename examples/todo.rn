@@ -86,6 +86,8 @@ fun relative(day, now) {
 
 fun defaultPath() { os.env("TODO_FILE") ?? fs.join(os.env("HOME") ?? ".", ".todo.json") }
 
+struct Saved { nextId, tasks }
+
 struct Store { path, tasks = [], nextId = 1 }
 
 impl Store {
@@ -94,18 +96,18 @@ impl Store {
             return Store { path };
         }
 
-        let data = json.parse(fs.readText(path));
-        return Store { path, tasks: data.tasks.map(o => Task { ...o, priority: Priority(o.priority) }), nextId: data.nextId };
+        let data = Saved { ...json.parse(fs.readText(path)) };
+        return Store { path, tasks: data.tasks.map(o => Task { ...o, priority: Priority(o["priority"]) }), nextId: data.nextId };
     }
 
     fun save(self) {
         let tmp = self.path + ".tmp";
-        fs.write(tmp, json.stringify({ nextId: self.nextId, tasks: self.tasks }));
+        fs.write(tmp, json.stringify(Saved { nextId: self.nextId, tasks: self.tasks }));
         fs.rename(tmp, self.path);
     }
 
-    fun add(mut self, task) {
-        self.tasks.push(Task { ...task, id: self.nextId });
+    fun add(mut self, task, created) {
+        self.tasks.push(Task { ...task, id: self.nextId, created });
         self.nextId += 1;
         return self.nextId - 1;
     }
@@ -127,19 +129,19 @@ impl Store {
 
 fun parseTask(words, now) {
     let mut text = [];
-    let mut task = { tags: [] };
+    let mut task = ["tags": []];
 
     for w in words {
         match w {
-            _ if w.startsWith("+") && w.len() > 1 => task.tags.push(w[1..]),
-            _ if w.startsWith("!") && priorityNamed(w[1..]) != nil => task.priority = priorityNamed(w[1..]),
-            _ if w.startsWith("due:") => task.due = parseDate(w.removePrefix("due:"), now),
+            _ if w.startsWith("+") && w.len() > 1 => task["tags"].push(w[1..]),
+            _ if w.startsWith("!") && priorityNamed(w[1..]) != nil => task["priority"] = priorityNamed(w[1..]),
+            _ if w.startsWith("due:") => task["due"] = parseDate(w.removePrefix("due:"), now),
             _ => text.push(w),
         }
     }
 
     if text {
-        task.text = text.join(" ");
+        task["text"] = text.join(" ");
     }
 
     return task;
@@ -223,7 +225,7 @@ fun stats(store, now) {
     let done = store.tasks.len() - open.len();
     let late = open.filter(t => t.due != nil && t.due < now);
 
-    let mut byTag = map();
+    let mut byTag = [:];
 
     for t in open {
         for tag in t.tags {
@@ -247,11 +249,11 @@ fun run(mut store, [cmd = "list", ...args], now) {
         "add" => {
             let task = parseTask(args, now);
 
-            if task?.text == nil {
+            if "text" !in task {
                 throw UsageError { message: "a task needs some text" };
             }
 
-            let id = store.add({ ...task, created: now });
+            let id = store.add(task, now);
             print("  added #{id}");
         },
         "list" | "ls" => list(store, args, now),
@@ -276,7 +278,7 @@ fun run(mut store, [cmd = "list", ...args], now) {
         "edit" => {
             let [id = throw UsageError { message: "which task? give an id" }, ...words] = args;
             let changes = parseTask(words, now);
-            store.update(ids([id])[0], t => Task { ...t, ...changes, tags: [...t.tags, ...changes.tags] });
+            store.update(ids([id])[0], t => Task { ...t, ...changes, tags: [...t.tags, ...changes["tags"]] });
             print("  edited #{id}");
         },
         "stats" => stats(store, now),

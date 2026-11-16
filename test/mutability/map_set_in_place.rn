@@ -1,11 +1,11 @@
-let m = map([["a", 1]]);
+let m = ["a": 1];
 let s = set([1]);
 print(m["a"]); // expect: 1
 print(1 in s); // expect: true
 
 let mut mm = m;
 mm["b"] = 2;
-print(m); // expect: map {"a": 1}
+print(m); // expect: ["a": 1]
 
 let a = [2, 1];
 try { let f = a.push; } catch e is TypeError { print(e.message); } // expect: Cannot take method 'push' of array as a value.

@@ -2,20 +2,22 @@
 
 export struct FrontMatterError { message, path, line }
 
+export struct Parsed { meta, body }
+
 export fun parse(src, path) {
     let lines = src.split("\n");
 
     if !lines || lines[0].trim() != "---" {
-        return { meta: {}, body: src };
+        return Parsed { meta: [:], body: src };
     }
 
-    let mut meta = {};
+    let mut meta = [:];
 
     for i in 1..lines.len() {
         let line = lines[i];
 
         if line.trim() == "---" {
-            return { meta, body: lines[i + 1..].join("\n") };
+            return Parsed { meta, body: lines[i + 1..].join("\n") };
         }
 
         let m = regex.find(r"^(\w+):\s*(.*)$", line)

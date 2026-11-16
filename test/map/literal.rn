@@ -1,0 +1,25 @@
+let m = [
+  "num": 10,
+  "bool": true,
+  "str": "Hello",
+  "foo": nil,
+  "arr": [1, 2, 3],
+  "inner": ["k": 1],
+];
+print(m["num"]);         // expect: 10
+print(m["foo"]);         // expect: nil
+print(m["arr"][2]);      // expect: 3
+print(m["inner"]["k"]);  // expect: 1
+print(m.len());          // expect: 6
+
+let name = "k";
+print([name: 1, "name": 2, 1 + 1: name]); // expect: ["k": 1, "name": 2, 2: "k"]
+print([200: "OK", 404: "Not Found"]);     // expect: [200: "OK", 404: "Not Found"]
+print([:].len());                         // expect: 0
+
+fun p(x) { print(x); return x; }
+let o = [p("k1"): p(1), p("k2"): p(2)];
+// expect: k1
+// expect: 1
+// expect: k2
+// expect: 2

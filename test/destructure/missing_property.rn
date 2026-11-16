@@ -1,1 +1,2 @@
-let { x, y } = { x: 1 }; // expect runtime error: [line: 1] KeyError: Undefined property 'y'.
+struct P { x }
+let { x, y } = P { x: 1 }; // expect runtime error: [line: 2] KeyError: P has no field 'y'.

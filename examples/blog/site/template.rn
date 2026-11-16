@@ -2,7 +2,7 @@
 
 import ..md.inline;
 
-export fun page({ title, body, root = "." }) {
+export fun page(title, body, root = ".") {
     return """
         <!doctype html>
         <html lang="en">

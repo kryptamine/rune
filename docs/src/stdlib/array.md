@@ -83,10 +83,12 @@ xs.remove(5); // IndexError: array.remove() index 5 out of bounds of 1 element.
   first element; an empty array then is a `ValueError`.
 
 ```rune
+struct Order { id, customer, total }
+
 let orders = [
-    { id: 1, customer: "ann", total: 30 },
-    { id: 2, customer: "bob", total: 120 },
-    { id: 3, customer: "ann", total: 75 },
+    Order { id: 1, customer: "ann", total: 30 },
+    Order { id: 2, customer: "bob", total: 120 },
+    Order { id: 3, customer: "ann", total: 75 },
 ];
 
 print(orders.map(o => o.total));                          // [30, 120, 75]
@@ -95,21 +97,23 @@ print(orders.reduce((sum, o) => sum + o.total, 0));       // 225
 print([3, 1, 2].reduce((a, b) => a + b));                 // 6
 ```
 
-`reduce` can build any value, such as an object of totals by customer:
+`reduce` can build any value, such as a map of totals by customer:
 
 ```rune
+struct Order { customer, total }
+
 let orders = [
-    { customer: "ann", total: 30 },
-    { customer: "bob", total: 120 },
-    { customer: "ann", total: 75 },
+    Order { customer: "ann", total: 30 },
+    Order { customer: "bob", total: 120 },
+    Order { customer: "ann", total: 75 },
 ];
 
 let byCustomer = orders.reduce((acc, o) => {
     let mut next = acc;
     next[o.customer] = (acc?.[o.customer] ?? 0) + o.total;
     next
-}, {});
-print(byCustomer);   // {ann: 105, bob: 120}
+}, [:]);
+print(byCustomer);   // ["ann": 105, "bob": 120]
 ```
 
 `f` can be any function, built-ins included. `map`, `filter`, `every`,
@@ -151,10 +155,12 @@ print(fruits);                           // ["fig", "pear", "Apple"]
 Sorting records by a field, oldest first:
 
 ```rune
+struct Person { name, age }
+
 let mut people = [
-    { name: "bob", age: 25 },
-    { name: "ann", age: 31 },
-    { name: "eve", age: 25 },
+    Person { name: "bob", age: 25 },
+    Person { name: "ann", age: 31 },
+    Person { name: "eve", age: 25 },
 ];
 people.sort((a, b) => b.age - a.age);
 print(people.map(p => p.name));   // ["ann", "bob", "eve"]
@@ -187,14 +193,16 @@ mixed.sort(); // TypeError: array.sort() without a comparator needs all numbers 
 To ask only whether a value is there, use [`in`](../language/values.md#membership).
 
 ```rune
+struct User { name, admin = false }
+
 let users = [
-    { name: "ann", admin: true },
-    { name: "bob", admin: false },
+    User { name: "ann", admin: true },
+    User { name: "bob" },
 ];
 
 print(users.some(u => u.admin));                // true
 print(users.every(u => u.admin));               // false
-print(users.find(u => !u.admin));               // {name: "bob", admin: false}
+print(users.find(u => !u.admin));               // User {name: "bob", admin: false}
 print(users.find(u => u.name == "eve"));        // nil
 print(users.findIndex(u => u.name == "bob"));   // 1
 
@@ -206,8 +214,10 @@ print([[1, 2], [3, 4]].findIndex(x => x == [3, 4])); // 1
 `find` returns `nil` when nothing matches, so `??` gives a fallback:
 
 ```rune
-let users = [{ name: "ann" }, { name: "bob" }];
-let eve = users.find(u => u.name == "eve") ?? { name: "guest" };
+struct User { name }
+
+let users = [User { name: "ann" }, User { name: "bob" }];
+let eve = users.find(u => u.name == "eve") ?? User { name: "guest" };
 print(eve.name);   // guest
 ```
 

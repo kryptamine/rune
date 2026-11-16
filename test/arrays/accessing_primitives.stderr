@@ -1,5 +1,5 @@
-TypeError: Can only index arrays, strings, objects, structs, maps, bytes and buffers, got number.
+TypeError: Can only index arrays, strings, maps, bytes and buffers, got number.
  --> accessing_primitives.rn:3:4
   |
-3 | a[0]; // expect runtime error: [line: 3] TypeError: Can only index arrays, strings, objects, structs, maps, bytes and buffers, got number.
+3 | a[0]; // expect runtime error: [line: 3] TypeError: Can only index arrays, strings, maps, bytes and buffers, got number.
   |    ^

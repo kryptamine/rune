@@ -1,7 +1,7 @@
 print(regex.test("^a+$", "aaa")); // expect: true
 print(regex.test("^a+$", "aab")); // expect: false
 let m = regex.find("(\\w+)@(?P<host>\\w+)", "mail: bob@site ok");
-print(m); // expect: Match {text: "bob@site", index: 6, groups: ["bob", "site"], named: {host: "site"}}
+print(m); // expect: Match {text: "bob@site", index: 6, groups: ["bob", "site"], named: ["host": "site"]}
 print(regex.find("x", "abc")); // expect: nil
 print(regex.find("(a)|(b)", "b").groups); // expect: [nil, "b"]
 print(regex.find("é(.)", "héllo").index); // expect: 1

@@ -1,6 +1,6 @@
 TypeError: Cannot call mutating method 'keys' of Counter: the receiver is not a mutable variable, element or property.
   --> mut_self_temporary_runtime.rn:10:8
    |
- 9 | print({ a: 1 }.keys()); // expect: ["a"]
+ 9 | print(["a": 1].keys()); // expect: ["a"]
 10 | make().keys(); // expect runtime error: [line: 10] TypeError: Cannot call mutating method 'keys' of Counter: the receiver is not a mutable variable, element or property.
    |        ^^^^

@@ -27,7 +27,7 @@ func (s *Parser) bindingOrPattern(hiddenName, msg string) (ast.Binding, ast.Stmt
 	return ast.Binding{Name: name}, &ast.PatternStmt{Pattern: pat, Initializer: ast.NewVarExpr(name)}, nil
 }
 
-// destructuring parses the object or array pattern of a let, a parameter
+// destructuring parses the record or array pattern of a let, a parameter
 // or a for-in variable, which must bind something.
 func (s *Parser) destructuring() (ast.Pattern, error) {
 	pat, err := s.patternAtom()
@@ -170,7 +170,7 @@ func (s *Parser) patternAtom() (ast.Pattern, error) {
 	case s.match(ast.NIL):
 		return &ast.LiteralPattern{Token: s.previous(), Value: value.NilValue}, nil
 	case s.match(ast.LEFT_BRACE):
-		return s.objectPattern()
+		return s.recordPattern()
 	case s.match(ast.LEFT_BRACKET):
 		return s.arrayPattern()
 	case s.check(ast.MUT):
@@ -228,15 +228,15 @@ func (s *Parser) structPattern(t *ast.VarExpr) (ast.Pattern, error) {
 	return pat, err
 }
 
-// objectPattern parses { key: pattern = default, ..., ...rest } after the "{".
-func (s *Parser) objectPattern() (ast.Pattern, error) {
-	pat := &ast.ObjectPattern{Brace: s.previous()}
+// recordPattern parses { key: pattern = default, ..., ...rest } after the "{".
+func (s *Parser) recordPattern() (ast.Pattern, error) {
+	pat := &ast.RecordPattern{Brace: s.previous()}
 
 	var err error
 	pat.Fields, pat.Rest, err = s.fieldPatterns(true)
 
 	if err == nil && len(pat.Fields) == 0 && pat.Rest == nil {
-		s.errors = append(s.errors, errors.NewSyntaxError(pat.Brace, "Expect property name in pattern."))
+		s.errors = append(s.errors, errors.NewSyntaxError(pat.Brace, "Expect field name in pattern."))
 	}
 
 	return pat, err
@@ -422,16 +422,16 @@ func (s *Parser) numberPattern(tok ast.Token, negate bool) (ast.Pattern, error) 
 	return &ast.LiteralPattern{Token: tok, Value: n}, nil
 }
 
-// fieldPatterns parses key: pattern, ... up to "}"; the "{" has already
-// been consumed. A bare key, or mut key, binds the value to its name.
-// Objects only have string keys, defaults and a rest, which binds the
-// other keys.
-func (s *Parser) fieldPatterns(object bool) ([]ast.FieldPattern, *ast.BindPattern, error) {
+// fieldPatterns parses field: pattern, ... up to "}"; the "{" has already
+// been consumed. A bare field, or mut field, binds the value to its name.
+// A record pattern also takes defaults and a rest, which binds the other
+// fields.
+func (s *Parser) fieldPatterns(record bool) ([]ast.FieldPattern, *ast.BindPattern, error) {
 	var fields []ast.FieldPattern
 	var rest *ast.BindPattern
 
-	err := s.braceList("Duplicate property name.", "Expect '}' after pattern.", func() (string, ast.Token, error) {
-		if object && s.match(ast.DOT_DOT_DOT) {
+	err := s.braceList("Duplicate field name.", "Expect '}' after pattern.", func() (string, ast.Token, error) {
+		if record && s.match(ast.DOT_DOT_DOT) {
 			b, err := s.restBinding(ast.RIGHT_BRACE)
 			if err == nil && !b.Discards() {
 				rest = &ast.BindPattern{Binding: b}
@@ -440,46 +440,37 @@ func (s *Parser) fieldPatterns(object bool) ([]ast.FieldPattern, *ast.BindPatter
 			return "", b.Name, err
 		}
 
-		f, err := s.fieldPattern(object)
+		f, err := s.fieldPattern()
 		if err != nil {
 			return "", f.Key, err
 		}
 
-		if object {
+		if record {
 			f.Pattern, err = s.patternDefault(f.Pattern)
 		}
 
 		fields = append(fields, f)
 
-		// A key may repeat, to bind its value and take it apart too.
+		// A field may repeat, to bind its value and take it apart too.
 		return "", f.Key, err
 	})
 
 	return fields, rest, err
 }
 
-func (s *Parser) fieldPattern(object bool) (ast.FieldPattern, error) {
+func (s *Parser) fieldPattern() (ast.FieldPattern, error) {
 	if s.check(ast.MUT) {
-		b, err := s.binding("Expect property name.")
+		b, err := s.binding("Expect field name.")
 		return ast.FieldPattern{Key: b.Name, Pattern: &ast.BindPattern{Binding: b}}, err
 	}
 
-	if !s.match(ast.IDENTIFIER) && !(object && s.match(ast.STRING)) {
-		return ast.FieldPattern{Key: s.peek()}, errors.NewSyntaxError(s.peek(), "Expect property name.")
+	if !s.match(ast.IDENTIFIER) {
+		return ast.FieldPattern{Key: s.peek()}, errors.NewSyntaxError(s.peek(), "Expect field name.")
 	}
 
 	key := s.previous()
-	quoted := key.TokenType == ast.STRING
-
-	if quoted {
-		key.Lexeme = key.Literal
-	}
 
 	if !s.match(ast.COLON) {
-		if quoted {
-			return ast.FieldPattern{Key: key}, errors.NewSyntaxError(s.peek(), "Expect ':' after string key.")
-		}
-
 		return ast.FieldPattern{Key: key, Pattern: &ast.BindPattern{Binding: ast.Binding{Name: key}, Shorthand: true}}, nil
 	}
 

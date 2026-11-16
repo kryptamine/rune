@@ -1,21 +1,21 @@
-error: Constant 'B' must be a constant: a literal, a const or operators on them, an enum variant, or an array, object, map() or set() of them.
+error: Constant 'B' must be a constant: a literal, a const or operators on them, an enum variant, or an array, map or set() of them.
  --> array_errors.rn:3:7
   |
 2 | const A = [1, 2];
-3 | const B = [1, [x]]; // Error at 'B': Constant 'B' must be a constant: a literal, a const or operators on them, an enum variant, or an array, object, map() or set() of them.
+3 | const B = [1, [x]]; // Error at 'B': Constant 'B' must be a constant: a literal, a const or operators on them, an enum variant, or an array, map or set() of them.
   |       ^
 
-error: Constant 'C' must be a constant: a literal, a const or operators on them, an enum variant, or an array, object, map() or set() of them.
+error: Constant 'C' must be a constant: a literal, a const or operators on them, an enum variant, or an array, map or set() of them.
  --> array_errors.rn:4:7
   |
-3 | const B = [1, [x]]; // Error at 'B': Constant 'B' must be a constant: a literal, a const or operators on them, an enum variant, or an array, object, map() or set() of them.
-4 | const C = [...A]; // Error at 'C': Constant 'C' must be a constant: a literal, a const or operators on them, an enum variant, or an array, object, map() or set() of them.
+3 | const B = [1, [x]]; // Error at 'B': Constant 'B' must be a constant: a literal, a const or operators on them, an enum variant, or an array, map or set() of them.
+4 | const C = [...A]; // Error at 'C': Constant 'C' must be a constant: a literal, a const or operators on them, an enum variant, or an array, map or set() of them.
   |       ^
 
 error: Constant 'D' depends on itself.
  --> array_errors.rn:5:12
   |
-4 | const C = [...A]; // Error at 'C': Constant 'C' must be a constant: a literal, a const or operators on them, an enum variant, or an array, object, map() or set() of them.
+4 | const C = [...A]; // Error at 'C': Constant 'C' must be a constant: a literal, a const or operators on them, an enum variant, or an array, map or set() of them.
 5 | const D = [D]; // Error at 'D': Constant 'D' depends on itself.
   |            ^
 

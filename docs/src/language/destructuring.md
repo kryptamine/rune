@@ -10,58 +10,52 @@ These are the same patterns as in [`match`](pattern-matching.md) and
 when the value does not fit: `match` tries the next arm, `is` gives
 `false`, and destructuring fails with an error.
 
-## Objects and Structs
+## Structs
 
-An object pattern binds properties to variables of the same name:
+A record pattern binds fields to variables of the same name:
 
 ```rune
-let user = { name: "ann", age: 31, role: "admin" };
+struct User { name, age, role = "member" }
+
+let user = User { name: "ann", age: 31 };
 let { name, age } = user;
 
 print(name);    // ann
 print(age);     // 31
 ```
 
-`key: name` binds a property under another name. A key that is not a
-plain identifier, such as `"full name"`, needs one:
+`field: name` binds a field under another name. Variables from a pattern
+are immutable, like any `let`. Mark each one that may change with `mut`:
 
 ```rune
-let user = { name: "ann", "full name": "Ann Lee" };
-let { name: login, "full name": fullName } = user;
+struct User { name, age }
 
-print(login);       // ann
-print(fullName);    // Ann Lee
-```
-
-Variables from a pattern are immutable, like any `let`. Mark each one
-that may change with `mut`:
-
-```rune
-let { name, age: mut years } = { name: "ann", age: 31 };
+let { name: login, age: mut years } = User { name: "ann", age: 31 };
 years += 1;
-print("{name} turns {years}");    // ann turns 32
+print("{login} turns {years}");    // ann turns 32
 ```
-
-The same pattern reads the fields of a struct.
 
 ### In parameters
 
 A pattern in a parameter takes just the fields the function needs. It
-accepts any value that has them, an object or a struct alike:
+accepts any struct that has them:
 
 ```rune
-struct Point { x, y = 0 }
+struct Point { x, y }
+struct Pixel { x, y, color }
 
 fun lengthSquared({ x, y }) { x * x + y * y }
 
-print(lengthSquared(Point { x: 3, y: 4 }));    // 25
-print(lengthSquared({ x: 1, y: 1 }));          // 2
+print(lengthSquared(Point { x: 3, y: 4 }));                // 25
+print(lengthSquared(Pixel { x: 1, y: 1, color: "red" }));  // 2
 ```
 
 This also makes arrow functions over records short:
 
 ```rune
-let orders = [{ id: 1, total: 30 }, { id: 2, total: 120 }];
+struct Order { id, total }
+
+let orders = [Order { id: 1, total: 30 }, Order { id: 2, total: 120 }];
 print(orders.map(({ total }) => total));    // [30, 120]
 ```
 
@@ -70,7 +64,9 @@ print(orders.map(({ total }) => total));    // [30, 120]
 A pattern on the value variable unpacks each element:
 
 ```rune
-let pages = { "/home": { hits: 10 }, "/about": { hits: 3 } };
+struct Stats { hits }
+
+let pages = ["/home": Stats { hits: 10 }, "/about": Stats { hits: 3 }];
 
 for path, { hits } in pages {
     print("{path}: {hits}");
@@ -81,31 +77,24 @@ for path, { hits } in pages {
 
 ### Taking the rest
 
-`...name` collects the remaining properties, or fields, into a new
-object. It must come last. Use it to split off one part of a record:
+`...name` collects the remaining fields into a map. It must come last.
+Use it to split off one part of a record:
 
 ```rune
-let post = { id: 7, title: "Hello", draft: true };
-let { id, ...data } = post;
+struct Post { id, title, draft = true }
+
+let { id, ...data } = Post { id: 7, title: "Hello" };
 
 print(id);      // 7
-print(data);    // {title: "Hello", draft: true}
+print(data);    // ["title": "Hello", "draft": true]
 ```
 
-On a struct, the rest is a plain object with the other fields:
+A missing field is an error, just as `user.email` would be. To allow it,
+give it a [default](#defaults):
 
 ```rune
-struct User { name, role = "member", age = 31 }
-
-let { name, ...rest } = User { name: "ann" };
-print(rest);    // {role: "member", age: 31}
-```
-
-A missing property or field is an error, just as `obj.email` would be.
-To allow it, give it a [default](#defaults):
-
-```rune
-let { email } = { name: "ann" }; // KeyError: Undefined property 'email'.
+struct User { name }
+let { email } = User { name: "ann" }; // KeyError: User has no field 'email'.
 ```
 
 ## Arrays
@@ -152,10 +141,10 @@ let [lo, hi] = minMax([4, 9, 1]);
 print("{lo}..{hi}");    // 1..9
 ```
 
-Array patterns shine for pairs, such as the entries of an object:
+Array patterns shine for pairs, such as the entries of a map:
 
 ```rune
-let env = { HOME: "/home/ann", PORT: "8080" };
+let env = ["HOME": "/home/ann", "PORT": "8080"];
 print(env.entries().map(([k, v]) => k + "=" + v));    // ["HOME=/home/ann", "PORT=8080"]
 
 for [name, score] in [["ann", 90], ["bob", 72]] {
@@ -185,11 +174,14 @@ let [a, b] = "ab"; // TypeError: Cannot destructure string as an array.
 
 ## Nesting
 
-A property or element can be a pattern itself, so one `let` reaches deep
+A field or element can be a pattern itself, so one `let` reaches deep
 into a value:
 
 ```rune
-let resp = { user: { name: "ann", tags: ["admin", "ops", "dev"] }, status: 200 };
+struct User { name, tags }
+struct Resp { user, status }
+
+let resp = Resp { user: User { name: "ann", tags: ["admin", "ops", "dev"] }, status: 200 };
 let { user: { name, tags: [first, ...others] }, status } = resp;
 
 print(name);      // ann
@@ -202,18 +194,24 @@ The same key may appear twice, to keep the whole value and take it apart
 too:
 
 ```rune
-let { pos, pos: { x } } = { pos: { x: 3, y: 4 } };
-print(pos);    // {x: 3, y: 4}
+struct Point { x, y }
+struct Shape { pos }
+
+let { pos, pos: { x } } = Shape { pos: Point { x: 3, y: 4 } };
+print(pos);    // Point {x: 3, y: 4}
 print(x);      // 3
 ```
 
 Nested patterns work in parameters and `for` loops as well:
 
 ```rune
-fun label({ name, size: [w, h] }) { "{name} {w}x{h}" }
-print(label({ name: "logo", size: [64, 32] }));    // logo 64x32
+struct Image { name, size }
+struct Stats { hits }
 
-for [day, { hits }] in [["mon", { hits: 10 }], ["tue", { hits: 3 }]] {
+fun label({ name, size: [w, h] }) { "{name} {w}x{h}" }
+print(label(Image { name: "logo", size: [64, 32] }));    // logo 64x32
+
+for [day, { hits }] in [["mon", Stats { hits: 10 }], ["tue", Stats { hits: 3 }]] {
     print("{day}: {hits}");
 }
 // mon: 10
@@ -230,14 +228,18 @@ let [cmd, "now"] = ["run", "now"]; // Error at '"now"': This pattern only takes 
 
 ## Defaults
 
-A variable may have a default, `name = value`, used when the property,
-field or element is missing. This makes optional settings easy:
+A variable may have a default, `name = value`, used when the field or
+element is missing. This lets one function take structs of several
+shapes:
 
 ```rune
+struct Page { title }
+struct Section { title, root }
+
 fun page({ title, root = "/" }) { "{title} at {root}" }
 
-print(page({ title: "Home" }));                   // Home at /
-print(page({ title: "Docs", root: "/docs" }));    // Docs at /docs
+print(page(Page { title: "Home" }));                     // Home at /
+print(page(Section { title: "Docs", root: "/docs" }));   // Docs at /docs
 ```
 
 In an array pattern, defaults fill in missing positions at the end:
@@ -254,7 +256,9 @@ It is evaluated only when used, and may refer to the variables before
 it:
 
 ```rune
-let opts = { title: "Blog", root: nil };
+struct Opts { title, root }
+
+let opts = Opts { title: "Blog", root: nil };
 let { title, theme = "light", root = ".", depth = if root == "." { 0 } else { 1 } } = opts;
 
 print(title);    // Blog

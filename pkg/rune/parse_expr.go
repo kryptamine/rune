@@ -350,10 +350,6 @@ func (s *Parser) expressionWithStructs(mode structMode) (ast.Expr, error) {
 }
 
 func (s *Parser) primary() (ast.Expr, error) {
-	if s.match(ast.LEFT_BRACE) {
-		return s.objectLiteral()
-	}
-
 	if s.match(ast.LEFT_BRACKET) {
 		return s.arrayLiteral()
 	}
@@ -477,75 +473,6 @@ func (s *Parser) braceList(dup, closeMsg string, item func() (string, ast.Token,
 	return err
 }
 
-// objectLiteral parses { key: value, ... }; the "{" has already been
-// consumed. A bare name takes the variable of the same name.
-func (s *Parser) objectLiteral() (ast.Expr, error) {
-	var pairs []ast.ObjectPair
-
-	err := s.braceList("Duplicate property name.", "Expect '}' after object properties.", func() (string, ast.Token, error) {
-		var key string
-
-		if s.check(ast.DOT_DOT_DOT) {
-			tok := s.peek()
-			v, err := s.item(true)
-			pairs = append(pairs, ast.ObjectPair{Token: tok, Value: v})
-
-			return "", tok, err
-		}
-
-		var computed *ast.ComputedExpr
-
-		switch {
-		case s.match(ast.LEFT_BRACKET):
-			computed = &ast.ComputedExpr{Bracket: s.previous()}
-
-			var err error
-			if computed.Key, err = s.expressionWithStructs(structsAll); err != nil {
-				return "", computed.Bracket, err
-			}
-
-			if _, err := s.consume(ast.RIGHT_BRACKET, "Expect ']' after computed property name."); err != nil {
-				return "", computed.Bracket, err
-			}
-		case s.match(ast.IDENTIFIER):
-			key = s.previous().Lexeme
-		case s.match(ast.STRING):
-			key = s.previous().Literal
-		default:
-			return "", ast.Token{}, errors.NewSyntaxError(s.peek(), "Expect property name.")
-		}
-
-		tok := s.previous()
-
-		if tok.TokenType == ast.IDENTIFIER && endsItem(s.peekAt(0)) {
-			pairs = append(pairs, ast.ObjectPair{Key: key, Token: tok, Value: ast.NewVarExpr(tok)})
-			return key, tok, nil
-		}
-
-		if _, err := s.consume(ast.COLON, "Expect ':' after property name."); err != nil {
-			return "", tok, err
-		}
-
-		v, err := s.expressionWithStructs(structsAll)
-
-		if computed != nil {
-			computed.Value = v
-			pairs = append(pairs, ast.ObjectPair{Token: computed.Bracket, Value: computed})
-
-			return "", tok, err
-		}
-
-		pairs = append(pairs, ast.ObjectPair{Key: key, Token: tok, Value: v})
-
-		return key, tok, err
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return ast.NewObjectExpr(ast.OBJECT, pairs), nil
-}
-
 // qualifiedStructStart reports whether Name, m.Name, Enum.Case or
 // m.Enum.Case and then "{" start a struct literal; Name is the previous token.
 func (s *Parser) qualifiedStructStart() bool {
@@ -650,23 +577,32 @@ func (s *Parser) isStructLiteralStart(offset int) bool {
 	return false
 }
 
-// arrayLiteral parses [a, b, ...]; the "[" has already been consumed.
+// arrayLiteral parses [a, b, ...], or a map literal; the "[" has already
+// been consumed.
 func (s *Parser) arrayLiteral() (ast.Expr, error) {
+	bracket := s.previous()
+
+	if s.match(ast.COLON) {
+		_, err := s.consume(ast.RIGHT_BRACKET, "Expect ']' after ':' of an empty map.")
+		return &ast.MapExpr{Bracket: bracket}, err
+	}
+
 	var items []ast.Expr
 
-	if !s.check(ast.RIGHT_BRACKET) {
-		for {
-			elem, err := s.item(true)
-			if err != nil {
-				return nil, err
-			}
+	for !s.check(ast.RIGHT_BRACKET) {
+		elem, err := s.item(true)
+		if err != nil {
+			return nil, err
+		}
 
-			items = append(items, elem)
+		if len(items) == 0 && !ast.IsSpread(elem) && s.check(ast.COLON) {
+			return s.mapLiteral(bracket, elem)
+		}
 
-			// Allow a trailing comma, as in object literals.
-			if !s.match(ast.COMMA) || s.check(ast.RIGHT_BRACKET) {
-				break
-			}
+		items = append(items, elem)
+
+		if !s.match(ast.COMMA) {
+			break
 		}
 	}
 
@@ -675,6 +611,47 @@ func (s *Parser) arrayLiteral() (ast.Expr, error) {
 	}
 
 	return ast.NewArrayExpr(ast.ARRAY, items), nil
+}
+
+// mapLiteral parses the rest of [k: v, ...] after its first key.
+func (s *Parser) mapLiteral(bracket ast.Token, key ast.Expr) (ast.Expr, error) {
+	m := &ast.MapExpr{Bracket: bracket}
+	seen := value.NewHashMap(0)
+
+	for {
+		keyTok := s.previous()
+
+		if _, err := s.consume(ast.COLON, "Expect ':' after map key."); err != nil {
+			return nil, err
+		}
+
+		if lit, ok := key.(*ast.LiteralExpr); ok {
+			if _, dup, _ := seen.Get(lit.Value); dup {
+				s.errors = append(s.errors, errors.NewSyntaxError(keyTok, "Duplicate map key."))
+			}
+
+			_ = seen.Set(lit.Value, value.True)
+		}
+
+		v, err := s.expressionWithStructs(structsAll)
+		if err != nil {
+			return nil, err
+		}
+
+		m.Items = append(m.Items, key, v)
+
+		if !s.match(ast.COMMA) || s.check(ast.RIGHT_BRACKET) {
+			break
+		}
+
+		if key, err = s.expressionWithStructs(structsAll); err != nil {
+			return nil, err
+		}
+	}
+
+	_, err := s.consume(ast.RIGHT_BRACKET, "Expect ']' after map entries.")
+
+	return m, err
 }
 
 // arrowFunction parses (params) => body or param => body; ok is false,
@@ -728,40 +705,6 @@ func anonName(at ast.Token) ast.Token {
 	name.Col = at.Col
 
 	return name
-}
-
-// isObjectLiteralStart reports whether the upcoming tokens can only
-// start an object literal: "{" and a property name and ":", a shorthand
-// property and ",", "..." or a computed key.
-func (s *Parser) isObjectLiteralStart() bool {
-	if !s.check(ast.LEFT_BRACE) {
-		return false
-	}
-
-	key, after := s.peekAt(1), s.peekAt(2)
-
-	return key == ast.DOT_DOT_DOT || key == ast.LEFT_BRACKET && s.computedKeyStart() ||
-		(key == ast.IDENTIFIER || key == ast.STRING) && after == ast.COLON ||
-		key == ast.IDENTIFIER && after == ast.COMMA
-}
-
-// computedKeyStart reports whether the "[" after the "{" closes before a
-// ':', as in { [key]: value }, rather than starting a block with an array.
-func (s *Parser) computedKeyStart() bool {
-	depth := 0
-
-	for i := 1; ; i++ {
-		switch s.peekAt(i) {
-		case ast.LEFT_BRACKET, ast.LEFT_PAREN, ast.LEFT_BRACE:
-			depth++
-		case ast.RIGHT_BRACKET, ast.RIGHT_PAREN, ast.RIGHT_BRACE:
-			if depth--; depth == 0 {
-				return s.peekAt(i+1) == ast.COLON
-			}
-		case ast.EOF, ast.SEMICOLON:
-			return false
-		}
-	}
 }
 
 // endsItem reports whether t ends an item of a brace list, as after a

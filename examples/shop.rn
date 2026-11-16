@@ -14,16 +14,16 @@ impl Client {
     fun new() { Client {} }
 
     fun login(mut self, username, password) {
-        let r = self.send("POST", "/auth/login", { username, password, expiresInMins: 30 });
-        self.token = r.accessToken;
-        self.refreshToken = r.refreshToken;
+        let r = self.send("POST", "/auth/login", ["username": username, "password": password, "expiresInMins": 30]);
+        self.token = r["accessToken"];
+        self.refreshToken = r["refreshToken"];
         return r;
     }
 
     fun refresh(mut self) {
-        let r = self.send("POST", "/auth/refresh", { refreshToken: self.refreshToken });
-        self.token = r.accessToken;
-        self.refreshToken = r.refreshToken;
+        let r = self.send("POST", "/auth/refresh", ["refreshToken": self.refreshToken]);
+        self.token = r["accessToken"];
+        self.refreshToken = r["refreshToken"];
         self.refreshes += 1;
     }
 
@@ -49,17 +49,17 @@ impl Client {
     }
 
     fun send(self, method, path, body = nil) {
-        let mut headers = { Accept: "application/json" };
+        let mut headers = ["Accept": "application/json"];
 
         if self.token != nil {
-            headers.Authorization = "Bearer " + self.token;
+            headers["Authorization"] = "Bearer " + self.token;
         }
 
         if body != nil {
             headers["Content-Type"] = "application/json";
         }
 
-        let r = http.request(method, self.base + path, {
+        let r = http.request(method, self.base + path, HttpOptions {
             headers,
             body: if body == nil { nil } else { json.stringify(body) },
             timeout: 10,
@@ -68,7 +68,7 @@ impl Client {
         let data = if r.body == "" { nil } else { json.parse(r.body) };
 
         if r.status >= 400 {
-            throw ApiError { message: data?.message ?? "HTTP {r.status}", status: r.status, path };
+            throw ApiError { message: data?.["message"] ?? "HTTP {r.status}", status: r.status, path };
         }
 
         return data;
@@ -107,23 +107,25 @@ fun showCarts(carts) {
     }
 
     for cart in carts {
-        print("cart #{cart.id}: {cart.totalQuantity} items, {money(cart.total)} → {money(cart.discountedTotal)}");
-        let mut top = cart.products[..];
-        top.sort((a, b) => b.discountedTotal - a.discountedTotal);
-        for { title, quantity, price, discountPercentage } in top[..3] {
-            print("  {title[..28].padEnd(28)} {"%2d".format(quantity)} × {money(price).padStart(9)}  -{"%4.1f".format(discountPercentage)}%");
+        print("cart #{cart["id"]}: {cart["totalQuantity"]} items, {money(cart["total"])} → {money(cart["discountedTotal"])}");
+        let mut top = cart["products"][..];
+        top.sort((a, b) => b["discountedTotal"] - a["discountedTotal"]);
+        for p in top[..3] {
+            print("  {p["title"][..28].padEnd(28)} {"%2d".format(p["quantity"])} × {money(p["price"]).padStart(9)}  -{"%4.1f".format(p["discountPercentage"])}%");
         }
     }
 }
 
-fun showProducts(query, { products, total }) {
-    print("\"{query}\": {total} found, showing {products.len()}");
+fun showProducts(query, found) {
+    let products = found["products"];
+    print("\"{query}\": {found["total"]} found, showing {products.len()}");
     let mut byRating = products[..];
-    byRating.sort((a, b) => b.rating - a.rating);
-    for { id, title, price, rating, stock } in byRating {
+    byRating.sort((a, b) => b["rating"] - a["rating"]);
+    for p in byRating {
+        let [rating, stock] = [p["rating"], p["stock"]];
         let stars = "★".repeat(math.round(rating)) + "☆".repeat(5 - math.round(rating));
         let low = if stock < 10 { "  low stock: {stock}" } else { "" };
-        print("  #{"%-4d".format(id)} {title[..32].padEnd(32)} {money(price).padStart(9)}  {stars}{low}");
+        print("  #{"%-4d".format(p["id"])} {p["title"][..32].padEnd(32)} {money(p["price"]).padStart(9)}  {stars}{low}");
     }
 }
 
@@ -137,9 +139,10 @@ fun main([query = "phone"]) {
     try {
         let me = api.login(username, password);
         let claims = jwtClaims(api.token);
-        let ttl = math.round((claims.exp - time.now()) / 60);
-        print("{me.firstName} {me.lastName} <{me.email}>, user #{me.id}");
-        print("token expires in {ttl} min, at " + time.format(claims.exp, "%H:%M:%S", "UTC") + " UTC");
+        let exp = claims["exp"];
+        let ttl = math.round((exp - time.now()) / 60);
+        print("{me["firstName"]} {me["lastName"]} <{me["email"]}>, user #{me["id"]}");
+        print("token expires in {ttl} min, at " + time.format(exp, "%H:%M:%S", "UTC") + " UTC");
     } catch e is ApiError {
         io.eprint("login failed: {e.message} ({e.status})");
         return 1;
@@ -149,24 +152,25 @@ fun main([query = "phone"]) {
     }
 
     section("profile");
-    let { company, address, ...profile } = api.get("/me");
-    print("{profile.username}, {profile.age}, {profile.role}");
-    print("{company.title} at {company.name}, {address.city}, {address.country}");
+    let profile = api.get("/me");
+    let [company, address] = [profile["company"], profile["address"]];
+    print("{profile["username"]}, {profile["age"]}, {profile["role"]}");
+    print("{company["title"]} at {company["name"]}, {address["city"]}, {address["country"]}");
 
     section("carts");
-    showCarts(api.get("/carts/user/{profile.id}").carts);
+    showCarts(api.get("/carts/user/{profile["id"]}")["carts"]);
 
     section("search");
     showProducts(query, api.get("/products/search?q={urlEncode(query)}&limit=6&select=title,price,rating,stock"));
 
     section("create");
-    let created = api.post("/products/add", { title: "Rune Sticker Pack", price: 4.99, category: "stickers" });
-    print("created #{created.id}: " + json.stringify(created));
+    let created = api.post("/products/add", ["title": "Rune Sticker Pack", "price": 4.99, "category": "stickers"]);
+    print("created #{created["id"]}: " + json.stringify(created));
 
     section("expired token");
     api.expire();
     let again = api.get("/me");
-    print("got {again.username} after {api.refreshes} refresh");
+    print("got {again["username"]} after {api.refreshes} refresh");
 
     section("errors");
 

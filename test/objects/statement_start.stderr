@@ -1,6 +1,0 @@
-error: A '{' here starts a block; wrap an object in parentheses: ({ ... }).
- --> statement_start.rn:2:1
-  |
-1 | // "{" at the start of a statement always opens a block.
-2 | {x: 1}; // Error at '{': A '{' here starts a block; wrap an object in parentheses: ({ ... }).
-  | ^

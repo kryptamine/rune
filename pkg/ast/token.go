@@ -124,7 +124,6 @@ const (
 	GREATER_GREATER_GREATER_EQUAL
 
 	// Types
-	OBJECT
 	ARRAY
 	STRING
 	NUMBER
@@ -214,8 +213,6 @@ func (tokenType TokenType) String() string {
 		return "BYTES"
 	case ARRAY:
 		return "ARRAY"
-	case OBJECT:
-		return "OBJECT"
 
 		// keywords
 	case LET:

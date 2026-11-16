@@ -1,6 +1,9 @@
-TypeError: Cannot set field 'x' of Point outside its mut self methods.
-  --> set_index.rn:10:6
-   |
- 9 | print(p); // expect: Point {x: 3, y: 2}
-10 | p["x"] = 1; // expect runtime error: [line: 10] TypeError: Cannot set field 'x' of Point outside its mut self methods.
-   |      ^
+TypeError: Can only index arrays, strings, maps, bytes and buffers, got Point.
+ --> set_index.rn:4:35
+  |
+3 | impl Point {
+4 |   fun set(mut self, k, v) { self[k] = v; }
+  |                                   ^
+
+  at Point.set (set_index.rn:4)
+  at <script> (set_index.rn:8)

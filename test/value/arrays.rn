@@ -48,18 +48,18 @@ grid[1].push(8);
 print(snap); // expect: [0, 0]
 print(grid[1]); // expect: [7, 0, 8]
 
-let mut o = { xs: [1] };
-let xs = o.xs;
-o.xs.push(2);
-o.xs[0] = 0;
+let mut o = ["xs": [1]];
+let xs = o["xs"];
+o["xs"].push(2);
+o["xs"][0] = 0;
 print(xs); // expect: [1]
-print(o.xs); // expect: [0, 2]
+print(o["xs"]); // expect: [0, 2]
 
 // Storing into an element or a literal copies.
 let mut inner = [1];
-let outer = [inner, { v: inner }];
+let outer = [inner, ["v": inner]];
 inner.push(2);
-print(outer); // expect: [[1], {v: [1]}]
+print(outer); // expect: [[1], ["v": [1]]]
 
 let mut holder = [[]];
 let mut item = [1];
@@ -158,10 +158,10 @@ print(DIRS); // expect: [[0, 1], [1, 0]]
 print(dirs); // expect: [[9, 1], [1, 0], []]
 
 // An optional chain writes its copy back too.
-let mut opt = { xs: [1] };
-let optKeep = opt.xs;
-opt?.xs.push(2);
-print(opt); // expect: {xs: [1, 2]}
+let mut opt = ["xs": [1]];
+let optKeep = opt["xs"];
+opt?.["xs"].push(2);
+print(opt); // expect: ["xs": [1, 2]]
 print(optKeep); // expect: [1]
 
 // A parameter keeps its value while the call changes the variable passed.

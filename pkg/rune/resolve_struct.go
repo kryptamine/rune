@@ -56,7 +56,7 @@ func (p *Resolver) fields(decls []ast.StructField) []value.Field {
 
 			var ok bool
 			if def, ok = p.constantOf(f.Default); !ok {
-				p.error(f.DefaultAt, "Field default must be a constant: a literal, a const, an enum variant, or an array, object, map() or set() of them.")
+				p.error(f.DefaultAt, "Field default must be a constant: a literal, a const, an enum variant, or an array, map or set() of them.")
 			}
 		}
 		fields[i] = value.Field{Name: name, Default: def, Required: f.Default == nil}
@@ -81,16 +81,19 @@ func (p *Resolver) constantOf(e ast.Expr) (value.Value, bool) {
 			items[i] = v
 		}
 		return value.NewArray(items), true
-	case *ast.ObjectExpr:
-		fields := value.NewObj(len(n.Pairs))
-		for _, pair := range n.Pairs {
-			v, ok := p.constantOf(pair.Value)
+	case *ast.MapExpr:
+		m := value.NewHashMap(len(n.Items) / 2)
+		for i := 0; i < len(n.Items); i += 2 {
+			k, ok := p.constantOf(n.Items[i])
 			if !ok {
 				return value.NilValue, false
 			}
-			fields.Set(pair.Key, v)
+			v, ok := p.constantOf(n.Items[i+1])
+			if !ok || m.Set(k, v) != nil {
+				return value.NilValue, false
+			}
 		}
-		return value.NewObject(fields), true
+		return value.NewMap(m), true
 	case *ast.IndexExpr:
 		return p.variantOf(n)
 	case *ast.CallExpr:
@@ -98,10 +101,7 @@ func (p *Resolver) constantOf(e ast.Expr) (value.Value, bool) {
 		if !ok || len(n.Args) > 0 || callee.Module != nil || !p.isBuiltin(callee.Name.Lexeme) {
 			return value.NilValue, false
 		}
-		switch callee.Name.Lexeme {
-		case "map":
-			return value.NewMap(value.NewHashMap(0)), true
-		case "set":
+		if callee.Name.Lexeme == "set" {
 			return value.NewSet(value.NewHashMap(0)), true
 		}
 	}

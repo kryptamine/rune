@@ -1,14 +1,18 @@
+struct Person { name, age }
+struct A { a }
+struct B { b }
+
 fun greet(greeting, { name, age: mut years }, suffix) {
   years += 1;
   print(greeting + " " + name + suffix);
   return years;
 }
 
-print(greet("hi", { name: "ann", age: 30 }, "!"));
+print(greet("hi", Person { name: "ann", age: 30 }, "!"));
 // expect: hi ann!
 // expect: 31
 
 let pick = ({ a }, { b }) => { return a + b; };
-print(pick({ a: 1 }, { b: 2 })); // expect: 3
+print(pick(A { a: 1 }, B { b: 2 })); // expect: 3
 
-print([{ v: 1 }, { v: 2 }].map(({ v }) => { return v * 10; })); // expect: [10, 20]
+print([A { a: 1 }, A { a: 2 }].map(({ a }) => { return a * 10; })); // expect: [10, 20]

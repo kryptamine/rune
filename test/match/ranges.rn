@@ -1,5 +1,6 @@
 const LOW = 10;
 const HIGH = 20;
+struct Resp { status }
 
 fun class(code) {
     return match code {
@@ -52,8 +53,8 @@ print(where(1));               // expect: fraction
 print(where(1.5));             // expect: number
 print(where(-100.5));           // expect: far
 print(where(-100));             // expect: number
-print(where({ status: 204 })); // expect: ok
-print(where({ status: 404 })); // expect: other
+print(where(Resp { status: 204 })); // expect: ok
+print(where(Resp { status: 404 })); // expect: other
 print(where([-1, 1]));         // expect: pair
 print(where([0, 1]));          // expect: other
 

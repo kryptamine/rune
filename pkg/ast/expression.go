@@ -17,7 +17,7 @@ type ExprVisitor interface {
 	VisitArrayExpr(arrayExpr *ArrayExpr) (value.Value, error)
 	VisitIndexExpr(indexExpr *IndexExpr) (value.Value, error)
 	VisitSetIndexExpr(setIndexExpr *SetIndexExpr) (value.Value, error)
-	VisitObjectExpr(objectExpr *ObjectExpr) (value.Value, error)
+	VisitMapExpr(mapExpr *MapExpr) (value.Value, error)
 	VisitFunctionExpr(functionExpr *FunctionExpr) (value.Value, error)
 	VisitRangeExpr(rangeExpr *RangeExpr) (value.Value, error)
 	VisitSliceExpr(sliceExpr *SliceExpr) (value.Value, error)
@@ -27,7 +27,6 @@ type ExprVisitor interface {
 	VisitInterpolationExpr(interpolationExpr *InterpolationExpr) (value.Value, error)
 	VisitOptionalExpr(optionalExpr *OptionalExpr) (value.Value, error)
 	VisitSpreadExpr(spreadExpr *SpreadExpr) (value.Value, error)
-	VisitComputedExpr(computedExpr *ComputedExpr) (value.Value, error)
 	VisitIfExpr(ifExpr *IfExpr) (value.Value, error)
 	VisitThrowExpr(throwExpr *ThrowExpr) (value.Value, error)
 	VisitTryExpr(tryExpr *TryExpr) (value.Value, error)
@@ -196,7 +195,7 @@ func NewPropertyExpr(object Expr, name Token, optional bool) Expr {
 	return &IndexExpr{Array: object, Index: NewLiteralExpr(STRING, name.Lexeme), Token: name, Property: true, Optional: optional}
 }
 
-// SetIndexExpr assigns to an array element or object property. For a
+// SetIndexExpr assigns to an element, a map key or a field. For a
 // compound assignment (arr[i] += v) Op is the binary operator to apply to
 // the old value; otherwise it is nil. Array and Index are evaluated once.
 type SetIndexExpr struct {
@@ -282,7 +281,7 @@ func (n *OptionalExpr) Accept(v ExprVisitor) (value.Value, error) {
 	return v.VisitOptionalExpr(n)
 }
 
-// SpreadExpr is ...expr, an item of an array or object literal or an argument.
+// SpreadExpr is ...expr, an item of an array literal or an argument.
 type SpreadExpr struct {
 	Token Token
 	Expr  Expr
@@ -298,49 +297,15 @@ func IsSpread(e Expr) bool {
 	return ok
 }
 
-// ComputedExpr is [key]: value, an item of an object literal.
-type ComputedExpr struct {
-	Bracket    Token
-	Key, Value Expr
+// MapExpr is [k: v, ...], or [:] with no entries. Items holds each key
+// followed by its value.
+type MapExpr struct {
+	Bracket Token
+	Items   []Expr
 }
 
-func (n *ComputedExpr) Accept(v ExprVisitor) (value.Value, error) {
-	return v.VisitComputedExpr(n)
-}
-
-// Standalone reports whether e is an item a literal adds on its own, as
-// a spread or a computed property is, rather than in a run of plain ones.
-func Standalone(e Expr) bool {
-	switch e.(type) {
-	case *SpreadExpr, *ComputedExpr:
-		return true
-	}
-
-	return false
-}
-
-// ObjectPair is a single "key: value" entry of an object literal, or a
-// spread or computed property, whose Value is a *SpreadExpr or a
-// *ComputedExpr. Token is its key, the [ of a computed one or the ... of
-// a spread.
-type ObjectPair struct {
-	Key   string
-	Token Token
-	Value Expr
-}
-
-type ObjectExpr struct {
-	TokenType TokenType
-	// Pairs keep source order so values are evaluated left to right.
-	Pairs []ObjectPair
-}
-
-func NewObjectExpr(tokenType TokenType, pairs []ObjectPair) Expr {
-	return &ObjectExpr{TokenType: tokenType, Pairs: pairs}
-}
-
-func (n *ObjectExpr) Accept(v ExprVisitor) (value.Value, error) {
-	return v.VisitObjectExpr(n)
+func (n *MapExpr) Accept(v ExprVisitor) (value.Value, error) {
+	return v.VisitMapExpr(n)
 }
 
 func (n *ArrayExpr) Accept(v ExprVisitor) (value.Value, error) {

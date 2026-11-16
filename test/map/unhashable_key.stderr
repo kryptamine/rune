@@ -1,0 +1,5 @@
+TypeError: Cannot use an array as a key.
+ --> unhashable_key.rn:1:7
+  |
+1 | print([[1]: 2]); // expect runtime error: [line: 1] TypeError: Cannot use an array as a key.
+  |       ^

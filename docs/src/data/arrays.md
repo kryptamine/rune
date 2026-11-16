@@ -195,10 +195,12 @@ chains of them read like a pipeline. All of them are in
 [Array Methods](../stdlib/array.md).
 
 ```rune
+struct Order { id, total }
+
 let orders = [
-    { id: 1, total: 30 },
-    { id: 2, total: 120 },
-    { id: 3, total: 75 },
+    Order { id: 1, total: 30 },
+    Order { id: 2, total: 120 },
+    Order { id: 3, total: 75 },
 ];
 
 let big = orders.filter(o => o.total > 50).map(o => o.id);

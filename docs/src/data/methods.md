@@ -51,7 +51,7 @@ Money.zero().zero(); // TypeError: 'zero' is a static method of Money; call it a
 ## Mutating Methods
 
 A method that takes `mut self` may change the instance: set its fields
-(`self.balance += 1`, `self["x"] = 1`), change what they hold
+(`self.balance += 1`), change what they hold
 (`self.items.push(x)`) or replace `self` as a whole. Without `mut`,
 `self` is read-only. Mutating methods are the only place a struct's
 fields can be set; see [Setting Fields](structs.md#setting-fields).
@@ -126,8 +126,8 @@ print(acc.balance);   // 50
 ### Where a Mutating Method Can Be Called
 
 The receiver must be something that can be changed: a `let mut`
-variable, or an element, property or field reached from one. That
-includes structs stored in arrays and objects:
+variable, or an element, key or field reached from one. That includes
+structs stored in arrays and maps:
 
 ```rune
 struct Account { owner, balance = 0 }
@@ -139,6 +139,10 @@ impl Account {
 let mut accounts = [Account { owner: "ann" }, Account { owner: "bob" }];
 accounts[1].deposit(25);
 print(accounts[1]); // Account {owner: "bob", balance: 25}
+
+let mut byOwner = ["ann": Account { owner: "ann" }];
+byOwner["ann"].deposit(10);
+print(byOwner["ann"].balance); // 10
 ```
 
 On an immutable variable, a struct literal or the result of a call, there
@@ -218,21 +222,15 @@ let save = Button { label: "save", onClick: () => "saved" };
 save.onClick(); // TypeError: Button has no method 'onClick'; call the function in its field as (x.onClick)().
 ```
 
-Plain objects hold data only, so a function cannot be the value of an
-object property. Put behavior in a struct and its `impl`. For a lookup
-table of functions by name, use a [map](map-and-set.md):
+For a lookup table of functions by name, use a [map](map-and-set.md):
 
 ```rune
-let greeters = map([
-    ["en", name => "hello, " + name],
-    ["es", name => "hola, " + name],
-]);
+let greeters = [
+    "en": name => "hello, " + name,
+    "es": name => "hola, " + name,
+];
 
 print(greeters["es"]("ann")); // hola, ann
-```
-
-```rune
-let handlers = { greet: name => "hi " + name }; // Error at 'greet': Property 'greet' of an object cannot hold a function.
 ```
 
 Functions of a namespace, such as `math.floor(x)` or `fs.join(a, b)`, are
@@ -241,7 +239,7 @@ not methods; they are plain functions grouped under a name.
 ## Methods on Built-in Types
 
 `impl` also works on the built-in types `string`, `number`, `boolean`,
-`array`, `object`, `function`, `map`, `set`, `bytes` and `stream`. This
+`array`, `function`, `map`, `set`, `bytes` and `stream`. This
 lets you add the helpers your program keeps needing:
 
 ```rune

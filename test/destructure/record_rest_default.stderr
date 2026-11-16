@@ -1,0 +1,5 @@
+error: A rest element or _ cannot have a default.
+ --> record_rest_default.rn:1:12
+  |
+1 | let { ...r = nil } = nil; // Error at '=': A rest element or _ cannot have a default.
+  |            ^

@@ -8,12 +8,14 @@ missing value, `??` supplies a default, and `return`, `break` or
 
 ## Optional Chaining
 
-Reading a property of `nil` is an error. With `?.` instead of `.`, the
+Reading a field of `nil` is an error. With `?.` instead of `.`, the
 read gives `nil` when the left side is `nil`, and the rest of the chain
 is skipped:
 
 ```rune
-let user = { name: "ann", profile: nil };
+struct User { name, profile = nil }
+
+let user = User { name: "ann" };
 
 print(user.profile?.city);            // nil
 print(user.profile?.address.city);    // nil
@@ -23,11 +25,13 @@ The second line shows the skip: once `user.profile` is `nil`, neither
 `.address` nor `.city` is read, so one `?.` guards the whole chain after
 it.
 
-`?.` also reads properties, fields and elements that are missing, instead
-of failing. `?.[i]` is the indexing form:
+`?.` also reads fields, keys and elements that are missing, instead of
+failing. `?.[i]` is the indexing form:
 
 ```rune
-let users = [{ name: "ann" }];
+struct User { name }
+
+let users = [User { name: "ann" }];
 
 print(users?.[0]?.name);    // ann
 print(users?.[5]?.name);    // nil
@@ -37,8 +41,9 @@ print(users[0]?.email);     // nil
 Without `?.` the same read is an error:
 
 ```rune
-let user = { name: "ann" };
-print(user.email); // KeyError: Undefined property 'email'.
+struct User { name }
+let user = User { name: "ann" };
+print(user.email); // KeyError: User has no field 'email'.
 ```
 
 `f?.(args)` calls `f` only if it is not `nil`. It suits optional
@@ -52,8 +57,8 @@ print(onDone?.("ok"));    // nil
 print(notify?.("ok"));    // sent ok
 ```
 
-`?.` only forgives `nil` and missing keys. Reading a property of a value
-that has no properties at all, such as a number, is still a `TypeError`:
+`?.` only forgives `nil` and missing keys. Reading a field of a value
+that has no fields at all, such as a number, is still a `TypeError`:
 
 ```rune
 print(5?.x); // TypeError: Cannot read property 'x' of number.
@@ -62,8 +67,9 @@ print(5?.x); // TypeError: Cannot read property 'x' of number.
 A chain with `?.` reads; it cannot be assigned to:
 
 ```rune
-let mut user = { profile: nil };
-user?.profile = {}; // Error at '=': Invalid assignment target.
+struct User { profile = nil }
+let mut user = User {};
+user?.profile = 1; // Error at '=': Invalid assignment target.
 ```
 
 ## Default Values
@@ -75,15 +81,17 @@ a deeply nested value with a fallback in one line:
 let resp = json.parse(r"""{"data": {"items": [1, 2]}}""");
 let empty = json.parse("\{}");
 
-print(resp?.data?.items ?? []);     // [1, 2]
-print(empty?.data?.items ?? []);    // []
+print(resp?.["data"]?.["items"] ?? []);     // [1, 2]
+print(empty?.["data"]?.["items"] ?? []);    // []
 ```
 
 Unlike `||`, `??` keeps `false`, `0` and `""`. Only `nil` is replaced, so
 a setting that is explicitly off stays off:
 
 ```rune
-let opts = { retries: 0, verbose: false };
+struct Opts { retries = 0, verbose = false }
+
+let opts = Opts {};
 
 print(opts.retries ?? 3);       // 0
 print(opts.retries || 3);       // 3
@@ -116,21 +124,21 @@ separate `if`:
 
 ```rune
 fun port(cfg) {
-    let p = cfg?.port ?? return 80;
+    let p = cfg?.["port"] ?? return 80;
     number(p)
 }
 
-print(port({ port: "8080" }));    // 8080
+print(port(["port": "8080"]));    // 8080
 print(port(nil));                 // 80
 ```
 
 In a loop, `?? continue` skips the rows that lack a value:
 
 ```rune
-let rows = [{ id: 1 }, {}, { id: 3 }];
+let rows = [["id": 1], [:], ["id": 3]];
 let mut ids = [];
 for row in rows {
-    ids.push(row?.id ?? continue);
+    ids.push(row?.["id"] ?? continue);
 }
 print(ids);    // [1, 3]
 ```

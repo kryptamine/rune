@@ -28,7 +28,7 @@ export fun specs(calls, scope) {
 
 export fun aggregate(rows, keys, aggs) {
     let nk = keys.len();
-    let mut slots = map();
+    let mut slots = [:];
     let mut groups = [];
 
     let fresh = () => aggs.map(a => match a {

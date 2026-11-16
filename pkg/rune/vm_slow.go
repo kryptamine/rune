@@ -2,7 +2,6 @@ package rune
 
 import (
 	"fmt"
-	"iter"
 	"rune/pkg/ast"
 	"rune/pkg/errors"
 	"rune/pkg/helpers"
@@ -13,8 +12,8 @@ import (
 
 // slow runs in, the instruction before the top frame's pc, for the cases
 // the dispatch loop leaves out. It may grow the stack.
-// missingProp is what a property read gives for one an object or struct
-// does not have, or nil for an error.
+// missingProp is what a property read gives for a field a struct does
+// not have, or nil for an error.
 func missingProp(in Instr) *value.Value {
 	switch {
 	case in.x()&getMissing != 0:
@@ -105,20 +104,18 @@ func (p *Interpreter) slow(in Instr) error {
 		p.buf = buf
 		regs[in.a()] = value.NewString(string(buf))
 
-	case opObject:
-		keys := f.keys[in.c()]
-
-		var obj *value.Obj
+	case opMap:
+		var m *value.HashMap
 		if in.x() == 0 {
-			obj = value.NewObj(len(keys))
-			regs[in.a()] = value.NewObject(obj)
+			m = value.NewHashMap(int(in.c()))
+			regs[in.a()] = value.NewMap(m)
 		} else {
-			obj = regs[in.a()].Obj()
+			m = regs[in.a()].HashMap()
 		}
 
-		for i, k := range keys {
-			if !obj.Set(k, regs[in.b()+i]) {
-				return functionProperty(&f.keyToks[in.c()][i], k)
+		for i := in.b(); i < in.b()+2*in.c(); i += 2 {
+			if err := m.Set(regs[i], regs[i+1]); err != nil {
+				return keyError(tok, err)
 			}
 		}
 
@@ -174,10 +171,10 @@ func (p *Interpreter) slow(in Instr) error {
 
 	case opSetIndex, opSetProp:
 		t, key := regs[in.a()], setKey(in, regs, consts)
-		field := t.Kind() == value.Struct && in.y()
+		field := in.op() == opSetProp && t.Kind() == value.Struct && in.y()
 
 		switch {
-		case field || in.op() == opSetIndex || t.Kind() == value.Object:
+		case field || in.op() == opSetIndex:
 			if t.Shared() {
 				t = value.Unshare(t)
 				regs[in.a()] = t
@@ -190,7 +187,7 @@ func (p *Interpreter) slow(in Instr) error {
 
 			return setIndex(tok, t, key, regs[in.c()])
 		default:
-			// SetProp gets here only for a target that is not an object.
+			// SetProp gets here only for a target that takes no property.
 			return propertyTarget(tok, t)
 		}
 
@@ -351,8 +348,8 @@ func (p *Interpreter) slow(in Instr) error {
 	case opForIter:
 		v := regs[in.a()]
 		if in.x()&forMut != 0 {
-			if k := v.Kind(); k != value.Array && k != value.Object && k != value.Map {
-				return errors.NewRuntimeError(errors.TypeError, *tok, "A 'for mut' loop writes back into an array, object or map, not "+helpers.TypeName(v)+".")
+			if k := v.Kind(); k != value.Array && k != value.Map {
+				return errors.NewRuntimeError(errors.TypeError, *tok, "A 'for mut' loop writes back into an array or map, not "+helpers.TypeName(v)+".")
 			}
 		}
 
@@ -438,38 +435,16 @@ func setKey(in Instr, regs, consts []value.Value) value.Value {
 	return regs[in.b()]
 }
 
-// spread adds the elements of src to the array dst, or the properties or
-// fields of src to the object dst.
+// spread adds the elements of src to the array dst.
 func spread(tok *ast.Token, dst, src value.Value) error {
-	if dst.Kind() == value.Array {
-		arr := dst.ArrRef()
+	arr := dst.ArrRef()
 
-		items, ok := spreadItems(*arr, src)
-		if !ok {
-			return spreadError(tok, src, "an array")
-		}
-
-		*arr = items
-
-		return nil
+	items, ok := spreadItems(*arr, src)
+	if !ok {
+		return spreadError(tok, src, "an array")
 	}
 
-	obj := dst.Obj()
-
-	switch src.Kind() {
-	case value.Object:
-		for k, v := range src.Obj().All() {
-			obj.Set(k, value.Share(v))
-		}
-	case value.Struct:
-		for k, v := range src.FieldPairs() {
-			if !obj.Set(k, value.Share(v)) {
-				return functionProperty(tok, k)
-			}
-		}
-	default:
-		return spreadError(tok, src, "an object")
-	}
+	*arr = items
 
 	return nil
 }
@@ -511,8 +486,8 @@ func spreadArgs(src value.Value) ([]value.Value, bool) {
 // registers fields.
 func spreadFields(tok *ast.Token, shape *value.Shape, fields []value.Value, src value.Value) error {
 	switch {
-	case src.Kind() == value.Object:
-		return stdlib.AssignFields(tok, shape, fields, src.Obj())
+	case src.Kind() == value.Map:
+		return stdlib.AssignFields(tok, shape, fields, src.HashMap())
 	case src.Kind() == value.Struct && src.Shape() == shape:
 		value.ShareAll(src.Fields())
 		copy(fields, src.Fields())
@@ -523,28 +498,21 @@ func spreadFields(tok *ast.Token, shape *value.Shape, fields []value.Value, src 
 	return nil
 }
 
-// omit is the rest of an object pattern: src, an object or a struct, as
-// an object without keys.
+// omit is the rest of a record pattern: the fields of the struct src
+// but keys, as a map.
 func omit(tok *ast.Token, src value.Value, keys []string) (value.Value, error) {
-	var all iter.Seq2[string, value.Value]
-
-	switch src.Kind() {
-	case value.Object:
-		all = src.Obj().All()
-	case value.Struct:
-		all = src.FieldPairs()
-	default:
-		return value.Value{}, errors.NewRuntimeError(errors.TypeError, *tok, "Cannot destructure "+helpers.TypeName(src)+" as an object.")
+	if src.Kind() != value.Struct {
+		return value.Value{}, errors.NewRuntimeError(errors.TypeError, *tok, "Cannot destructure "+helpers.TypeName(src)+" by fields.")
 	}
 
-	obj := value.NewObj(0)
-	for k, v := range all {
-		if !slices.Contains(keys, k) && !obj.Set(k, value.Share(v)) {
-			return value.Value{}, functionProperty(tok, k)
+	m := value.NewHashMap(0)
+	for k, v := range src.FieldPairs() {
+		if !slices.Contains(keys, k) {
+			_ = m.Set(value.NewString(k), value.Share(v))
 		}
 	}
 
-	return value.NewObject(obj), nil
+	return value.NewMap(m), nil
 }
 
 // unpackError says an array of got elements does not fit a pattern

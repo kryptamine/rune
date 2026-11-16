@@ -12,7 +12,7 @@ export fun write(format, columns, rows) {
                 io.write(r.map(table.quoteCsv).join(",") + "\n");
             }
         },
-        "json" => io.write(json.stringify(rows.map(r => object(columns.map((c, i) => [c, r[i]]))), 2) + "\n"),
+        "json" => io.write(json.stringify(rows.map(r => map(columns.map((c, i) => [c, r[i]]))), 2) + "\n"),
         _ => printTable(columns, rows),
     }
 }

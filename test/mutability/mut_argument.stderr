@@ -28,8 +28,8 @@ error: Cannot pass immutable variable 'xs' to mut parameter 'tags'.
 error: Cannot pass immutable variable 'o' to mut parameter 'tags'.
  --> mut_argument.rn:7:8
   |
-6 | let o = { xs: [] };
-7 | addTag(o.xs, 1); // [line: 7] Error at 'o': Cannot pass immutable variable 'o' to mut parameter 'tags'.
+6 | let o = ["xs": []];
+7 | addTag(o["xs"], 1); // [line: 7] Error at 'o': Cannot pass immutable variable 'o' to mut parameter 'tags'.
   |        ^
   |
   = hint: declare it as 'mut o' on line 6
@@ -37,7 +37,7 @@ error: Cannot pass immutable variable 'o' to mut parameter 'tags'.
 error: Mut parameter 'tags' takes a mutable variable, element or property.
  --> mut_argument.rn:8:19
   |
-7 | addTag(o.xs, 1); // [line: 7] Error at 'o': Cannot pass immutable variable 'o' to mut parameter 'tags'.
+7 | addTag(o["xs"], 1); // [line: 7] Error at 'o': Cannot pass immutable variable 'o' to mut parameter 'tags'.
 8 | addTag(pass([]), 1); // [line: 8] Error at ')': Mut parameter 'tags' takes a mutable variable, element or property.
   |                   ^
   |

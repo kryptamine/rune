@@ -1,1 +1,1 @@
-let mut { a } = { a: 1 }; // Error at '{': Expect variable name.
+let mut { a } = nil; // Error at '{': Expect variable name.

@@ -20,7 +20,7 @@ func (p *Resolver) VisitImplStmt(stmt *ast.ImplStmt) error {
 
 var builtinKinds = map[string]value.Kind{
 	"string": value.String, "number": value.Number, "boolean": value.Bool,
-	"array": value.Array, "object": value.Object, "function": value.Function,
+	"array": value.Array, "function": value.Function,
 	"map": value.Map, "set": value.Set, "bytes": value.Bytes,
 	"stream": value.Stream, "buffer": value.Buffer,
 }
