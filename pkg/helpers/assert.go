@@ -12,12 +12,9 @@ func IsEqual(left, right value.Value) bool {
 		return false
 	}
 
-	// A copy not yet written is the same container.
-	switch left.Kind() {
-	case value.Array, value.Object, value.Struct, value.Map, value.Set:
-		if left.Ptr() == right.Ptr() {
-			return true
-		}
+	// A copy not yet written is the same container; NaN is no number's equal.
+	if left == right && left.Kind() != value.Number {
+		return true
 	}
 
 	switch left.Kind() {

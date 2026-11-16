@@ -23,22 +23,23 @@ func (fs *funcState) stmts(stmts []ast.Stmt) {
 // the way out of rest, and if rest fails, before the error goes on up.
 func (fs *funcState) deferStmt(d *ast.DeferStmt, rest []ast.Stmt) {
 	at := fs.nactive
-	try := fs.handled(ins{op: opTry, a: at, x: 1}, d.Body, func() { fs.stmts(rest) })
-	fs.runDefer(d.Body)
-	end := fs.emit(ins{op: opJmp}, nil)
+	run := func() { fs.runDefer(d.Body) }
+	try := fs.handled(ins{op: opTry, a: at, x: 1}, &unwind{leave: run, try: true}, func() { fs.stmts(rest) })
+	run()
+	fs.rethrowAfter(try, at, run)
+}
 
-	fs.onError(try, at, func() {
-		fs.declare(nil)
-		fs.declare(nil) // the error
-		fs.runDefer(d.Body)
-		fs.emit(ins{op: opRethrow, a: at + 1}, nil)
-	})
-	fs.patch([]int{end})
+// unwind is what leaving the code being compiled passes, besides the
+// handler of a try: code to run on the way out, under a handler of its
+// own if try, which goes first.
+type unwind struct {
+	leave func()
+	try   bool
 }
 
 // handled emits try and compiles body under its handler, with entry on
 // unwinds; it returns try's index, for onError.
-func (fs *funcState) handled(try ins, entry ast.Stmt, body func()) int {
+func (fs *funcState) handled(try ins, entry *unwind, body func()) int {
 	at := fs.emit(try, nil)
 
 	fs.unwinds = append(fs.unwinds, entry)
@@ -61,6 +62,20 @@ func (fs *funcState) onError(try int, at int32, handle func()) {
 	fs.nactive, fs.free = nactive, free
 }
 
+// rethrowAfter jumps over a handler compiled where the try at index try
+// resumes, which runs handle and passes the error on up.
+func (fs *funcState) rethrowAfter(try int, at int32, handle func()) {
+	end := fs.emit(ins{op: opJmp}, nil)
+
+	fs.onError(try, at, func() {
+		fs.declare(nil)
+		fs.declare(nil) // the error
+		handle()
+		fs.emit(ins{op: opRethrow, a: at + 1}, nil)
+	})
+	fs.patch([]int{end})
+}
+
 func (fs *funcState) runDefer(body ast.Stmt) { fs.scoped(func() { fs.stmt(body) }) }
 
 // runDefers runs the bodies of the defers above unwinds[depth], each after
@@ -70,14 +85,14 @@ func (fs *funcState) runDefers(depth int) (handlers int) {
 	fs.nactive = free
 
 	for i := len(fs.unwinds) - 1; i >= depth; i-- {
-		body := fs.unwinds[i]
-		if body == nil {
+		u := fs.unwinds[i]
+		if u == nil {
 			handlers++
 			continue
 		}
 
-		if wb, ok := body.(*writeBack); ok && !wb.handled {
-			wb.put()
+		if !u.try {
+			u.leave()
 			continue
 		}
 
@@ -86,13 +101,7 @@ func (fs *funcState) runDefers(depth int) (handlers int) {
 
 		unwinds := fs.unwinds
 		fs.unwinds = unwinds[:i:i]
-
-		if wb, ok := body.(*writeBack); ok {
-			wb.put()
-		} else {
-			fs.runDefer(body)
-		}
-
+		u.leave()
 		fs.unwinds = unwinds
 	}
 
@@ -161,7 +170,7 @@ func (fs *funcState) returnStmt(s *ast.ReturnStmt) {
 
 	v := fs.exprAny(s.Value)
 
-	if v < fs.nactive && slices.ContainsFunc(fs.unwinds, func(s ast.Stmt) bool { return s != nil }) {
+	if v < fs.nactive && slices.ContainsFunc(fs.unwinds, func(u *unwind) bool { return u != nil }) {
 		t := fs.alloc()
 		fs.move(t, v)
 		v = t
@@ -474,7 +483,7 @@ func (fs *funcState) forIn(s *ast.ForInStmt) {
 		enter := fs.emit(ins{op: opJmp}, nil)
 		body := fs.here()
 
-		var wb *writeBack
+		var handler func()
 
 		l := fs.loop(func() {
 			fs.move(at, key)
@@ -491,7 +500,7 @@ func (fs *funcState) forIn(s *ast.ForInStmt) {
 				return
 			}
 
-			wb = fs.writeBackLoop(s, coll, at, val)
+			handler = fs.writeBackLoop(s, coll, at, val)
 		})
 
 		fs.patch([]int{enter})
@@ -500,7 +509,9 @@ func (fs *funcState) forIn(s *ast.ForInStmt) {
 		next.c = body
 		fs.emit(next, &s.Keyword)
 		fs.patch(l.breaks)
-		wb.handler(fs)
+		if handler != nil {
+			handler()
+		}
 	})
 }
 

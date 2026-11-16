@@ -58,8 +58,7 @@ var arrayMethods = []*Native{
 	}},
 	{"array.find", 2, 2, func(c *call) value.Value {
 		if i := firstWhere(c, true); i >= 0 {
-			value.Share(c.arr(0)[i])
-			return c.arr(0)[i]
+			return value.Share(c.arr(0)[i])
 		}
 
 		return value.NilValue
@@ -89,9 +88,7 @@ var arrayMethods = []*Native{
 			acc = c.invoke(f, buf)
 		}
 
-		value.Share(acc)
-
-		return acc
+		return value.Share(acc)
 	}},
 }
 

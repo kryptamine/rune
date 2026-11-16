@@ -1,0 +1,6 @@
+error: Cannot assign to 'p' inside a 'for mut' loop over it.
+ --> mut_assign.rn:3:3
+  |
+2 | for mut x in p {
+3 |   p = []; // [line: 3] Error at 'p': Cannot assign to 'p' inside a 'for mut' loop over it.
+  |   ^

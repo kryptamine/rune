@@ -7,6 +7,7 @@ import (
 	"rune/pkg/helpers"
 	"rune/pkg/stdlib"
 	"rune/pkg/value"
+	"slices"
 )
 
 type localVar struct {
@@ -61,17 +62,18 @@ type Resolver struct {
 	nmethods int
 	// impls holds the impl blocks at the top level of a file.
 	impls       map[*ast.ImplStmt]bool
-	methodKinds map[string]methodKind
+	methodKinds map[string]ast.MethodKind
 	// methodInout has, for each method name, a bit for each argument a
 	// mut parameter of a method of that name takes.
 	methodInout map[string]uint32
 	// anyInout has a bit for each argument a mut parameter of some
 	// function of the program takes.
 	anyInout uint32
+	// walked holds the variables the for mut loops being resolved write
+	// back into.
+	walked []*ast.Local
 	// fns holds the function each fun, or let of an arrow function, binds.
 	fns map[*ast.Local]*ast.FunctionStmt
-	// uses counts the references to each variable so far.
-	uses map[*ast.Local]int
 	// consts holds the constants of the file being resolved, and how far
 	// each one's value is; constDecls finds them by declaration.
 	consts     map[*ast.VarStmt]constState
@@ -92,7 +94,6 @@ func NewResolver() *Resolver {
 		fieldNames: stdlib.FieldNames(),
 		impls:      map[*ast.ImplStmt]bool{},
 		fns:        map[*ast.Local]*ast.FunctionStmt{},
-		uses:       map[*ast.Local]int{},
 		nmethods:   len(stdlib.Methods),
 		hints:      map[ast.Token]string{},
 	}
@@ -307,16 +308,14 @@ func (p *Resolver) VisitWhileStmt(whileStmt *ast.WhileStmt) error {
 func (p *Resolver) VisitForInStmt(stmt *ast.ForInStmt) error {
 	p.resolveExpr(stmt.Iterable)
 
-	var root *ast.Local
 	if stmt.Value.Mutable {
 		p.requirePlace(stmt)
 
-		if v := rootVar(stmt.Iterable); v != nil {
-			root = v.Local
+		if root := rootVar(stmt.Iterable); root != nil && root.Local != nil {
+			p.walked = append(p.walked, root.Local)
+			defer func() { p.walked = p.walked[:len(p.walked)-1] }()
 		}
 	}
-
-	uses := p.uses[root]
 
 	p.beginScope()
 
@@ -335,8 +334,6 @@ func (p *Resolver) VisitForInStmt(stmt *ast.ForInStmt) error {
 
 	p.resolveLoopBody(stmt.Body)
 	p.endScope()
-
-	stmt.Alone = root != nil && p.uses[root] == uses
 
 	return nil
 }
@@ -478,6 +475,10 @@ func (p *Resolver) VisitAssignExpr(expr *ast.AssignExpr) (value.Value, error) {
 	var ok bool
 	if expr.Local, ok = p.use(expr.Name, "assign to"); ok {
 		p.requireMutable(expr.Name, "assign to")
+	}
+
+	if expr.Local != nil && slices.Contains(p.walked, expr.Local) {
+		p.error(expr.Name, "Cannot assign to '"+expr.Name.Lexeme+"' inside a 'for mut' loop over it.")
 	}
 
 	return value.NilValue, nil
@@ -825,8 +826,6 @@ func (p *Resolver) resolveLocal(name ast.Token) *ast.Local {
 				l.local.Captured = true
 			}
 
-			p.uses[l.local]++
-
 			return l.local
 		}
 	}
@@ -839,8 +838,6 @@ func (p *Resolver) resolveLocal(name ast.Token) *ast.Local {
 	if l != nil && p.fnDepth > 0 {
 		l.Captured = true
 	}
-
-	p.uses[l]++
 
 	return l
 }

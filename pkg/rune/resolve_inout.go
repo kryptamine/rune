@@ -43,7 +43,7 @@ func (p *Resolver) inout(call *ast.CallExpr) {
 	}
 
 	for i, arg := range call.Args {
-		if i < 15 && mask&(1<<i) != 0 && p.mutablePlace(arg) {
+		if mask&(1<<i) != 0 && p.mutablePlace(arg) {
 			call.Inout |= 1 << i
 		}
 	}

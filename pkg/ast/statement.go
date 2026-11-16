@@ -191,7 +191,7 @@ type ForInStmt struct {
 	Iterable Expr
 	Body     Stmt
 	// Alone is set on a for mut whose body never names the variable the
-	// collection is read from.
+	// collection is read from, by the compiler's liveness walk.
 	Alone bool
 }
 
@@ -240,7 +240,7 @@ type FunctionStmt struct {
 func (n *FunctionStmt) Inout() uint32 {
 	var mask uint32
 	for i, p := range n.Parameters {
-		if p.Mutable && !(i == 0 && p.Name.Lexeme == "self") && !(n.Rest && i == len(n.Parameters)-1) && i < 16 {
+		if p.Mutable && !(i == 0 && p.Name.Lexeme == "self") && !(n.Rest && i == len(n.Parameters)-1) {
 			mask |= 1 << i
 		}
 	}

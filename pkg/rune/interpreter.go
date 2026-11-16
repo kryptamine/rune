@@ -218,6 +218,10 @@ func (p *Interpreter) enter(cl *Closure, base, nargs int, tok *ast.Token, inout 
 		}
 	}
 
+	if m := f.inout & inout; m != 0 {
+		p.frames[len(p.frames)-1].skipToWriteBacks(m)
+	}
+
 	if need := base + f.nregs; need > len(p.stack) {
 		p.grow(need)
 	}
@@ -315,15 +319,21 @@ func (p *Interpreter) restore(fr *frame) {
 	}
 }
 
-// resume makes the caller at frames[caller] write back, past the jump
-// after the call, the places of the inout site that cl, entered by the
-// call, has mut parameters for.
-func (p *Interpreter) resume(caller int, cl *Closure, inout uint32) {
-	if m := cl.proto.inout & inout; m != 0 && len(p.frames) == caller+2 && p.frames[caller+1].cl == cl {
-		fr := &p.frames[caller]
-		fr.inout = m
-		fr.pc++
+// siteInout has the bits of the places the call in, which fr just ran,
+// writes back: A of the jump after it, at an inout site.
+func (fr *frame) siteInout(in Instr) uint32 {
+	if in.x()&inoutSite == 0 {
+		return 0
 	}
+
+	return uint32(fr.cl.proto.code[fr.pc].a())
+}
+
+// skipToWriteBacks makes fr resume past the jump after its last call,
+// over the write-backs of the places bits has.
+func (fr *frame) skipToWriteBacks(bits uint32) {
+	fr.inout = bits
+	fr.pc++
 }
 
 // trace records in rt the frames from the top down to frames[from].

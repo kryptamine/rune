@@ -116,10 +116,13 @@ print(prices);  // {apple: 10, pear: 20}
 The collection must be a mutable place, as for a
 [`mut` parameter](functions.md#mut-parameters), found once before the
 loop. The loop walks it as it was when the loop started; a write the body
-makes to it directly is overwritten by the write-back of that element. A
+makes to it directly is overwritten by the write-back of that element.
+The body cannot assign the variable the collection is read from, and a
 key cannot be `mut`.
 
 ```rune
+let mut xs = [[0]];
+for mut x in xs { xs = []; } // Error at 'xs': Cannot assign to 'xs' inside a 'for mut' loop over it.
 let rows = [[0]];
 for mut row in rows {}  // Error at 'rows': Cannot write 'for mut' variable 'row' back into immutable variable 'rows'.
 for mut i in 0..3 {}    // Error at 'i': A 'for mut' loop walks a mutable variable, element or property, which it writes back into.

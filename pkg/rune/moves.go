@@ -24,6 +24,8 @@ type liveness struct {
 	// is either shared or held by nothing else.
 	owners map[*ast.Local]bool
 	reads  map[*ast.VarExpr]bool
+	// named counts the reads and assignments of each variable walked.
+	named map[*ast.Local]int
 	// pinned are live everywhere in the part walked: what a handler or a
 	// defer, which an error or any exit runs, reads.
 	pinned liveSet
@@ -40,7 +42,7 @@ type liveLoop struct{ head, out liveSet }
 // never moves: a parameter, a loop, catch or match variable
 // holds what its giver may still hold.
 func markMoves(body []ast.Stmt) {
-	lv := &liveness{owners: map[*ast.Local]bool{}, reads: map[*ast.VarExpr]bool{}, pinned: liveSet{}}
+	lv := &liveness{owners: map[*ast.Local]bool{}, reads: map[*ast.VarExpr]bool{}, named: map[*ast.Local]int{}, pinned: liveSet{}}
 	lv.stmts(body, liveSet{})
 
 	for v := range lv.reads {
@@ -129,10 +131,17 @@ func (lv *liveness) stmt(stmt ast.Stmt, live liveSet) {
 			lv.expr(s.Condition, live)
 		})
 	case *ast.ForInStmt:
+		var root *ast.Local
+		if v := rootVar(s.Iterable); v != nil && s.Value.Mutable {
+			root = v.Local
+		}
+
+		named := lv.named[root]
 		lv.loop(live, func(live, out liveSet) {
 			lv.stmt(s.Body, live)
 			live.add(out)
 		})
+		s.Alone = root != nil && lv.named[root] == named
 		lv.expr(s.Iterable, live)
 	case *ast.ReturnStmt:
 		clear(live)
@@ -235,6 +244,7 @@ func (lv *liveness) expr(e ast.Expr, live liveSet) {
 		}
 
 		lv.reads[n] = true
+		lv.named[n.Local]++
 		n.Moves = lv.inDefer == 0 && !live[n.Local] && !lv.pinned[n.Local]
 		live[n.Local] = true
 	case *ast.GroupingExpr:
@@ -261,6 +271,7 @@ func (lv *liveness) expr(e ast.Expr, live liveSet) {
 		live.add(then)
 		lv.expr(n.Cond, live)
 	case *ast.AssignExpr:
+		lv.named[n.Local]++
 		delete(live, n.Local)
 		lv.expr(n.Value, live)
 	case *ast.CallExpr:
@@ -269,7 +280,7 @@ func (lv *liveness) expr(e ast.Expr, live liveSet) {
 		}
 
 		// A method that keeps its arguments takes copies, which may move.
-		if !n.Keeps {
+		if n.Methods&ast.InPlace == 0 {
 			for _, arg := range n.Args {
 				lv.holds(arg, live)
 			}

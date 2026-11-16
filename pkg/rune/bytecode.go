@@ -17,7 +17,7 @@ const (
 	opCopy               // R[A] = R[B], shared
 	opLoadK              // R[A] = K[C]
 	opShare              // mark R[A] as held twice, so a write copies it first
-	opShareIf            // share R[A] if R[B], which holds it, is shared, or with X a struct
+	opShareIf            // share R[A] if R[B], which holds it, is shared, or with X&frozenStruct a struct
 	opUnshare            // if R[A] is shared, R[A] = a copy of its own and pc += X
 	opNewCell            // R[A] = cell(R[B])
 	opGetCell            // R[A] = cell R[B], which must be defined
@@ -135,6 +135,15 @@ const (
 
 // inoutSite is the bit of X of a call followed by write-backs.
 const inoutSite = 4
+
+// A of the jump after an inout site has a bit for the receiver and each
+// argument a mut parameter takes.
+const _ uint16 = 1 << maxArity
+
+// frozenStruct is the bit of X of a ShareIf on a path off a mut self: a
+// struct there takes no field set, so what it holds is shared, and a
+// write fails at the SetProp putting the copy back into the struct.
+const frozenStruct = 1
 
 // forMut is the bit of X of a ForIter of a for mut, which with Y does not
 // share the collection, which the body never reads.

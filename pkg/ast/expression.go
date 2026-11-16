@@ -138,6 +138,17 @@ func NewGroupingExpr(expr Expr) Expr {
 	return &GroupingExpr{Expr: expr}
 }
 
+// MethodKind marks what the methods sharing a name do to their receiver.
+type MethodKind uint8
+
+const (
+	// InPlace methods are built-in ones that change it, and may keep
+	// their arguments.
+	InPlace MethodKind = 1 << iota
+	MutSelf
+	Plain
+)
+
 // CallExpr is callee(args); Optional is set for callee?.(args). For a
 // method call, Writable is set when the receiver can take the new self a
 // mutating method leaves, and Frozen when an immutable variable holds it,
@@ -149,12 +160,8 @@ type CallExpr struct {
 	Optional bool
 	Writable bool
 	Frozen   bool
-	// InPlace is set when only built-in in-place methods have its name,
-	// Keeps when one has, which may keep its arguments, and Mut when a
-	// mut self method has.
-	InPlace bool
-	Keeps   bool
-	Mut     bool
+	// Methods tells what the methods of a method call's name do.
+	Methods MethodKind
 	// Inout has a bit for each argument that a mut parameter of the
 	// function called may write back to.
 	Inout uint32

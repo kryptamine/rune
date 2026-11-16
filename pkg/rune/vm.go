@@ -66,7 +66,7 @@ reload:
 			value.Share(*at(regs, in.a()))
 
 		case opShareIf:
-			if t := at(regs, in.b()); t.Shared() || in.x() != 0 && t.Kind() == value.Struct {
+			if t := at(regs, in.b()); t.Shared() || in.x()&frozenStruct != 0 && t.Kind() == value.Struct {
 				value.Share(*at(regs, in.a()))
 			}
 
@@ -565,12 +565,11 @@ reload:
 			// It takes every argument, so its mut parameters write back
 			// all their bits, after the jump that follows.
 			if m := f.proto.inout; m != 0 {
-				if in.x()&inoutSite == 0 || m&^uint32((*(*Instr)(unsafe.Add(code, pc<<3))).a()) != 0 {
+				if m&^fr.siteInout(in) != 0 {
 					goto slow
 				}
 
-				fr.inout = m
-				fr.pc++
+				fr.skipToWriteBacks(m)
 			}
 
 			base := fr.base + in.a() + 1
@@ -632,12 +631,11 @@ reload:
 			// enter, inlined as for opCall.
 			fr.pc = pc
 			if m := f.proto.inout; m != 0 {
-				if in.x()&inoutSite == 0 || m&^uint32((*(*Instr)(unsafe.Add(code, pc<<3))).a()) != 0 {
+				if m&^fr.siteInout(in) != 0 {
 					goto slow
 				}
 
-				fr.inout = m
-				fr.pc++
+				fr.skipToWriteBacks(m)
 			}
 
 			*at(regs, in.a()) = fn

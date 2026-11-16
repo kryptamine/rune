@@ -150,8 +150,7 @@ func (p *Interpreter) invoke(fr *frame, in Instr, tok *ast.Token) error {
 		}
 
 		if copied && in.y() {
-			p.frames[caller].inout |= 1
-			p.frames[caller].pc++
+			p.frames[caller].skipToWriteBacks(1)
 		}
 
 		return nil
@@ -162,21 +161,9 @@ func (p *Interpreter) invoke(fr *frame, in Instr, tok *ast.Token) error {
 		return argumentError(cl.proto, n+1, 1, tok)
 	}
 
-	var inout uint32
-	if in.x()&inoutSite != 0 {
-		inout = uint32(fr.cl.proto.code[fr.pc].a())
-	}
-
 	p.stack[at] = fn
 
-	caller := len(p.frames) - 1
-	if err := p.callAt(at, n+1, tok, inout); err != nil {
-		return err
-	}
-
-	p.resume(caller, cl, inout)
-
-	return nil
+	return p.callAt(at, n+1, tok, fr.siteInout(in))
 }
 
 // callWithout calls the function at stack[at] with the n arguments after

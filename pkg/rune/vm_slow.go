@@ -271,23 +271,7 @@ func (p *Interpreter) slow(in Instr) error {
 		regs[in.a()] = value.NewFunction(cl)
 
 	case opCall:
-		at := fr.base + in.a()
-		if in.x()&inoutSite == 0 {
-			return p.callAt(at, in.b(), tok, 0)
-		}
-
-		inout, caller := uint32(f.code[fr.pc].a()), len(p.frames)-1
-		if err := p.callAt(at, in.b(), tok, inout); err != nil {
-			return err
-		}
-
-		if fn := p.stack[at]; fn.Kind() == value.Function {
-			if cl, ok := fn.Fn().(*Closure); ok {
-				p.resume(caller, cl, inout)
-			}
-		}
-
-		return nil
+		return p.callAt(fr.base+in.a(), in.b(), tok, fr.siteInout(in))
 
 	case opInvoke:
 		return p.invoke(fr, in, tok)
@@ -493,13 +477,11 @@ func spread(tok *ast.Token, dst, src value.Value) error {
 	switch src.Kind() {
 	case value.Object:
 		for k, v := range src.Obj().All() {
-			value.Share(v)
-			obj.Set(k, v)
+			obj.Set(k, value.Share(v))
 		}
 	case value.Struct:
 		for k, v := range src.FieldPairs() {
-			value.Share(v)
-			obj.Set(k, v)
+			obj.Set(k, value.Share(v))
 		}
 	default:
 		return spreadError(tok, src, "an object")
@@ -571,8 +553,7 @@ func omit(tok *ast.Token, src value.Value, keys []string) (value.Value, error) {
 	obj := value.NewObj(0)
 	for k, v := range all {
 		if !slices.Contains(keys, k) {
-			value.Share(v)
-			obj.Set(k, v)
+			obj.Set(k, value.Share(v))
 		}
 	}
 

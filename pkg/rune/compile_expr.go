@@ -724,16 +724,7 @@ func (fs *funcState) call(n *ast.CallExpr, dst int32) {
 			}
 		}
 
-		fs.shareInouts(places)
-		fs.protect(places, base+1, 0, &n.Token, func() {
-			fs.emit(ins{op: opCall, a: base, b: int32(len(n.Args)), x: uint8(boolNum(places != nil) * inoutSite)}, &n.Token)
-
-			if places != nil {
-				skip := fs.emit(ins{op: opJmp, a: inoutMask(places, 0)}, &n.Token)
-				fs.writeBacks(places, base+1, 0, &n.Token)
-				fs.patch([]int{skip})
-			}
-		})
+		fs.inoutCall(ins{op: opCall, a: base, b: int32(len(n.Args))}, places, places, base+1, &n.Token)
 		fs.move(dst, base)
 
 		return
@@ -787,47 +778,28 @@ func (fs *funcState) invoke(n *ast.CallExpr, prop *ast.IndexExpr, dst int32) {
 		switch {
 		case places != nil && places[i] != nil:
 			fs.inoutArg(n, prop.Array, places, i, fs.alloc())
-		case n.Keeps || sameRoot(arg, prop.Array):
+		case n.Methods&ast.InPlace != 0 || sameRoot(arg, prop.Array):
 			fs.copyExpr(arg, fs.alloc())
 		default:
 			fs.arg(arg, fs.alloc())
 		}
 	}
 
-	if lv != nil {
-		lv.shareDown()
-	}
-
-	fs.shareInouts(places)
-
-	all := places
-	if lv != nil {
+	// The receiver is the first place; only a mut self goes back on an
+	// error.
+	var all, guarded []*lval
+	if lv != nil || places != nil {
 		all = append([]*lval{lv}, places...)
-	} else if places != nil {
-		all = append([]*lval{nil}, places...)
+		guarded = all
+
+		if n.Methods&ast.MutSelf == 0 {
+			guarded = append([]*lval{nil}, places...)
+		}
 	}
 
 	name := fs.constant(value.NewString(prop.Token.Lexeme))
-	x := uint8(boolNum(n.Frozen)) | uint8(boolNum(all != nil)*inoutSite)
-
-	// Only a mut self goes back on an error.
-	guarded := all
-	if lv != nil && !n.Mut {
-		guarded = append([]*lval{nil}, places...)
-	}
-
-	fs.protect(guarded, self, 0, &prop.Token, func() {
-		fs.emit(ins{op: opInvoke, a: base, b: int32(len(n.Args)), c: name, x: x, y: uint8(boolNum(n.Writable))}, &prop.Token)
-
-		if all == nil {
-			return
-		}
-
-		skip := fs.emit(ins{op: opJmp, a: inoutMask(all, 0)}, &prop.Token)
-		fs.writeBacks(all, self, 0, &prop.Token)
-		fs.patch([]int{skip})
-	})
-
+	call := ins{op: opInvoke, a: base, b: int32(len(n.Args)), c: name, x: uint8(boolNum(n.Frozen)), y: uint8(boolNum(n.Writable))}
+	fs.inoutCall(call, all, guarded, self, &prop.Token)
 	fs.move(dst, base)
 }
 

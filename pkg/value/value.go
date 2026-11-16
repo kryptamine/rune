@@ -108,14 +108,14 @@ func NewArray(items []Value) Value {
 }
 
 // A shared container or struct has another holder; it is cloned before a
-// write. A container keeps its flag right after the slice heading its
-// heap object, a struct in the word after its shape.
-var _ = [1]struct{}{}[unsafe.Offsetof(Obj{}.shared)-unsafe.Offsetof(array{}.shared)+unsafe.Offsetof(HashMap{}.shared)-unsafe.Offsetof(array{}.shared)+unsafe.Offsetof(ByteBuf{}.shared)-unsafe.Offsetof(array{}.shared)]
+// write. A container keeps its flag at containerShared, right after the
+// slice heading its heap object, a struct in the word after its shape.
+const containerShared = unsafe.Offsetof(array{}.shared)
 
 // sharedAt is the offset of the flag by the top byte of n, or 0.
 var sharedAt = func() (at [256]uint8) {
 	for _, k := range []Kind{Array, Object, Map, Set, Buffer} {
-		at[k] = uint8(unsafe.Offsetof(array{}.shared))
+		at[k] = uint8(containerShared)
 	}
 
 	at[Struct] = uint8(unsafe.Offsetof(Value{}.n))
@@ -136,11 +136,13 @@ func (v Value) flag() *bool {
 	return nil
 }
 
-// Share marks v as held twice, if a container or struct.
-func Share(v Value) {
+// Share marks v as held twice, if a container or struct, and returns it.
+func Share(v Value) Value {
 	if f := v.flag(); f != nil {
 		*f = true
 	}
+
+	return v
 }
 
 // ShareAll shares each of vs.
@@ -390,8 +392,7 @@ func (s *Shape) Assign(fields []Value, obj *Obj) (extra string, ok bool) {
 
 	for k, v := range obj.All() {
 		if slot := s.Index(k); slot >= 0 {
-			Share(v)
-			fields[slot] = v
+			fields[slot] = Share(v)
 		} else if ok {
 			extra, ok = k, false
 		}

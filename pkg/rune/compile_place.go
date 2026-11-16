@@ -50,16 +50,14 @@ func (pl *place) load(dst int32) {
 
 // store writes v. Only a path from a mut self takes a field set. A set
 // on a shared target copies it, and the copy goes back where it was read.
-func (pl *place) store(v int32) { pl.set(v, false) }
+func (pl *place) store(v int32) {
+	pl.t.shareDown()
+	pl.put(v)
+}
 
-// set is store; back is set for a copy made by a write below going back,
-// whose path is shared already.
-func (pl *place) set(v int32, back bool) {
+// put is store for what goes back on a path shared already.
+func (pl *place) put(v int32) {
 	fs, t := pl.fs, pl.t
-
-	if !back {
-		t.shareDown()
-	}
 
 	set := fs.emit(ins{op: pick(pl.prop, opSetProp, opSetIndex), a: t.reg, b: pl.i, c: v, y: uint8(boolNum(t.fromSelf()))}, pl.tok)
 
@@ -70,13 +68,13 @@ func (pl *place) set(v int32, back bool) {
 	// A call on the right can change a variable in a cell, so what was
 	// read from one always goes back, whether copied or not.
 	if fs.inCell(t.e) {
-		t.writeBack(true)
+		t.writeBack()
 		return
 	}
 
 	fs.code[set].x = 1
 	skip := fs.emit(ins{op: opJmp}, pl.tok)
-	t.writeBack(true)
+	t.writeBack()
 	fs.patch([]int{skip})
 }
 
@@ -170,13 +168,12 @@ func (lv *lval) check() {
 }
 
 // writeBack puts reg back where it was read from.
-// back is as for place.set: what goes back is a copy made of an element.
-func (lv *lval) writeBack(back bool) {
+func (lv *lval) writeBack() {
 	fs := lv.fs
 
 	switch {
 	case lv.at != nil:
-		lv.at.set(lv.reg, back)
+		lv.at.put(lv.reg)
 	case lv.v != nil && !lv.inPlace():
 		kind, r := fs.lookup(lv.v.Local)
 		fs.store(kind, r, lv.reg, fs.checked(lv.v.Local), &lv.v.Name)
@@ -185,16 +182,15 @@ func (lv *lval) writeBack(back bool) {
 
 // shareDown shares each level of the path reg was read along whose
 // holder is shared, from the top: a write then copies every level that
-// another holder has too, each copy going back into the level above. Off
-// a mut self, a level held by a struct is shared too, so a write fails
-// when its copy goes back into the struct.
+// another holder has too, each copy going back into the level above; see
+// frozenStruct.
 func (lv *lval) shareDown() {
 	var path []*lval
 	for l := lv; l.at != nil; l = l.at.t {
 		path = append(path, l)
 	}
 
-	x := uint8(boolNum(!lv.fromSelf()))
+	x := uint8(boolNum(!lv.fromSelf()) * frozenStruct)
 	for _, l := range slices.Backward(path) {
 		lv.fs.emit(ins{op: opShareIf, a: l.reg, b: l.at.t.reg, x: x}, nil)
 	}
