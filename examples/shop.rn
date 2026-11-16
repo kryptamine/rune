@@ -8,6 +8,10 @@ const BASE = "https://dummyjson.com";
 
 struct ApiError { message, status, path }
 
+impl ApiError {
+    fun from(status, data, path) { ApiError { message: data?.["message"] ?? "HTTP {status}", status, path } }
+}
+
 struct Client { base = BASE, token = nil, refreshToken = nil, refreshes = 0 }
 
 impl Client {
@@ -68,7 +72,7 @@ impl Client {
         let data = if r.body == "" { nil } else { json.parse(r.body) };
 
         if r.status >= 400 {
-            throw ApiError { message: data?.["message"] ?? "HTTP {r.status}", status: r.status, path };
+            throw ApiError.from(r.status, data, path);
         }
 
         return data;

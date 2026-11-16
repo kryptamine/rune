@@ -143,12 +143,18 @@ rune run examples/shop.rn "apple watch"
 SHOP_USER=michaelw SHOP_PASS=michaelwpass rune run examples/shop.rn
 ```
 
-### [`fetch.rn`](https://github.com/kryptamine/rune/blob/master/examples/fetch.rn) — HTTP and JSON
+### [`fetch.rn`](https://github.com/kryptamine/rune/blob/master/examples/fetch.rn) — HTTP and JSON into structs
 
-Fetches a URL, parses the JSON and handles network errors with `try`.
+Fetches users from [DummyJSON](https://dummyjson.com) and turns the JSON
+into nested structs: each `from` spreads a map into its struct, which
+keeps the fields it has and skips the rest. Groups the users by department
+in a map, then writes: POST a struct, PUT one built from another with
+`map(s)` and spread, PATCH a map of the changes, DELETE into a struct.
+Errors come back as a typed `ApiError`.
 
 ```sh
-rune run examples/fetch.rn
+rune run examples/fetch.rn        # first 10 users
+rune run examples/fetch.rn 30
 ```
 
 ## Basics
