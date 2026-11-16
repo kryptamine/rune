@@ -90,6 +90,8 @@ func (p *Interpreter) methodValue(tok *ast.Token, t value.Value, m *value.Method
 			"Cannot take in-place method '%s' of %s as a value.", m.Name, owner))
 	}
 
+	value.Share(t)
+
 	if nat, ok := p.methods[m.ID].Fn().(*stdlib.Native); ok {
 		return value.NewFunction(&BoundNative{recv: t, fn: nat}), nil
 	}
@@ -137,40 +139,32 @@ func (p *Interpreter) invoke(fr *frame, in Instr, tok *ast.Token) error {
 	if nat, ok := fn.Fn().(*stdlib.Native); ok {
 		// An in-place method on a shared receiver changes a copy of its
 		// own, which then goes back where the receiver was read from.
-		if m.InPlace && t.Shared() {
+		copied := m.InPlace && t.Shared()
+		if copied {
 			p.stack[at+1] = value.Unshare(t)
-			if in.y() {
-				fr.pc += 1 + int(in.x()>>1&1)
-			}
 		}
 
-		return p.callNativeMethod(at, n, nat, tok)
+		caller := len(p.frames) - 1
+		if err := p.callNativeMethod(at, n, nat, tok); err != nil {
+			return err
+		}
+
+		if copied && in.y() {
+			p.frames[caller].inout |= 1
+			p.frames[caller].pc++
+		}
+
+		return nil
 	}
 
 	cl := (*Closure)(fn.Ptr())
-	f := cl.proto
-	if !f.accepts(n + 1) {
-		return argumentError(f, n+1, 1, tok)
+	if !cl.proto.accepts(n + 1) {
+		return argumentError(cl.proto, n+1, 1, tok)
 	}
 
-	// The write-back of the arguments starts B past the jump after it.
 	var inout uint32
-	off := 0
 	if in.x()&inoutSite != 0 {
-		jmp := fr.cl.proto.code[fr.pc]
-		inout, off = uint32(jmp.a()), jmp.b()
-	}
-
-	// A mutating method resumes past the jump over its write-back, and
-	// one without an owned self past the instruction taking its flag;
-	// its write-back goes on to the arguments'.
-	if m.Mut {
-		fr.pc++
-		off = 0
-
-		if in.x()&2 != 0 && f.selfReg == 0 {
-			fr.pc++
-		}
+		inout = uint32(fr.cl.proto.code[fr.pc].a())
 	}
 
 	p.stack[at] = fn
@@ -180,7 +174,7 @@ func (p *Interpreter) invoke(fr *frame, in Instr, tok *ast.Token) error {
 		return err
 	}
 
-	p.resume(caller, cl, inout, off)
+	p.resume(caller, cl, inout)
 
 	return nil
 }

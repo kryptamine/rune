@@ -1,5 +1,5 @@
-// A mut self method that keeps self changes its own copy in place; none
-// of these may see it change.
+// A mut self method changes its struct in place unless another holder
+// has it; none of these may see it change.
 struct P { x = 0, y = 0, log = [] }
 
 let mut kept = [];
@@ -42,7 +42,7 @@ p.reset();
 print([p.x, saved.x]);         // expect: [8, 9]
 
 try { p.fail(); } catch _ {}
-print(p.x);                    // expect: 8
+print(p.x);                    // expect: 100
 
 let mut ps = [P {}, P {}];
 let first = ps[0];

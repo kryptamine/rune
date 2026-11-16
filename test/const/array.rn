@@ -25,6 +25,7 @@ print(SLIDES[1]); // expect: [-11, -9, 9, 11]
 print(copy); // expect: [-11, -9, 9, 11, 0]
 
 struct Piece { dirs = ROOK, reach = N * 2 }
+impl Piece { fun add(mut self, d) { self.dirs.push(d); } }
 let mut p = Piece {};
-p.dirs.push(0);
+p.add(0);
 print([p.dirs.len(), ROOK.len(), p.reach]); // expect: [5, 4, 20]

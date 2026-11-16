@@ -309,24 +309,20 @@ func (p *Interpreter) restore(fr *frame) {
 	}
 
 	for _, r := range f.restore {
-		reg := &p.stack[fr.base+r.reg]
-		if r.cell {
-			*reg = (*Cell)(reg.Ptr()).v
-			value.Share(*reg)
-		} else {
-			*reg = p.stack[fr.base+r.from]
-		}
+		reg := &p.stack[fr.base+r]
+		*reg = (*Cell)(reg.Ptr()).v
+		value.Share(*reg)
 	}
 }
 
-// resume makes the caller at frames[caller] write back, at off past the
-// call, the arguments of the inout site that cl, entered by the call,
-// has mut parameters for.
-func (p *Interpreter) resume(caller int, cl *Closure, inout uint32, off int) {
+// resume makes the caller at frames[caller] write back, past the jump
+// after the call, the places of the inout site that cl, entered by the
+// call, has mut parameters for.
+func (p *Interpreter) resume(caller int, cl *Closure, inout uint32) {
 	if m := cl.proto.inout & inout; m != 0 && len(p.frames) == caller+2 && p.frames[caller+1].cl == cl {
 		fr := &p.frames[caller]
 		fr.inout = m
-		fr.pc += off
+		fr.pc++
 	}
 }
 

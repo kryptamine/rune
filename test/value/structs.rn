@@ -1,0 +1,69 @@
+struct User { name, tags = [], meta = {} }
+impl User {
+    fun tag(mut self, t) { self.tags.push(t); }
+    fun note(mut self, k, v) { self.meta[k] = v; self.meta.n = 1; }
+    fun fail(mut self) { self.tags.push("half"); throw ValueError { message: "no" }; }
+}
+
+// A mut self method changes its fields' containers and they go back.
+let mut ann = User { name: "ann" };
+ann.tag("admin");
+ann.note("a", 1);
+print(ann); // expect: User {name: "ann", tags: ["admin"], meta: {a: 1, n: 1}}
+
+// A copy of the struct keeps its containers.
+let before = ann;
+ann.tag("x");
+print(before.tags); // expect: ["admin"]
+print(ann.tags); // expect: ["admin", "x"]
+
+// Two structs from one default never share its container.
+let mut a = User { name: "a" };
+let mut b = User { name: "b" };
+a.tag(1);
+print(b.tags); // expect: []
+
+// A copy taken from a field keeps its value.
+let tags = ann.tags;
+ann.tag("y");
+print(tags); // expect: ["admin", "x"]
+
+// A mut self goes back on a throw too.
+try { ann.fail(); } catch e { print(e.message); } // expect: no
+print(ann.tags); // expect: ["admin", "x", "y", "half"]
+
+// In elements and properties.
+let mut users = [User { name: "u" }];
+let first = users[0];
+users[0].tag("t");
+print(first.tags); // expect: []
+print(users[0].tags); // expect: ["t"]
+
+let mut byName = { u: User { name: "u" } };
+byName.u.tag("t");
+print(byName.u.tags); // expect: ["t"]
+
+// Nested structs in mut self.
+struct Team { lead }
+impl Team {
+    fun promote(mut self, t) { self.lead.tags.push(t); self.lead.name = "boss"; }
+}
+let mut team = Team { lead: User { name: "z" } };
+let old = team;
+team.promote("p");
+print(team.lead); // expect: User {name: "boss", tags: ["p"], meta: {}}
+print(old.lead); // expect: User {name: "z", tags: [], meta: {}}
+
+// Outside mut self a field's container cannot change.
+try { ann.tags.push("x"); } catch e { print(e.message); } // expect: Cannot set field 'tags' of User outside its mut self methods.
+try { ann.tags[0] = "x"; } catch e { print(e.message); } // expect: Cannot set field 'tags' of User outside its mut self methods.
+try { ann.meta.k = 1; } catch e { print(e.message); } // expect: Cannot set field 'meta' of User outside its mut self methods.
+try { users[0].tags.pop(); } catch e { print(e.message); } // expect: Cannot set field 'tags' of User outside its mut self methods.
+fun grow(mut xs) { xs.push(0); }
+try { grow(ann.tags); } catch e { print(e.message); } // expect: Cannot set field 'tags' of User outside its mut self methods.
+print(ann.tags); // expect: ["admin", "x", "y", "half"]
+print(users[0].tags); // expect: ["t"]
+
+// Reading is fine.
+print(ann.tags.len()); // expect: 4
+print(ann.tags.map(t => t.len())); // expect: [5, 1, 1, 4]

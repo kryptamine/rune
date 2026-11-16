@@ -72,11 +72,6 @@ type Resolver struct {
 	fns map[*ast.Local]*ast.FunctionStmt
 	// uses counts the references to each variable so far.
 	uses map[*ast.Local]int
-	// self records the uses of the self of the method being resolved,
-	// selves those of every method of the file.
-	self   *varUses
-	selves []*varUses
-	locals map[*ast.Local]*varUses
 	// consts holds the constants of the file being resolved, and how far
 	// each one's value is; constDecls finds them by declaration.
 	consts     map[*ast.VarStmt]constState
@@ -96,7 +91,6 @@ func NewResolver() *Resolver {
 		cases:      map[*value.Shape]*ast.Local{},
 		fieldNames: stdlib.FieldNames(),
 		impls:      map[*ast.ImplStmt]bool{},
-		locals:     map[*ast.Local]*varUses{},
 		fns:        map[*ast.Local]*ast.FunctionStmt{},
 		uses:       map[*ast.Local]int{},
 		nmethods:   len(stdlib.Methods),
@@ -186,7 +180,6 @@ func (p *Resolver) VisitVarStmt(stmt *ast.VarStmt) error {
 	}
 
 	stmt.Local = p.declare(stmt.Binding)
-	p.trackLocal(stmt.Binding, stmt.Local)
 
 	if f, ok := stmt.Initializer.(*ast.FunctionExpr); ok && !stmt.Mutable {
 		p.fns[stmt.Local] = f.Decl
@@ -265,7 +258,6 @@ func (p *Resolver) VisitVarExpr(expr *ast.VarExpr) (value.Value, error) {
 	}
 
 	expr.Local, _ = p.use(expr.Name, "read")
-	p.useVar(expr, false)
 
 	return value.NilValue, nil
 }
@@ -488,8 +480,6 @@ func (p *Resolver) VisitAssignExpr(expr *ast.AssignExpr) (value.Value, error) {
 		p.requireMutable(expr.Name, "assign to")
 	}
 
-	p.useAssign(expr)
-
 	return value.NilValue, nil
 }
 
@@ -508,7 +498,6 @@ func (p *Resolver) VisitCallExpr(callExpr *ast.CallExpr) (value.Value, error) {
 	}
 
 	if prop, ok := callExpr.Callee.(*ast.IndexExpr); ok && isMethodCall(prop) {
-		p.useCall(prop)
 		p.checkMutation(callExpr, prop)
 	}
 
@@ -610,8 +599,6 @@ func (p *Resolver) VisitIndexExpr(expr *ast.IndexExpr) (value.Value, error) {
 	p.resolveExpr(expr.Index)
 	p.resolveVariant(expr)
 
-	p.useProp(expr)
-
 	return value.NilValue, nil
 }
 
@@ -689,8 +676,6 @@ func (p *Resolver) VisitSetIndexExpr(expr *ast.SetIndexExpr) (value.Value, error
 	p.resolveExpr(expr.Index)
 	p.resolveExpr(expr.Value)
 	p.requireMutableRoot(expr.Array)
-	p.useVar(expr.Array, true)
-
 	return value.NilValue, nil
 }
 
@@ -920,7 +905,6 @@ func (p *Resolver) resolveFn(fn *ast.FunctionStmt) {
 
 		fn.Parameters[i].Local = p.declare(param)
 		p.define(param.Name)
-		p.trackLocal(param, fn.Parameters[i].Local)
 	}
 
 	p.resolveStmts(fn.Body)

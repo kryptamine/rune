@@ -28,18 +28,20 @@ func readOnlyField(token *ast.Token, shape *value.Shape, key string) error {
 		"Cannot set field '%s' of %s outside its mut self methods.", key, shape.Name))
 }
 
-// setField copies the struct target with the field key names set to v.
-func setField(token *ast.Token, target, key, v value.Value) (value.Value, error) {
+// setField sets the field of the struct target that key names to v.
+func setField(token *ast.Token, target, key, v value.Value) error {
 	if !key.IsString() {
-		return value.NilValue, errors.NewRuntimeError(errors.TypeError, *token, "Struct fields must be accessed with string keys.")
+		return errors.NewRuntimeError(errors.TypeError, *token, "Struct fields must be accessed with string keys.")
 	}
 
 	slot := target.Shape().Index(key.Str())
 	if slot < 0 {
-		return value.NilValue, undefinedField(token, target.Shape(), key.Str())
+		return undefinedField(token, target.Shape(), key.Str())
 	}
 
-	return target.With(slot, v), nil
+	target.Fields()[slot] = v
+
+	return nil
 }
 
 // convert is a call of the struct type shape, which takes one value.

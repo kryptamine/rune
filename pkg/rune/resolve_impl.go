@@ -186,6 +186,7 @@ func (p *Resolver) checkMutation(call *ast.CallExpr, prop *ast.IndexExpr) {
 	kind := p.methodKinds[prop.Token.Lexeme]
 	call.InPlace = kind == inPlace
 	call.Keeps = kind&inPlace != 0
+	call.Mut = kind&mutSelf != 0
 
 	if name := p.immutableRoot(prop.Array); name != "" {
 		call.Frozen = true

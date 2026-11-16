@@ -174,23 +174,20 @@ func (p *Interpreter) slow(in Instr) error {
 
 		regs[in.a()] = v
 
-	case opSetIndex, opSetProp, opSetOwned:
+	case opSetIndex, opSetProp:
 		t, key := regs[in.a()], setKey(in, regs, consts)
+		field := t.Kind() == value.Struct && in.y()
 
 		switch {
-		case t.Kind() == value.Struct && (in.y() || in.op() == opSetOwned):
-			v, err := setField(tok, t, key, regs[in.c()])
-			if err == nil {
-				regs[in.a()] = v
-				fr.pc += int(in.x())
-			}
-
-			return err
-		case in.op() == opSetIndex || t.Kind() == value.Object:
+		case field || in.op() == opSetIndex || t.Kind() == value.Object:
 			if t.Shared() {
 				t = value.Unshare(t)
 				regs[in.a()] = t
 				fr.pc += int(in.x())
+			}
+
+			if field {
+				return setField(tok, t, key, regs[in.c()])
 			}
 
 			return setIndex(tok, t, key, regs[in.c()])
@@ -286,7 +283,7 @@ func (p *Interpreter) slow(in Instr) error {
 
 		if fn := p.stack[at]; fn.Kind() == value.Function {
 			if cl, ok := fn.Fn().(*Closure); ok {
-				p.resume(caller, cl, inout, 1)
+				p.resume(caller, cl, inout)
 			}
 		}
 
@@ -355,9 +352,6 @@ func (p *Interpreter) slow(in Instr) error {
 
 	case opNoMatch:
 		return errors.NewRuntimeError(errors.ValueError, *tok, "No match arm for "+helpers.Quoted(regs[in.a()])+".")
-
-	case opSame:
-		return errors.NewRuntimeError(errors.ValueError, *tok, fmt.Sprintf("'%s' changed while its mut method '%s' ran; that change would be lost.", consts[in.c()].Str(), tok.Lexeme))
 
 	case opRethrow:
 		return *regs[in.a()].Internal().(*errors.RuntimeError)

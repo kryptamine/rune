@@ -107,25 +107,39 @@ func NewArray(items []Value) Value {
 	return Value{p: unsafe.Pointer(&array{items: items}), n: uint64(Array) << kindShift}
 }
 
-// A shared container has another holder; it is cloned before a write.
-// Each keeps its flag right after a slice heading its heap object.
-const sharedAt = unsafe.Offsetof(array{}.shared)
+// A shared container or struct has another holder; it is cloned before a
+// write. A container keeps its flag right after the slice heading its
+// heap object, a struct in the word after its shape.
+var _ = [1]struct{}{}[unsafe.Offsetof(Obj{}.shared)-unsafe.Offsetof(array{}.shared)+unsafe.Offsetof(HashMap{}.shared)-unsafe.Offsetof(array{}.shared)+unsafe.Offsetof(ByteBuf{}.shared)-unsafe.Offsetof(array{}.shared)]
 
-var _ = [1]struct{}{}[unsafe.Offsetof(Obj{}.shared)-sharedAt+unsafe.Offsetof(HashMap{}.shared)-sharedAt+unsafe.Offsetof(ByteBuf{}.shared)-sharedAt]
+// sharedAt is the offset of the flag by the top byte of n, or 0.
+var sharedAt = func() (at [256]uint8) {
+	for _, k := range []Kind{Array, Object, Map, Set, Buffer} {
+		at[k] = uint8(unsafe.Offsetof(array{}.shared))
+	}
 
-const containers = 1<<Array | 1<<Object | 1<<Map | 1<<Set | 1<<Buffer
+	at[Struct] = uint8(unsafe.Offsetof(Value{}.n))
 
-// container reports whether v is an array, object, map, set or buffer:
-// only theirs among the kinds in containers have an n of the kind alone,
-// which rules out all but numbers with that payload.
-func (v Value) container() bool {
-	return v.n&(1<<kindShift-1) == 0 && containers>>(v.n>>kindShift)&1 != 0 && v.p != intTag() && v.p != numTag()
+	return at
+}()
+
+// flag is the shared flag of a container or struct, or nil: only theirs
+// among these kinds have an n of the kind alone, which rules out all but
+// numbers with that payload.
+func (v Value) flag() *bool {
+	if v.n<<(64-kindShift) == 0 {
+		if at := sharedAt[v.n>>kindShift]; at != 0 && v.p != intTag() && v.p != numTag() {
+			return (*bool)(unsafe.Add(v.p, at))
+		}
+	}
+
+	return nil
 }
 
-// Share marks v as held twice, if a container.
+// Share marks v as held twice, if a container or struct.
 func Share(v Value) {
-	if v.container() {
-		*(*bool)(unsafe.Add(v.p, sharedAt)) = true
+	if f := v.flag(); f != nil {
+		*f = true
 	}
 }
 
@@ -154,11 +168,14 @@ func ShareDeep(v Value) {
 	}
 }
 
-// Shared reports whether v is a container with another holder.
-func (v Value) Shared() bool { return v.container() && *(*bool)(unsafe.Add(v.p, sharedAt)) }
+// Shared reports whether v is a container or struct with another holder.
+func (v Value) Shared() bool {
+	f := v.flag()
+	return f != nil && *f
+}
 
-// Unshare returns v as a container of its own: v unless shared, else a
-// shallow copy, whose elements are then held twice.
+// Unshare returns v as a container or struct of its own: v unless
+// shared, else a shallow copy, whose elements are then held twice.
 func Unshare(v Value) Value {
 	if !v.Shared() {
 		return v
@@ -179,6 +196,8 @@ func Unshare(v Value) Value {
 		return NewMap(c)
 	case Set:
 		return NewSet(v.HashMap().Clone())
+	case Struct:
+		return v.Clone()
 	}
 
 	return NewBuffer(&ByteBuf{Data: slices.Clone(v.Buf().Data)})
@@ -331,42 +350,16 @@ func NewShape(name string, decls []Field) *Shape {
 	for i, f := range decls {
 		fields[i] = f.Name
 		keys[i] = NewString(f.Name)
+		ShareDeep(f.Default)
 	}
 
 	return &Shape{Name: name, Fields: fields, Keys: keys, decls: decls}
 }
 
-// Default returns the default of field i, if it has one; one that is
-// Mutable is taken through Fresh.
+// Default returns the default of field i, if it has one.
 func (s *Shape) Default(i int) (Value, bool) {
 	f := s.decls[i]
 	return f.Default, !f.Required
-}
-
-// Fresh deep-copies the arrays and objects of a constant; its maps and
-// sets, being empty, are copied as they are.
-func Fresh(v Value) Value {
-	switch v.Kind() {
-	case Array:
-		items := make([]Value, len(v.Arr()))
-		for i, x := range v.Arr() {
-			items[i] = Fresh(x)
-		}
-		return NewArray(items)
-	case Object:
-		o := v.Obj()
-		c := NewObj(o.Len())
-		for k, x := range o.All() {
-			c.Set(k, Fresh(x))
-		}
-		return NewObject(c)
-	case Map:
-		return NewMap(v.HashMap().Clone())
-	case Set:
-		return NewSet(v.HashMap().Clone())
-	}
-
-	return v
 }
 
 // Mutable reports whether v is an array, object, map or set.
@@ -407,7 +400,7 @@ func (s *Shape) Assign(fields []Value, obj *Obj) (extra string, ok bool) {
 	return extra, ok
 }
 
-// Fill gives each undefined field a fresh copy of its default; missing is
+// Fill gives each undefined field its default; missing is
 // the first that has none.
 func (s *Shape) Fill(fields []Value) (missing string, ok bool) {
 	for i, f := range fields {
@@ -416,7 +409,7 @@ func (s *Shape) Fill(fields []Value) (missing string, ok bool) {
 		case s.decls[i].Required:
 			return s.Fields[i], false
 		default:
-			fields[i] = Fresh(s.decls[i].Default)
+			fields[i] = s.decls[i].Default
 		}
 	}
 
@@ -678,19 +671,11 @@ func (v Value) InternedField(key Value) (Value, bool) {
 	return NilValue, false
 }
 
-// Clone returns a copy of the struct v.
+// Clone returns a copy of the struct v, whose fields are then held twice.
 func (v Value) Clone() Value {
 	c, fields := NewStruct(v.Shape())
 	copy(fields, v.Fields())
-
-	return c
-}
-
-// With returns a copy of v with field slot set to x.
-func (v Value) With(slot int, x Value) Value {
-	c, fields := NewStruct(v.Shape())
-	copy(fields, v.Fields())
-	fields[slot] = x
+	ShareAll(fields)
 
 	return c
 }

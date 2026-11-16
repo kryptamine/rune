@@ -27,7 +27,6 @@ func (fs *funcState) exprAny(e ast.Expr) int32 {
 
 		if kind, r := fs.lookup(n.Local); kind == varLocal {
 			fs.checkDefined(n.Local, r, &n.Name)
-			fs.leak(n)
 
 			return r
 		}
@@ -496,8 +495,7 @@ func (fs *funcState) structLiteral(n *ast.StructExpr, dst int32) {
 	for i := range shape.Fields {
 		if !given[i] {
 			def, _ := shape.Default(i)
-			op := helpers.If(value.Mutable(def), opLoadFresh, opLoadK)
-			fs.emit(ins{op: op, a: base + int32(i), c: fs.constant(def)}, nil)
+			fs.emit(ins{op: opLoadK, a: base + int32(i), c: fs.constant(def)}, nil)
 		}
 	}
 
@@ -546,13 +544,6 @@ func (fs *funcState) checkDefined(l *ast.Local, r int32, name *ast.Token) {
 	}
 }
 
-// leak clears the flag of an owned variable whose value the read n lets go.
-func (fs *funcState) leak(n *ast.VarExpr) {
-	if n.Leaks {
-		fs.ownership(fs.locals[n.Local]+1, nil)
-	}
-}
-
 func (fs *funcState) varExpr(n *ast.VarExpr, dst int32) {
 	if v, ok := literalOf(n); ok {
 		fs.emit(ins{op: opLoadK, a: dst, c: fs.constant(v)}, nil)
@@ -563,7 +554,6 @@ func (fs *funcState) varExpr(n *ast.VarExpr, dst int32) {
 	case varLocal:
 		fs.checkDefined(n.Local, r, &n.Name)
 		fs.move(dst, r)
-		fs.leak(n)
 	case varCell:
 		fs.emit(ins{op: opGetCell, a: dst, b: r}, &n.Name)
 	case varUpval:
@@ -611,10 +601,6 @@ func (fs *funcState) assign(n *ast.AssignExpr) int32 {
 	if kind == varLocal && !checked {
 		fs.assignLocal(n, r)
 
-		if n.Local.Owned {
-			fs.ownership(r+1, n.Value)
-		}
-
 		return r
 	}
 
@@ -623,10 +609,6 @@ func (fs *funcState) assign(n *ast.AssignExpr) int32 {
 	fs.store(kind, r, v, checked, &n.Name)
 
 	if kind == varLocal {
-		if n.Local.Owned {
-			fs.ownership(r+1, n.Value)
-		}
-
 		return r
 	}
 
@@ -770,15 +752,15 @@ func (fs *funcState) call(n *ast.CallExpr, dst int32) {
 }
 
 // invoke calls method prop of its receiver, which goes in the register
-// after the callee's. A writable receiver gets self back after a mutating
-// method returns.
+// after the callee's. A writable receiver is an inout place, as bit 0 of
+// the write-backs: a mutating method or an in-place one that copied it
+// puts it back.
 func (fs *funcState) invoke(n *ast.CallExpr, prop *ast.IndexExpr, dst int32) {
 	var lv *lval
 	if n.Writable {
 		lv = fs.ref(prop.Array, n.Args...)
 	}
 
-	g := fs.guard(lv)
 	places := fs.inouts(n)
 
 	base := dst
@@ -786,16 +768,16 @@ func (fs *funcState) invoke(n *ast.CallExpr, prop *ast.IndexExpr, dst int32) {
 		base = fs.alloc()
 	}
 
-	// A place that cannot take the new self fails at the write-back,
-	// which only a mutating method reaches.
 	self := fs.alloc()
 	if lv != nil {
 		lv.load(self)
+
+		if fs.inCell(lv.e) {
+			fs.emit(ins{op: opShare, a: self}, nil)
+		}
 	} else {
 		fs.expr(prop.Array, self)
 	}
-
-	g.keep(self)
 
 	if prop.Optional {
 		fs.nilJump(self)
@@ -812,48 +794,37 @@ func (fs *funcState) invoke(n *ast.CallExpr, prop *ast.IndexExpr, dst int32) {
 		}
 	}
 
-	// An owned variable passes its flag and takes it back from the
-	// register after self.
-	owned := lv != nil && lv.v != nil && lv.v.Lends
-	if owned {
-		if len(n.Args) == 0 {
-			fs.alloc()
-		}
-
-		fs.emit(ins{op: opMove, a: base, b: fs.locals[lv.v.Local] + 1}, nil)
-	}
-
 	if lv != nil {
 		lv.shareDown()
 	}
 
 	fs.shareInouts(places)
 
-	name := fs.constant(value.NewString(prop.Token.Lexeme))
-	x := uint8(boolNum(n.Frozen)) | uint8(boolNum(owned))<<1 | uint8(boolNum(places != nil)*inoutSite)
+	all := places
+	if lv != nil {
+		all = append([]*lval{lv}, places...)
+	} else if places != nil {
+		all = append([]*lval{nil}, places...)
+	}
 
-	fs.protect(places, self+1, 1, &prop.Token, func() {
+	name := fs.constant(value.NewString(prop.Token.Lexeme))
+	x := uint8(boolNum(n.Frozen)) | uint8(boolNum(all != nil)*inoutSite)
+
+	// Only a mut self goes back on an error.
+	guarded := all
+	if lv != nil && !n.Mut {
+		guarded = append([]*lval{nil}, places...)
+	}
+
+	fs.protect(guarded, self, 0, &prop.Token, func() {
 		fs.emit(ins{op: opInvoke, a: base, b: int32(len(n.Args)), c: name, x: x, y: uint8(boolNum(n.Writable))}, &prop.Token)
 
-		if lv == nil && places == nil {
+		if all == nil {
 			return
 		}
 
-		skip := fs.emit(ins{op: opJmp, a: inoutMask(places, 1)}, &prop.Token)
-
-		if lv != nil {
-			if owned {
-				fs.emit(ins{op: opMove, a: fs.locals[lv.v.Local] + 1, b: self + 1}, &prop.Token)
-			}
-
-			g.check(&prop.Token)
-			lv.writeBack(n.InPlace)
-		}
-
-		if places != nil {
-			fs.code[skip].b = fs.here() - int32(skip)
-			fs.writeBacks(places, self+1, 1, &prop.Token)
-		}
+		skip := fs.emit(ins{op: opJmp, a: inoutMask(all, 0)}, &prop.Token)
+		fs.writeBacks(all, self, 0, &prop.Token)
 		fs.patch([]int{skip})
 	})
 

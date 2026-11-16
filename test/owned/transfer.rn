@@ -66,17 +66,17 @@ fun leaky() {
 
 leaky();
 
-// An error leaves the variable as it was before the call.
+// An error leaves what the method changed, as for a mut parameter.
 fun failing() {
     let mut c = C {};
     c.incr();
     try { c.fail(); } catch e { print(e.message); } // expect: x
-    print(c.n); // expect: 1
+    print(c.n); // expect: 99
     try { c.incr(); c.fail(); } catch e {}
-    print(c.n); // expect: 2
+    print(c.n); // expect: 99
     c.noop();
     c.incr();
-    print(c.n); // expect: 3
+    print(c.n); // expect: 100
 }
 
 failing();

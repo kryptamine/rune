@@ -66,7 +66,7 @@ reload:
 			value.Share(*at(regs, in.a()))
 
 		case opShareIf:
-			if at(regs, in.b()).Shared() {
+			if t := at(regs, in.b()); t.Shared() || in.x() != 0 && t.Kind() == value.Struct {
 				value.Share(*at(regs, in.a()))
 			}
 
@@ -74,9 +74,6 @@ reload:
 			if at(regs, in.a()).Shared() {
 				goto slow
 			}
-
-		case opLoadFresh:
-			*at(regs, in.a()) = value.Fresh(*at(consts, in.c()))
 
 		case opGetCell:
 			v := (*Cell)(at(regs, in.b()).Ptr()).v
@@ -525,35 +522,12 @@ reload:
 				goto slow
 			}
 
-			if slot := t.InternedSlot(*at(consts, in.b())); slot >= 0 {
-				fr.pc = pc + int(in.x())
-				dst := at(regs, in.a())
-				*dst = t.With(slot, *at(regs, in.c()))
-
-				goto reload
+			if slot := t.InternedSlot(*at(consts, in.b())); slot >= 0 && !t.Shared() {
+				t.Fields()[slot] = *at(regs, in.c())
+				continue
 			}
 
 			goto slow
-
-		case opSetOwned:
-			t := *at(regs, in.a())
-			slot := t.InternedSlot(*at(consts, in.b()))
-			if slot < 0 {
-				goto slow
-			}
-
-			if own := at(regs, in.a()+1); *own != value.True {
-				t = t.Clone()
-				*at(regs, in.a()) = t
-				*own = value.True
-			}
-
-			t.Fields()[slot] = *at(regs, in.c())
-
-		case opSame:
-			if *at(regs, in.a()) != *at(regs, in.b()) {
-				goto slow
-			}
 
 		case opCheckProp:
 			t := *at(regs, in.a())
@@ -651,27 +625,19 @@ reload:
 			}
 
 			f := (*Closure)(fn.Ptr())
-			if in.b()+1 != f.proto.exact || f.proto.inout != 0 || len(p.frames) > p.maxRecursion {
+			if in.b()+1 != f.proto.exact || len(p.frames) > p.maxRecursion {
 				goto slow
 			}
 
-			// enter, inlined as for opCall; a mutating method resumes past
-			// the jump over its write-back. An error must not leave the
-			// caller a struct half changed, so the method takes the
-			// caller's own only if no try is open in the caller.
+			// enter, inlined as for opCall.
 			fr.pc = pc
-			entry := 0
-
-			if m.Mut {
-				fr.pc++
-
-				if in.x()&2 != 0 {
-					if f.proto.selfReg == 0 {
-						fr.pc++
-					} else if n := len(p.handlers); *at(regs, in.a()) == value.True && (n == 0 || p.handlers[n-1].frame < len(p.frames)-1) {
-						entry = 2
-					}
+			if m := f.proto.inout; m != 0 {
+				if in.x()&inoutSite == 0 || m&^uint32((*(*Instr)(unsafe.Add(code, pc<<3))).a()) != 0 {
+					goto slow
 				}
+
+				fr.inout = m
+				fr.pc++
 			}
 
 			*at(regs, in.a()) = fn
@@ -681,12 +647,7 @@ reload:
 				p.grow(need)
 			}
 
-			if entry != 0 {
-				self := base + f.proto.selfReg
-				p.stack[self], p.stack[self+1] = p.stack[base], value.True
-			}
-
-			p.frames = append(p.frames, frame{cl: f, pc: entry, base: base})
+			p.frames = append(p.frames, frame{cl: f, base: base})
 
 			goto reload
 

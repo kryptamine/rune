@@ -1,5 +1,8 @@
+// A container in a field is part of the struct: only mut self changes it.
 struct Box { items }
+impl Box { fun add(mut self, x) { self.items.push(x); } }
 
 let mut b = Box { items: [1] };
-b.items.push(2);
+b.add(2);
 print(b); // expect: Box {items: [1, 2]}
+b.items.push(3); // expect runtime error: [line: 8] TypeError: Cannot set field 'items' of Box outside its mut self methods.

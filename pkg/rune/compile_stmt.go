@@ -169,12 +169,6 @@ func (fs *funcState) returnStmt(s *ast.ReturnStmt) {
 
 	fs.runDefers(0)
 
-	// Register 1 takes the flag of an owned self.
-	if fs.selfReg != 0 && v == 1 {
-		v = fs.alloc()
-		fs.move(v, 1)
-	}
-
 	fs.returnSelf()
 	fs.emit(ins{op: opReturn, a: v, x: uint8(boolNum(!fresh(s.Value)))}, nil)
 }
@@ -218,10 +212,6 @@ func (fs *funcState) varStmt(s *ast.VarStmt) {
 		fs.free = r
 		fs.declare(l)
 
-		if l.Owned {
-			fs.ownership(fs.declare(nil), s.Initializer)
-		}
-
 		return
 	}
 
@@ -230,10 +220,6 @@ func (fs *funcState) varStmt(s *ast.VarStmt) {
 		fs.exprOrNil(s.Initializer, dst)
 		fs.share(s.Initializer, dst)
 	})
-
-	if l.Owned {
-		fs.ownership(fs.locals[l]+1, s.Initializer)
-	}
 }
 
 func (fs *funcState) destructure(s *ast.DestructureStmt) {

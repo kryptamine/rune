@@ -36,7 +36,7 @@ func (fs *funcState) place(array, index ast.Expr, prop bool, tok *ast.Token, lat
 // before more code runs.
 func (pl *place) check() {
 	if pl.prop {
-		pl.fs.emit(ins{op: opCheckProp, a: pl.t.reg, b: pl.i, y: uint8(boolNum(pl.t.isSelf()))}, pl.tok)
+		pl.fs.emit(ins{op: opCheckProp, a: pl.t.reg, b: pl.i, y: uint8(boolNum(pl.t.fromSelf()))}, pl.tok)
 	}
 }
 
@@ -48,27 +48,20 @@ func (pl *place) load(dst int32) {
 	pl.fs.emit(ins{op: pick(pl.prop, opGetProp, opGetIndex), a: dst, b: pl.t.reg, c: pl.i}, pl.tok)
 }
 
-// store writes v. Only a mut self takes a field set, as a copy that goes
-// back to self unless self is changed in place or is no struct. An
-// element set on a shared array copies it, and the copy goes back too.
+// store writes v. Only a path from a mut self takes a field set. A set
+// on a shared target copies it, and the copy goes back where it was read.
 func (pl *place) store(v int32) { pl.set(v, false) }
 
-// set is store; back puts a copy made by a write below into a struct's
-// field, a copy of the struct then going back in its turn.
+// set is store; back is set for a copy made by a write below going back,
+// whose path is shared already.
 func (pl *place) set(v int32, back bool) {
 	fs, t := pl.fs, pl.t
-	self := t.isSelf() || back && pl.prop
-
-	if pl.prop && t.isSelf() && t.v.Local.Owned && t.inPlace() {
-		fs.emit(ins{op: opSetOwned, a: t.reg, b: pl.i, c: v}, pl.tok)
-		return
-	}
 
 	if !back {
 		t.shareDown()
 	}
 
-	set := fs.emit(ins{op: pick(pl.prop, opSetProp, opSetIndex), a: t.reg, b: pl.i, c: v, y: uint8(boolNum(self))}, pl.tok)
+	set := fs.emit(ins{op: pick(pl.prop, opSetProp, opSetIndex), a: t.reg, b: pl.i, c: v, y: uint8(boolNum(t.fromSelf()))}, pl.tok)
 
 	if !t.held() {
 		return
@@ -190,79 +183,35 @@ func (lv *lval) writeBack(back bool) {
 	}
 }
 
-// guard checks that the variable a write-back after a call goes to still
-// holds what was read from it: a closure or a function the call runs can
-// change one in a cell or an upvalue, and the write-back would lose that.
-// A field set (self.x = f()) has the same hazard, unchecked: its SetProp
-// copies over the register holding what was read.
-type guard struct {
-	fs   *funcState
-	v    *ast.VarExpr
-	read int32
-	copy bool
-}
-
-// guard is nil unless lv's root variable can change behind the call. A
-// receiver that is the variable itself is loaded into the call's
-// registers, which the call overwrites, so guard reserves a register
-// to keep it in; call it before allocating those.
-func (fs *funcState) guard(lv *lval) *guard {
-	root := lv
-	for root != nil && root.at != nil {
-		root = root.at.t
-	}
-
-	if root == nil || root.v == nil {
-		return nil
-	}
-
-	if kind, _ := fs.lookup(root.v.Local); kind != varCell && kind != varUpval {
-		return nil
-	}
-
-	if root == lv {
-		return &guard{fs: fs, v: root.v, read: fs.alloc(), copy: true}
-	}
-
-	return &guard{fs: fs, v: root.v, read: root.reg}
-}
-
-// keep saves the receiver loaded into self.
-func (g *guard) keep(self int32) {
-	if g != nil && g.copy {
-		g.fs.move(g.read, self)
-	}
-}
-
-func (g *guard) check(tok *ast.Token) {
-	if g == nil {
-		return
-	}
-
-	cur := g.fs.alloc()
-	g.fs.varExpr(g.v, cur)
-	g.fs.emit(ins{op: opSame, a: cur, b: g.read, c: g.fs.constant(value.NewString(g.v.Name.Lexeme))}, tok)
-}
-
 // shareDown shares each level of the path reg was read along whose
 // holder is shared, from the top: a write then copies every level that
-// another holder has too, each copy going back into the level above.
+// another holder has too, each copy going back into the level above. Off
+// a mut self, a level held by a struct is shared too, so a write fails
+// when its copy goes back into the struct.
 func (lv *lval) shareDown() {
 	var path []*lval
 	for l := lv; l.at != nil; l = l.at.t {
 		path = append(path, l)
 	}
 
+	x := uint8(boolNum(!lv.fromSelf()))
 	for _, l := range slices.Backward(path) {
-		lv.fs.emit(ins{op: opShareIf, a: l.reg, b: l.at.t.reg}, nil)
+		lv.fs.emit(ins{op: opShareIf, a: l.reg, b: l.at.t.reg, x: x}, nil)
 	}
 }
 
 // held reports whether reg was read from somewhere it must go back to.
 func (lv *lval) held() bool { return lv.at != nil || lv.v != nil && !lv.inPlace() }
 
-// isSelf reports whether reg is read from the self of a mut self method.
-func (lv *lval) isSelf() bool { return lv.v != nil && lv.v.Local.MutSelf }
+// fromSelf reports whether reg is read from the self of a mut self
+// method or a place below it.
+func (lv *lval) fromSelf() bool {
+	for lv.at != nil {
+		lv = lv.at.t
+	}
+
+	return lv.v != nil && lv.v.Local.MutSelf
+}
 
 // inPlace reports whether reg is the variable's own register, so it needs
 // no writing back.
@@ -273,15 +222,4 @@ func (lv *lval) inPlace() bool {
 
 	kind, r := lv.fs.lookup(lv.v.Local)
 	return kind == varLocal && r == lv.reg
-}
-
-// ownership sets the flag in register own, after an owned variable's,
-// telling whether it holds a struct of its own: one a literal just made.
-func (fs *funcState) ownership(own int32, v ast.Expr) {
-	var fresh bool
-	if v != nil {
-		_, fresh = unwrap(v).(*ast.StructExpr)
-	}
-
-	fs.emit(ins{op: opLoadK, a: own, c: fs.constant(value.NewBool(fresh))}, nil)
 }

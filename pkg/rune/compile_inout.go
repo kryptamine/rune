@@ -78,16 +78,8 @@ func (fs *funcState) writeBacks(places []*lval, first int32, bit int, tok *ast.T
 // fails: something sees the places after the error, a handler or defer
 // of this function, or anyone for a variable in a cell.
 func (fs *funcState) protects(places []*lval) bool {
-	if places == nil {
-		return false
-	}
-
-	if len(fs.unwinds) > 0 {
-		return true
-	}
-
 	for _, lv := range places {
-		if lv != nil && fs.inCell(lv.e) {
+		if lv != nil && (len(fs.unwinds) > 0 || fs.inCell(lv.e)) {
 			return true
 		}
 	}

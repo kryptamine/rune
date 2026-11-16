@@ -32,8 +32,9 @@ addTag(user.tags, "admin");
 print(user.tags); // expect: ["admin"]
 
 struct User { name, tags = [] }
+impl User { fun tag(mut self, t) { addTag(self.tags, t); } }
 let mut ann = User { name: "ann" };
-addTag(ann.tags, "x");
+ann.tag("x");
 print(ann.tags); // expect: ["x"]
 
 let mut deep = { rows: [[1]] };

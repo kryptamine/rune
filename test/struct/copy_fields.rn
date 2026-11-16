@@ -1,0 +1,11 @@
+// A copy of a struct keeps the containers in its fields as they were.
+struct Cart { items = [] }
+impl Cart {
+  fun add(mut self, x) { self.items.push(x); }
+}
+
+let mut cart = Cart {};
+let before = cart;
+cart.add("tea");
+print(before.items); // expect: []
+print(cart.items);   // expect: ["tea"]

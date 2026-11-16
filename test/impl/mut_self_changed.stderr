@@ -1,9 +1,0 @@
-ValueError: 'self' changed while its mut method 'list' ran; that change would be lost.
- --> mut_self_changed.rn:8:38
-  |
-7 |   fun item(mut self) { self.i++; return self.i; }
-8 |   fun nested(mut self) { return self.list(() => self.item()); }
-  |                                      ^^^^
-
-  at P.nested (mut_self_changed.rn:8)
-  at <script> (mut_self_changed.rn:36)

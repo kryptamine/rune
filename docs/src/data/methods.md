@@ -53,8 +53,8 @@ impl Account {
     self.balance += amount;
   }
   fun withdraw(mut self, amount) {
+    if amount > self.balance { throw ValueError { message: "insufficient funds" }; }
     self.balance -= amount;
-    if self.balance < 0 { throw ValueError { message: "insufficient funds" }; }
   }
 }
 
@@ -64,17 +64,19 @@ acc.withdraw(30);
 print(acc.balance); // 70
 ```
 
-Structs are values, so the method works on a copy, which replaces the
-receiver when it returns; nothing else holding the old struct sees its
-fields change, and if the method throws, the receiver keeps its old value.
+`self` is the receiver itself, as a
+[`mut` parameter](../language/functions.md#mut-parameters) is the
+caller's variable: the method changes it in place, and it goes back where
+the receiver was read from when the method returns or throws. A copy
+taken before the call keeps its value.
 
 ```rune
 struct Account { owner, balance = 0 }
 impl Account {
   fun deposit(mut self, amount) { self.balance += amount; }
   fun withdraw(mut self, amount) {
+    if amount > self.balance { throw ValueError { message: "insufficient funds" }; }
     self.balance -= amount;
-    if self.balance < 0 { throw ValueError { message: "insufficient funds" }; }
   }
 }
 
@@ -92,46 +94,22 @@ try {
 print(acc.balance);    // 60
 ```
 
-The copy replaces the receiver only if nothing changed the receiver while
-the method ran, such as a closure over `self` the method calls; that
-change would be lost, so it is a `ValueError` instead:
+A method that throws keeps what it changed before the throw, so check
+first and change after, as `withdraw` does.
 
-```rune
-struct Parser { i = 0 }
-impl Parser {
-  fun next(mut self) { self.i++; }
-  fun twice(mut self, f) { f(); self.next(); }
-  fun run(mut self) { self.twice(() => self.next()); }
-}
-
-let mut p = Parser {};
-p.run(); // ValueError: 'self' changed while its mut method 'twice' ran; that change would be lost.
-```
-
-Call the closure outside the mutating call, or have the method take what
-it needs as arguments.
-
-The copy is shallow: an array, object, map or set in a field is shared
-with the old struct, so changing it in place (`self.items.push(x)`) shows
-through both. Assign a new one (`self.items = self.items.append(x)`) to
-keep the old struct as it was.
+The fields' containers are part of the struct too:
 
 ```rune
 struct Cart { items = [] }
 impl Cart {
   fun add(mut self, x) { self.items.push(x); }
-  fun with(mut self, x) { self.items = self.items.append(x); }
 }
 
 let mut cart = Cart {};
 let before = cart;
 cart.add("tea");
-print(before.items); // ["tea"]
-
-let snapshot = cart;
-cart.with("milk");
-print(snapshot.items); // ["tea"]
-print(cart.items);     // ["tea", "milk"]
+print(before.items); // []
+print(cart.items);   // ["tea"]
 ```
 
 The receiver must be a mutable variable, or an element, property or
@@ -139,7 +117,9 @@ field of a value one holds; through an immutable variable, or on a
 struct literal or conversion, the call is a compile error. A struct in a
 field of another struct is such a receiver only in the outer struct's
 own `mut self` methods, as `self.pos.move(1)`; see
-[Setting fields](structs.md#setting-fields). On another
+[Setting fields](structs.md#setting-fields). A method called as a value,
+as `Account.deposit`, takes no receiver to write back, so calling it is
+a `TypeError`. On another
 value it is a runtime error, or a compile error when no method of that
 name but a mutating one exists.
 

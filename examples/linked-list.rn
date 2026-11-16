@@ -1,61 +1,58 @@
 // Linked List
+//
+// Nodes live in one array and link by index: a value never refers to
+// another, so a list is a pool of nodes plus the index of its head.
 
-fun createNode(data) => ({
-    data: data,
-    next: nil,
-});
+struct List { nodes = [], head = nil }
 
-fun createList(arr) {
-    let mut head = nil;
-    let mut tail = nil;
+impl List {
+    fun from(arr) {
+        let mut list = List {};
+        let mut xs = arr;
+        xs.reverse();
 
-    for x in arr {
-        let node = createNode(x);
-        if head == nil {
-            head = node;
-            tail = node;
-        } else {
-            tail["next"] = node;
-            tail = node;
+        for x in xs {
+            list.prepend(x);
+        }
+
+        return list;
+    }
+
+    fun prepend(mut self, data) {
+        self.nodes.push({ data, next: self.head });
+        self.head = self.nodes.len() - 1;
+    }
+
+    fun reverse(mut self) {
+        let mut prev = nil;
+        let mut current = self.head;
+
+        while current != nil {
+            let next = self.nodes[current].next;
+            self.nodes[current].next = prev;
+            prev = current;
+            current = next;
+        }
+
+        self.head = prev;
+    }
+
+    fun show(self) {
+        let mut current = self.head;
+
+        while current != nil {
+            print(self.nodes[current].data);
+            current = self.nodes[current].next;
         }
     }
-
-    tail["next"] = nil;
-
-    return head;
 }
 
-fun printList(list) {
-    let mut current = list;
-
-    while current != nil {
-        print(current["data"]);
-        current = current["next"];
-    }
-}
-
-fun reverseList(list) {
-    let mut prev = nil;
-    let mut current = list;
-    let mut next = nil;
-
-    while current != nil {
-        next = current["next"];
-        current["next"] = prev;
-        prev = current;
-        current = next;
-    }
-
-    return prev;
-}
-
-let arr = [1, 2, 3, 4, 5];
-let mut list = createList(arr);
+let mut list = List.from([1, 2, 3, 4, 5]);
 
 print("Original list: ");
-printList(list);
+list.show();
 
-list = reverseList(list);
+list.reverse();
 
 print("Reversed list: ");
-printList(list);
+list.show();

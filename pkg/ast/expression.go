@@ -64,10 +64,6 @@ type Local struct {
 	Captured bool
 	// TopLevel is set for a declaration outside any block or function.
 	TopLevel bool
-	// Owned is set by the resolver on a mutable variable, or mut self,
-	// that tracks whether it holds a struct of its own, which it changes
-	// in place.
-	Owned bool
 	// MutSelf is set on the self of a mut self method, the only variable
 	// whose struct can have its fields set.
 	MutSelf bool
@@ -115,10 +111,6 @@ type VarExpr struct {
 	Name   Token
 	Case   *Token
 	Local  *Local
-	// Leaks is set on a read of an owned variable that lets its value go,
-	// Lends on one that calls a method which may mutate it.
-	Leaks bool
-	Lends bool
 	// Moves is set on a read of a variable that holds its value alone
 	// and is dead after it, so a copy takes the value unshared.
 	Moves bool
@@ -158,9 +150,11 @@ type CallExpr struct {
 	Writable bool
 	Frozen   bool
 	// InPlace is set when only built-in in-place methods have its name,
-	// Keeps when one has, which may keep its arguments.
+	// Keeps when one has, which may keep its arguments, and Mut when a
+	// mut self method has.
 	InPlace bool
 	Keeps   bool
+	Mut     bool
 	// Inout has a bit for each argument that a mut parameter of the
 	// function called may write back to.
 	Inout uint32
