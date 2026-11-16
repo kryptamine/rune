@@ -1,0 +1,1 @@
+let a = try { 1 } catch => 0; // Error at '=>': Expect '{' after 'catch'.

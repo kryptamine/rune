@@ -18,7 +18,7 @@ gives a default. `setEnv` and `unsetEnv` change the environment of the
 program and of the commands it runs.
 
 ```rune
-let port = int(os.env("PORT") ?? "8080");
+let port = number(os.env("PORT") ?? "8080");
 print(port);                     // 8080
 
 os.setEnv("APP_MODE", "test");

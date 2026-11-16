@@ -1,0 +1,5 @@
+error: Expect '{' after 'try'.
+ --> no_braces.rn:1:13
+  |
+1 | let a = try int("1") catch { 0 }; // Error at 'int': Expect '{' after 'try'.
+  |             ^^^

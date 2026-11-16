@@ -1,0 +1,5 @@
+struct P { x }
+impl P { fun plus(self, a) { return self.x + a; } }
+let p = P { x: 1 };
+p.plus(...[2]); // Error at '...': Cannot spread arguments into a method call.
+"a-b".split(...["-"]); // Error at '...': Cannot spread arguments into a method call.

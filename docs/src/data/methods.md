@@ -19,7 +19,7 @@ impl Money {
     }
 
     fun format(self) {
-        "%.2f %s".format(self.cents / 100, self.currency)
+        "{"%.2f".format(self.cents / 100)} {self.currency}"
     }
 }
 
@@ -169,14 +169,10 @@ A struct held in a field of another struct can be changed only from the
 outer struct's own `mut self` methods, as in `self.pos.move(1)`; see
 [Setting Fields](structs.md#setting-fields).
 
-## Methods as Values
+## Calling Only
 
-A method can be passed around like any function:
-
-- `price.format`, without a call, is the method bound to `price`: a
-  function that takes the remaining arguments;
-- `Money.format` is the plain function, which takes the instance as its
-  first argument. It fits straight into `map` and friends.
+A method taking `self` is only called, on an instance. To pass one
+along, wrap the call in an arrow function:
 
 ```rune
 struct Money { cents }
@@ -186,15 +182,20 @@ impl Money {
 }
 
 let prices = [Money { cents: 499 }, Money { cents: 1250 }];
-print(prices.map(Money.format)); // ["$4.99", "$12.50"]
-
-let show = prices[0].format;
-print(show()); // $4.99
+print(prices.map(m => m.format())); // ["$4.99", "$12.50"]
 ```
 
-A mutating method has no variable to write back to when used as a value.
-Taking a bound one, `acc.deposit`, is a `TypeError`, and so is calling
-`Account.deposit` through `map` or another callback.
+```rune
+struct Money { cents }
+
+impl Money {
+    fun format(self) { "$%.2f".format(self.cents / 100) }
+}
+
+let show = Money { cents: 499 }.format; // TypeError: Cannot take method 'format' of Money as a value.
+```
+
+A static method is a plain function, so `Money.of` may be passed as is.
 
 ## Functions in Fields
 

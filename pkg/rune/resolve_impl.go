@@ -200,15 +200,10 @@ func (p *Resolver) checkMutation(call *ast.CallExpr, prop *ast.IndexExpr) {
 	}
 }
 
-// staticShape is the struct type of a literal or a conversion, or nil.
+// staticShape is the struct type of a literal, or nil.
 func (p *Resolver) staticShape(e ast.Expr) *value.Shape {
-	switch r := e.(type) {
-	case *ast.StructExpr:
+	if r, ok := e.(*ast.StructExpr); ok {
 		return r.Shape
-	case *ast.CallExpr:
-		if t, ok := r.Callee.(*ast.VarExpr); ok {
-			return p.structs[t.Local]
-		}
 	}
 
 	return nil

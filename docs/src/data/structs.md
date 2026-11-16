@@ -132,10 +132,9 @@ Inside a `mut self` method all of this is allowed: `self.tags.push(x)`,
 
 ## Updating with Spread
 
-To get a changed copy without touching the original, spread the struct
-into a new literal of the same type and list the fields to change:
-`Config { ...base, debug: true }`. Items apply in order, so later ones
-win.
+A struct literal may spread a struct of its own type, or an object,
+then list the fields to change: `Config { ...base, debug: true }`.
+Items apply in order, so later ones win.
 
 ```rune
 struct Config { host, port = 8080, debug = false }
@@ -149,36 +148,33 @@ print(prod); // Config {host: "example.com", port: 443, debug: false}
 print(base); // Config {host: "localhost", port: 8080, debug: false}
 ```
 
-Only a struct of the same type can be spread into a literal; an object
-or another struct type is a runtime error. Use a
-[conversion](#converting) to turn an object into a struct.
+A struct of another type is a runtime error.
 
-## Converting
+## From an Object
 
-Calling a struct type converts a value to it. This is how data from
-`json.parse` becomes a struct:
+Spreading an object into a struct literal is how data from `json.parse`
+becomes a struct:
 
 ```rune
 struct Config { host, port = 8080 }
 
-let cfg = Config(json.parse(r"""{"host": "example.com"}"""));
+let cfg = Config { ...json.parse(r"""{"host": "example.com"}""") };
 print(cfg);      // Config {host: "example.com", port: 8080}
 print(cfg.port); // 8080
 ```
 
-The object's keys must be exactly the struct's fields; fields with
-defaults may be left out. A struct of the same type is returned as is.
-Anything else is an error: there are no implicit conversions, and none
-between different struct types.
+Every key must be a field, and every field without a default must be
+given, by the object or by the literal. The check runs when the literal
+is built:
 
 ```rune
 struct Config { host, port = 8080 }
-Config({ host: "example.com", timeout: 5 }); // KeyError: Config has no field 'timeout'.
+Config { ...{ host: "example.com", timeout: 5 } }; // KeyError: Config has no field 'timeout'.
 ```
 
 ```rune
 struct Config { host, port = 8080 }
-Config({ port: 80 }); // KeyError: Missing field 'host' of Config.
+Config { ...{ port: 80 } }; // KeyError: Missing field 'host' of Config.
 ```
 
 ## Type Tests and Equality

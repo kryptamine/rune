@@ -15,7 +15,7 @@ a.fill();
 print(a); // expect: Bag {xs: [1], o: {a: [1, 2]}, m: map {"k": 1}, s: set {3}, n: -1}
 print(b); // expect: Bag {xs: [], o: {a: [1]}, m: map {}, s: set {}, n: -1}
 
-let c = Bag({ n: 2 });
+let c = Bag { n: 2 };
 print(c); // expect: Bag {xs: [], o: {a: [1]}, m: map {}, s: set {}, n: 2}
 
 fun make() { return Bag {}; }

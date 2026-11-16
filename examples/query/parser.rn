@@ -174,7 +174,7 @@ impl Parser {
             throw ast.SqlError { message: "{what} takes a whole number", pos: t.pos };
         }
 
-        return int(t.text);
+        return number(t.text);
     }
 
     fun order(mut self) {

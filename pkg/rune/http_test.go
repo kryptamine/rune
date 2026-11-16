@@ -48,9 +48,8 @@ func TestHTTPRequest(t *testing.T) {
 
 		let nf = http.request("GET", "URL/missing", HttpOptions {});
 		print(nf.status);
-		print(http.get("URL/"));
+		print(http.request("GET", "URL/").body);
 
-		try { http.get("URL/missing"); } catch e is IOError { print("get failed"); }
 		try { http.request("GET", "URL/slow", { timeout: 0.05 }); } catch e is IOError { print("timed out"); }
 		try { http.request("GET", "URL/", { body: 1 }); } catch e is TypeError { print(e.message); }
 		try { http.request("GET", "URL/", { headers: { a: 1 } }); } catch e is TypeError { print(e.message); }
@@ -84,7 +83,6 @@ a, b
 true
 404
 GET 
-get failed
 timed out
 http.request() expects HttpOptions.body to be a string, got number.
 http.request() expects header 'a' to be a string, got number.

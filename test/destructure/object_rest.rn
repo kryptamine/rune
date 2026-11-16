@@ -24,7 +24,7 @@ print(r); // expect: {w: 2, e: 3}
 
 let src = { s: 1 };
 let { ...dup } = src;
-let mut { ...own } = src;
+let { ...mut own } = src;
 own.s = 2;
 print(src.s); // expect: 1
 

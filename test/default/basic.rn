@@ -53,9 +53,6 @@ impl P {
 let p = P { x: 1 };
 print(p.add()); // expect: 2
 print(p.add(5)); // expect: 6
-print([p].map(P.add)); // expect: [2]
-let bound = p.add;
-print(bound()); // expect: 2
 print(P.make()); // expect: P {x: 0}
 
 fun main(args = ["unused"]) { print(args); } // expect: []

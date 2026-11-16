@@ -34,25 +34,6 @@ var HttpResponse = value.NewShape("HttpResponse", []value.Field{
 })
 
 var httpNatives = []*Native{
-	{"http.get", 1, 1, func(c *call) value.Value {
-		url := c.str(0)
-		if !c.ok() {
-			return value.NilValue
-		}
-
-		res, body := c.fetch(http.MethodGet, url, defaultHTTPOpts())
-		if !c.ok() {
-			return value.NilValue
-		}
-
-		defer body.Close()
-
-		if res.StatusCode != http.StatusOK {
-			return c.fail(errors.IOError, "could not fetch %s: status code %d", url, res.StatusCode)
-		}
-
-		return c.readBody(url, body)
-	}},
 	{"http.request", 2, 3, func(c *call) value.Value {
 		method, url, opts := c.str(0), c.str(1), c.httpOptions(2)
 		if !c.ok() {

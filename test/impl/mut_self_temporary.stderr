@@ -5,15 +5,15 @@ error: Cannot call mutating method 'incr' of Counter: the receiver is not a muta
    |            ^^^^
 
 error: Cannot call mutating method 'get' of Counter: the receiver is not a mutable variable, element or property.
-  --> mut_self_temporary.rn:11:19
+  --> mut_self_temporary.rn:11:18
    |
 10 | Counter {}.incr(); // Error at 'incr': Cannot call mutating method 'incr' of Counter: the receiver is not a mutable variable, element or property.
-11 | Counter({ n: 1 }).get(); // Error at 'get': Cannot call mutating method 'get' of Counter: the receiver is not a mutable variable, element or property.
-   |                   ^^^
+11 | Counter { n: 1 }.get(); // Error at 'get': Cannot call mutating method 'get' of Counter: the receiver is not a mutable variable, element or property.
+   |                  ^^^
 
 error: Cannot call mutating method 'incr': the receiver is not a mutable variable, element or property.
   --> mut_self_temporary.rn:12:8
    |
-11 | Counter({ n: 1 }).get(); // Error at 'get': Cannot call mutating method 'get' of Counter: the receiver is not a mutable variable, element or property.
+11 | Counter { n: 1 }.get(); // Error at 'get': Cannot call mutating method 'get' of Counter: the receiver is not a mutable variable, element or property.
 12 | make().incr(); // Error at 'incr': Cannot call mutating method 'incr': the receiver is not a mutable variable, element or property.
    |        ^^^^

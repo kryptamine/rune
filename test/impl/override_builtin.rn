@@ -7,7 +7,5 @@ impl map {
 }
 
 print([1, 2].map(x => x * 2)); // expect: mine
-let m = [3].map;
-print(m(x => x)); // expect: mine
 print(map().get("a")); // expect: own a
 print([3, 1, 2].sort()); // expect: nil

@@ -36,7 +36,7 @@ skip: int() cannot parse "x" as an integer.
 - `match` on literals, ranges (`200..300`, `500..`), types, structs, arrays and enums, exhaustive over enum variants; the same nested patterns in `let`, parameters and `if x is { status: 200, body }`; spread, rest
 - membership `x in xs` (a range without making it), slices `xs[1..]`, `s[..-1]`
 - nil-safe chains `a?.b ?? c`; `return` / `break` / `continue` / `throw` as expressions
-- `try`/`catch` by error type, as a statement or an expression; `defer`
+- `try`/`catch` by error type, a block that gives a value like `if`; `defer`
 - modules with `export` / `import`
 - standard library: `string`, `regex`, `math`, `json`, `http`, `time`, `fs`, `io`, `os`
 - built-in formatter: `rune fmt`

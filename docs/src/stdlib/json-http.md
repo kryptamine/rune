@@ -4,7 +4,6 @@
 |---|---|
 | `json.parse(s)` | parses JSON text into a value |
 | `json.stringify(v[, indent])` | encodes a value as JSON text |
-| `http.get(url)` | fetches a URL, returns the body as a string |
 | `http.request(method, url[, opts])` | sends any request, returns an `HttpResponse` |
 
 ## json.parse
@@ -33,21 +32,21 @@ print(json.parse("[1, 2.5]"));   // [1, 2.5]
 print(json.parse("42"));         // 42
 ```
 
-Calling a [struct](../data/structs.md) type on the result checks its
-shape: every field without a default must be there, and no other key may
-be.
+Spreading the result into a [struct](../data/structs.md) literal checks
+its shape: every field without a default must be there, and no other key
+may be.
 
 ```rune
 struct Order { id, total, items = [] }
 
-let order = Order(json.parse(r"""{"id": 8, "total": 5}"""));
+let order = Order { ...json.parse(r"""{"id": 8, "total": 5}""") };
 print(order);         // Order {id: 8, total: 5, items: []}
 print(order.items);   // []
 ```
 
 ```rune
 struct Order { id, total, items = [] }
-Order(json.parse(r"""{"id": 8}""")); // KeyError: Missing field 'total' of Order.
+Order { ...json.parse(r"""{"id": 8}""") }; // KeyError: Missing field 'total' of Order.
 ```
 
 Text that is not JSON is a `ValueError`:
@@ -108,27 +107,6 @@ An infinite or NaN number, or a value nested more than 1000 deep, is a
 json.stringify({ ratio: math.INF }); // ValueError: json.stringify() cannot encode a non-finite number.
 ```
 
-## http.get
-
-`http.get(url)` fetches `url` and returns the body as a string. A network
-error, or any status other than 200, is an `IOError`.
-
-The examples below talk to a made-up `api.example.com`; the output shows
-what such a server would answer.
-
-```rune
-let todos = json.parse(http.get("https://api.example.com/todos")).todos;
-print(todos.filter(t => !t.done).map(t => t.title));   // ["buy milk"]
-```
-
-```rune
-try {
-    http.get("https://api.example.com/missing");
-} catch e is IOError {
-    print(e.message);   // http.get() could not fetch https://api.example.com/missing: status code 404
-}
-```
-
 ## http.request
 
 `http.request(method, url[, opts])` sends a request and returns an
@@ -148,6 +126,14 @@ object with any of those keys:
 - `body` — a string or bytes;
 - `timeout` — in seconds, 30 by default;
 - `stream` — `true` to read the body as a [stream](streams.md).
+
+The examples below talk to a made-up `api.example.com`; the output shows
+what such a server would answer.
+
+```rune
+let todos = json.parse(http.request("GET", "https://api.example.com/todos").body).todos;
+print(todos.filter(t => !t.done).map(t => t.title));   // ["buy milk"]
+```
 
 Creating a user with a JSON body:
 

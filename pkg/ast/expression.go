@@ -470,6 +470,8 @@ type IfExpr struct {
 	If *IfStmt
 }
 
+func (n *IfExpr) Values() []Expr { return n.If.Values() }
+
 func (n *IfExpr) Accept(v ExprVisitor) (value.Value, error) {
 	return v.VisitIfExpr(n)
 }
@@ -488,20 +490,16 @@ func (n *ThrowExpr) String() string {
 	return fmt.Sprintf("(throw %v)", n.Value)
 }
 
-// TryExpr is try in an expression: the value of Value or, if it fails, of
-// the first catch clause that matches.
+// TryExpr is a try whose value is used: that of the body or, if it
+// fails, of the first catch clause that matches.
 type TryExpr struct {
-	Value   Expr
-	Catches []CatchClause
-	Keyword Token
+	Try *TryStmt
 }
+
+func (n *TryExpr) Values() []Expr { return n.Try.Values() }
 
 func (n *TryExpr) Accept(v ExprVisitor) (value.Value, error) {
 	return v.VisitTryExpr(n)
-}
-
-func (n *TryExpr) String() string {
-	return fmt.Sprintf("(try %v)", n.Value)
 }
 
 // JumpExpr is return, break or continue in an expression; it has no value.

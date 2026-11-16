@@ -1,0 +1,1 @@
+let a = try int("1") catch { 0 }; // Error at 'int': Expect '{' after 'try'.

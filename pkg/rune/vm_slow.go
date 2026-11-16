@@ -118,7 +118,7 @@ func (p *Interpreter) slow(in Instr) error {
 
 		for i, k := range keys {
 			if !obj.Set(k, regs[in.b()+i]) {
-				return functionProperty(tok, k)
+				return functionProperty(&f.keyToks[in.c()][i], k)
 			}
 		}
 
@@ -391,8 +391,8 @@ func (p *Interpreter) slow(in Instr) error {
 // called directly gets what site passes on.
 func (p *Interpreter) callAt(at, n int, tok *ast.Token, site callSite) error {
 	fn := p.stack[at]
-	if fn.Kind() == value.Type {
-		v, err := convert(tok, fn.TypeShape(), p.stack[at+1:at+1+n])
+	if isEnum(fn) {
+		v, err := variant(tok, fn.TypeShape(), p.stack[at+1:at+1+n])
 		if err == nil {
 			p.stack[at] = v
 		}
@@ -407,22 +407,6 @@ func (p *Interpreter) callAt(at, n int, tok *ast.Token, site callSite) error {
 	switch f := fn.Fn().(type) {
 	case *Closure:
 		return p.enter(f, at+1, n, tok, site)
-	case *BoundMethod:
-		if !f.fn.proto.accepts(n + 1) {
-			return argumentError(f.fn.proto, n+1, 1, tok)
-		}
-
-		p.grow(at + 2 + n)
-		copy(p.stack[at+2:], p.stack[at+1:at+1+n])
-		p.stack[at], p.stack[at+1] = value.NewFunction(f.fn), f.recv
-
-		return p.enter(f.fn, at+1, n+1, tok, callSite{})
-	case *BoundNative:
-		p.grow(at + 2 + n)
-		copy(p.stack[at+2:], p.stack[at+1:at+1+n])
-		p.stack[at+1] = f.recv
-
-		return p.callNativeMethod(at, n, f.fn, tok)
 	}
 
 	v, err := p.host.Call(fn.Fn().(*stdlib.Native), p.stack[at+1:at+1+n], tok)
@@ -526,12 +510,15 @@ func spreadArgs(src value.Value) ([]value.Value, bool) {
 // spreadFields copies src, a struct of type shape, into the field
 // registers fields.
 func spreadFields(tok *ast.Token, shape *value.Shape, fields []value.Value, src value.Value) error {
-	if src.Kind() != value.Struct || src.Shape() != shape {
+	switch {
+	case src.Kind() == value.Object:
+		return stdlib.AssignFields(tok, shape, fields, src.Obj())
+	case src.Kind() == value.Struct && src.Shape() == shape:
+		value.ShareAll(src.Fields())
+		copy(fields, src.Fields())
+	default:
 		return spreadError(tok, src, shape.Name)
 	}
-
-	value.ShareAll(src.Fields())
-	copy(fields, src.Fields())
 
 	return nil
 }

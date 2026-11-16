@@ -194,5 +194,5 @@ print(math.isInt(json.parse("2")));         // true
 print(math.isInt(json.parse("2.0")));       // false
 print(int(3.9));                            // 3
 print(int(-3.9));                           // -3
-print(int("42") + 1);                       // 43
+print(number("42") + 1);                    // 43
 ```

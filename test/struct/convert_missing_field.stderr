@@ -1,5 +1,5 @@
 KeyError: Missing field 'x' of Point.
- --> convert_missing_field.rn:3:19
+ --> convert_missing_field.rn:3:7
   |
-3 | print(Point({y: 1})); // expect runtime error: [line: 3] KeyError: Missing field 'x' of Point.
-  |                   ^
+3 | print(Point { ...{y: 1} }); // expect runtime error: [line: 3] KeyError: Missing field 'x' of Point.
+  |       ^^^^^

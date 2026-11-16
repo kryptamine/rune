@@ -207,7 +207,7 @@ print(eval(e)); // -20
 ```
 
 Fields work as in a [struct](structs.md): they are read-only, defaults
-and spread work, and `Expr.Num(obj)` converts an object. An enum that has
+and spread work, `Expr.Num { ...obj }` included. An enum that has
 variants with fields has no numbers, so `values()`, `Expr(n)` and
 `int(v)` are a `TypeError`:
 
@@ -263,7 +263,7 @@ impl Side {
 
 print(Side.White.other());            // Side.Black
 print(Side.parse("b"));               // Side.Black
-print(Side.values().map(Side.other)); // [Side.Black, Side.White]
+print(Side.values().map(s => s.other())); // [Side.Black, Side.White]
 ```
 
 An enum is not a struct, so `Side {}` is an error. No variant, and no

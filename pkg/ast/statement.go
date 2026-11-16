@@ -111,6 +111,16 @@ func NewBlockStmt(stmts []Stmt) Stmt {
 	return &BlockStmt{Stmts: stmts}
 }
 
+// ValuedStmt is a statement that gives a value as the last of a block
+// with one: if, match and try.
+type ValuedStmt interface {
+	Stmt
+	// Values returns the value of each branch, nil for one without.
+	Values() []Expr
+	// AsExpr is the statement as an expression giving that value.
+	AsExpr() Expr
+}
+
 // IfStmt is if cond { then } [else ...]; El is nil, a *BlockStmt or an
 // *IfStmt.
 type IfStmt struct {
@@ -119,8 +129,9 @@ type IfStmt struct {
 	El        Stmt
 }
 
-// Values returns the value of each branch, nil for one without, a missing
-// else included.
+func (n *IfStmt) AsExpr() Expr { return &IfExpr{If: n} }
+
+// Values counts a missing else as a branch without a value.
 func (n *IfStmt) Values() []Expr {
 	vs := []Expr{n.Then.Value()}
 
@@ -233,25 +244,31 @@ func NewFunctionStmt(name Token, parameters []Binding, body []Stmt) *FunctionStm
 // TryStmt runs Body and, if it fails with a runtime error or a throw, runs
 // the first catch clause that matches.
 type TryStmt struct {
-	Body    Stmt
+	Body    *BlockStmt
 	Catches []CatchClause
 }
 
-// CatchClause is catch [name [is T | U]] { body }, or in a TryExpr
-// catch [name [is T | U]] => value; without Types it catches any error.
-// The resolver sets Shapes, one per type.
+func (n *TryStmt) AsExpr() Expr { return &TryExpr{Try: n} }
+
+// Values gives the value of the body, then of each catch.
+func (n *TryStmt) Values() []Expr {
+	vs := []Expr{n.Body.Value()}
+	for _, c := range n.Catches {
+		vs = append(vs, c.Body.Value())
+	}
+
+	return vs
+}
+
+// CatchClause is catch [name [is T | U]] { body }; without Types it
+// catches any error. The resolver sets Shapes, one per type.
 type CatchClause struct {
 	Keyword    Token
 	Param      *Token
 	ParamLocal *Local
 	Types      []*VarExpr
 	Shapes     []*value.Shape
-	Body       []Stmt
-	Value      Expr
-}
-
-func NewTryStmt(body Stmt, catches []CatchClause) Stmt {
-	return &TryStmt{Body: body, Catches: catches}
+	Body       *BlockStmt
 }
 
 // StructField is a field of a struct declaration; Default, at DefaultAt,

@@ -16,7 +16,7 @@ print(value()); // expect: 1
 
 fun early() {
   defer print("cleanup");
-  let v = try int("x") catch => return 0;
+  let v = try { int("x") } catch { return 0 };
   return v;
 }
 print(early());

@@ -17,7 +17,7 @@ struct Request { method, path, status, ms }
 
 fun parse(line) {
     let [method, path, status, ms] = line.split(" ");
-    Request { method, path, status: int(status), ms: number(ms) }
+    Request { method, path, status: number(status), ms: number(ms) }
 }
 
 fun kind(req) {

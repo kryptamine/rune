@@ -262,6 +262,10 @@ type MatchStmt struct {
 	Match *MatchExpr
 }
 
+func (n *MatchStmt) Values() []Expr { return n.Match.Values() }
+
+func (n *MatchStmt) AsExpr() Expr { return n.Match }
+
 func (n *MatchStmt) Accept(v StmtVisitor) error {
 	return v.VisitMatchStmt(n)
 }

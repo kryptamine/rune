@@ -33,8 +33,8 @@ print(login);       // ann
 print(fullName);    // Ann Lee
 ```
 
-Variables from a pattern are immutable, like any `let`. Mark one with
-`mut`, or write `let mut { ... }` to make them all mutable:
+Variables from a pattern are immutable, like any `let`. Mark each one
+that may change with `mut`:
 
 ```rune
 let { name, age: mut years } = { name: "ann", age: 31 };

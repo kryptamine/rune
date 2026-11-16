@@ -8,7 +8,7 @@ print(xs.some((_, i) => i == 5));                // expect: false
 print(xs.every((_, i) => i < 3));                // expect: true
 
 // Only a function requiring two arguments gets the index.
-print(["10", "2"].map(int));                     // expect: [10, 2]
+print([10.5, 2.9].map(int));                     // expect: [10, 2]
 print(xs.map((x, sep = "!") => x + sep));        // expect: ["a!", "b!", "c!"]
 
 fun pair(x, i) { return [x, i]; }
@@ -18,5 +18,6 @@ struct Tag { k }
 impl Tag {
   fun at(self, x, i) { return "{self.k}{x}{i}"; }
 }
-print(xs.map(Tag { k: "#" }.at));                // expect: ["#a0", "#b1", "#c2"]
+let tag = Tag { k: "#" };
+print(xs.map((x, i) => tag.at(x, i)));          // expect: ["#a0", "#b1", "#c2"]
 print([2, 3].map(math.pow));                     // expect: [1, 3]

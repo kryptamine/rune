@@ -14,8 +14,6 @@ print(number(" -2.5e1 ")); // expect: -25
 print(number("1E+2")); // expect: 100
 print(number(7)); // expect: 7
 
-print(int("42")); // expect: 42
-print(int(" -17 ")); // expect: -17
 print(int("ff", 16)); // expect: 255
 print(int("101", 2)); // expect: 5
 print(int(3.9)); // expect: 3
@@ -37,10 +35,9 @@ for s in ["abc", "inf", "0x", "", "-", ".5", "5.", "+1", "1e", "1e400", "1 2"] {
 // expect: number() cannot parse "1 2" as a number.
 
 try { number(nil); } catch e is TypeError { print(e.message); } // expect: number() expects a number or a string as argument 1, got nil.
-try { int("3.5"); } catch e is ValueError { print(e.message); } // expect: int() cannot parse "3.5" as an integer.
-try { int("1e3"); } catch e is ValueError { print(e.message); } // expect: int() cannot parse "1e3" as an integer.
+try { int("42"); } catch e is TypeError { print(e.message); } // expect: int() expects a number as argument 1, got string.
 try { int("1__0", 10); } catch e is ValueError { print(e.message); } // expect: int() cannot parse "1__0" as an integer in base 10.
-print(int("1_000"), int(" -0x1F "), int("0b11"), int("f_f", 16), int("0755", 8)); // expect: 1000 -31 3 255 493
+print(int("f_f", 16), int("0755", 8)); // expect: 255 493
 try { int("z", 37); } catch e is ValueError { print(e.message); } // expect: int() expects a base from 2 to 36, got 37.
 try { int(10, 2); } catch e is TypeError { print(e.message); } // expect: int() expects a string as argument 1, got number.
 try { int(math.INF); } catch e is ValueError { print(e.message); } // expect: int() cannot convert inf to an integer.
@@ -59,5 +56,5 @@ try { object([1]); } catch e is TypeError { print(e.message); }           // exp
 
 print([1, "a", nil].map(string));              // expect: ["1", "a", "nil"]
 print(["hi"].map(bytes));                      // expect: [b"hi"]
-print([{ name: "bob" }].map(User));            // expect: [User {name: "bob", role: "guest"}]
+print([{ name: "bob" }].map(o => User { ...o })); // expect: [User {name: "bob", role: "guest"}]
 print(map(User { name: "ann" }));              // expect: map {"name": "ann", "role": "guest"}

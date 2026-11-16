@@ -1,5 +1,5 @@
-error: Expect 'catch' after try expression.
- --> missing_brace.rn:1:13
+error: Expect '{' after 'try'.
+ --> missing_brace.rn:1:5
   |
-1 | try print(1); // [line: 1] Error at ';': Expect 'catch' after try expression.
-  |             ^
+1 | try print(1); // [line: 1] Error at 'print': Expect '{' after 'try'.
+  |     ^^^^^

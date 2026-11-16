@@ -7,4 +7,4 @@ impl Side {
 
 print(Side.White.other());       // expect: Side.Black
 print(Side.parse("b").other());  // expect: Side.White
-print(Side.values().map(Side.other)); // expect: [Side.Black, Side.White]
+print(Side.values().map(s => s.other())); // expect: [Side.Black, Side.White]

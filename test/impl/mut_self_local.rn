@@ -62,13 +62,6 @@ fun captured() {
 }
 print(captured());                  // expect: 3
 
-fun bound() {
-  let mut p = P { x: 1 };
-  let g = p.get;
-  p.setX(4);
-  return [g(), p.x];
-}
-print(bound());                     // expect: [1, 4]
 
 fun nested() {
   struct_like();

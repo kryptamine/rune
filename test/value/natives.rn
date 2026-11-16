@@ -51,7 +51,7 @@ fields.items.push(0);
 let mut q = P { ...p };
 let mut qi = q.items;
 qi.push(0);
-let mut r = P({ items: p.items });
+let mut r = P { ...{ items: p.items } };
 let mut ri = r.items;
 ri.push(0);
 print(p); // expect: P {items: [1]}

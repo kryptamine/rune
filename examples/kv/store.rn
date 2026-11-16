@@ -92,7 +92,7 @@ impl Store {
     // sync: fsync after every write, not only flush it to the system
     fun open(dir, { maxSegment = 4 << 20, sync = false } = {}) {
         fs.mkdir(dir);
-        let lock = try fs.lock(fs.join(dir, "LOCK")) catch e is IOError => throw if e.code == "locked" { KvError { message: "{dir} is open elsewhere" } } else { e };
+        let lock = try { fs.lock(fs.join(dir, "LOCK")) } catch e is IOError { throw if e.code == "locked" { KvError { message: "{dir} is open elsewhere" } } else { e } };
         let mut db = Store { dir, maxSegment, sync, lock };
 
         try {
@@ -115,7 +115,7 @@ impl Store {
             }
         }
 
-        let ids = fs.list(self.dir).filter(f => f.name.endsWith(".log")).map(f => int(fs.stem(f.name)));
+        let ids = fs.list(self.dir).filter(f => f.name.endsWith(".log")).map(f => number(fs.stem(f.name)));
 
         for i, id in ids {
             self.segs[id] = Segment.at(self.dir, id);

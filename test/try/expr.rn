@@ -1,33 +1,48 @@
-print(try int("12") catch => 0); // expect: 12
-print(try int("x") catch => -1); // expect: -1
-print(try int("x") catch e => e is ValueError); // expect: true
+print(try { number("12") } catch { 0 }); // expect: 12
+print(try { number("x") } catch { -1 }); // expect: -1
+print(try { number("x") } catch e { e is ValueError }); // expect: true
 
-fun read(o) { try o.k catch e is TypeError => "type" catch e is KeyError => "key" }
+fun read(o) { try { o.k } catch e is TypeError { "type" } catch e is KeyError { "key" } }
 print([read({}), read(1), read({ k: 2 })]); // expect: ["key", "type", 2]
 
-print([1, try [].pop() catch => 9, 3]); // expect: [1, 9, 3]
-print(try int("5") + 1 catch => 0); // expect: 6
-print(try (try int("a") catch e is KeyError => 1) catch => 2); // expect: 2
+print([1, try { [].pop() } catch { 9 }, 3]); // expect: [1, 9, 3]
+print(try { number("5") + 1 } catch { 0 }); // expect: 6
+print(try { try { number("a") } catch e is KeyError { 1 } } catch { 2 }); // expect: 2
 
 let mut sum = 0;
-for s in ["1", "a", "3"] { sum += try int(s) catch => continue; }
+for s in ["1", "a", "3"] { sum += try { number(s) } catch { continue }; }
 print(sum); // expect: 4
 
 fun double(s) {
-  let v = try int(s) catch => return "bad";
+  let v = try { number(s) } catch { return "bad" };
   return v * 2;
 }
 print([double("4"), double("z")]); // expect: [8, "bad"]
 
-try int("q") catch => print("as a statement"); // expect: as a statement
-print(match 1 { 1 => try int("w") catch => "arm", _ => 0 }); // expect: arm
+print(match 1 { 1 => try { number("w") } catch { "arm" }, _ => 0 }); // expect: arm
 
 let mut y = 5;
-y = try y + int("q") catch => y * 2;
+y = try { y + number("q") } catch { y * 2 };
 print(y); // expect: 10
 
-let f = try int("z") catch e => () => e.message;
-print(f()); // expect: int() cannot parse "z" as an integer.
+let f = try { number("z") } catch e { () => e.message };
+print(f()); // expect: number() cannot parse "z" as a number.
 
 fun pick(a, b, c) { [a, b, c] }
-print(pick(1, try [][0] catch e => e.message, 3)); // expect: [1, "Index out of bounds: 0 of 0", 3]
+print(pick(1, try { [][0] } catch e { e.message }, 3)); // expect: [1, "Index out of bounds: 0 of 0", 3]
+
+let z = try {
+  let n = number("7");
+  n * 2
+} catch {
+  0
+};
+print(z); // expect: 14
+
+fun last(s) {
+  try { number(s) } catch { -1 }
+}
+print([last("3"), last("q")]); // expect: [3, -1]
+
+let w = try { print("side"); } catch { 1 }; // expect: side
+print(w); // expect: nil

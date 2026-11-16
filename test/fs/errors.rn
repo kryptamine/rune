@@ -19,6 +19,6 @@ try { fs.rename(missing, fs.join(dir, "g")); } catch e is IOError { print([e.cod
 try { fs.removeAll(""); } catch e is ValueError { print(e.message); } // expect: fs.removeAll() got an empty path.
 try { fs.write(fs.join(dir, "h"), 1); } catch e is TypeError { print(e.message); } // expect: fs.write() expects a string, bytes or a buffer as argument 2, got number.
 
-try { http.get("http://127.0.0.1:1"); } catch e is IOError { print(e.code); } // expect: nil
+try { http.request("GET", "http://127.0.0.1:1"); } catch e is IOError { print(e.code); } // expect: nil
 
 fs.removeAll(dir);

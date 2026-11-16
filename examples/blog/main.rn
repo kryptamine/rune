@@ -17,7 +17,7 @@ fun main(args) {
 
         for p in site.posts {
             let tags = p.tags.map(t => "#" + t).join(" ");
-            print("  %s  %-32s %4d words  %s".format(p.date, p.title, p.words, tags));
+            print("  {p.date}  {p.title.padEnd(32)} {"%4d".format(p.words)} words  {tags}");
         }
 
         if site.skipped {

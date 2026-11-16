@@ -305,7 +305,7 @@ fun main(args) {
     let mut stats = map();
 
     for line in DEMO {
-        let kind = try parse(line).kind() catch => continue;
+        let kind = try { parse(line).kind() } catch { continue };
         stats[kind] = (stats?.[kind] ?? 0) + 1;
     }
 

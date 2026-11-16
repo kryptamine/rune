@@ -9,22 +9,6 @@ import (
 	"rune/pkg/value"
 )
 
-// BoundMethod is a method read off its receiver, as in p.len.
-type BoundMethod struct {
-	recv value.Value
-	fn   *Closure
-}
-
-func (b *BoundMethod) String() string { return b.fn.String() }
-
-// BoundNative is a built-in method read off its receiver, as in m.keys.
-type BoundNative struct {
-	recv value.Value
-	fn   *stdlib.Native
-}
-
-func (b *BoundNative) String() string { return b.fn.String() }
-
 // methodsOf returns the methods of v's type, and the type's name.
 func (p *Interpreter) methodsOf(v value.Value) ([]value.Method, string) {
 	switch v.Kind() {
@@ -74,29 +58,33 @@ func (p *Interpreter) property(tok *ast.Token, t, key value.Value, missing *valu
 	return value.NilValue, missingMember(tok, t, key.Str(), ms)
 }
 
-// methodValue is m read off t: bound to an instance, or off a struct type
-// the plain function, which takes the instance first.
+// methodValue is m read off t: only a static method, off its type, is a
+// value; a method taking self is only called.
 func (p *Interpreter) methodValue(tok *ast.Token, t value.Value, m *value.Method, owner string) (value.Value, error) {
-	switch {
-	case t.Kind() == value.Type:
-		return p.methods[m.ID], nil
-	case !m.Self:
-		return value.NilValue, staticMethod(tok, owner, m.Name)
-	case m.Mut:
-		return value.NilValue, errors.NewRuntimeError(errors.TypeError, *tok, fmt.Sprintf(
-			"Cannot take mutating method '%s' of %s as a value.", m.Name, owner))
-	case m.InPlace:
-		return value.NilValue, errors.NewRuntimeError(errors.TypeError, *tok, fmt.Sprintf(
-			"Cannot take in-place method '%s' of %s as a value.", m.Name, owner))
+	if err := receiverError(tok, t, m, owner); err != nil {
+		return value.NilValue, err
 	}
 
-	value.Share(t)
-
-	if nat, ok := p.methods[m.ID].Fn().(*stdlib.Native); ok {
-		return value.NewFunction(&BoundNative{recv: t, fn: nat}), nil
+	if m.Self {
+		return value.NilValue, errors.NewRuntimeError(errors.TypeError, *tok, fmt.Sprintf(
+			"Cannot take method '%s' of %s as a value.", m.Name, owner))
 	}
 
-	return value.NewFunction(&BoundMethod{recv: t, fn: (*Closure)(p.methods[m.ID].Ptr())}), nil
+	return p.methods[m.ID], nil
+}
+
+// receiverError is the error of m reached through t of the wrong kind: a
+// method taking self through its type, or a static one through an instance.
+func receiverError(tok *ast.Token, t value.Value, m *value.Method, owner string) error {
+	switch onType := t.Kind() == value.Type; {
+	case onType && m.Self:
+		return errors.NewRuntimeError(errors.TypeError, *tok, fmt.Sprintf(
+			"'%s' is a method of %s values; call it on one.", m.Name, owner))
+	case !onType && !m.Self:
+		return staticMethod(tok, owner, m.Name)
+	}
+
+	return nil
 }
 
 // invoke calls the method t.K[C](args) for the receiver t at R[A+1]:
@@ -123,11 +111,16 @@ func (p *Interpreter) invoke(fr *frame, in Instr, tok *ast.Token) error {
 		}
 
 		return noMethod(tok, t, owner, key.Str(), ms)
+	}
+
+	if err := receiverError(tok, t, m, owner); err != nil {
+		return err
+	}
+
+	switch {
 	case t.Kind() == value.Type:
 		p.stack[at] = p.methods[m.ID]
 		return p.callWithout(at, n, tok)
-	case !m.Self:
-		return staticMethod(tok, owner, m.Name)
 	case m.Mut && !in.y():
 		return errors.NewRuntimeError(errors.TypeError, *tok, mutatingCallError(m.Name, owner))
 	case m.InPlace && in.x()&1 != 0:

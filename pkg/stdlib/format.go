@@ -13,9 +13,9 @@ import (
 
 // format is printf: %[flags][width][.precision]verb, flags from "-+ 0#".
 // A width or precision of * takes the next argument, an integer; a
-// negative width pads on the right. %s shows a value as print does,
-// %q as it shows inside an array; %d %x %X %o %b take integers, %f %e %E
-// %g %G numbers; %% is a percent sign.
+// negative width pads on the right. %q shows a value as it shows inside
+// an array; %d %x %X %o %b take integers, %f %e %E %g %G numbers; %% is
+// a percent sign.
 func format(c *call, f string, args []value.Value) value.Value {
 	b := c.host.buf[:0]
 	p := printf{c: c, args: args}
@@ -65,11 +65,7 @@ func format(c *call, f string, args []value.Value) value.Value {
 
 		// A bare directive needs no fmt.
 		if len(p.text) == 2 {
-			switch v := c.args[j]; {
-			case d.verb == 's':
-				b = helpers.AppendValue(b, v)
-				continue
-			case d.verb == 'd' && v.IsInt():
+			if v := c.args[j]; d.verb == 'd' && v.IsInt() {
 				b = strconv.AppendInt(b, v.Int(), 10)
 				continue
 			}
@@ -239,15 +235,6 @@ func formatArg(c *call, verb byte, i int) (any, bool) {
 	v, h := c.args[i], c.host
 
 	switch verb {
-	case 's':
-		if v.IsString() {
-			h.fmtStr = v.Str()
-		} else {
-			h.tmp = helpers.AppendValue(h.tmp[:0], v)
-			h.fmtStr = unsafe.String(unsafe.SliceData(h.tmp), len(h.tmp))
-		}
-
-		return box(strType, unsafe.Pointer(&h.fmtStr)), true
 	case 'q':
 		h.fmtStr = helpers.Quoted(v)
 		return box(strType, unsafe.Pointer(&h.fmtStr)), true

@@ -54,7 +54,7 @@ fs.write(path, "GET /a 200\nPOST /b 500\nGET /c 404\n");
 
 let mut failed = 0;
 for i, line in fs.open(path) {
-    let status = int(line.split(" ")[2]);
+    let status = number(line.split(" ")[2]);
     if status >= 400 {
         print("line {i + 1}: {line}");
         failed += 1;

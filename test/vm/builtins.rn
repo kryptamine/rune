@@ -1,8 +1,8 @@
-fun kind() { return int("7"); }
+fun kind() { return int(7.5); }
 print(kind()); // expect: 7
 int = x => { return 42; };
 print(kind()); // expect: 42
-print(int("z")); // expect: 42
+print(int(1)); // expect: 42
 
 let s = "a";
 if s == "a" { print("eq"); } else { print("ne"); } // expect: eq

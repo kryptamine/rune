@@ -26,7 +26,7 @@ func (fs *funcState) destructure(pat ast.Pattern, src int32) {
 		}
 
 		if r := n.Rest; r != nil {
-			c := fs.keyList(fieldKeys(n.Fields))
+			c := fs.keyList(fieldKeys(n.Fields), nil)
 			fs.initialize(r.Local, func(dst int32) {
 				fs.emit(ins{op: opOmit, a: dst, b: src, c: c}, &n.Brace)
 			})
@@ -162,7 +162,7 @@ func (fs *funcState) pattern(p ast.Pattern, s int32) []int {
 		}
 
 		if n.Rest != nil {
-			c := fs.keyList(fieldKeys(n.Fields))
+			c := fs.keyList(fieldKeys(n.Fields), nil)
 			fs.emit(ins{op: opOmit, a: fs.locals[n.Rest.Local], b: s, c: c}, &n.Brace)
 		}
 
