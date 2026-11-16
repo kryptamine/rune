@@ -64,7 +64,7 @@ export fun compile(e, ctx) {
     if ctx.group != nil {
         let k = ctx.group.indexOf(ast.sql(e));
 
-        if k >= 0 {
+        if k != nil {
             return row => row[k];
         }
 

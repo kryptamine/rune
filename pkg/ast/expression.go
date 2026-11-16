@@ -271,19 +271,19 @@ func (n *StructExpr) Accept(v ExprVisitor) (value.Value, error) {
 	return v.VisitStructExpr(n)
 }
 
-// IsExpr is value is Type; the resolver sets Shape when Type names a
-// type, else Type is evaluated.
+// IsExpr is value is T | U; the resolver sets Shapes[i] when Types[i]
+// names a type, else Types[i] is evaluated.
 type IsExpr struct {
-	Value Expr
-	Type  Expr
-	Token Token
-	Shape *value.Shape
-	// Negate makes it value !is Type.
+	Value  Expr
+	Types  []Expr
+	Token  Token
+	Shapes []*value.Shape
+	// Negate makes it value !is T | U.
 	Negate bool
 }
 
-func NewIsExpr(v, typ Expr, token Token, negate bool) Expr {
-	return &IsExpr{Value: v, Type: typ, Token: token, Negate: negate}
+func NewIsExpr(v Expr, types []Expr, token Token, negate bool) Expr {
+	return &IsExpr{Value: v, Types: types, Token: token, Negate: negate, Shapes: make([]*value.Shape, len(types))}
 }
 
 func (n *IsExpr) Accept(v ExprVisitor) (value.Value, error) {

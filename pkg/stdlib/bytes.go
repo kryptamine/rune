@@ -33,7 +33,7 @@ var bytesMethods = []*Native{
 		return value.NewString(string(b))
 	}},
 	{"bytes.indexOf", 2, 2, func(c *call) value.Value {
-		return count(bytes.Index(c.bytes(0), c.bytes(1)))
+		return found(bytes.Index(c.bytes(0), c.bytes(1)))
 	}},
 	{"bytes.hex", 1, 1, func(c *call) value.Value {
 		return value.NewString(hex.EncodeToString(c.bytes(0)))

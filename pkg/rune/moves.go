@@ -336,9 +336,11 @@ func (lv *liveness) expr(e ast.Expr, live liveSet) {
 			lv.expr(n.Pairs[i].Value, live)
 		}
 	case *ast.IsExpr:
-		if n.Shape == nil {
-			lv.holds(n.Value, live)
-			lv.expr(n.Type, live)
+		for i := len(n.Types) - 1; i >= 0; i-- {
+			if n.Shapes[i] == nil {
+				lv.holds(n.Value, live)
+				lv.expr(n.Types[i], live)
+			}
 		}
 
 		lv.expr(n.Value, live)

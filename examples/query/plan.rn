@@ -90,7 +90,7 @@ fun place(conds, base, stages) {
 
         let i = stages.findIndex(s => s.joined.covers(c));
 
-        if i < 0 {
+        if i == nil {
             let all = stages ? stages[-1].joined : base;
             all.check(c);
         }
@@ -129,13 +129,13 @@ fun joinStep(s, pushed) {
 
     let parts = ast.conjuncts(j.on);
     let eq = parts.findIndex(e => sides(e, left, right) != nil);
-    let rest = eq < 0 ? parts : [...parts[..eq], ...parts[eq + 1..]];
+    let rest = eq == nil ? parts : [...parts[..eq], ...parts[eq + 1..]];
     let check = rest ? expr.compile(ast.allOf(rest), expr.Ctx { scope: joined }) : nil;
 
     let label = "{describe(j.table)} ({table.rows.len()} rows) on {ast.sql(j.on)}{whereText(pushed)}";
     let outer = j.left ? "left " : "";
 
-    if eq < 0 {
+    if eq == nil {
         return Step { label: "{outer}nested loop join {label}", run: rows => {
             let candidates = rightRows(table.rows);
             return joinRows(rows, _ => candidates, check, pad);
@@ -227,7 +227,7 @@ fun output(q, scope) {
 
     let order = q.orderBy.map(({ expr: e, desc }) => {
         let i = ordinal(e, items, "ORDER BY") ?? texts.indexOf(ast.sql(unalias(e)));
-        return SortKey { column: i >= 0 ? i : nil, expr: unalias(e), desc, text: ast.sql(e) };
+        return SortKey { column: i, expr: unalias(e), desc, text: ast.sql(e) };
     });
 
     let mut calls = [];

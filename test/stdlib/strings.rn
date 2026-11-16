@@ -11,6 +11,6 @@ print("a-b-c".replace("-", "+")); // expect: a+b+c
 print("ab".repeat(3)); // expect: ababab
 print("llo" in "héllo"); // expect: true
 print("héllo".indexOf("llo")); // expect: 2
-print("abc".indexOf("z")); // expect: -1
+print("abc".indexOf("z")); // expect: nil
 print("héllo"[1..3]); // expect: él
 print("héllo"[-3..]); // expect: llo

@@ -1,0 +1,14 @@
+struct P { x }
+let T = P;
+let mut x = 1;
+print(1 is number | string);            // expect: true
+print(nil is number | string);          // expect: false
+print(P { x: 1 } is nil | P);           // expect: true
+print(1 !is number | string);           // expect: false
+print(nil !is number | string);         // expect: true
+print(P { x: 2 } is array | T);         // expect: true
+print(1 is string | number == true);    // expect: true
+print("a" is string | number ? 1 : 2);  // expect: 1
+x = x is string | number;
+print(x);                               // expect: true
+print([1, "a", nil].map(v => v is nil | string)); // expect: [false, true, true]

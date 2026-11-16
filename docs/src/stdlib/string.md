@@ -31,7 +31,7 @@ print("héllo"[1..3]);              // él
 print("héllo"[-2..]);                // lo
 print("wor" in "hello world");    // true
 print("héllo".indexOf("l"));             // 2
-print("hello".indexOf("z"));             // -1
+print("hello".indexOf("z"));             // nil
 ```
 
 ## Trimming

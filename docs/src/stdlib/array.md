@@ -91,8 +91,8 @@ mixed.sort(); // TypeError: array.sort() without a comparator needs all numbers 
 ## Searching
 
 - `every(f)`, `some(f)` — whether `f` is truthy for all or any element, stopping once that is known.
-- `find(f)` — the first element for which it is, or `nil`; `findIndex(f)` — its index, or `-1`.
-- `indexOf(item)` — by `==`, so arrays and objects compare by content; `-1` if missing. Whether there is one at all is [`item in xs`](../language/values.md#membership).
+- `find(f)` — the first element for which it is, or `nil`; `findIndex(f)` — its index, or `nil`.
+- `indexOf(item)` — by `==`, so arrays and objects compare by content; `nil` if missing. Whether there is one at all is [`item in xs`](../language/values.md#membership).
 
 ```rune
 let users = [
@@ -106,7 +106,7 @@ print(users.find(u => !u.admin));               // {name: "bob", admin: false}
 print(users.find(u => u.name == "eve"));        // nil
 print(users.findIndex(u => u.name == "bob"));   // 1
 print(20 in [10, 20, 30]);               // true
-print([10, 20, 30].indexOf(99));                // -1
+print([10, 20, 30].indexOf(99));                // nil
 print([[1, 2], [3, 4]].indexOf([3, 4]));        // 1
 ```
 
