@@ -32,7 +32,7 @@ skip: int() cannot parse "x" as an integer.
 - immutable by default (`let` / `let mut`), compile-time `const`
 - value semantics: arrays, objects, maps, sets and structs copy lazily, `mut` parameters are inout
 - structs and enums with fields, `impl` methods, `fun f(x) => expr;`
-- `match` with exhaustiveness checks over enums; destructuring, spread, rest
+- `match` on literals, ranges (`200..300`, `500..`), types, structs, arrays and enums, exhaustive over enum variants; destructuring, spread, rest
 - membership `x in xs` (a range without making it), slices `xs[1..]`, `s[..-1]`
 - nil-safe chains `a?.b ?? c`; `return` / `break` / `continue` / `throw` as expressions
 - `try`/`catch` by error type, as a statement or an expression; `defer`

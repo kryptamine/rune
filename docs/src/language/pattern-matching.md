@@ -40,10 +40,10 @@ pattern matches.
   built-in one like `string` or `nil`, `_ is T | U` one of them, the same
   [test](values.md#type-tests) as `v is T` and `catch e is T`;
 - literals: numbers, strings, `true`, `false`, `nil`, compared as by `==`;
-- `a..b` matches a number from `a` up to `b`, `a..=b` up to `b` included,
-  `a..` one from `a` on and `..b` or `..=b` one up to `b`; a bound is a
-  number or the name of a constant. A float within the bounds matches,
-  and anything but a number is no match;
+- `a..b` matches a number from `a` up to `b`, `b` excluded, `a..=b` up to
+  `b` included, `a..` one from `a` on and `..b` or `..=b` one up to `b`; a
+  bound is a number or the name of a constant. A float within the bounds
+  matches, and anything but a number, `NaN` included, is no match;
 - `p | q` matches if either does;
 - `Color.White` matches that [enum](../data/enums.md) variant, and
   `Expr.Num { value }` a variant with fields, as a struct pattern;
@@ -101,11 +101,44 @@ print(grade({ status: 503, ms: 1 }));    // error
 print(grade({ status: 404, ms: 1 }));    // other
 ```
 
-A range no number is in is an error:
+Ranges combine with `|`, sit in array patterns and take a guard; to use
+the number, bind it with a name and test it in the guard:
+
+```rune
+const LOW = 10;
+const HIGH = 20;
+
+fun where(v) {
+    return match v {
+        -5..=-1 | LOW..HIGH => "in",
+        [..0, 1..] => "sign change",
+        4.. if v % 2 == 0 => "even, 4 or more",
+        n if n is number => "number {n}",
+        _ => "other",
+    };
+}
+
+print(where(15));      // in
+print(where([-1, 1])); // sign change
+print(where(8));       // even, 4 or more
+print(where(7));       // number 7
+print(where("15"));    // other
+```
+
+A range no number is in is an error, and so is a bound that is not a
+number or a constant holding one:
 
 ```rune
 match 1 { 5..5 => 1, _ => 2 } // Error at '..': Range pattern matches no number.
 ```
+
+```rune
+let v = 1;
+match 1 { v..3 => 1, _ => 2 } // Error at '..': A bound of a range pattern must be a number or a constant holding one.
+```
+
+Ranges never make a match exhaustive: `..0 | 0..` still needs `_ =>`
+for values that are not numbers.
 
 Object patterns pick data apart by shape, which makes small interpreters
 and event handlers short:
