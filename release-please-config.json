@@ -4,7 +4,11 @@
     ".": {
       "release-type": "go",
       "bump-minor-pre-major": true,
-      "bump-patch-for-minor-pre-major": false
+      "bump-patch-for-minor-pre-major": false,
+      "extra-files": [
+        "README.md",
+        "docs/src/getting-started.md"
+      ]
     }
   }
 }
