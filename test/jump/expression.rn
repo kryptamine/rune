@@ -23,7 +23,7 @@ print(out); // expect: [1, 3, 5]
 
 let mut n = 0;
 while true {
-    n = n < 3 ? n + 1 : break;
+    n = if n < 3 { n + 1 } else { break; };
 }
 print(n); // expect: 3
 

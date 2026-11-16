@@ -7,24 +7,32 @@ import (
 	"slices"
 )
 
-func (fs *funcState) stmts(stmts []ast.Stmt) {
+func (fs *funcState) stmts(stmts []ast.Stmt) { fs.stmtsThen(stmts, nil) }
+
+// stmtsThen compiles stmts and then last, if any, before the defers among
+// stmts run.
+func (fs *funcState) stmtsThen(stmts []ast.Stmt, last func()) {
 	for i, s := range stmts {
 		if d, ok := s.(*ast.DeferStmt); ok {
-			fs.deferStmt(d, stmts[i+1:])
+			fs.deferStmt(d, func() { fs.stmtsThen(stmts[i+1:], last) })
 			return
 		}
 
 		fs.stmt(s)
 		fs.free = fs.nactive
 	}
+
+	if last != nil {
+		last()
+	}
 }
 
-// deferStmt compiles rest, the statements after d, then d's body: on
-// the way out of rest, and if rest fails, before the error goes on up.
-func (fs *funcState) deferStmt(d *ast.DeferStmt, rest []ast.Stmt) {
+// deferStmt compiles rest, what follows d, then d's body: on the way out
+// of rest, and if rest fails, before the error goes on up.
+func (fs *funcState) deferStmt(d *ast.DeferStmt, rest func()) {
 	at := fs.nactive
 	run := func() { fs.runDefer(d.Body) }
-	try := fs.handled(ins{op: opTry, a: at, x: 1}, &unwind{leave: run, try: true}, func() { fs.stmts(rest) })
+	try := fs.handled(ins{op: opTry, a: at, x: 1}, &unwind{leave: run, try: true}, rest)
 	run()
 	fs.rethrowAfter(try, at, run)
 }
@@ -128,9 +136,9 @@ func (fs *funcState) stmt(stmt ast.Stmt) {
 	case *ast.ArrayDestructureStmt:
 		fs.unpack(s)
 	case *ast.BlockStmt:
-		fs.scoped(func() { fs.stmts(s.Stmts) })
+		fs.block(s, noReg)
 	case *ast.IfStmt:
-		fs.ifStmt(s)
+		fs.ifStmt(s, noReg)
 	case *ast.WhileStmt:
 		fs.whileStmt(s)
 	case *ast.ForInStmt:
@@ -142,7 +150,7 @@ func (fs *funcState) stmt(stmt ast.Stmt) {
 	case *ast.TryStmt:
 		fs.tryStmt(s)
 	case *ast.DeferStmt:
-		fs.deferStmt(s, nil)
+		fs.deferStmt(s, func() {})
 	case *ast.MatchStmt:
 		fs.match(s.Match, noReg)
 	case *ast.StructStmt, *ast.ImplStmt:
@@ -394,19 +402,59 @@ func (fs *funcState) functionStmt(s *ast.FunctionStmt) {
 	fs.emit(ins{op: opSetCell, a: r, b: t}, nil)
 }
 
-func (fs *funcState) ifStmt(s *ast.IfStmt) {
+// ifStmt compiles s, with the value of the branch taken into dst unless
+// it is noReg.
+func (fs *funcState) ifStmt(s *ast.IfStmt, dst int32) {
 	skip := fs.jumpIf(s.Condition, false)
-	fs.scoped(func() { fs.stmt(s.Then) })
+	fs.block(s.Then, dst)
 
-	if s.El == nil {
+	if s.El == nil && dst == noReg {
 		fs.patch(skip)
 		return
 	}
 
 	end := fs.emit(ins{op: opJmp}, nil)
 	fs.patch(skip)
-	fs.scoped(func() { fs.stmt(s.El) })
+
+	switch el := s.El.(type) {
+	case nil:
+		fs.emit(ins{op: opLoadK, a: dst, c: fs.constant(value.NilValue)}, nil)
+	case *ast.IfStmt:
+		fs.ifStmt(el, dst)
+	case *ast.BlockStmt:
+		fs.block(el, dst)
+	}
+
 	fs.patch([]int{end})
+}
+
+// block compiles b, with its value into dst unless it is noReg. Its
+// locals go above the temporaries live in the expression it may be in.
+func (fs *funcState) block(b *ast.BlockStmt, dst int32) {
+	free := fs.free
+	defer func() { fs.free = free }()
+
+	fs.scoped(func() {
+		fs.nactive = free
+
+		if dst == noReg {
+			fs.stmts(b.Stmts)
+			return
+		}
+
+		stmts := b.Stmts
+		if b.Valued {
+			stmts = stmts[:len(stmts)-1]
+		}
+
+		fs.stmtsThen(stmts, func() {
+			if v := b.Value(); v != nil {
+				fs.expr(v, dst)
+			} else {
+				fs.emit(ins{op: opLoadK, a: dst, c: fs.constant(value.NilValue)}, nil)
+			}
+		})
+	})
 }
 
 // whileStmt tests at the bottom, so an iteration runs one jump.

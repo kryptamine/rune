@@ -50,7 +50,7 @@ print(math.ceil(items / perPage));      // 4
 print(-7 % 3);     // -1
 print(7 / 0);      // inf
 print(0 / 0 == math.NAN);  // false
-print(0 / 0 ? "truthy" : "falsy"); // falsy
+print(if 0 / 0 { "truthy" } else { "falsy" }); // falsy
 ```
 
 ```rune

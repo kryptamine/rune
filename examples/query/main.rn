@@ -22,7 +22,7 @@ fun run(src, mut catalog, format) {
 
     if q.explain {
         for i, s in p.steps {
-            print("{"  ".repeat(i)}{i == 0 ? "" : "└ "}{s.label}");
+            print("{"  ".repeat(i)}{if i == 0 { "" } else { "└ " }}{s.label}");
         }
 
         return;
@@ -31,7 +31,7 @@ fun run(src, mut catalog, format) {
     let rows = p.execute();
     output.write(format, p.columns, rows);
     if format == "table" {
-        print("({rows.len()} row{rows.len() == 1 ? "" : "s"}, {"%.1f".format((time.now() - started) * 1000)} ms)");
+        print("({rows.len()} row{if rows.len() == 1 { "" } else { "s" }}, {"%.1f".format((time.now() - started) * 1000)} ms)");
     }
 }
 
@@ -112,14 +112,14 @@ fun main(args) {
             line = io.readLine();
         }
 
-        return failed > 0 ? 1 : 0;
+        return if failed > 0 { 1 } else { 0 };
     }
 
     if rest.len() != 1 {
         return usage();
     }
 
-    return tryRun(rest[0], catalog, format) ? 0 : 1;
+    return if tryRun(rest[0], catalog, format) { 0 } else { 1 };
 }
 
 fun usage() {

@@ -1,5 +1,0 @@
-error: Expect ':' after then branch of '?'.
- --> missing_colon.rn:1:12
-  |
-1 | print(1 ? 2); // [line: 1] Error at ')': Expect ':' after then branch of '?'.
-  |            ^

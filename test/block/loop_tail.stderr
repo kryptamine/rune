@@ -1,0 +1,6 @@
+error: Expect ';' after expression.
+ --> loop_tail.rn:3:6
+  |
+2 | for i in 0..2 {
+3 |     i
+  |      ^

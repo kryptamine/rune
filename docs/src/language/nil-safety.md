@@ -86,7 +86,7 @@ print(5 ?? loadDefault());    // 5
 print(nil ?? nil ?? "last");  // last
 ```
 
-`??` binds looser than `||` and tighter than `? :`.
+`??` binds looser than `||`.
 
 ## Leaving Early
 
@@ -111,5 +111,5 @@ for row in [{ id: 1 }, {}, { id: 3 }] {
 print(ids);                     // [1, 3]
 ```
 
-They fit in `? :` and match arms too: `n < 10 ? n + 1 : break`,
+They fit in `if` branches and match arms too: `if n < 10 { n + 1 } else { break }`,
 `0 => return "zero",`.

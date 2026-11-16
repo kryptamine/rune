@@ -1,6 +1,0 @@
-error: Invalid assignment target.
- --> assign.rn:2:16
-  |
-1 | let mut a = 1;
-2 | (true ? a : a) = 2; // [line: 2] Error at '=': Invalid assignment target.
-  |                ^

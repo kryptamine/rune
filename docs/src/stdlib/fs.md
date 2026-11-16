@@ -49,7 +49,7 @@ fs.rename(fs.join(dir, "draft.md"), fs.join(dir, "post.md"));
 fs.mkdir(fs.join(dir, "images"));
 
 for f in fs.list(dir) {
-    print("{f.name} {f.isDir ? "dir" : f.size}");
+    print("{f.name} {if f.isDir { "dir" } else { f.size }}");
 }
 // backup.md 8
 // images dir

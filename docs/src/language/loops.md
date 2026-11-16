@@ -63,7 +63,7 @@ the array. Anywhere else a range is an array. In brackets it
 [slices](../data/arrays.md), `xs[1..]`, and in a `match` it is a
 [pattern](pattern-matching.md#patterns), `200..300 => "ok"`. `..` binds looser than arithmetic
 and bitwise operators and tighter than comparisons, so `0..n + 1`,
-`x in 0..10` and `xs == 1..3` need no parentheses; a `??` or `? :` in a
+`x in 0..10` and `xs == 1..3` need no parentheses; a `??` in a
 bound does.
 
 ```rune
@@ -137,7 +137,7 @@ Anything else is a `while`:
 let mut n = 27;
 let mut steps = 0;
 while n != 1 {
-    n = n % 2 == 0 ? math.idiv(n, 2) : 3 * n + 1;
+    n = if n % 2 == 0 { math.idiv(n, 2) } else { 3 * n + 1 };
     steps++;
 }
 print(steps);    // 111

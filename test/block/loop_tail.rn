@@ -1,0 +1,4 @@
+// [line: 4] Error at '}': Expect ';' after expression.
+for i in 0..2 {
+    i
+}

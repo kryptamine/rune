@@ -2,7 +2,7 @@ struct E { message }
 
 let mut x = 1;
 try {
-    x = false ? 2 : throw E { message: "m" };
+    x = if false { 2 } else { throw E { message: "m" } };
 } catch {
     print(x); // expect: 1
 }

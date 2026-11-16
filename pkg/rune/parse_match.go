@@ -78,14 +78,14 @@ func (s *Parser) matchArm() (ast.MatchArm, error) {
 }
 
 // armBody parses a block or an expression.
-func (s *Parser) armBody() (ast.Stmt, error) {
-	if stmts, ok, err := s.braceBody(); ok {
-		return ast.NewBlockStmt(stmts), err
+func (s *Parser) armBody() (*ast.BlockStmt, error) {
+	if s.check(ast.LEFT_BRACE) {
+		return s.braced(true)
 	}
 
 	e, err := s.expression()
 
-	return ast.NewExprStmt(e), err
+	return &ast.BlockStmt{Stmts: []ast.Stmt{ast.NewExprStmt(e)}, Valued: true}, err
 }
 
 // matchPattern parses a pattern: alternatives separated by "|".

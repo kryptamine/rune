@@ -89,7 +89,7 @@ Falsy values are `nil`, `false`, `0`, `NaN` and anything empty: `""`,
 
 ```rune
 for v in [nil, false, 0, "", [], {}, map(), "0", [0], { a: nil }] {
-    print("%q is %s".format(v, v ? "truthy" : "falsy"));
+    print("%q is %s".format(v, if v { "truthy" } else { "falsy" }));
 }
 // nil is falsy
 // false is falsy

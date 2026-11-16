@@ -1,0 +1,13 @@
+error: Unexpected character: ?
+ --> question.rn:3:14
+  |
+2 | // [line: 3] Error at '1': Expect ';' after variable declaration.
+3 | let a = true ? 1 : 2;
+  |              ^
+
+error: Expect ';' after variable declaration.
+ --> question.rn:3:16
+  |
+2 | // [line: 3] Error at '1': Expect ';' after variable declaration.
+3 | let a = true ? 1 : 2;
+  |                ^

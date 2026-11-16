@@ -271,12 +271,8 @@ func (lv *liveness) expr(e ast.Expr, live liveSet) {
 		lv.expr(n.Right, right)
 		live.add(right)
 		lv.expr(n.Left, live)
-	case *ast.ConditionalExpr:
-		then := maps.Clone(live)
-		lv.expr(n.Then, then)
-		lv.expr(n.Else, live)
-		live.add(then)
-		lv.expr(n.Cond, live)
+	case *ast.IfExpr:
+		lv.stmt(n.If, live)
 	case *ast.AssignExpr:
 		lv.named[n.Local]++
 		delete(live, n.Local)

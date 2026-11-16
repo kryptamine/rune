@@ -1,4 +1,4 @@
-fun greet(name, greeting = "hi", punct = greeting == "hi" ? "!" : ".") {
+fun greet(name, greeting = "hi", punct = if greeting == "hi" { "!" } else { "." }) {
     return "{greeting} {name}{punct}";
 }
 

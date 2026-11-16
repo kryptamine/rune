@@ -29,7 +29,7 @@ fun printTable(columns, rows) {
 
     let right = columns.map((_, i) => rows.len() > 0 && rows.every(r => r[i] == nil || r[i] is number));
 
-    let line = row => row.map((c, i) => right[i] ? c.padStart(widths[i]) : c.padEnd(widths[i])).join("  ").trimEnd() + "\n";
+    let line = row => row.map((c, i) => if right[i] { c.padStart(widths[i]) } else { c.padEnd(widths[i]) }).join("  ").trimEnd() + "\n";
     io.write(line(columns));
     io.write(widths.map(w => "─".repeat(w)).join("  ") + "\n");
     for row in cells {
@@ -37,11 +37,13 @@ fun printTable(columns, rows) {
     }
 }
 
-fun cell(v) => match v {
-    nil => "NULL",
-    _ is number if !math.isInt(v) => string(math.round(v * 100) / 100),
-    _ => string(v),
-};
+fun cell(v) {
+    match v {
+        nil => "NULL",
+        _ is number if !math.isInt(v) => string(math.round(v * 100) / 100),
+        _ => string(v),
+    }
+}
 
 export fun error(src, e) {
     io.eprint("error: {e.message}");

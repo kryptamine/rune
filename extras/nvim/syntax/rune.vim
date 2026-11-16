@@ -38,7 +38,7 @@ syn region runeRawString matchgroup=runeBytesPrefix start=+\<r"+ end=+"+
 syn region runeString start=+"""+ skip=+\\\\\|\\"+ end=+"""+ contains=runeEscape,runeInterp
 syn region runeRawString matchgroup=runeBytesPrefix start=+\<r"""+ end=+"""+
 
-syn match runeOperator "=>\|\.\.\.\|\.\.=\|\.\.\|?\.\|??\|?\|[-+*/%=!<>&|^~]=\="
+syn match runeOperator "=>\|\.\.\.\|\.\.=\|\.\.\|?\.\|??\|[-+*/%=!<>&|^~]=\="
 
 syn keyword runeTodo contained TODO FIXME XXX NOTE
 syn match runeComment "//.*$" contains=runeTodo,@Spell

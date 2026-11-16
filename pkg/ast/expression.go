@@ -29,7 +29,7 @@ type ExprVisitor interface {
 	VisitOptionalExpr(optionalExpr *OptionalExpr) (value.Value, error)
 	VisitSpreadExpr(spreadExpr *SpreadExpr) (value.Value, error)
 	VisitComputedExpr(computedExpr *ComputedExpr) (value.Value, error)
-	VisitConditionalExpr(conditionalExpr *ConditionalExpr) (value.Value, error)
+	VisitIfExpr(ifExpr *IfExpr) (value.Value, error)
 	VisitThrowExpr(throwExpr *ThrowExpr) (value.Value, error)
 	VisitTryExpr(tryExpr *TryExpr) (value.Value, error)
 	VisitJumpExpr(jumpExpr *JumpExpr) (value.Value, error)
@@ -492,19 +492,14 @@ func (n *SliceExpr) String() string {
 	return fmt.Sprintf("(slice %v %v)", n.Target, n.Range)
 }
 
-// ConditionalExpr is cond ? then : else.
-type ConditionalExpr struct {
-	Cond Expr
-	Then Expr
-	Else Expr
+// IfExpr is an if whose value is used: that of the branch taken, nil
+// when none is.
+type IfExpr struct {
+	If *IfStmt
 }
 
-func (n *ConditionalExpr) Accept(v ExprVisitor) (value.Value, error) {
-	return v.VisitConditionalExpr(n)
-}
-
-func (n *ConditionalExpr) String() string {
-	return fmt.Sprintf("(? %v %v %v)", n.Cond, n.Then, n.Else)
+func (n *IfExpr) Accept(v ExprVisitor) (value.Value, error) {
+	return v.VisitIfExpr(n)
 }
 
 // ThrowExpr is throw in an expression; it has no value.

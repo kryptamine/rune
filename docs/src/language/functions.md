@@ -1,7 +1,9 @@
 # Functions
 
-`fun name(params) { ... }` declares a function. `return` gives its value; a
-function that ends without one returns `nil`.
+`fun name(params) { ... }` declares a function. It returns the value of its
+body: the last expression, written without a `;`, or an `if` or `match`
+that ends it and has values. A body ending with `;` returns `nil`.
+`return` leaves early.
 
 ```rune
 fun total(items) {
@@ -34,24 +36,27 @@ fun area(w, h) { return w * h; }
 area(3); // ArgumentError: Expected 2 arguments but got 1.
 ```
 
-## Expression Bodies
-
-`fun name(params) => expression;` returns the expression, as an arrow
-function does; the declaration ends with `;`. Methods take this form too.
+## Body Values
 
 ```rune
-fun square(x) => x * x;
-fun origin() => ({ x: 0, y: 0 });
+fun square(x) { x * x }
+fun origin() { ({ x: 0, y: 0 }) }
+
+fun sign(n) {
+    if n < 0 { return "negative"; }
+    if n == 0 { "zero" } else { "positive" }
+}
 
 struct Money { cents }
 
 impl Money {
-    fun of(amount) => Money { cents: math.round(amount * 100) };
-    fun format(self) => "$%.2f".format(self.cents / 100);
+    fun of(amount) { Money { cents: math.round(amount * 100) } }
+    fun format(self) { "$%.2f".format(self.cents / 100) }
 }
 
 print(square(7));                // 49
 print(origin());                 // {x: 0, y: 0}
+print(sign(-2), sign(0));        // negative zero
 print(Money.of(4.99).format());  // $4.99
 ```
 
@@ -59,7 +64,7 @@ print(Money.of(4.99).format());  // $4.99
 
 A function without a name is an arrow function, an expression, so
 functions can be passed around inline. An expression body is returned; a
-block body works like `fun`'s.
+block body works like `fun`'s, giving its last expression.
 
 ```rune
 let add = (a, b) => a + b;
@@ -82,8 +87,8 @@ print(users.map(({ name }) => name));                    // ["ann", "bob"]
 print(users.filter(u => u.age >= 18).map(u => u.name));  // ["ann"]
 ```
 
-After `=>` a `{` always starts a block, here and in a `fun`'s expression
-body or a match arm; an object to return goes in parentheses:
+After `=>` a `{` always starts a block, here and in a match arm; an
+object to return goes in parentheses:
 
 ```rune
 let origin = () => ({ x: 0, y: 0 });
@@ -94,7 +99,7 @@ print(wrap("ann"));  // {name: "ann"}
 ```
 
 ```rune
-let wrap = name => { name }; // Error at '{': A '{' here starts a block; wrap an object in parentheses: ({ ... }).
+let wrap = name => { name: name }; // Error at '{': A '{' here starts a block; wrap an object in parentheses: ({ ... }).
 ```
 
 ## Default Parameters
@@ -116,7 +121,7 @@ which it may use, so a mutable default is a new value every call. An
 explicit `nil` is an argument and gets no default.
 
 ```rune
-fun greet(name, greeting = "hi", punct = greeting == "hi" ? "!" : ".") {
+fun greet(name, greeting = "hi", punct = if greeting == "hi" { "!" } else { "." }) {
     return "{greeting} {name}{punct}";
 }
 

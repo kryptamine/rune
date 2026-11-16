@@ -11,9 +11,9 @@ export struct KvError { message }
 struct Segment { log, hint, size = 0, live = 0, reader = nil }
 
 impl Segment {
-    fun at(dir, id) => Segment { log: fs.join(dir, "%06d.log".format(id)), hint: fs.join(dir, "%06d.hint".format(id)) };
+    fun at(dir, id) { Segment { log: fs.join(dir, "%06d.log".format(id)), hint: fs.join(dir, "%06d.hint".format(id)) } }
 
-    fun name(self) => fs.base(self.log);
+    fun name(self) { fs.base(self.log) }
 
     fun added(mut self, n, alive) {
         self.size += n;
@@ -92,7 +92,7 @@ impl Store {
     // sync: fsync after every write, not only flush it to the system
     fun open(dir, { maxSegment = 4 << 20, sync = false } = {}) {
         fs.mkdir(dir);
-        let lock = try fs.lock(fs.join(dir, "LOCK")) catch e is IOError => throw e.code == "locked" ? KvError { message: "{dir} is open elsewhere" } : e;
+        let lock = try fs.lock(fs.join(dir, "LOCK")) catch e is IOError => throw if e.code == "locked" { KvError { message: "{dir} is open elsewhere" } } else { e };
         let mut db = Store { dir, maxSegment, sync, lock };
 
         try {
@@ -130,8 +130,8 @@ impl Store {
         }
 
         // A compacted segment, the one with a hint, is never appended to
-        let last = ids ? ids[-1] : 0;
-        self.active = last > 0 && !fs.exists(self.segs[last].hint) ? last : last + 1;
+        let last = if ids { ids[-1] } else { 0 };
+        self.active = if last > 0 && !fs.exists(self.segs[last].hint) { last } else { last + 1 };
         self.openActive();
         rec.ms = (time.now() - started) * 1000;
         self.recovery = rec;
@@ -240,7 +240,7 @@ impl Store {
         return true;
     }
 
-    fun has(self, key) => key in self.keydir;
+    fun has(self, key) { key in self.keydir }
 
     fun get(mut self, key, fallback = nil) {
         let loc = self.keydir?.[key] ?? return fallback;
@@ -253,9 +253,9 @@ impl Store {
         return ks;
     }
 
-    fun scan(mut self, prefix = "") => self.keys(prefix).map(k => [k, self.get(k)]);
+    fun scan(mut self, prefix = "") { self.keys(prefix).map(k => [k, self.get(k)]) }
 
-    fun len(self) => self.keydir.len();
+    fun len(self) { self.keydir.len() }
 
     fun info(self) {
         let mut size = 0;

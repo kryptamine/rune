@@ -21,7 +21,8 @@ print(status(503)); // server error 503
 print(status(100)); // unknown
 ```
 
-An arm is `pattern => expression` or `pattern => { block }`. Arms are
+An arm is `pattern => expression` or `pattern => { block }`, whose value
+is the block's last expression, written without a `;`. Arms are
 separated by `,`, and the last may have one too. `return`,
 `break`, `continue` and `throw` are expressions, so `pattern => return x,`
 works. As after an arrow function's `=>`, `{` starts a block: an object is
@@ -207,21 +208,26 @@ match 1 { 1 | x => 1, _ => 2 } // Error at 'x': Cannot bind variables in '|' pat
 
 ## Expression or Statement
 
-As an expression its value is the arm's; a block arm gives `nil`. No arm matching is a `ValueError`:
+As an expression its value is the arm's; a block arm ending with `;`
+gives `nil`. No arm matching is a `ValueError`:
 
 ```rune
 let count = 3;
 let label = match count {
     0 => "empty",
     1 => "one item",
-    n => "{n} items",
+    n => {
+        let noun = if n < 10 { "items" } else { "many items" };
+        "{n} {noun}"
+    },
 };
 print(label); // 3 items
 
 print(match 7 { 1 => "a" }); // ValueError: No match arm for 7.
 ```
 
-At the start of a statement it is a statement: values are dropped, and no
+At the start of a statement it is a statement: values are dropped, unless
+it ends a block that has a value, as a function body, and no
 arm matching is a `ValueError` all the same, so add `_ => {}` to ignore the
 rest. An arm may `return` from the enclosing function:
 

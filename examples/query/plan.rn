@@ -91,7 +91,7 @@ fun place(conds, base, stages) {
         let i = stages.findIndex(s => s.joined.covers(c));
 
         if i == nil {
-            let all = stages ? stages[-1].joined : base;
+            let all = if stages { stages[-1].joined } else { base };
             all.check(c);
         }
 
@@ -116,24 +116,24 @@ fun filter(conds, ctx) {
     return rows => rows.filter(r => ok(r) == true);
 }
 
-fun whereText(conds) => conds ? " where {ast.sql(ast.allOf(conds))}" : "";
+fun whereText(conds) { if conds { " where {ast.sql(ast.allOf(conds))}" } else { "" } }
 
-fun describe(ref) => ref.alias == ref.name ? ref.name : "{ref.name} {ref.alias}";
+fun describe(ref) { if ref.alias == ref.name { ref.name } else { "{ref.name} {ref.alias}" } }
 
 // An ON with a conjunct a = b, each side on one table, is a hash join on
 // it, the rest checked on each match; anything else is a nested loop.
 fun joinStep(s, pushed) {
     let { join: j, table, left, right, joined } = s;
     let rightRows = filter(pushed, expr.Ctx { scope: right });
-    let pad = j.left ? right.fields.map(_ => nil) : nil;
+    let pad = if j.left { right.fields.map(_ => nil) } else { nil };
 
     let parts = ast.conjuncts(j.on);
     let eq = parts.findIndex(e => sides(e, left, right) != nil);
-    let rest = eq == nil ? parts : [...parts[..eq], ...parts[eq + 1..]];
-    let check = rest ? expr.compile(ast.allOf(rest), expr.Ctx { scope: joined }) : nil;
+    let rest = if eq == nil { parts } else { [...parts[..eq], ...parts[eq + 1..]] };
+    let check = if rest { expr.compile(ast.allOf(rest), expr.Ctx { scope: joined }) } else { nil };
 
     let label = "{describe(j.table)} ({table.rows.len()} rows) on {ast.sql(j.on)}{whereText(pushed)}";
-    let outer = j.left ? "left " : "";
+    let outer = if j.left { "left " } else { "" };
 
     if eq == nil {
         return Step { label: "{outer}nested loop join {label}", run: rows => {
@@ -168,11 +168,13 @@ fun joinStep(s, pushed) {
     } };
 }
 
-fun sides(e, left, right) => match e {
-    ast.Binary { op: "=", left: a, right: b } if left.covers(a) && right.covers(b) => [a, b],
-    ast.Binary { op: "=", left: a, right: b } if left.covers(b) && right.covers(a) => [b, a],
-    _ => nil,
-};
+fun sides(e, left, right) {
+    match e {
+        ast.Binary { op: "=", left: a, right: b } if left.covers(a) && right.covers(b) => [a, b],
+        ast.Binary { op: "=", left: a, right: b } if left.covers(b) && right.covers(a) => [b, a],
+        _ => nil,
+    }
+}
 
 // joinRows pairs each row with the candidates check passes, or with pad if
 // none does and the join is outer.
@@ -209,11 +211,11 @@ fun output(q, scope) {
     let columns = items.map(columnName);
     let texts = items.map(it => ast.sql(it.expr));
     let aliased = map(items.filter(it => it.alias != nil).map(it => [it.alias, it.expr]));
-    let unalias = e => ast.rewrite(e, n => n is ast.Col && n.table == nil && n.name in aliased && scope.find(n) < 0 ? aliased[n.name] : n);
+    let unalias = e => ast.rewrite(e, n => if n is ast.Col && n.table == nil && n.name in aliased && scope.find(n) < 0 { aliased[n.name] } else { n });
 
     let groupBy = q.groupBy.map(e => {
         let i = ordinal(e, items, "GROUP BY");
-        let g = i == nil ? unalias(e) : items[i].expr;
+        let g = if i == nil { unalias(e) } else { items[i].expr };
         let a = ast.aggregatesIn(g)?.[0];
 
         if a != nil {
@@ -223,7 +225,7 @@ fun output(q, scope) {
         return g;
     });
 
-    let having = q.having == nil ? nil : unalias(q.having);
+    let having = if q.having == nil { nil } else { unalias(q.having) };
 
     let order = q.orderBy.map(({ expr: e, desc }) => {
         let i = ordinal(e, items, "ORDER BY") ?? texts.indexOf(ast.sql(unalias(e)));
@@ -231,7 +233,7 @@ fun output(q, scope) {
     });
 
     let mut calls = [];
-    let computed = [...items.map(it => it.expr), ...(having == nil ? [] : [having]), ...order.filter(o => o.column == nil).map(o => o.expr)];
+    let computed = [...items.map(it => it.expr), ...(if having == nil { [] } else { [having] }), ...order.filter(o => o.column == nil).map(o => o.expr)];
 
     for e in computed {
         for c in ast.aggregatesIn(e) {
@@ -247,8 +249,8 @@ fun output(q, scope) {
     if groupBy || having != nil || calls {
         let keys = groupBy.map(e => expr.compile(e, ctx));
         let aggs = agg.specs(calls, scope);
-        let by = groupBy ? groupBy.map(ast.sql).join(", ") : "()";
-        let computing = calls ? " computing " + calls.map(ast.sql).join(", ") : "";
+        let by = if groupBy { groupBy.map(ast.sql).join(", ") } else { "()" };
+        let computing = if calls { " computing " + calls.map(ast.sql).join(", ") } else { "" };
         steps.push(Step { label: "group by {by}{computing}", run: rows => agg.aggregate(rows, keys, aggs) });
 
         ctx = expr.Ctx { scope, group: [...groupBy, ...calls].map(ast.sql) };
@@ -258,11 +260,11 @@ fun output(q, scope) {
     }
 
     let project = items.map(it => expr.compile(it.expr, ctx));
-    let keys = order.map(o => o.column == nil ? expr.compile(o.expr, ctx) : nil);
+    let keys = order.map(o => if o.column == nil { expr.compile(o.expr, ctx) } else { nil });
     let sorted = order.len() > 0;
-    let stop = !sorted && !q.distinct && q.limit != nil ? q.offset + q.limit : -1;
+    let stop = if !sorted && !q.distinct && q.limit != nil { q.offset + q.limit } else { -1 };
 
-    steps.push(Step { label: "project {columns.join(", ")}{stop >= 0 ? ", first {stop} rows" : ""}", run: rows => {
+    steps.push(Step { label: "project {columns.join(", ")}{if stop >= 0 { ", first {stop} rows" } else { "" }}", run: rows => {
         let mut out = [];
 
         for r in rows {
@@ -271,7 +273,7 @@ fun output(q, scope) {
             }
 
             let row = project.map(f => f(r));
-            out.push(sorted ? [row, order.map((o, i) => o.column != nil ? row[o.column] : (keys[i])(r))] : row);
+            out.push(if sorted { [row, order.map((o, i) => if o.column != nil { row[o.column] } else { (keys[i])(r) })] } else { row });
         }
 
         return out;
@@ -283,7 +285,7 @@ fun output(q, scope) {
             let mut out = [];
 
             for r in rows {
-                let k = string(sorted ? r[0] : r);
+                let k = string(if sorted { r[0] } else { r });
 
                 if k in seen {
                     continue;
@@ -298,14 +300,14 @@ fun output(q, scope) {
     }
 
     if sorted {
-        steps.push(Step { label: "sort by {order.map(o => o.text + (o.desc ? " desc" : "")).join(", ")}", run: rows => {
+        steps.push(Step { label: "sort by {order.map(o => o.text + (if o.desc { " desc" } else { "" })).join(", ")}", run: rows => {
             let mut out = rows[..];
 
             out.sort((a, b) => {
                 for i, o in order {
                     let c = expr.compare(a[1][i], b[1][i]);
                     if c != 0 {
-                        return o.desc ? -c : c;
+                        return if o.desc { -c } else { c };
                     }
                 }
 
@@ -317,8 +319,8 @@ fun output(q, scope) {
     }
 
     if q.limit != nil || q.offset > 0 {
-        let end = q.limit == nil ? nil : q.offset + q.limit;
-        steps.push(Step { label: "limit {q.limit ?? "all"} offset {q.offset}", run: rows => end == nil ? rows[q.offset..] : rows[q.offset..end] });
+        let end = if q.limit == nil { nil } else { q.offset + q.limit };
+        steps.push(Step { label: "limit {q.limit ?? "all"} offset {q.offset}", run: rows => if end == nil { rows[q.offset..] } else { rows[q.offset..end] } });
     }
 
     return Plan { steps, columns };
@@ -333,7 +335,7 @@ fun ordinal(e, items, clause) {
     let n = e.value;
 
     if !math.isInt(n) || n < 1 || n > items.len() {
-        throw ast.SqlError { message: "{clause} {n}: the query has {items.len()} column{items.len() == 1 ? "" : "s"}" };
+        throw ast.SqlError { message: "{clause} {n}: the query has {items.len()} column{if items.len() == 1 { "" } else { "s" }}" };
     }
 
     return n - 1;
@@ -362,4 +364,4 @@ fun expandStars(items, scope) {
     return out;
 }
 
-fun columnName(it) => it.alias ?? (it.expr is ast.Col ? it.expr.name : ast.sql(it.expr));
+fun columnName(it) { it.alias ?? (if it.expr is ast.Col { it.expr.name } else { ast.sql(it.expr) }) }

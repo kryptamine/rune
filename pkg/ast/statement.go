@@ -154,22 +154,47 @@ func NewExprStmt(expr Expr) Stmt {
 	return &ExprStmt{Expr: expr}
 }
 
+// BlockStmt is { stmts }; if Valued, its last statement is an *ExprStmt
+// written without ';', whose value is the block's.
 type BlockStmt struct {
-	Stmts []Stmt
+	Stmts  []Stmt
+	Valued bool
+}
+
+// Value is the expression whose value the block gives, or nil.
+func (b *BlockStmt) Value() Expr {
+	if !b.Valued {
+		return nil
+	}
+
+	return b.Stmts[len(b.Stmts)-1].(*ExprStmt).Expr
 }
 
 func NewBlockStmt(stmts []Stmt) Stmt {
 	return &BlockStmt{Stmts: stmts}
 }
 
+// IfStmt is if cond { then } [else ...]; El is nil, a *BlockStmt or an
+// *IfStmt.
 type IfStmt struct {
 	Condition Expr
-	Then      Stmt
+	Then      *BlockStmt
 	El        Stmt
 }
 
-func NewIfStmt(condition Expr, then Stmt, el Stmt) Stmt {
-	return &IfStmt{Condition: condition, Then: then, El: el}
+// Values returns the value of each branch, nil for one without, a missing
+// else included.
+func (n *IfStmt) Values() []Expr {
+	vs := []Expr{n.Then.Value()}
+
+	switch el := n.El.(type) {
+	case *BlockStmt:
+		return append(vs, el.Value())
+	case *IfStmt:
+		return append(vs, el.Values()...)
+	}
+
+	return append(vs, nil)
 }
 
 type WhileStmt struct {

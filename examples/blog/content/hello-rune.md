@@ -16,7 +16,7 @@ This post was rendered by a Rune program, see [the repo](https://github.com/kryp
 
 ```rune
 fun fib(n) {
-    return n < 2 ? n : fib(n - 1) + fib(n - 2);
+    return if n < 2 { n } else { fib(n - 1) + fib(n - 2) };
 }
 ```
 

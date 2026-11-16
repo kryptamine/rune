@@ -144,10 +144,10 @@ enum Side { White, Black }
 
 impl Side {
     fun other(self) {
-        return self == Side.White ? Side.Black : Side.White;
+        return if self == Side.White { Side.Black } else { Side.White };
     }
     fun parse(s) {
-        return s == "w" ? Side.White : Side.Black;
+        return if s == "w" { Side.White } else { Side.Black };
     }
 }
 

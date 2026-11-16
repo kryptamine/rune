@@ -1,0 +1,10 @@
+let f = (a, b, c) => [a, b, c];
+print(f(1, if true { let t = 2; t * 10 } else { 0 }, 3)); // expect: [1, 20, 3]
+print(f(1, if false { 0 } else { let mut u = [5]; u.push(6); u }, 3)); // expect: [1, [5, 6], 3]
+print(f(match 2 { n => { let m = n + 1; m } }, 0, if true { 9 })); // expect: [3, 0, 9]
+
+let obj = { a: 1, b: if true { let x = "x"; x + x } else { "" }, c: 3 };
+print(obj); // expect: {a: 1, b: "xx", c: 3}
+
+let s = "p" + (if true { let q = "q"; q } else { "" }) + "r";
+print(s); // expect: pqr

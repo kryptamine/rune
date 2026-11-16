@@ -24,13 +24,13 @@ struct UsageError { message }
 
 enum Priority { Low, Normal, High }
 
-fun priorityNamed(word) => Priority.values().find(p => p.name.lower() == word);
+fun priorityNamed(word) { Priority.values().find(p => p.name.lower() == word) }
 const WEEKDAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 const DAY = "%Y-%m-%d";
 
 // --- dates: local calendar days, as YYYY-MM-DD ---
 
-fun today() => time.format(time.now(), DAY);
+fun today() { time.format(time.now(), DAY) }
 
 fun addDays(day, n) {
     let d = time.date(time.parse(day, DAY));
@@ -79,7 +79,7 @@ fun relative(day, now) {
 
 // --- storage ---
 
-fun defaultPath() => os.env("TODO_FILE") ?? fs.join(os.env("HOME") ?? ".", ".todo.json");
+fun defaultPath() { os.env("TODO_FILE") ?? fs.join(os.env("HOME") ?? ".", ".todo.json") }
 
 struct Store { path, tasks = [], nextId = 1 }
 
@@ -115,7 +115,7 @@ impl Store {
         return self.tasks[i];
     }
 
-    fun remove(mut self, id) => self.tasks.remove(self.find(id));
+    fun remove(mut self, id) { self.tasks.remove(self.find(id)) }
 }
 
 // --- commands ---
@@ -156,7 +156,7 @@ fun ids(args) {
 
 fun byUrgency(a, b) {
     if (a.completed == nil) != (b.completed == nil) {
-        return a.completed == nil ? -1 : 1;
+        return if a.completed == nil { -1 } else { 1 };
     }
 
     if a.due != b.due {
@@ -168,7 +168,7 @@ fun byUrgency(a, b) {
             return -1;
         }
 
-        return a.due < b.due ? -1 : 1;
+        return if a.due < b.due { -1 } else { 1 };
     }
 
     if a.priority != b.priority {
@@ -179,9 +179,9 @@ fun byUrgency(a, b) {
 }
 
 fun show(t, now) {
-    let mark = t.completed != nil ? "x" : t.due != nil && t.due < now ? "!" : " ";
+    let mark = if t.completed != nil { "x" } else if t.due != nil && t.due < now { "!" } else { " " };
     let prio = match t.priority { Priority.High => "↑", Priority.Low => "↓", Priority.Normal => " " };
-    let due = t.due != nil ? relative(t.due, now) : "";
+    let due = if t.due != nil { relative(t.due, now) } else { "" };
     let tags = t.tags.map(tag => "+" + tag).join(" ");
     return "[%s] %3d %s %-28s %-10s %s".format(mark, t.id, prio, t.text, due, tags).trimEnd();
 }
@@ -273,7 +273,7 @@ fun run(mut store, [cmd = "list", ...args], now) {
         _ => throw UsageError { message: "unknown command '{cmd}'" },
     }
 
-    return cmd in ["list", "ls", "stats", "help"] ? nil : store;
+    return if cmd in ["list", "ls", "stats", "help"] { nil } else { store };
 }
 
 fun usage() {

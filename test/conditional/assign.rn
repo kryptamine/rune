@@ -1,2 +1,0 @@
-let mut a = 1;
-(true ? a : a) = 2; // [line: 2] Error at '=': Invalid assignment target.

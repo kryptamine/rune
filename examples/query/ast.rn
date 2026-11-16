@@ -35,33 +35,37 @@ export struct Select {
 
 export let AGGREGATES = set(["COUNT", "SUM", "AVG", "MIN", "MAX"]);
 
-export fun isAggregate(e) => e is Call && e.name in AGGREGATES;
+export fun isAggregate(e) { e is Call && e.name in AGGREGATES }
 
-export fun sql(e) => match e {
-    Lit { value: nil } => "NULL",
-    Lit { value: true } => "TRUE",
-    Lit { value: false } => "FALSE",
-    Lit { value: v is string } => "'" + v.replace("'", "''") + "'",
-    Lit { value } => string(value),
-    Col { table: nil, name } => name,
-    Col { table, name } => "{table}.{name}",
-    Unary { op: "NOT", expr } => "NOT {sql(expr)}",
-    Unary { op, expr } => op + sql(expr),
-    Binary { op, left, right } => "{wrap(left)} {op} {wrap(right)}",
-    Call { name, star: true } => "{name}(*)",
-    Call { name, args, distinct } => "{name}({distinct ? "DISTINCT " : ""}{args.map(sql).join(", ")})",
-    IsNull { expr, not } => "{wrap(expr)} IS {not ? "NOT " : ""}NULL",
-    InList { expr, list, not } => "{wrap(expr)} {not ? "NOT " : ""}IN ({list.map(sql).join(", ")})",
-    Between { expr, lo, hi, not } => "{wrap(expr)} {not ? "NOT " : ""}BETWEEN {wrap(lo)} AND {wrap(hi)}",
-    Like { expr, pattern, not } => "{wrap(expr)} {not ? "NOT " : ""}LIKE {sql(pattern)}",
-    Case { whens, otherwise } => "CASE " + whens.map(([c, v]) => "WHEN {sql(c)} THEN {sql(v)} ").join("")
-        + (otherwise == nil ? "" : "ELSE {sql(otherwise)} ") + "END",
-};
+export fun sql(e) {
+    match e {
+        Lit { value: nil } => "NULL",
+        Lit { value: true } => "TRUE",
+        Lit { value: false } => "FALSE",
+        Lit { value: v is string } => "'" + v.replace("'", "''") + "'",
+        Lit { value } => string(value),
+        Col { table: nil, name } => name,
+        Col { table, name } => "{table}.{name}",
+        Unary { op: "NOT", expr } => "NOT {sql(expr)}",
+        Unary { op, expr } => op + sql(expr),
+        Binary { op, left, right } => "{wrap(left)} {op} {wrap(right)}",
+        Call { name, star: true } => "{name}(*)",
+        Call { name, args, distinct } => "{name}({if distinct { "DISTINCT " } else { "" }}{args.map(sql).join(", ")})",
+        IsNull { expr, not } => "{wrap(expr)} IS {if not { "NOT " } else { "" }}NULL",
+        InList { expr, list, not } => "{wrap(expr)} {if not { "NOT " } else { "" }}IN ({list.map(sql).join(", ")})",
+        Between { expr, lo, hi, not } => "{wrap(expr)} {if not { "NOT " } else { "" }}BETWEEN {wrap(lo)} AND {wrap(hi)}",
+        Like { expr, pattern, not } => "{wrap(expr)} {if not { "NOT " } else { "" }}LIKE {sql(pattern)}",
+        Case { whens, otherwise } => "CASE " + whens.map(([c, v]) => "WHEN {sql(c)} THEN {sql(v)} ").join("")
+            + (if otherwise == nil { "" } else { "ELSE {sql(otherwise)} " }) + "END",
+    }
+}
 
-fun wrap(e) => match e {
-    _ is Binary | IsNull | InList | Between | Like => "({sql(e)})",
-    _ => sql(e),
-};
+fun wrap(e) {
+    match e {
+        _ is Binary | IsNull | InList | Between | Like => "({sql(e)})",
+        _ => sql(e),
+    }
+}
 
 fun children(e) {
     return match e {
@@ -110,7 +114,7 @@ export fun rewrite(e, f) {
         _ is Between => Between { ...e, expr: r(e.expr), lo: r(e.lo), hi: r(e.hi) },
         _ is Case => Case {
             whens: e.whens.map(([c, v]) => [r(c), r(v)]),
-            otherwise: e.otherwise == nil ? nil : r(e.otherwise),
+            otherwise: if e.otherwise == nil { nil } else { r(e.otherwise) },
         },
         _ => e,
     });
@@ -136,13 +140,15 @@ export fun aggregatesIn(e) {
     return out;
 }
 
-export fun conjuncts(e) => match e {
-    nil => [],
-    Binary { op: "AND", left, right } => [...conjuncts(left), ...conjuncts(right)],
-    _ => [e],
-};
+export fun conjuncts(e) {
+    match e {
+        nil => [],
+        Binary { op: "AND", left, right } => [...conjuncts(left), ...conjuncts(right)],
+        _ => [e],
+    }
+}
 
-export fun allOf(preds) => preds.reduce((a, b) => Binary { op: "AND", left: a, right: b });
+export fun allOf(preds) { preds.reduce((a, b) => Binary { op: "AND", left: a, right: b }) }
 
 export fun suggest(word, options) {
     let w = word.lower();
@@ -157,7 +163,7 @@ export fun suggest(word, options) {
         }
     }
 
-    return best == nil ? "" : ", did you mean '{best}'?";
+    return if best == nil { "" } else { ", did you mean '{best}'?" };
 }
 
 fun distance(a, b) {
@@ -167,7 +173,7 @@ fun distance(a, b) {
         let mut cur = [i];
 
         for j in 1..b.len() + 1 {
-            let cost = a[i - 1] == b[j - 1] ? 0 : 1;
+            let cost = if a[i - 1] == b[j - 1] { 0 } else { 1 };
             cur.push(math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost));
         }
 

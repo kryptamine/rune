@@ -2,7 +2,7 @@ print(try int("12") catch => 0); // expect: 12
 print(try int("x") catch => -1); // expect: -1
 print(try int("x") catch e => e is ValueError); // expect: true
 
-fun read(o) => try o.k catch e is TypeError => "type" catch e is KeyError => "key";
+fun read(o) { try o.k catch e is TypeError => "type" catch e is KeyError => "key" }
 print([read({}), read(1), read({ k: 2 })]); // expect: ["key", "type", 2]
 
 print([1, try [].pop() catch => 9, 3]); // expect: [1, 9, 3]
@@ -29,5 +29,5 @@ print(y); // expect: 10
 let f = try int("z") catch e => () => e.message;
 print(f()); // expect: int() cannot parse "z" as an integer.
 
-fun pick(a, b, c) => [a, b, c];
+fun pick(a, b, c) { [a, b, c] }
 print(pick(1, try [][0] catch e => e.message, 3)); // expect: [1, "Index out of bounds: 0 of 0", 3]

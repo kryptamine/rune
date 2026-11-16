@@ -25,7 +25,8 @@ fun main(){
   let r = xs
   .map(x=>x*2)
   .filter(x => x>1);
-  let q = c?1:{a:2};
+  let q = if c{1}else{({a:2})};
+  let t = if c { let n = 1; n*2 } else { 0 };
   let m = match v {
     Point{x,y:0} => x,
     [a,..._] | [] => 0,

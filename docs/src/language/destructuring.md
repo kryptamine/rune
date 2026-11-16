@@ -131,7 +131,7 @@ evaluated only then, and may use the variables before it.
 
 ```rune
 let opts = { title: "Blog", root: nil };
-let { title, theme = "light", root = ".", depth = root == "." ? 0 : 1 } = opts;
+let { title, theme = "light", root = ".", depth = if root == "." { 0 } else { 1 } } = opts;
 
 print(title); // Blog
 print(theme); // light

@@ -2,6 +2,7 @@ package rune
 
 import (
 	"fmt"
+	"slices"
 
 	"rune/pkg/ast"
 	"rune/pkg/errors"
@@ -197,15 +198,9 @@ func (s *Parser) function(kind string) (ast.Stmt, error) {
 		return nil, err
 	}
 
-	fn, expr, err := s.functionRest(name)
+	fn, err := s.functionRest(name)
 	if err != nil {
 		return nil, err
-	}
-
-	if expr {
-		if _, err := s.consume(ast.SEMICOLON, "Expect ';' after function body."); err != nil {
-			return nil, err
-		}
 	}
 
 	return fn, nil
@@ -213,31 +208,43 @@ func (s *Parser) function(kind string) (ast.Stmt, error) {
 
 const maxArity = 8
 
-// functionRest parses a function's parameter list and body, a block or
-// "=> body" as an arrow function's; expr reports an expression body. The
+// functionRest parses a function's parameter list and block body; the
 // opening "(" has already been consumed.
-func (s *Parser) functionRest(name ast.Token) (fn *ast.FunctionStmt, expr bool, err error) {
+func (s *Parser) functionRest(name ast.Token) (*ast.FunctionStmt, error) {
 	params, err := s.parameters()
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
-	var body []ast.Stmt
-
-	if s.check(ast.ARROW) {
-		body, expr, err = s.arrowBody(s.advance())
-	} else if _, err = s.consume(ast.LEFT_BRACE, "Expect '{' or '=>' before function body."); err == nil {
-		body, err = s.block()
+	if !s.check(ast.LEFT_BRACE) {
+		return nil, errors.NewSyntaxError(s.peek(), "Expect '{' before function body.")
 	}
 
+	body, err := s.functionBody()
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
-	fn = params.function(name, body)
+	fn := params.function(name, body)
 	s.inout |= argInout(fn)
 
-	return fn, expr, nil
+	return fn, nil
+}
+
+// functionBody parses a block whose value the function returns.
+func (s *Parser) functionBody() ([]ast.Stmt, error) {
+	brace := s.peek()
+
+	b, err := s.braced(true)
+	if err != nil {
+		return nil, err
+	}
+
+	if v := b.Value(); v != nil {
+		b.Stmts[len(b.Stmts)-1] = ast.NewReturnStmt(v, brace)
+	}
+
+	return b.Stmts, nil
 }
 
 // params is a parameter list; patterns destructure pattern parameters
@@ -455,12 +462,13 @@ func (s *Parser) statement() (ast.Stmt, error) {
 		return &ast.MatchStmt{Match: m}, nil
 	}
 
-	if block, ok, err := s.braceBody(); ok {
+	if s.check(ast.LEFT_BRACE) {
+		b, err := s.braced(false)
 		if err != nil {
 			return nil, err
 		}
 
-		return ast.NewBlockStmt(block), nil
+		return b, nil
 	}
 
 	if s.match(ast.FOR) {
@@ -468,7 +476,12 @@ func (s *Parser) statement() (ast.Stmt, error) {
 	}
 
 	if s.match(ast.IF) {
-		return s.ifStatement()
+		st, err := s.ifStatement()
+		if err != nil {
+			return nil, err
+		}
+
+		return st, nil
 	}
 
 	return s.expressionStatement()
@@ -497,6 +510,11 @@ func (s *Parser) expressionStatement() (ast.Stmt, error) {
 		return nil, err
 	}
 
+	// A block ends here: it decides what a missing ';' means.
+	if s.blockDepth > 0 && s.check(ast.RIGHT_BRACE) {
+		return ast.NewExprStmt(expr), nil
+	}
+
 	_, err = s.consume(ast.SEMICOLON, "Expect ';' after expression.")
 	if err != nil {
 		return nil, foreignKeyword(expr, err)
@@ -505,72 +523,120 @@ func (s *Parser) expressionStatement() (ast.Stmt, error) {
 	return ast.NewExprStmt(expr), nil
 }
 
-// braceBody parses a block if "{" is next; ok reports whether it was.
-func (s *Parser) braceBody() (stmts []ast.Stmt, ok bool, err error) {
-	if !s.check(ast.LEFT_BRACE) {
-		return nil, false, nil
-	}
-
+// braced parses a block if "{" is next; if valued, it may end in a value.
+func (s *Parser) braced(valued bool) (*ast.BlockStmt, error) {
 	if s.isObjectLiteralStart() {
-		return nil, true, errors.NewSyntaxError(s.peek(), "A '{' here starts a block; wrap an object in parentheses: ({ ... }).")
+		return nil, errors.NewSyntaxError(s.peek(), "A '{' here starts a block; wrap an object in parentheses: ({ ... }).")
 	}
 
 	s.advance()
 
 	defer s.allowStructs(structsAll)()
 
-	stmts, err = s.block()
-
-	return stmts, true, err
+	return s.blockOf(valued)
 }
 
 func (s *Parser) block() ([]ast.Stmt, error) {
-	var stmts []ast.Stmt
+	b, err := s.blockOf(false)
+	if err != nil {
+		return nil, err
+	}
+
+	return b.Stmts, nil
+}
+
+// blockOf parses statements up to "}". The last one, when no ';' ends
+// it, is the value of a valued block: an expression, or an if or match
+// with values.
+func (s *Parser) blockOf(valued bool) (*ast.BlockStmt, error) {
+	b := &ast.BlockStmt{}
 
 	outer := s.blockDepth
 	s.blockDepth = s.depth[s.current]
 	defer func() { s.blockDepth = outer }()
 
+	open := false
+
 	for !s.check(ast.RIGHT_BRACE) && !s.isAtEnd() {
-		if stmt := s.safeDeclaration(); stmt != nil {
-			stmts = append(stmts, stmt)
+		stmt := s.safeDeclaration()
+		open = stmt != nil && s.previous().TokenType != ast.SEMICOLON
+
+		if stmt != nil {
+			b.Stmts = append(b.Stmts, stmt)
 		}
 	}
 
-	_, err := s.consume(ast.RIGHT_BRACE, "Expect '}' after block.")
-	if err != nil {
+	if open {
+		last := &b.Stmts[len(b.Stmts)-1]
+
+		switch st := (*last).(type) {
+		case *ast.ExprStmt:
+			if !valued {
+				s.errors = append(s.errors, foreignKeyword(st.Expr, errors.NewMissingError(s.previous(), s.peek(), "Expect ';' after expression.")))
+			}
+
+			b.Valued = valued
+		case *ast.IfStmt:
+			b.Valued = valued && hasValue(st.Values())
+			if b.Valued {
+				*last = ast.NewExprStmt(&ast.IfExpr{If: st})
+			}
+		case *ast.MatchStmt:
+			b.Valued = valued && hasValue(st.Match.Values())
+			if b.Valued {
+				*last = ast.NewExprStmt(st.Match)
+			}
+		}
+	}
+
+	if _, err := s.consume(ast.RIGHT_BRACE, "Expect '}' after block."); err != nil {
 		return nil, err
 	}
 
-	return stmts, nil
+	return b, nil
 }
 
-func (s *Parser) ifStatement() (ast.Stmt, error) {
+func hasValue(values []ast.Expr) bool {
+	return slices.ContainsFunc(values, func(e ast.Expr) bool { return e != nil })
+}
+
+func (s *Parser) ifStatement() (*ast.IfStmt, error) {
 	condition, err := s.expressionWithStructs(structsNone)
 	if err != nil {
 		return nil, err
 	}
 
-	then, err := s.body("if condition")
+	then, err := s.branch("if condition")
 	if err != nil {
 		return nil, err
 	}
 
-	var el ast.Stmt
+	st := &ast.IfStmt{Condition: condition, Then: then}
 
-	if s.match(ast.ELSE) {
-		if s.match(ast.IF) {
-			el, err = s.ifStatement()
-		} else {
-			el, err = s.body("'else'")
-		}
-
-		if err != nil {
-			return nil, err
-		}
+	if !s.match(ast.ELSE) {
+		return st, nil
 	}
 
-	return ast.NewIfStmt(condition, then, el), nil
+	if s.match(ast.IF) {
+		el, err := s.ifStatement()
+		st.El = el
+
+		return st, err
+	}
+
+	el, err := s.branch("'else'")
+	st.El = el
+
+	return st, err
+}
+
+// branch parses the block of an if or else.
+func (s *Parser) branch(after string) (*ast.BlockStmt, error) {
+	if !s.check(ast.LEFT_BRACE) {
+		return nil, errors.NewSyntaxError(s.peek(), fmt.Sprintf("Expect '{' after %s.", after))
+	}
+
+	return s.braced(true)
 }
 
 // stmtKeyword reports whether t starts a statement that is no
